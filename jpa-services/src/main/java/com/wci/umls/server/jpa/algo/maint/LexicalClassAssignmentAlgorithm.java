@@ -14,6 +14,7 @@ import javax.persistence.Query;
 
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ValidationResult;
+import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.ValidationResultJpa;
@@ -52,6 +53,11 @@ public class LexicalClassAssignmentAlgorithm extends AbstractAlgorithm {
       throw new Exception("LUI assignment requires a project to be set");
     }
 
+    // Makes sure automations are turned off before continuing - process takes days
+    if(getProject().isAutomationsEnabled()){
+      throw new LocalException("Automations are turned on - disable before continuing lexical class assignment.");
+    }
+    
     // n/a - NO preconditions
     return new ValidationResultJpa();
   }
