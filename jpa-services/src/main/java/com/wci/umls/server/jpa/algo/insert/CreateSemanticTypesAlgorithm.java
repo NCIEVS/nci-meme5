@@ -21,6 +21,8 @@ import java.util.UUID;
 
 import javax.xml.bind.DatatypeConverter;
 
+import org.apache.commons.io.FileUtils;
+
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -68,6 +70,18 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 
 		setSrcDirFile(new File(srcFullPath));
 
+		// check the inversion src folder
+		String inversionSrcFolderName = getSrcDirFile().getParentFile() + File.separator + "src";
+		File inversionSrcFolder = new File(inversionSrcFolderName);
+		if (!inversionSrcFolder.exists()) {
+			throw new Exception("Inversion src folder must exist.");
+		}
+
+		File file = new File(inversionSrcFolder, "attributes.src");
+		if (!file.exists()) {
+			throw new Exception("Inversion src folder must contain attributes.src .");
+		}
+
 		if (terminology == null) {
 			throw new Exception("Create semantic types requires a terminology");
 		}
@@ -93,9 +107,7 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 
 			logInfo("Finished " + getName());
 
-		} catch (
-
-		Exception e) {
+		} catch (Exception e) {
 			logError("Unexpected problem - " + e.getMessage());
 			throw e;
 		}
@@ -138,8 +150,8 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		params.add(param);
 
 		// Version
-		param = new AlgorithmParameterJpa("Version", "version", "The version of the terminology",
-				"e.g. 2017_06D", 40, AlgorithmParameter.Type.STRING, "");
+		param = new AlgorithmParameterJpa("Version", "version", "The version of the terminology", "e.g. 2017_06D", 40,
+				AlgorithmParameter.Type.STRING, "");
 		params.add(param);
 
 		return params;
@@ -150,7 +162,7 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		return "Semantic Types will be created for the given terminology/version";
 	}
 
-	public void processSTYs() throws Exception{
+	public void processSTYs() throws Exception {
 		String ptree, psaid;
 		String tty, sdui, rel;
 		int aid = 0;
@@ -178,7 +190,7 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			logError("Could not open attributes.src file to discover max attributeId.");
 			return;
 		}
-		
+
 		// first prepare said2stys from the generated file sty_term_ids.
 		// this file is generated during test insertion.
 		try {
@@ -217,7 +229,8 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 				String[] subParts = parts[2].split("/");
 				tty = subParts[0];
 				sdui = parts[11];
-				// if sty_term_ids didn't have each said from classes_atoms, add it to needing list
+				// if sty_term_ids didn't have each said from classes_atoms, add it to needing
+				// list
 				if (!said2stys.containsKey(said)) {
 					// store its tty and sdui(12th field).
 					saidsNeedStys.put(said, tty + "|" + sdui);
@@ -238,9 +251,9 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			FileWriter out = new FileWriter(getSrcDirFile() + File.separator + "new_sty_defaults");
 
 			FileWriter fw = new FileWriter(getSrcDirFile() + File.separator + "attributes.src", true);
-		    BufferedWriter bw = new BufferedWriter(fw);
-		    PrintWriter pw = new PrintWriter(bw);
-		    
+			BufferedWriter bw = new BufferedWriter(fw);
+			PrintWriter pw = new PrintWriter(bw);
+
 			/// for these walk through the context trees and assign stys.
 			final String contextsFile = getSrcDirFile() + File.separator + "contexts.src";
 
@@ -324,7 +337,6 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			}
 			logInfo("Added(MTH) count: " + count);
 
-
 			// add "Classification" as sty for all SMQ atoms
 			count = 0;
 			for (String said : smqSaids.keySet()) {
@@ -342,7 +354,6 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 				}
 			}
 			logInfo("Added(SMQ) count: " + count);
-
 
 			// now append stys as attributes.
 			List<String> sortedSaids = new ArrayList<String>(said2stys.keySet());
@@ -366,23 +377,53 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			fw.close();
 			pw.close();
 			bw.close();
-			
-		} catch (Exception e) {
-			if (e instanceof IOException) {
-				logError("Could not create new_sty_defaults file.");
-			} else {
-				logError("Error appending to attributes.src file.");
+
+			// attributes.src was modified in the getSrcDir folder (inversion test
+			// directory)
+			// now it needs to be copied to the inversion src folder
+			// but first backup the attributes.src file in the inversion src folder
+
+			// get inversion src folder
+			String inversionSrcFolderName = getSrcDirFile().getParentFile() + File.separator + "src";
+			File inversionSrcFolder = new File(inversionSrcFolderName);
+			if (!inversionSrcFolder.exists()) {
+				throw new Exception("attributes.src modified in " + getSrcDirFile()
+						+ " but unable to access the inversion src folder.");
 			}
-			return;
+			// File with old name
+			File file = new File(inversionSrcFolder, "attributes.src");
+
+			// File with new name
+			File file2 = new File(inversionSrcFolder, "attributes.orig");
+
+			if (file2.exists())
+				throw new java.io.IOException(file2.getAbsolutePath() + " already exists");
+
+			// Rename file (or directory)
+			boolean success = file.renameTo(file2);
+
+			if (!success) {
+				// attributes.src was not successfully renamed
+				throw new Exception(
+						"unable to make backup copy of " + inversionSrcFolder + File.separator + "attributes.src");
+			}
+
+			// copy modified test/attributes.src to the inversionSrcFolder
+			logInfo("copying modified file: " + attributesFile + " to inversion src folder: " + file);
+			FileUtils.copyFile(new File(attributesFile), file);
+
+		} catch (Exception e) {
+			logError("Error appending to attributes.src file. " + e.getMessage());
+			throw e;
 		}
 	}
-	
-	
+
 	private void attAppender(PrintWriter pw, int aid, String said, String sty) throws Exception {
 		MessageDigest md = MessageDigest.getInstance("MD5");
-	    md.update(sty.getBytes());
-	    byte[] digest = md.digest();
-	    String myHash = DatatypeConverter.printHexBinary(digest).toLowerCase();
-		pw.println(aid + "|" + said + "|C|SEMANTIC_TYPE|" + sty + "|E-" + terminology + "_" + version + "|N|Y|N|N|SRC_ATOM_ID|||" + myHash + "|");
+		md.update(sty.getBytes());
+		byte[] digest = md.digest();
+		String myHash = DatatypeConverter.printHexBinary(digest).toLowerCase();
+		pw.println(aid + "|" + said + "|C|SEMANTIC_TYPE|" + sty + "|E-" + terminology + "_" + version
+				+ "|N|Y|N|N|SRC_ATOM_ID|||" + myHash + "|");
 	}
 }
