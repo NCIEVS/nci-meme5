@@ -255,8 +255,19 @@ public class ApproveMolecularAction extends AbstractMolecularAction {
 
     getConcept().setLastApprovedBy(getLastModifiedBy());
     getConcept().setLastApproved(new Date());
-
-    //
+    
+    // NM-228 mark concept unpublishable if no publishable atoms
+    boolean foundPublishableAtom = false;
+    for (Atom a : getConcept().getAtoms()) {
+      if (a.isPublishable()) {
+    	  foundPublishableAtom = true;
+    	  break;
+      }
+    }
+    if (!foundPublishableAtom) {
+    	getConcept().setPublishable(false);
+    }
+    
     // update the Concept
     //
     updateConcept(getConcept());
