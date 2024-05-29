@@ -49,12 +49,34 @@ public class MGV_A4 extends AbstractValidationCheck {
         ? action.getConcept() : action.getConcept2());
     final List<Atom> sourceAtoms = (action instanceof MoveMolecularAction
         ? ((MoveMolecularAction) action).getMoveAtoms() : source.getAtoms());
-
     //
     // Obtain target atoms
     //
     final List<Atom> targetAtoms = target.getAtoms();
 
+    // disregard this MGV_A4 check if a single sourceAtom that is new matches a target atom
+    // if there is exactly one sourceAtom
+    if (source.getAtoms().size() == 1 ) {
+    	Atom sourceAtom = source.getAtoms().get(0);
+    	String atomTerminology = sourceAtom.getTerminology();
+    	String atomCodeId = sourceAtom.getCodeId();
+    	
+    	// check this single source atom isn't special
+    	if (!atomTerminology.equals("MTH") && !atomTerminology.equals("NCIMTH") && !atomTerminology.equals("NCI")) {
+    	  // check if this sourceAtom is new in the insertion
+    	  if (sourceAtom.getTimestamp().compareTo(action.getProcess().getStartDate()) > 0) {
+    	
+    	    // if targetConcept has an atom with matching terminology and code, allow merge
+    	    for (Atom targetAtom : target.getAtoms()) {
+    		  if (targetAtom.getTerminology().equals(atomTerminology) && targetAtom.getCodeId().equals(atomCodeId)) {
+    			return result;
+    		  }
+    	    }
+		  
+    	  }
+    	}    	
+    }
+    
     //
     // Find publishable atom from source concept
     // having different last release cui from publishable
