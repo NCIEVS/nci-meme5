@@ -158,7 +158,8 @@ public abstract class AbstractMergeAlgorithm
       action.setMolecularActionFlag(true);
       action.setChangeStatusFlag(changeStatus);
       action.setValidationChecks(validationChecks);
-
+      action.setProcess(getProcess());
+      
       // Perform the action
       final ValidationResult validationResult =
           action.performMolecularAction(action, getLastModifiedBy(), false, false);
