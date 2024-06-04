@@ -3,6 +3,8 @@
  */
 package com.wci.umls.server.jpa.services.validation;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -54,6 +56,10 @@ public class MGV_A4 extends AbstractValidationCheck {
     //
     final List<Atom> targetAtoms = target.getAtoms();
 
+    Calendar cal = Calendar.getInstance();
+    cal.add(Calendar.MONTH, -1);
+    Date monthAgo = cal.getTime();
+    
     // disregard this MGV_A4 check if a single sourceAtom that is new matches a target atom
     // if there is exactly one sourceAtom
     if (source.getAtoms().size() == 1 ) {
@@ -63,20 +69,40 @@ public class MGV_A4 extends AbstractValidationCheck {
     	
     	// check this single source atom isn't special
     	if (!atomTerminology.equals("MTH") && !atomTerminology.equals("NCIMTH") && !atomTerminology.equals("NCI")) {
-    	  // check if this sourceAtom is new in the insertion
-    	  if (sourceAtom.getTimestamp().compareTo(action.getProcess().getStartDate()) > 0) {
+    	    // check if this sourceAtom is new in the insertion
+    		if (sourceAtom.getTimestamp().after(monthAgo)) {
     	
-    	    // if targetConcept has an atom with matching terminology and code, allow merge
-    	    for (Atom targetAtom : target.getAtoms()) {
-    		  if (targetAtom.getTerminology().equals(atomTerminology) && targetAtom.getCodeId().equals(atomCodeId)) {
-    			return result;
-    		  }
-    	    }
-		  
-    	  }
+    			// if targetConcept has an atom with matching terminology and code, allow merge
+    			for (Atom targetAtom : target.getAtoms()) {
+    				if (targetAtom.getTerminology().equals(atomTerminology) && targetAtom.getCodeId().equals(atomCodeId)) {
+    					return result;
+    				}
+    			}		  
+    		}
     	}    	
     }
-    
+ 
+    if (target.getAtoms().size() == 1 ) {
+    	 Atom targetAtom= target.getAtoms().get(0);
+    	 String atomTerminology = targetAtom.getTerminology();
+    	 String atomCodeId = targetAtom.getCodeId();
+    	       
+    	 // check this single source atom isn't special
+    	 if (!atomTerminology.equals("MTH") && !atomTerminology.equals("NCIMTH") && !atomTerminology.equals("NCI")) {
+    	      // check if this sourceAtom is new in the insertion
+    	      if (targetAtom.getTimestamp().after(monthAgo)) {
+    	       
+    	    	  // if targetConcept has an atom with matching terminology and code, allow merge
+    	    	  for (Atom sourceAtom : source.getAtoms()) {
+    	    		  if (sourceAtom.getTerminology().equals(atomTerminology) && sourceAtom.getCodeId().equals(atomCodeId)) {
+    	                  //System.out.println("sourceAtom:"  sourceAtom.getTerminology()  " : "  sourceAtom.getCodeId()  " sourceCodeId "  sourceAtom);
+    	                  return result;
+    	              }
+    	          } 	                 
+    	      }
+    	  }       
+    }
+        
     //
     // Find publishable atom from source concept
     // having different last release cui from publishable
