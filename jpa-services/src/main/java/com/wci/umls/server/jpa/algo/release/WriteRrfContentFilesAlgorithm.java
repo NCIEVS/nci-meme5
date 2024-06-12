@@ -36,6 +36,7 @@ import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.helpers.SearchResultList;
 import com.wci.umls.server.helpers.content.ConceptList;
+import com.wci.umls.server.helpers.content.MapSetList;
 import com.wci.umls.server.jpa.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -1186,10 +1187,19 @@ public class WriteRrfContentFilesAlgorithm
 
       // Collect the mapset concepts and cache
       if (a.getTermType().equals("XM")) {
-        final MapSet mapSet = getMapSet(a.getCodeId(), a.getTerminology(),
+        MapSet mapSet = null;
+        
+        // get the latest available publishable target version for this mapping
+        MapSetList mapSetList = getMapSets(a.getTerminology(),
             a.getVersion(), Branch.ROOT);
+        for (MapSet m : mapSetList.getObjects()) {
+        	if (mapSet == null || (m.isPublishable() && m.getToVersion().compareTo(mapSet.getToVersion()) > 0)) {
+        		mapSet = m;
+        		logInfo("mapSet: " + mapSet.getToVersion() + " " + mapSet.getId());
+        	}
+        }
 
-        if (mapSet.isPublishable()) {
+        if (mapSet != null && mapSet.isPublishable()) {
           if (filesToWriteSet.contains("MRMAP.RRF")) {
             for (final String line : writeMrmap(mapSet, c.getTerminologyId())) {
               writerMap.get("MRMAP.RRF").print(line);

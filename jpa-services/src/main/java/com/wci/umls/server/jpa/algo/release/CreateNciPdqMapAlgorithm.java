@@ -463,6 +463,7 @@ public class CreateNciPdqMapAlgorithm extends AbstractAlgorithm {
 
         addMapping(m);
         mapSet.getMappings().add(m);
+        objectCt++;
 
         // add to cache
         descriptorIdConceptIdCache
