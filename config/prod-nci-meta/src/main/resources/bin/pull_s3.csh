@@ -102,6 +102,9 @@ else if ($INV_OR_MR == 'umls') then
     	mkdir $TARGET_PATH/umls/$TARGET_NAME
 		cd $TARGET_PATH/umls/$TARGET_NAME
     	$awspath/aws s3 cp $S3_BUCKET/mr/umls/$TARGET_NAME . --recursive
+    	
+        rm -rf $TARGET_PATH/umls/$TARGET_NAME/DVDIMAGE/jre
+    	
  	else
 		echo "    $TARGET_NAME was not found.  Exiting..."
 	    exit 1
