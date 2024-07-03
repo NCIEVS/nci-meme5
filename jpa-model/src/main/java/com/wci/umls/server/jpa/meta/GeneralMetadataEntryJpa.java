@@ -8,8 +8,6 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.envers.Audited;
-
 import com.wci.umls.server.model.meta.GeneralMetadataEntry;
 
 /**

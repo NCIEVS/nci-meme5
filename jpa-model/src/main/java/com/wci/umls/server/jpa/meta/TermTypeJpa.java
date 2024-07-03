@@ -14,8 +14,6 @@ import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.envers.Audited;
-
 import com.wci.umls.server.model.meta.CodeVariantType;
 import com.wci.umls.server.model.meta.NameVariantType;
 import com.wci.umls.server.model.meta.TermType;

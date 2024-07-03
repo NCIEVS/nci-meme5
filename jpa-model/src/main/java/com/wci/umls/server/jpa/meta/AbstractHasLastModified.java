@@ -14,7 +14,6 @@ import javax.persistence.TableGenerator;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-import org.hibernate.envers.Audited;
 
 import com.wci.umls.server.helpers.HasLastModified;
 import com.wci.umls.server.model.meta.Abbreviation;

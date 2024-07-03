@@ -6,7 +6,7 @@ package com.wci.umls.server.jpa.meta;
 import javax.persistence.Column;
 import javax.persistence.MappedSuperclass;
 
-import org.hibernate.envers.Audited;
+
 
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.model.meta.Abbreviation;
