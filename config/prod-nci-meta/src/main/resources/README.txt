@@ -17,7 +17,7 @@ SETUP
 mkdir /local/content/MEME/MEME5/ncim
 cd /local/content/MEME/MEME5/ncim
 mkdir config data
-git clone https://github.com/WestCoastInformatics/UMLS-Terminology-Server.git code
+git clone https://github.com/NCIEVS/nci-meme5.git code
 
 cd /local/content/MEME/MEME5/ncim/code
 git pull
