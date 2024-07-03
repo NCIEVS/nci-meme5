@@ -12,7 +12,6 @@ import javax.persistence.Table;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.envers.Audited;
 
 import com.wci.umls.server.model.meta.SemanticType;
 
