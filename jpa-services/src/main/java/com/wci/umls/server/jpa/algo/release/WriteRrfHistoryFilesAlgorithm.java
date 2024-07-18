@@ -341,6 +341,20 @@ public class WriteRrfHistoryFilesAlgorithm
       // Get facts
       final Set<ComponentHistory> facts =
           history.getFacts(cui, previousCuis, currentCuis);
+      
+      // MRCUI should not have both SY and R* entries
+      // If both exist for a cui, only print the SY entries
+      final Set<ComponentHistory> syFacts =
+              facts.stream().filter(item -> item.getRelationshipType().equals("SY"))
+                  .collect(Collectors.toSet());
+      final Set<ComponentHistory> relFacts = facts.stream()
+              .filter(item -> item.getRelationshipType().startsWith("R"))
+              .collect(Collectors.toSet());
+      if (syFacts.size() > 0 && relFacts.size() > 0) {
+    	  logInfo("removed R* fact for cui that has SY: " + cui);
+    	  facts.removeAll(relFacts);
+      }
+      
       // Write these entries out
       for (final ComponentHistory fact : facts) {
         // C1584235|201508|RO|||C0000294|Y|
