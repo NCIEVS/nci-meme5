@@ -1192,15 +1192,18 @@ public class WriteRrfContentFilesAlgorithm
         // get the latest available publishable target version for this mapping
         MapSetList mapSetList = getMapSets(a.getTerminology(),
             a.getVersion(), Branch.ROOT);
+        
         for (MapSet m : mapSetList.getObjects()) {
-        	if (mapSet == null || (m.isPublishable() && m.getToVersion().compareTo(mapSet.getToVersion()) > 0)) {
+        	if (mapSet == null && m.isPublishable() && a.getCodeId().equals(m.getTerminologyId())) { 
         		mapSet = m;
         		logInfo("mapSet: " + mapSet.getToVersion() + " " + mapSet.getId());
+        		break;
         	}
         }
 
         if (mapSet != null && mapSet.isPublishable()) {
           if (filesToWriteSet.contains("MRMAP.RRF")) {
+      		logInfo("writeMrmap: " + mapSet.getToVersion() + " " + mapSet.getId());
             for (final String line : writeMrmap(mapSet, c.getTerminologyId())) {
               writerMap.get("MRMAP.RRF").print(line);
             }
