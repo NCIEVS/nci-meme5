@@ -1271,7 +1271,12 @@ public class WriteRrfContentFilesAlgorithm
         // SAB
         sb.append(d.getTerminology()).append("|");
         // DEF
-        sb.append(d.getValue()).append("|");
+        if (d.getTerminology().equals("PDQ")) {
+            String newValue = d.getValue().replaceAll(" Check for \"http://www.cancer.gov/Search/ClinicalTrialsLink.aspx\\?id=\\d+&idtype=1\" [^.]+\\.", "");
+            sb.append(newValue).append("|");
+        }  else {
+        	sb.append(d.getValue()).append("|");
+        }
         // SUPPRESS
         if (d.isObsolete()) {
           sb.append("O");
