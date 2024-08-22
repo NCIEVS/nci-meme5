@@ -51,7 +51,7 @@ public class CreateXRRelationshipsForCluster
   public CreateXRRelationshipsForCluster() throws Exception {
     super();
     setActivityId(UUID.randomUUID().toString());
-    setWorkId("CREATEXRRELATIONSHIPSFORCLUSTER");
+    setWorkId("CREATEXRRELATIONSHIPS");
     setLastModifiedBy("admin");
   }
 
