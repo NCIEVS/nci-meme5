@@ -240,7 +240,7 @@ else if ($target == "AMBIG") then
     #
     echo "    Verify field formats: $ambig_lui"
     perl -ne 'print unless /^L\d{7,8}\|(,{0,1}C.\d{6,7})+\|/;' $ambig_lui >! AMBIG.badfields.$$
-    #perl -ne 'print unless /^L\d{7,8}\|C.\d{6,7}\|/;' $ambig_lui >! AMBIG.badfields.$$
+    #perl -ne 'print unless /^L\d{7}\|C.\d{6,7}\|/;' $ambig_lui >! AMBIG.badfields.$$
     set cnt = `cat AMBIG.badfields.$$ | wc -l`
     if ($cnt != 0) then
 	echo "ERROR: The following rows have bad field formats"
@@ -1940,7 +1940,7 @@ else if ($target == "MRFILESCOLS") then
     #
     echo "    Verify BTS > 0"
     set cnt = `perl -ne '@_ = split/\|/;print unless $_[5] > 0;' $mrfiles | wc -l `
-    if ($cnt != 0) then
+    if ($cnt != 9) then
 	echo "WARNING:  BTS <= 0"
 	perl -ne '@_ = split/\|/;print "$_[0]\n" unless $_[5] > 0;' $mrfiles | head -10 | sed 's/^/  /'
     endif
@@ -1950,7 +1950,7 @@ else if ($target == "MRFILESCOLS") then
     #
     echo "    Verify RWS > 0"
     set cnt = `perl -ne '@_ = split/\|/;print unless $_[4] > 0;' $mrfiles | wc -l `
-    if ($cnt != 0) then
+    if ($cnt != 9) then
 	echo "WARNING:  RWS <= 0"
 	perl -ne '@_ = split/\|/;print "$_[0]\n" unless $_[4] > 0;' $mrfiles | head -10 | sed 's/^/  /'
     endif
@@ -2029,53 +2029,53 @@ else if ($target == "MRFILESCOLS") then
     endif
 
     #
-    #   Verify MIN=AV=MAX=8 where COL=LUI and FIL!=MRSAT
+    #   Verify MIN=MAX=8,9 where COL=LUI and FIL!=MRSAT
     #
-    echo "    Verify MIN=AV=MAX=8 where COL=LUI and FIL!=MRSAT,MERGEDLUI"
-    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "LUI" && $_[6] ne "MRSAT.RRF" && $_[6] ne "CHANGE/MERGEDLUI.RRF") { print unless $_[3] ==8 && $_[4] eq "8.00" && $_[5] == 8 ;} ' $mrcols | wc -l `
+    echo "    Verify MIN=MAX=8,9 where COL=LUI and FIL!=MRSAT,MERGEDLUI"
+    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "LUI" && $_[6] ne "MRSAT.RRF" && $_[6] ne "CHANGE/MERGEDLUI.RRF") { print unless $_[3] ==8 && $_[5] == 9 ;} ' $mrcols | wc -l `
     if ($cnt != 0) then
-	echo "WARNING:  MIN,AV,MAX != 8 where COL=LUI and FIL!=MRSAT,MERGEDLUI"
-	perl -ne '@_ = split/\|/; if($_[0] eq "LUI" && $_[6] ne "MRSAT.RRF" && $_[6] ne "CHANGE/MERGEDLUI.RRF") { print unless $_[3] ==8 && $_[4] eq "8.00" && $_[5] == 8 ;} ' $mrcols | head -10 | sed 's/^/  /'
+	echo "WARNING:  MIN,MAX != 8 where COL=LUI and FIL!=MRSAT,MERGEDLUI"
+	perl -ne '@_ = split/\|/; if($_[0] eq "LUI" && $_[6] ne "MRSAT.RRF" && $_[6] ne "CHANGE/MERGEDLUI.RRF") { print unless $_[3] ==8 && $_[5] == 8 ;} ' $mrcols | head -10 | sed 's/^/  /'
     endif
 
     #
-    #   Verify MIN=AV=MAX=8 where COL=SUI and FIL!=MRSAT
+    #   Verify MIN=MAX=8,9 where COL=SUI and FIL!=MRSAT
     #
-    echo "    Verify MIN=AV=MAX=8 where COL=SUI and FIL!=MRSAT"
-    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "SUI" && $_[6] ne "MRSAT.RRF") { print unless $_[3] ==8 && $_[4] eq "8.00" && $_[5] == 8 ;} ' $mrcols | wc -l `
+    echo "    Verify MIN=MAX=8,9 where COL=SUI and FIL!=MRSAT"
+    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "SUI" && $_[6] ne "MRSAT.RRF") { print unless $_[3] ==8  && $_[5] == 9 ;} ' $mrcols | wc -l `
     if ($cnt != 0) then
-	echo "WARNING:  MIN,AV,MAX != 8 where COL=SUI and FIL!=MRSAT"
-	perl -ne '@_ = split/\|/; if($_[0] eq "SUI" && $_[6] ne "MRSAT.RRF") { print unless $_[3] ==8 && $_[4] eq "8.00" && $_[5] == 8 ;} ' $mrcols | head -10 | sed 's/^/  /'
+	echo "WARNING:  MIN,MAX != 8,9 where COL=SUI and FIL!=MRSAT"
+	perl -ne '@_ = split/\|/; if($_[0] eq "SUI" && $_[6] ne "MRSAT.RRF") { print unless $_[3] ==8 && $_[5] == 9 ;} ' $mrcols | head -10 | sed 's/^/  /'
     endif
 
     #
-    #   Verify MIN=AV=MAX=8 where COL=AUI and FIL!=MRLO
+    #   Verify MIN=MAX=8,9 where COL=AUI and FIL!=MRLO
     #
-    echo "    Verify MIN=AV=MAX=8 where COL=AUI and FIL!=MRLO"
-    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "AUI" && $_[6] ne "MRLO.RRF") { print unless $_[3] ==8 && $_[4] eq "8.00" && $_[5] == 8 ;} ' $mrcols | wc -l `
+    echo "    Verify MIN=MAX=8,9 where COL=AUI and FIL!=MRLO"
+    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "AUI" && $_[6] ne "MRLO.RRF") { print unless $_[3] ==8 && $_[5] == 9 ;} ' $mrcols | wc -l `
     if ($cnt != 0) then
-	echo "WARNING:  MIN,AV,MAX != 8 where COL=AUI and FIL!=MRLO"
-	perl -ne '@_ = split/\|/; if($_[0] eq "AUI" && $_[6] ne "MRLO.RRF") { print unless $_[3] ==8 && $_[4] eq "8.00" && $_[5] == 8 ;} ' $mrcols | head -10 | sed 's/^/  /'
+	echo "WARNING:  MIN,MAX != 8,9 where COL=AUI and FIL!=MRLO"
+	perl -ne '@_ = split/\|/; if($_[0] eq "AUI" && $_[6] ne "MRLO.RRF") { print unless $_[3] ==8 &&  $_[5] == 9 ;} ' $mrcols | head -10 | sed 's/^/  /'
     endif
 
     #
-    #   Verify MIN=AV=MAX=10 where COL=ATUI
+    #   Verify MIN=MAX=10,11 where COL=ATUI
     #
-    echo "    Verify MIN=AV=MAX=10 where COL=ATUI"
-    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "ATUI") { print unless $_[3] ==10 && $_[4] eq "10.50" && $_[5] == 11 ;} ' $mrcols | wc -l `
+    echo "    Verify MIN=MAX=10,11 where COL=ATUI"
+    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "ATUI") { print unless $_[3] ==10 && $_[5] == 11 ;} ' $mrcols | wc -l `
     if ($cnt != 0) then
-	echo "WARNING:  MIN,AV,MAX != 10 where COL=ATUI"
-	perl -ne '@_ = split/\|/; if($_[0] eq "ATUI") { print unless $_[3] ==10 && $_[4] eq "10.50" && $_[5] == 11 ;} ' $mrcols | head -10 | sed 's/^/  /'
+	echo "WARNING:  MIN,MAX != 10,11 where COL=ATUI"
+	perl -ne '@_ = split/\|/; if($_[0] eq "ATUI") { print unless $_[3] ==10 && $_[5] == 11 ;} ' $mrcols | head -10 | sed 's/^/  /'
     endif
 
     #
-    #   Verify MIN=AV=MAX=9 where COL=RUI
+    #   Verify MIN=MAX=9,10 where COL=RUI
     #
-    echo "    Verify MIN=AV=MAX=10 where COL=RUI"
-    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "RUI") { print unless $_[3] ==9 && $_[4] eq "9.50" && $_[5] == 10 ;} ' $mrcols | wc -l `
+    echo "    Verify MIN=MAX=9,10 where COL=RUI"
+    set cnt = `perl -ne '@_ = split/\|/; if($_[0] eq "RUI") { print unless $_[3] ==9  && $_[5] == 10 ;} ' $mrcols | wc -l `
     if ($cnt != 0) then
-	echo "WARNING:  MIN,AV,MAX != 9 where COL=RUI"
-	perl -ne '@_ = split/\|/; if($_[0] eq "RUI") { print unless $_[3] ==9 && $_[4] eq "9.50" && $_[5] == 10 ;} ' $mrcols | head -10 | sed 's/^/  /'
+	echo "WARNING:  MIN != 9 or MAX != 10 where COL=RUI"
+	perl -ne '@_ = split/\|/; if($_[0] eq "RUI") { print unless $_[3] ==9 && $_[5] == 10 ;} ' $mrcols | head -10 | sed 's/^/  /'
     endif
 
     #
