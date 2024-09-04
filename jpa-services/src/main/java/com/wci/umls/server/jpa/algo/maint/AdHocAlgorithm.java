@@ -3117,8 +3117,9 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
   
   private void removeUnbalancedConceptRelationships() throws Exception {
     // 01/05/2023 remove RN/RB concept relationships that don't have an inverse
+	// 09/04/2024 remove RO concept relationships that don't have an inverse
 
-    logInfo(" Remove unbalanced concept relationships");
+    logInfo(" Remove unbalanced concept RN/RB relationships");
 
     Query query = getEntityManager().createNativeQuery(
         "select distinct id from concept_relationships where relationshipType = 'RN' " +
@@ -3133,7 +3134,27 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
     List<Object> list = query.getResultList();
     setSteps(list.size());
-    logInfo("[RemoveUnbalancedConceptRelationships] " + list.size() + " ConceptRelationship ids loaded");
+    logInfo("[RemoveUnbalancedConceptRelationships] " + list.size() + " RN/RB ConceptRelationship ids loaded");
+
+    for (final Object entry : list) {
+      final Long id = Long.valueOf(entry.toString());
+      removeRelationship(id, ConceptRelationshipJpa.class);
+      updateProgress();
+    }
+
+    logInfo(" Remove unbalanced concept RO relationships");
+
+    query = getEntityManager().createNativeQuery(
+        "select distinct id from concept_relationships where relationshipType = 'RO' " +
+            " and (to_id, from_id) not in " + 
+            "(select from_id, to_id from concept_relationships where relationshipType = 'RO') ");
+
+    logInfo("[RemoveUnbalancedConceptRelationships] Loading "
+        + "ConceptRelationship ids for unbalanced relationships");
+
+    list = query.getResultList();
+    setSteps(list.size());
+    logInfo("[RemoveUnbalancedConceptRelationships] " + list.size() + " RO ConceptRelationship ids loaded");
 
     for (final Object entry : list) {
       final Long id = Long.valueOf(entry.toString());
