@@ -3145,10 +3145,16 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     logInfo(" Remove unbalanced concept RO relationships");
 
     query = getEntityManager().createNativeQuery(
-        "select distinct id from concept_relationships where relationshipType = 'RO' " +
+        "select distinct id from concept_relationships where relationshipType = 'RO' and terminology = 'MTH' " +
             " and (to_id, from_id) not in " + 
-            "(select from_id, to_id from concept_relationships where relationshipType = 'RO') ");
+            "(select from_id, to_id from concept_relationships where relationshipType = 'RO' and terminology = 'MTH' ) ");
 
+    
+    // TODO use something like this query instead to make faster
+    // select distinct id from concept_relationships a where relationshipType = 'RO' 
+    //and (to_id, from_id) not in 
+    //(select from_id, to_id from concept_relationships b where relationshipType = 'RO' and a.to_id = b.from_id and a.from_id = b.to_id) and to_id in (select id from concepts where terminology = 'NCIMTH') and from_id in (select id from concepts where terminology = 'NCIMTH');
+    
     logInfo("[RemoveUnbalancedConceptRelationships] Loading "
         + "ConceptRelationship ids for unbalanced relationships");
 
@@ -3158,6 +3164,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
     for (final Object entry : list) {
       final Long id = Long.valueOf(entry.toString());
+      logInfo("removing concept relationship id: " + id);
       removeRelationship(id, ConceptRelationshipJpa.class);
       updateProgress();
     }
