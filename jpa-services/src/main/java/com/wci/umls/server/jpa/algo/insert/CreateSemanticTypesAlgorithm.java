@@ -227,13 +227,18 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 				}
 				String said = parts[0];
 				String[] subParts = parts[2].split("/");
-				tty = subParts[0];
+				tty = subParts[1];
 				sdui = parts[11];
 				// if sty_term_ids didn't have each said from classes_atoms, add it to needing
 				// list
 				if (!said2stys.containsKey(said)) {
 					// store its tty and sdui(12th field).
-					saidsNeedStys.put(said, tty + "|" + sdui);
+					if (sdui.isEmpty()) {
+						logInfo("sdui is empty " + line);
+					} else {
+						saidsNeedStys.put(said, tty + "|" + sdui);
+					}
+
 					if (parts[2].contains("SMQ")) {
 						smqSaids.put(said, smqSaids.getOrDefault(said, 0) + 1);
 					}
