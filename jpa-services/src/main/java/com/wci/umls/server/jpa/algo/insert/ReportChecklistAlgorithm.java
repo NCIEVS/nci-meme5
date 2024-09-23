@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.insert;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -89,8 +90,17 @@ public class ReportChecklistAlgorithm
 
       final File outputFile =
           new File(getSrcDirFile(), "reportChecklistResults.txt");
+      String server = InetAddress.getLocalHost().getHostName();
+      
       final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
-
+      
+      out.println("Hi all,");
+ 
+      out.println("The " + (server.equals("ncias-q3009-c") ? "test" : "real") + "insertion of " + getProcess().getTerminology() + "_" + 
+    	  getProcess().getVersion() + " is complete on " + (server.equals("ncias-q3009-c") ? "meme-test" : "meme-edit") + 
+    	  ". The counts are as follows:");
+      out.println("");
+      
       // Get all terminologies referenced in the sources.src file
       Set<Terminology> terminologies = new HashSet<>();
       terminologies = getReferencedTerminologies();
@@ -111,6 +121,10 @@ public class ReportChecklistAlgorithm
                 + "a.terminology='" + term + "' and a.version='" + version
                 + "'";
 
+        if (getProcess().getTerminology().contains(term) && getProcess().getTerminology().contains(version)) {      	
+        	out.println("");
+        }
+        
         Checklist checklist = computeChecklist(getProject(),
             queryPrefix + " AND a.workflowStatus='NEEDS_REVIEW'", QueryType.JPQL,
             "chk_" + term + "_" + version + "_NEEDS_REVIEW", null, true);
@@ -118,7 +132,9 @@ public class ReportChecklistAlgorithm
             + "_NEEDS_REVIEW checklist, containing "
             + checklist.getTrackingRecords().size() + " tracking records.";
         logInfo("  " + result);
-        out.println(result);
+        if (checklist.getTrackingRecords().size() > 0) {
+        	out.println(result);
+        }
         commitClearBegin();
 
         checklist = computeChecklist(getProject(),
@@ -128,7 +144,9 @@ public class ReportChecklistAlgorithm
             + "_DEMOTION checklist, containing "
             + checklist.getTrackingRecords().size() + " tracking records.";
         logInfo("  " + result);
-        out.println(result);
+        if (checklist.getTrackingRecords().size() > 0) {
+        	out.println(result);
+        }
         commitClearBegin();
 
         checklist = computeChecklist(getProject(),
@@ -141,7 +159,9 @@ public class ReportChecklistAlgorithm
             + "_READY_FOR_PUBLICATION checklist, containing "
             + checklist.getTrackingRecords().size() + " tracking records.";
         logInfo("  " + result);
-        out.println(result);
+        if (getProcess().getTerminology().contains(term) && getProcess().getTerminology().contains(version)) {
+        	out.println(result);
+        }
         commitClearBegin();
 
         checklist = computeChecklist(getProject(),
@@ -151,12 +171,17 @@ public class ReportChecklistAlgorithm
             + "_MIDMERGES checklist, containing "
             + checklist.getTrackingRecords().size() + " tracking records.";
         logInfo("  " + result);
-        out.println(result);
+        if (checklist.getTrackingRecords().size() > 0) {
+        	out.println(result);
+        }
         commitClearBegin();
 
         // Update the progress
         updateProgress();
-        out.println("");
+        if (getProcess().getTerminology().contains(term) && getProcess().getTerminology().contains(version)) {      	
+        	out.println("");
+        }
+        logInfo("");
       }
 
       commitClearBegin();
