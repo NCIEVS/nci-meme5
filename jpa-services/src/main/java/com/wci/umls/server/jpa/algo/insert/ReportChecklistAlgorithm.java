@@ -94,10 +94,9 @@ public class ReportChecklistAlgorithm
       
       final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
       
-      out.println("Hi all,");
- 
-      out.println("The " + (server.equals("ncias-q3009-c") ? "test" : "real") + "insertion of " + getProcess().getTerminology() + "_" + 
-    	  getProcess().getVersion() + " is complete on " + (server.equals("ncias-q3009-c") ? "meme-test" : "meme-edit") + 
+
+      out.println("The " + (server.startsWith("ncias-q3009-c") ? "test" : "real") + " insertion of " + getProcess().getTerminology() + "_" + 
+    	  getProcess().getVersion() + " is complete on " + (server.startsWith("ncias-q3009-c") ? "meme-test" : "meme-edit") + 
     	  ". The counts are as follows:");
       out.println("");
       
@@ -121,7 +120,7 @@ public class ReportChecklistAlgorithm
                 + "a.terminology='" + term + "' and a.version='" + version
                 + "'";
 
-        if (getProcess().getTerminology().contains(term) && getProcess().getTerminology().contains(version)) {      	
+        if (getProcess().getTerminology().contains(term) && getProcess().getVersion().contains(version)) {      	
         	out.println("");
         }
         
@@ -178,7 +177,7 @@ public class ReportChecklistAlgorithm
 
         // Update the progress
         updateProgress();
-        if (getProcess().getTerminology().contains(term) && getProcess().getTerminology().contains(version)) {      	
+        if (getProcess().getTerminology().contains(term) && getProcess().getVersion().contains(version)) {      	
         	out.println("");
         }
         logInfo("");
@@ -202,11 +201,12 @@ public class ReportChecklistAlgorithm
           from = config.getProperty("mail.smtp.user");
         }
 
+
         ConfigUtility.sendEmail(
             "Report Checklist Algorithm Complete for Process: "
                 + getProcess().getName(),
             from, recipients,
-            "Checklist counts attached - please edit and email.", config,
+            "Checklist counts attached for " + getProcess().getTerminology()  + "_" + getProcess().getVersion()            + " " + (server.startsWith("ncias-q3009-c") ? "test" : "real") + " insertion.", config,
             outputFile.getAbsolutePath());
       }
 
