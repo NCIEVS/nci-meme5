@@ -188,9 +188,9 @@ public class ReportChecklistAlgorithm
       logInfo("Finished " + getName());
       out.close();
 
-      // Email report checklist count document to people specified by process's
-      // feedback email
-      final String recipients = getProcess().getFeedbackEmail();
+      // Now directly sending to meme-team@westcoastinformatics.com
+      // Process feedback email is going to support-meme@westcoastinformatics.com
+      final String recipients = "meme-team@westcoastinformatics.com";
 
       if (!ConfigUtility.isEmpty(recipients)) {
         final Properties config = ConfigUtility.getConfigProperties();
@@ -205,7 +205,7 @@ public class ReportChecklistAlgorithm
         ConfigUtility.sendEmail(
             "Report Checklist Algorithm Complete for Process: "
                 + getProcess().getName(),
-            from, recipients,
+            from, recipients, 
             "Checklist counts attached for " + getProcess().getTerminology()  + "_" + getProcess().getVersion()            + " " + (server.startsWith("ncias-q3009-c") ? "test" : "real") + " insertion.", config,
             outputFile.getAbsolutePath());
       }
