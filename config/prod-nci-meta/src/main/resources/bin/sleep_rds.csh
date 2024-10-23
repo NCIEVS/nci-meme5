@@ -46,11 +46,14 @@ echo ""
 set started = 'deleting' 
 while ($started =~ 'deleting')
    echo "deleting"
-   set started = `awspath/aws rds describe-db-instances --profile meme --query "DBInstances[?DBInstanceIdentifier=='$DB_NAME'].[DBInstanceStatus][0][0]" `
+   set started = `$awspath/aws rds describe-db-instances --profile meme --query "DBInstances[?DBInstanceIdentifier=='$DB_NAME'].[DBInstanceStatus][0][0]" | tr -d '\n' | tr -d '"'`
 end
+
 
 echo "deleting done - creating snapshot done"
 
 echo "-----------------------------------------------------"
 echo "Finished $0 ... `/bin/date`"
 echo "-----------------------------------------------------"
+
+
