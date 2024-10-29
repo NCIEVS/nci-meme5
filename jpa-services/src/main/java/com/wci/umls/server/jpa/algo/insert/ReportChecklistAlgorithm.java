@@ -203,7 +203,7 @@ public class ReportChecklistAlgorithm
 
 
         ConfigUtility.sendEmail(
-            "Report Checklist Algorithm Complete for Process: "
+            "Report Checklist Algorithm Complete for " + (server.startsWith("ncias-q3009-c") ? "Test " : "") + "Process: "
                 + getProcess().getName(),
             from, recipients, 
             "Checklist counts attached for " + getProcess().getTerminology()  + "_" + getProcess().getVersion()            + " " + (server.startsWith("ncias-q3009-c") ? "test" : "real") + " insertion.", config,
