@@ -11,7 +11,7 @@ echo "------------------------------------------------------"
 echo "Starting ...`/bin/date`"
 echo "------------------------------------------------------"
 
-usage='test_insertion.csh {meme-test|meme-release|both} '
+usage='test_insertion.sh {meme-test|meme-release|both} '
 TEST_DB='meme-test'
 RELEASE_DB='meme-release'
 both=0
@@ -31,7 +31,7 @@ echo "DB_NAME:    $DB_NAME"
 echo "SNAPSHOT_DATE:    $SNAPSHOT_DATE"
 
 # if parameter indicates 'both' dbs to be created, start with the meme-test db
-if [[ $DB_NAME = "both" ]]; then 
+if [[ $DB_NAME =~ 'both' ]]; then
 	DB_NAME=$TEST_DB
 	both=1
         echo "Both meme-test and meme-release will be prepared";
