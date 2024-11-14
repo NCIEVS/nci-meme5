@@ -15,6 +15,7 @@ import java.io.FileWriter;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import com.wci.umls.server.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -162,6 +163,9 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
 			  getDefaultQueryParams(this.getProject()), false);
 	  
 	  // write headers
+	  readmeWriter.write("NCIm version: " );
+	  readmeWriter.write(this.getProcess().getVersion());
+	  readmeWriter.newLine();
 	  readmeWriter.write("Source\tVersion");
 	  readmeWriter.newLine();
 	  
@@ -171,6 +175,14 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
 		  readmeWriter.write(result[1].toString() );
 		  readmeWriter.newLine();
 	  }
+	  
+	  // add a random number of blank lines to the README file to try and
+	  // change the byte count when compared to the previous version to resolve ftp sync issues
+	  int randomNum = ThreadLocalRandom.current().nextInt(1, 50);
+	  for (int i=0; i<randomNum; i++) {
+		  readmeWriter.newLine();
+	  }
+	  
   }
 
   /* see superclass */
