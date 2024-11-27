@@ -3145,9 +3145,9 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     logInfo(" Remove unbalanced concept RO relationships");
 
     query = getEntityManager().createNativeQuery(
-        "select distinct id from concept_relationships where relationshipType = 'RO' and terminology = 'MTH' " +
+        "select distinct id from concept_relationships where relationshipType = 'RO' and publishable and terminology = 'MTH' " +
             " and (to_id, from_id) not in " + 
-            "(select from_id, to_id from concept_relationships where relationshipType = 'RO' and terminology = 'MTH' ) ");
+            "(select from_id, to_id from concept_relationships where relationshipType = 'RO' and publishable and terminology = 'MTH' ) ");
 
     
     // TODO use something like this query instead to make faster
