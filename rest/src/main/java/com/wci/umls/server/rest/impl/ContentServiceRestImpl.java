@@ -7,10 +7,12 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -99,6 +101,7 @@ import com.wci.umls.server.jpa.helpers.content.TreePositionListJpa;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.handlers.EclExpressionHandler;
+import com.wci.umls.server.jpa.services.helper.ReportsAtomComparator;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomClass;
@@ -1232,6 +1235,7 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       if (concept != null) {
         final String terminology = concept.getTerminology();
         contentService.getGraphResolutionHandler(terminology).resolve(concept);
+        filterObsoleteAtoms(concept);
         sortAtoms(securityService, contentService, userName, concept, project);
       }
       return concept;
@@ -1245,6 +1249,18 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
 
   }
 
+  private void filterObsoleteAtoms(Concept concept) {
+	// NM-258: if large number of obsolete atoms, don't return them
+	  int atomCt = concept.getAtoms().size();
+	    List<Atom> noObsoleteAtoms = new ArrayList<>(concept.getAtoms());
+	    	noObsoleteAtoms = noObsoleteAtoms.stream().filter(atom -> !atom.isObsolete()).collect(Collectors.toList());
+	      
+	    if (atomCt - noObsoleteAtoms.size()  > 100) {
+	    	Logger.getLogger(getClass()).info("Obsolete atoms removed");
+	    	concept.setAtoms(noObsoleteAtoms);
+	    }	    
+  }
+  
   @Override
   @GET
   @Path("/atom/{atomId}")
