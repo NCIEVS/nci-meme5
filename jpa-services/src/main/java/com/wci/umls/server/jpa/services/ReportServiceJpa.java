@@ -191,9 +191,20 @@ public class ReportServiceJpa extends HistoryServiceJpa
     //
     // Sort atoms
     //
-    final List<Atom> sortedAtoms = new ArrayList<>(comp.getAtoms());
+    List<Atom> sortedAtoms = new ArrayList<>(comp.getAtoms());
     if (concept != null) {
       Collections.sort(sortedAtoms, new ReportsAtomComparator(concept, list));
+    }
+    
+    // NM-258: if large number of obsolete atoms, don't display them
+    List<Atom> sortedNoObsoleteAtoms = new ArrayList<>(comp.getAtoms());
+    if (concept != null) {
+    	sortedNoObsoleteAtoms = sortedNoObsoleteAtoms.stream().filter(atom -> !atom.isObsolete()).collect(Collectors.toList());
+      Collections.sort(sortedNoObsoleteAtoms, new ReportsAtomComparator(concept, list));
+    }
+    if (sortedAtoms.size() - sortedNoObsoleteAtoms.size()  > 100) {
+    	sortedAtoms = sortedNoObsoleteAtoms;
+    	sb.append("*** Obsolete atoms are hidden.").append(lineEnd);
     }
 
     //
