@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.jpa.AbstractConfigurable;
 import com.wci.umls.server.model.content.Atom;
@@ -84,8 +82,6 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
       }
 
       // Atoms
-
-      Logger.getLogger(getClass()).info("Before default atom graph resolution");
       for (final Atom atom : concept.getAtoms()) {
         // if the concept is "new", then the atom must be too
         if (nullId) {
@@ -93,8 +89,6 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
         }
         resolve(atom);
       }
-
-      Logger.getLogger(getClass()).info("After default atom graph resolution");
 
       // Subsets
       for (final ConceptSubsetMember subset : concept.getMembers()) {

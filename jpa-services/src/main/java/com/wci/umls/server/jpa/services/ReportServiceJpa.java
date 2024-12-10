@@ -198,13 +198,14 @@ public class ReportServiceJpa extends HistoryServiceJpa
     
     // NM-258: if large number of obsolete atoms, don't display them
     List<Atom> sortedNoObsoleteAtoms = new ArrayList<>(comp.getAtoms());
+    boolean obsoleteHidden = false;
     if (concept != null) {
     	sortedNoObsoleteAtoms = sortedNoObsoleteAtoms.stream().filter(atom -> !atom.isObsolete()).collect(Collectors.toList());
       Collections.sort(sortedNoObsoleteAtoms, new ReportsAtomComparator(concept, list));
     }
     if (sortedAtoms.size() - sortedNoObsoleteAtoms.size()  > 100) {
     	sortedAtoms = sortedNoObsoleteAtoms;
-    	sb.append("*** Obsolete atoms are hidden.").append(lineEnd);
+    	obsoleteHidden = true;
     }
 
     //
@@ -259,6 +260,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
 
     sb.append(lineEnd).append("ATOMS").append(lineEnd);
 
+    
     String prev_lui = "";
     String prev_sui = "";
 
@@ -379,6 +381,11 @@ public class ReportServiceJpa extends HistoryServiceJpa
     }
     sb.append(lineEnd);
 
+    
+    if (obsoleteHidden) {
+    	sb.append("*** Obsolete atoms are hidden.").append(lineEnd);
+    }
+    
     //
     // Notes
     //

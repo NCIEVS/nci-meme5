@@ -45,7 +45,6 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
       }
 
       // Atoms
-      Logger.getLogger(getClass()).info("Before atom graph resolution");
       for (final Atom atom : concept.getAtoms()) {
         // if the concept is "new", then the atom must be too
         if (nullId) {
@@ -53,8 +52,6 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
         }
         resolve(atom);
       }
-
-      Logger.getLogger(getClass()).info("After atom graph resolution");
 
       // Relationships
       // Default behavior -- do not return relationships, require paging calls
