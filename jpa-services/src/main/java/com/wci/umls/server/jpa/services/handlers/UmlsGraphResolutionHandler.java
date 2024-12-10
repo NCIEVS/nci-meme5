@@ -5,6 +5,8 @@ package com.wci.umls.server.jpa.services.handlers;
 
 import java.util.ArrayList;
 
+import org.apache.log4j.Logger;
+
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomSubsetMember;
 import com.wci.umls.server.model.content.Concept;
@@ -43,6 +45,7 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
       }
 
       // Atoms
+      Logger.getLogger(getClass()).info("Before atom graph resolution");
       for (final Atom atom : concept.getAtoms()) {
         // if the concept is "new", then the atom must be too
         if (nullId) {
@@ -50,6 +53,8 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
         }
         resolve(atom);
       }
+
+      Logger.getLogger(getClass()).info("After atom graph resolution");
 
       // Relationships
       // Default behavior -- do not return relationships, require paging calls
