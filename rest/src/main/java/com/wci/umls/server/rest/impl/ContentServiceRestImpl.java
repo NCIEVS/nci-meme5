@@ -1235,9 +1235,9 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       if (concept != null) {
         final String terminology = concept.getTerminology();
         Logger.getLogger(getClass()).info("Before graph resolution");
+        filterObsoleteAtoms(concept);
         contentService.getGraphResolutionHandler(terminology).resolve(concept);
         Logger.getLogger(getClass()).info("After graph resolution");
-        filterObsoleteAtoms(concept);
         sortAtoms(securityService, contentService, userName, concept, project);
 
         Logger.getLogger(getClass()).info("After sorting");
