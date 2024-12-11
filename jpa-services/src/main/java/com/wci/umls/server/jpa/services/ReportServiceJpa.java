@@ -112,8 +112,8 @@ public class ReportServiceJpa extends HistoryServiceJpa
     //
     // Handle validation/integrity checks
     //
-    Logger.getLogger(getClass()).info("before validation");
-    
+
+    // NM-258: if large number of atoms, don't validate obsolete ones
     if (concept.getAtoms().size() > 1000 ) {
     	concept.setAtoms(concept.getAtoms().stream().filter(atom -> !atom.isObsolete()).collect(Collectors.toList()));
     }
@@ -149,7 +149,6 @@ public class ReportServiceJpa extends HistoryServiceJpa
 
     // get all concept terminology ids associated with the atoms in this concept
     final List<String> conceptTerminologyIds = new ArrayList<>();
-    Logger.getLogger(getClass()).info("before concept terminology ids");
     for (final Atom atom : comp.getAtoms()) {
       final String conceptTerminologyId =
           atom.getConceptTerminologyIds().get(comp.getTerminology());
@@ -159,7 +158,6 @@ public class ReportServiceJpa extends HistoryServiceJpa
       }
     }
 
-    Logger.getLogger(getClass()).info("after concept terminology ids");
     Collections.sort(conceptTerminologyIds);
     conceptTerminologyIds.remove(comp.getTerminologyId());
 
@@ -637,7 +635,6 @@ public class ReportServiceJpa extends HistoryServiceJpa
       sb.append(getRelationshipsReport(contextRelationships));
     }
 
-    Logger.getLogger(getClass()).info("after relationships");
     //
     // CONTEXTS
     //
