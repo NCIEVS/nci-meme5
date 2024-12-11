@@ -113,6 +113,10 @@ public class ReportServiceJpa extends HistoryServiceJpa
     // Handle validation/integrity checks
     //
     Logger.getLogger(getClass()).info("before validation");
+    
+    if (concept.getAtoms().size() > 1000 ) {
+    	concept.setAtoms(concept.getAtoms().stream().filter(atom -> !atom.isObsolete()).collect(Collectors.toList()));
+    }
     if (project != null && concept != null) {
       final ValidationResult validationResult =
           validateConcept(project.getValidationChecks(), concept);
