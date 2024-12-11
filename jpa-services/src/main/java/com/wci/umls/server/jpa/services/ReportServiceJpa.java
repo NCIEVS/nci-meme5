@@ -144,6 +144,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
 
     // get all concept terminology ids associated with the atoms in this concept
     final List<String> conceptTerminologyIds = new ArrayList<>();
+    Logger.getLogger(getClass()).info("before concept terminology ids");
     for (final Atom atom : comp.getAtoms()) {
       final String conceptTerminologyId =
           atom.getConceptTerminologyIds().get(comp.getTerminology());
@@ -152,6 +153,8 @@ public class ReportServiceJpa extends HistoryServiceJpa
         conceptTerminologyIds.add(conceptTerminologyId);
       }
     }
+
+    Logger.getLogger(getClass()).info("after concept terminology ids");
     Collections.sort(conceptTerminologyIds);
     conceptTerminologyIds.remove(comp.getTerminologyId());
 
@@ -428,6 +431,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
     // RELATIONSHIPS
     //
 
+    Logger.getLogger(getClass()).info("before relationships");
     List<Relationship<? extends ComponentInfo, ? extends ComponentInfo>> relList =
         new ArrayList<>(0);
     // Handle concept rels
@@ -628,6 +632,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
       sb.append(getRelationshipsReport(contextRelationships));
     }
 
+    Logger.getLogger(getClass()).info("after relationships");
     //
     // CONTEXTS
     //
