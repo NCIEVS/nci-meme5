@@ -4,9 +4,11 @@
 package com.wci.umls.server.jpa.content;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
@@ -252,12 +254,19 @@ public class AtomJpa extends AbstractComponent implements Atom {
   /* see superclass */
   @Override
   public Attribute getAttributeByName(String name) {
+
+      // If there are more than one with this name, sort to return the most recent
+	List<Attribute> matchingAttributes = new ArrayList<>();
     for (final Attribute attribute : getAttributes()) {
-      // If there are more than one, this just returns the first.
       if (attribute.getName().equals(name)) {
-        return attribute;
+        matchingAttributes.add(attribute);
       }
     }
+    matchingAttributes.sort(Comparator.comparing(Attribute::getLastModified).reversed());
+    if (matchingAttributes.size() != 0) {
+      System.out.println(matchingAttributes.stream().map(Attribute::getValue).collect(Collectors.joining(", ")));
+      return matchingAttributes.get(0);
+    } 
     return null;
   }
 
