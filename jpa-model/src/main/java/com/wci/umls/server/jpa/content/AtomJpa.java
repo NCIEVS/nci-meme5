@@ -264,7 +264,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
     }
     matchingAttributes.sort(Comparator.comparing(Attribute::getLastModified).reversed());
     if (matchingAttributes.size() != 0) {
-      System.out.println(matchingAttributes.stream().map(Attribute::getValue).collect(Collectors.joining(", ")));
       return matchingAttributes.get(0);
     } 
     return null;
