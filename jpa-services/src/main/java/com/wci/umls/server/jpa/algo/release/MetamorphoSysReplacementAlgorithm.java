@@ -154,7 +154,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               
               adjustMrfilesByteCount(outputPath + File.separator + outputFile);
               
-              // make a backup of the original MRSAB, and rename the modified one MRSAB.RRF
+              // make a backup of the original MRFILES, and rename the modified one MRFILES.RRF
               File backup = new File(outputPath + File.separator + backupFile);
               File modified = new File(outputPath + File.separator + outputFile);
               File original = new File(outputPath + File.separator + inputFile);
@@ -173,6 +173,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   backup.renameTo(original);
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
+              
+              // Delete original, bc modified is the new MRFILES
+              Files.deleteIfExists(original.toPath());
               
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
@@ -366,6 +369,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   backup.renameTo(original);
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
+              
+              // Delete original, bc modified is the new MRSAB
+              Files.deleteIfExists(original.toPath());
               
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());

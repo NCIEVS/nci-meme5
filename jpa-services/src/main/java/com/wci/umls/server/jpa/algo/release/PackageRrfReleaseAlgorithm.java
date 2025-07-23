@@ -70,16 +70,17 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
         new File(path, "/" + getProcess().getVersion() + "/META");
     logInfo("  pathMeta " + pathMeta);
 
-    final File mmsysPath =
-        new File(path, "/" + getProcess().getVersion() + "/MMSYS");
-    logInfo("  mmsysPath " + mmsysPath);
+// Removed for NM-263
+//    final File mmsysPath =
+//        new File(path, "/" + getProcess().getVersion() + "/MMSYS");
+//    logInfo("  mmsysPath " + mmsysPath);
 
     ZipOutputStream out = new ZipOutputStream(new FileOutputStream(zipFile));
     logInfo("  Process META");
     zipDirectory(pathMeta, out,
         pathMeta.getPath().length() + 1 - "/META".length());
-    logInfo("  Process MMSYS");
-    zipDirectory(mmsysPath, out, mmsysPath.getPath().length() + 1);
+//    logInfo("  Process MMSYS");
+//    zipDirectory(mmsysPath, out, mmsysPath.getPath().length() + 1);
 
     out.close();
     logInfo("Finished " + getName());
