@@ -175,7 +175,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               }
               
               // Delete original, bc modified is the new MRFILES
-              Files.deleteIfExists(original.toPath());
+              //Files.deleteIfExists(original.toPath());
               
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
@@ -370,8 +370,6 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
               
-              // Delete original, bc modified is the new MRSAB
-              Files.deleteIfExists(original.toPath());
               
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
