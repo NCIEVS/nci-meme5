@@ -12,6 +12,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.lang.System.Logger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2655,101 +2656,6 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
   }
 
-  private void fixDuplicateConcepts() throws Exception {
-    // 5/7/2018 These were created erroneously during the load from MEME4
-    // (having to do with the loading of component_histories and dead CUIs),
-    // and need to be taken care of.
-
-    logInfo(" Fix duplicate concepts");
-
-    List<Concept> duplicateConcepts = new ArrayList<>();
-
-    try {
-
-      // Identify all concepts that have duplicate CUIs
-      // REAL QUERY
-      Query query = getEntityManager()
-          .createNativeQuery("select id from concepts where terminology='NCIMTH' group by "
-              + "terminologyId having count(*) > 1");
-
-      logInfo("[FixDuplicateConcepts] Identifying " + "duplicate concepts");
-
-      List<Object> list = query.getResultList();
-      for (final Object entry : list) {
-        final Long id = Long.valueOf(entry.toString());
-        Concept cpt = getConcept(id);
-        duplicateConcepts.add(cpt);
-      }
-
-      setSteps(duplicateConcepts.size());
-
-      logInfo(
-          "[FixDuplicateConcepts] " + duplicateConcepts.size() + " Concept duplicates identified");
-
-      for (final Concept concept : duplicateConcepts) {
-        query = getEntityManager()
-            .createNativeQuery("select id from concepts where terminologyId = :terminologyId");
-        query.setParameter("terminologyId", concept.getTerminologyId());
-
-        List<Concept> conceptsWithSameCUI = new ArrayList<>();
-        Concept namedConceptToKeep = null;
-        Set<ComponentHistory> componentHistoriesToMove = new HashSet<>();
-        list = query.getResultList();
-        for (final Object entry : list) {
-          final Long id = Long.valueOf(entry.toString());
-          Concept cpt = getConcept(id);
-
-          conceptsWithSameCUI.add(cpt);
-          if (!cpt.getName().isEmpty()) {
-            namedConceptToKeep = cpt;
-          } else {
-            componentHistoriesToMove.addAll(cpt.getComponentHistory());
-            cpt.setComponentHistory(null);
-            updateConcept(cpt);
-            for (Definition def : cpt.getDefinitions()) {
-              removeDefinition(def.getId());
-            }
-            for (Attribute att : cpt.getAttributes()) {
-              removeAttribute(att.getId());
-            }
-            for (ConceptRelationship rel : cpt.getInverseRelationships()) {
-              removeRelationship(rel.getId(), rel.getClass());
-            }
-            for (ConceptRelationship rel : cpt.getRelationships()) {
-              removeRelationship(rel.getId(), rel.getClass());
-            }
-            for (SemanticTypeComponent sty : cpt.getSemanticTypes()) {
-              removeSemanticTypeComponent(sty.getId());
-            }
-            for (ComponentHistory history : cpt.getComponentHistory()) {
-              removeComponentHistory(history.getId());
-            }
-            for (ConceptSubsetMember member : cpt.getMembers()) {
-              removeSubsetMember(member.getId(), member.getClass());
-            }
-            for (ConceptTreePosition treePos : cpt.getTreePositions()) {
-              removeTreePosition(treePos.getId(), treePos.getClass());
-            }
-            cpt.setNotes(null);
-            removeConcept(cpt.getId());
-          }
-        }
-        List<ComponentHistory> namedConceptComponentHistories =
-            namedConceptToKeep.getComponentHistory();
-        namedConceptComponentHistories.addAll(componentHistoriesToMove);
-        updateConcept(namedConceptToKeep);
-        updateProgress();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-      fail("Unexpected exception thrown - please review stack trace.");
-    } finally {
-
-    }
-
-    logInfo("Finished " + getName());
-
-  }
 
   private void fixDuplicateCUIs() throws Exception {
     // 7/31/2020 when CUIs went from 8-9 characters, many concepts were assigned
@@ -5279,7 +5185,206 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
            out.close();
          }
          
-         
+     
+ private void fixDuplicateConcepts() throws Exception {
+	// 7/29/2025 These are CUIs reintroduced in most recent MTH insertion that
+    // match concepts that had been retired with bequeathals.  Now the beqeathal
+    // concept has to be removed, because the concept has been revived.    
+	    logInfo(" Fix duplicate concepts - revised");
+
+	    try {
+	        // Get all concepts with duplicate terminologyIds grouped together
+	        Map<String, List<Concept>> conceptsByTerminologyId = getConceptsGroupedByTerminologyId();
+	        
+	        setSteps(conceptsByTerminologyId.size());
+	        
+	        logInfo("[FixDuplicateConcepts] " + conceptsByTerminologyId.size() + 
+	                " terminologyId groups with duplicates identified");
+
+	        // Process each group of concepts that share the same terminologyId
+	        for (Map.Entry<String, List<Concept>> entry : conceptsByTerminologyId.entrySet()) {
+	            String terminologyId = entry.getKey();
+	            List<Concept> conceptsWithSameCUI = entry.getValue();
+	            
+	            logInfo("[FixDuplicateConcepts] Processing terminologyId: " + terminologyId + 
+	                    " with " + conceptsWithSameCUI.size() + " concepts");
+	            
+	            // Determine which concept to keep and which to delete
+	            ConceptDecision decision = determineConceptToKeep(conceptsWithSameCUI);
+	            
+	            if (decision != null && !decision.getConceptsToKeep().isEmpty() && !decision.getConceptsToDelete().isEmpty()) {
+	                //processConceptGroup(decision);
+	            }
+	            
+	            updateProgress();
+	        }
+	        
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        fail("Unexpected exception thrown - please review stack trace.");
+	    } finally {
+	        // Any cleanup if needed
+	    }
+
+	    logInfo("Finished " + getName());
+	}
+
+	/**
+	 * Retrieves all concepts with duplicate terminologyIds, grouped by terminologyId
+	 * @throws Exception 
+	 */
+	private Map<String, List<Concept>> getConceptsGroupedByTerminologyId() throws Exception {
+	    // Get all terminologyIds that have duplicates
+	    Query terminologyIdQuery = getEntityManager()
+	        .createNativeQuery("SELECT terminologyId FROM concepts WHERE terminology='NCIMTH' " +
+	                          "GROUP BY terminologyId HAVING COUNT(*) > 1");
+	    
+	    List<Object> terminologyIds = terminologyIdQuery.getResultList();
+	    Map<String, List<Concept>> conceptsByTerminologyId = new HashMap<>();
+	    
+	    // For each duplicate terminologyId, get all associated concepts
+	    for (Object terminologyIdObj : terminologyIds) {
+	        String terminologyId = terminologyIdObj.toString();
+	        
+	        Query conceptQuery = getEntityManager()
+	            .createNativeQuery("SELECT id FROM concepts WHERE terminologyId = :terminologyId");
+	        conceptQuery.setParameter("terminologyId", terminologyId);
+	        
+	        List<Object> conceptIds = conceptQuery.getResultList();
+	        List<Concept> concepts = new ArrayList<>();
+	        
+	        for (Object conceptIdObj : conceptIds) {
+	            Long conceptId = Long.valueOf(conceptIdObj.toString());
+	            Concept concept = getConcept(conceptId);
+	            concepts.add(concept);
+	        }
+	        
+	        conceptsByTerminologyId.put(terminologyId, concepts);
+	    }
+	    
+	    return conceptsByTerminologyId;
+	}
+
+	/**
+	 * Determines which concept to keep and which to delete based on business logic
+	 * This is where you can add your custom logic for choosing between concepts
+	 * @throws Exception 
+	 */
+	private ConceptDecision determineConceptToKeep(List<Concept> concepts) throws Exception {
+	    List<Concept> conceptsToKeep = new ArrayList<>();
+	    List<Concept> conceptsToDelete = new ArrayList<>();
+	    
+	    boolean foundWithPublishableAtoms = false;
+	    boolean foundEmptyWithBequeathal = false;
+	    for (Concept concept : concepts) {
+	        if (concept.isPublishable() && !concept.getAtoms().isEmpty()) {
+	            conceptsToKeep.add(concept);
+	            foundWithPublishableAtoms = true;
+	            logInfo("conceptToKeep: " + concept);
+	        } else if (concept.getAtoms().isEmpty()) {
+	            conceptsToDelete.add(concept);
+	            for (ConceptRelationship rel : concept.getRelationships()) {
+	            	if (rel.getRelationshipType().startsWith("B")) {
+	            		foundEmptyWithBequeathal = true;
+	    	            logInfo("conceptToDelete: " + concept);
+	            	}
+	            }
+	        } 
+	    }
+	    
+	    if (foundWithPublishableAtoms && foundEmptyWithBequeathal && concepts.size() == 2) {
+	      return new ConceptDecision(conceptsToKeep, conceptsToDelete);
+	    } else {
+	    	return null;
+	    }
+	}
+
+	/**
+	 * Processes a group of concepts by keeping one and deleting the others
+	 */
+	private void processConceptGroup(ConceptDecision decision) throws Exception {
+//        	    Concept conceptToKeep = decision.getConceptsToKeep();
+//        	    List<Concept> conceptsToDelete = decision.getConceptsToDelete();
+//        	    
+//        	    Set<ComponentHistory> componentHistoriesToMove = new HashSet<>();
+//        	    
+//        	    // Process each concept to be deleted
+//        	    for (Concept conceptToDelete : conceptsToDelete) {
+//        	        // Collect component histories to move to the kept concept
+//        	        componentHistoriesToMove.addAll(conceptToDelete.getComponentHistory());
+//        	        
+//        	        // Clean up the concept to be deleted
+//        	        cleanupConceptForDeletion(conceptToDelete);
+//        	        
+//        	        // Remove the concept
+//        	        removeConcept(conceptToDelete.getId());
+//        	    }
+//        	    
+//        	    // Move collected component histories to the concept we're keeping
+//        	    if (!componentHistoriesToMove.isEmpty()) {
+//        	        List<ComponentHistory> keptConceptHistories = conceptToKeep.getComponentHistory();
+//        	        keptConceptHistories.addAll(componentHistoriesToMove);
+//        	        updateConcept(conceptToKeep);
+//        	    }
+	}
+
+	/**
+	 * Cleans up a concept before deletion by removing all associated entities
+	 */
+	private void cleanupConceptForDeletion(Concept concept) throws Exception {
+	    // Clear component history reference to avoid constraint issues
+	    concept.setComponentHistory(null);
+	    updateConcept(concept);
+	    
+	    // Remove all associated entities
+	    for (Definition def : concept.getDefinitions()) {
+	        removeDefinition(def.getId());
+	    }
+	    for (Attribute att : concept.getAttributes()) {
+	        removeAttribute(att.getId());
+	    }
+	    for (ConceptRelationship rel : concept.getInverseRelationships()) {
+	        removeRelationship(rel.getId(), rel.getClass());
+	    }
+	    for (ConceptRelationship rel : concept.getRelationships()) {
+	        removeRelationship(rel.getId(), rel.getClass());
+	    }
+	    for (SemanticTypeComponent sty : concept.getSemanticTypes()) {
+	        removeSemanticTypeComponent(sty.getId());
+	    }
+	    for (ComponentHistory history : concept.getComponentHistory()) {
+	        removeComponentHistory(history.getId());
+	    }
+	    for (ConceptSubsetMember member : concept.getMembers()) {
+	        removeSubsetMember(member.getId(), member.getClass());
+	    }
+	    for (ConceptTreePosition treePos : concept.getTreePositions()) {
+	        removeTreePosition(treePos.getId(), treePos.getClass());
+	    }
+	    
+	    concept.setNotes(null);
+	}
+
+	/**
+	 * Helper class to encapsulate the decision of which concept to keep vs delete
+	 */
+	private static class ConceptDecision {
+	    private final List<Concept> conceptsToKeep;
+	    private final List<Concept> conceptsToDelete;
+	    
+	    public ConceptDecision(List<Concept> conceptsToKeep, List<Concept> conceptsToDelete) {
+	        this.conceptsToKeep = conceptsToKeep != null ? conceptsToKeep : new ArrayList<>();
+	        this.conceptsToDelete = conceptsToDelete != null ? conceptsToDelete : new ArrayList<>();
+	    }
+	    
+	    public List<Concept> getConceptsToKeep() {
+	        return conceptsToKeep;
+	    }
+	    
+	    public List<Concept> getConceptsToDelete() {
+	        return conceptsToDelete;
+	    }
+	}
   /**
    * Returns the parameters.
    *
