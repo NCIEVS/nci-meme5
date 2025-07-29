@@ -5256,6 +5256,11 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	        for (Object conceptIdObj : conceptIds) {
 	            Long conceptId = Long.valueOf(conceptIdObj.toString());
 	            Concept concept = getConcept(conceptId);
+	            
+	            // Force initialization of lazy collections while session is active
+	            concept.getAtoms().size(); // Force loading
+	            concept.getRelationships().size(); // Force loading
+	            
 	            concepts.add(concept);
 	        }
 	        
@@ -5289,7 +5294,9 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	    	            logInfo("conceptToDelete: " + concept);
 	            	}
 	            }
-	        } 
+	        } else {
+	        	logInfo("ELSE concept: " + concept);
+	        }
 	    }
 	    
 	    if (foundWithPublishableAtoms && foundEmptyWithBequeathal && concepts.size() == 2) {
@@ -5333,8 +5340,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	 */
 	private void cleanupConceptForDeletion(Concept concept) throws Exception {
 	    // Clear component history reference to avoid constraint issues
-	    concept.setComponentHistory(null);
-	    updateConcept(concept);
+//	    concept.setComponentHistory(null);
+//	    updateConcept(concept);
 	    
 	    // Remove all associated entities
 	    for (Definition def : concept.getDefinitions()) {
