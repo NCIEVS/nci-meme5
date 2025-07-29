@@ -5213,7 +5213,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	            ConceptDecision decision = determineConceptToKeep(conceptsWithSameCUI);
 	            
 	            if (decision != null && !decision.getConceptsToKeep().isEmpty() && !decision.getConceptsToDelete().isEmpty()) {
-	                //processConceptGroup(decision);
+	                processConceptGroup(decision);
 	            }
 	            
 	            updateProgress();
@@ -5310,67 +5310,46 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	 * Processes a group of concepts by keeping one and deleting the others
 	 */
 	private void processConceptGroup(ConceptDecision decision) throws Exception {
-//        	    Concept conceptToKeep = decision.getConceptsToKeep();
-//        	    List<Concept> conceptsToDelete = decision.getConceptsToDelete();
-//        	    
-//        	    Set<ComponentHistory> componentHistoriesToMove = new HashSet<>();
-//        	    
-//        	    // Process each concept to be deleted
-//        	    for (Concept conceptToDelete : conceptsToDelete) {
-//        	        // Collect component histories to move to the kept concept
-//        	        componentHistoriesToMove.addAll(conceptToDelete.getComponentHistory());
-//        	        
-//        	        // Clean up the concept to be deleted
-//        	        cleanupConceptForDeletion(conceptToDelete);
-//        	        
-//        	        // Remove the concept
-//        	        removeConcept(conceptToDelete.getId());
-//        	    }
-//        	    
-//        	    // Move collected component histories to the concept we're keeping
-//        	    if (!componentHistoriesToMove.isEmpty()) {
-//        	        List<ComponentHistory> keptConceptHistories = conceptToKeep.getComponentHistory();
-//        	        keptConceptHistories.addAll(componentHistoriesToMove);
-//        	        updateConcept(conceptToKeep);
-//        	    }
+        	    List<Concept> conceptsToDelete = decision.getConceptsToDelete();
+        	    
+        	    // Process each concept to be deleted
+        	    for (Concept conceptToDelete : conceptsToDelete) {
+        	    	// Clean up the concept to be deleted
+        		    // Remove all associated entities
+        		    for (Definition def : conceptToDelete.getDefinitions()) {
+        		        removeDefinition(def.getId());
+        		    }
+        		    for (Attribute att : conceptToDelete.getAttributes()) {
+        		        removeAttribute(att.getId());
+        		    }
+        		    for (ConceptRelationship rel : conceptToDelete.getInverseRelationships()) {
+        		        removeRelationship(rel.getId(), rel.getClass());
+        		    }
+        		    for (ConceptRelationship rel : conceptToDelete.getRelationships()) {
+        		        removeRelationship(rel.getId(), rel.getClass());
+        		    }
+        		    for (SemanticTypeComponent sty : conceptToDelete.getSemanticTypes()) {
+        		        removeSemanticTypeComponent(sty.getId());
+        		    }
+        		    for (ComponentHistory history : conceptToDelete.getComponentHistory()) {
+        		        removeComponentHistory(history.getId());
+        		    }
+        		    for (ConceptSubsetMember member : conceptToDelete.getMembers()) {
+        		        removeSubsetMember(member.getId(), member.getClass());
+        		    }
+        		    for (ConceptTreePosition treePos : conceptToDelete.getTreePositions()) {
+        		        removeTreePosition(treePos.getId(), treePos.getClass());
+        		    }
+        		    
+        		    conceptToDelete.setNotes(null);
+        	        
+        	        // Remove the concept
+        	        removeConcept(conceptToDelete.getId());
+        	        logInfo("concept deleted: " + conceptToDelete.getId());
+        	    }
+        	    
 	}
 
-	/**
-	 * Cleans up a concept before deletion by removing all associated entities
-	 */
-	private void cleanupConceptForDeletion(Concept concept) throws Exception {
-	    // Clear component history reference to avoid constraint issues
-//	    concept.setComponentHistory(null);
-//	    updateConcept(concept);
-	    
-	    // Remove all associated entities
-	    for (Definition def : concept.getDefinitions()) {
-	        removeDefinition(def.getId());
-	    }
-	    for (Attribute att : concept.getAttributes()) {
-	        removeAttribute(att.getId());
-	    }
-	    for (ConceptRelationship rel : concept.getInverseRelationships()) {
-	        removeRelationship(rel.getId(), rel.getClass());
-	    }
-	    for (ConceptRelationship rel : concept.getRelationships()) {
-	        removeRelationship(rel.getId(), rel.getClass());
-	    }
-	    for (SemanticTypeComponent sty : concept.getSemanticTypes()) {
-	        removeSemanticTypeComponent(sty.getId());
-	    }
-	    for (ComponentHistory history : concept.getComponentHistory()) {
-	        removeComponentHistory(history.getId());
-	    }
-	    for (ConceptSubsetMember member : concept.getMembers()) {
-	        removeSubsetMember(member.getId(), member.getClass());
-	    }
-	    for (ConceptTreePosition treePos : concept.getTreePositions()) {
-	        removeTreePosition(treePos.getId(), treePos.getClass());
-	    }
-	    
-	    concept.setNotes(null);
-	}
 
 	/**
 	 * Helper class to encapsulate the decision of which concept to keep vs delete
