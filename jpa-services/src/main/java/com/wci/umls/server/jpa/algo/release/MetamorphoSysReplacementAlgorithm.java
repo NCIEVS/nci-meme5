@@ -15,12 +15,16 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+
+import org.codehaus.plexus.util.FileUtils;
 
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ValidationResult;
@@ -87,6 +91,27 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
     updateMrsab();
     updateMrcols();
     updateMrfiles();
+    
+    // Write release.dat
+    logInfo("  Write release.dat file");
+
+    final File releaseDat = new File(config.getProperty("source.data.dir") + "/"
+        + getProcess().getInputPath() + "/" + getProcess().getVersion()
+        + "/release.dat");
+
+    final StringBuilder data = new StringBuilder();
+    data.append("umls.release.name=" + getProcess().getVersion()).append("\n");
+    data.append("umls.release.description=Base Release for "
+        + getProcess().getVersion()).append("\n");
+    data.append("umls.release.date=").append(getProcess().getVersion() + "01")
+        .append("\n");
+    data.append("nlm.build.date=")
+        .append(new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()))
+        .append("\n");
+
+    // Write release.dat file
+    FileUtils.fileWrite(releaseDat.getPath(), data.toString());
+    
 
     logInfo("Finished " + getName());
   }
