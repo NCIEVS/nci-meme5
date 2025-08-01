@@ -105,9 +105,6 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
         + getProcess().getVersion()).append("\n");
     data.append("umls.release.date=").append(getProcess().getVersion() + "01")
         .append("\n");
-    data.append("nlm.build.date=")
-        .append(new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()))
-        .append("\n");
 
     // Write release.dat file
     FileUtils.fileWrite(releaseDat.getPath(), data.toString());
