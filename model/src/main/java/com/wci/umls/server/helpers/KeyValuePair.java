@@ -3,7 +3,7 @@
  */
 package com.wci.umls.server.helpers;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 /**
  * Container for key value pairs.

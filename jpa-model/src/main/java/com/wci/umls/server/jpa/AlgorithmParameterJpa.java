@@ -6,7 +6,7 @@ package com.wci.umls.server.jpa;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import com.wci.umls.server.AlgorithmParameter;
 

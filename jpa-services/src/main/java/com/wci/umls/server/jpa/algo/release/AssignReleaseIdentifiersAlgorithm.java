@@ -110,7 +110,7 @@ public class AssignReleaseIdentifiersAlgorithm extends AbstractAlgorithm {
     final Map<Long, String> atomRankMap = new HashMap<>(20000);
     final Map<Long, Long> atomConceptMap = new HashMap<>(20000);
     // Get conceptId/atomId - unpublishable concepts need CUI assignments also
-    final javax.persistence.Query query = manager
+    final jakarta.persistence.Query query = manager
         .createQuery("select c.id, a.id from ConceptJpa c join c.atoms a "
             + "where c.terminology = :terminology "
             + "  and c.version = :version");
@@ -321,7 +321,7 @@ public class AssignReleaseIdentifiersAlgorithm extends AbstractAlgorithm {
     handler.beginTransaction();
 
     // Assign ATUIs for semantic types
-    final javax.persistence.Query query = manager.createQuery(
+    final jakarta.persistence.Query query = manager.createQuery(
         "select c.id, s.id from ConceptJpa c join c.semanticTypes s "
             + "where c.terminology = :terminology "
             + "  and c.version = :version and c.publishable = true ");

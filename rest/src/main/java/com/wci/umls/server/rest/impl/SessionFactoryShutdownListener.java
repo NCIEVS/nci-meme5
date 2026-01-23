@@ -3,9 +3,9 @@
  */
 package com.wci.umls.server.rest.impl;
 
-import javax.persistence.EntityManagerFactory;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
 
 import com.wci.umls.server.jpa.services.RootServiceJpa;
 

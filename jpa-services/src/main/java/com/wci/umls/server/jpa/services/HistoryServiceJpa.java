@@ -6,7 +6,7 @@ package com.wci.umls.server.jpa.services;
 import java.text.ParseException;
 import java.util.List;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
@@ -44,7 +44,7 @@ public class HistoryServiceJpa extends ContentServiceJpa
     throws Exception {
     Logger.getLogger(getClass())
         .debug("History Service - get release history " + terminology);
-    javax.persistence.Query query = manager.createQuery(
+    jakarta.persistence.Query query = manager.createQuery(
         "select a from ReleaseInfoJpa a where terminology = :terminology order by a.lastModified");
     /*
      * Try to retrieve the single expected result If zero or more than one
@@ -122,7 +122,7 @@ public class HistoryServiceJpa extends ContentServiceJpa
     throws ParseException {
     Logger.getLogger(getClass()).debug(
         "History Service - get release info " + terminology + ", " + name);
-    javax.persistence.Query query =
+    jakarta.persistence.Query query =
         manager.createQuery("select r from ReleaseInfoJpa r "
             + "where name = :name " + "and terminology = :terminology");
     /*

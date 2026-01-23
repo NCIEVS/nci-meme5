@@ -3,11 +3,11 @@
  */
 package com.wci.umls.server.jpa.content;
 
-import javax.persistence.Column;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.MappedSuperclass;
-import javax.xml.bind.annotation.XmlSeeAlso;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 import org.apache.log4j.Logger;
 import org.hibernate.envers.Audited;

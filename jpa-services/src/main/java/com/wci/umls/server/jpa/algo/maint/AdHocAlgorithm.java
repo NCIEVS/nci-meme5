@@ -28,7 +28,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import com.wci.umls.server.AlgorithmConfig;
 import com.wci.umls.server.AlgorithmParameter;
@@ -3122,7 +3122,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         getIdentifierAssignmentHandler(getProject().getTerminology());
 
     // Assign ATUIs for semantic types
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         manager.createQuery("select c.id, s.id from ConceptJpa c join c.semanticTypes s "
             + "where c.terminology = :terminology "
             + "  and c.version = :version and s.terminologyId = '' and c.publishable = true ");

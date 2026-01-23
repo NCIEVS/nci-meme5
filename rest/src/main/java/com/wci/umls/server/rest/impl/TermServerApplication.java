@@ -7,7 +7,7 @@ import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.ws.rs.ApplicationPath;
+import jakarta.ws.rs.ApplicationPath;
 
 import org.apache.log4j.Logger;
 import org.glassfish.jersey.jackson.JacksonFeature;

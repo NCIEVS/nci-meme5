@@ -3,8 +3,8 @@
  */
 package com.wci.umls.server.jpa.helpers;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import com.wci.umls.server.helpers.RestPrimitive;
 

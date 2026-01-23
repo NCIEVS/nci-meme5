@@ -142,7 +142,7 @@ public class TransitiveClosureAlgorithm extends AbstractAlgorithm {
     if (idType == IdType.ATOM) {
       tableName = "AtomRelationshipJpa";
     }
-    final javax.persistence.Query query = manager
+    final jakarta.persistence.Query query = manager
         .createQuery("select r.from.id, r.to.id from " + tableName
             + " r where obsolete = 0 and inferred = 1 "
             + "and terminology = :terminology " + "and version = :version "

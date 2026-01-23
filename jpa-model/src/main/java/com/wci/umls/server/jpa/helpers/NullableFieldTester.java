@@ -7,8 +7,8 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.persistence.Column;
-import javax.persistence.JoinColumn;
+import jakarta.persistence.Column;
+import jakarta.persistence.JoinColumn;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.log4j.Logger;

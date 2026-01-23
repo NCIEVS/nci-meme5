@@ -109,7 +109,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
       // Find concepts connected to needs review relationships
       final Set<String> needsReviewR = new HashSet<>();
-      javax.persistence.Query query =
+      jakarta.persistence.Query query =
           manager.createQuery("select r from ConceptRelationshipJpa r "
               + " where terminology = :terminology and version = :version "
               + " and workflowStatus in (  :ws )");
@@ -316,7 +316,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
     if (atomIdToTrackingRecordIds.isEmpty()) {
       // Cache all atomId->trackingRecordIds
-      javax.persistence.Query query =
+      jakarta.persistence.Query query =
           getEntityManager().createNativeQuery("select * from component_ids");
       final List<Object[]> list = query.getResultList();
       for (final Object[] entry : list) {

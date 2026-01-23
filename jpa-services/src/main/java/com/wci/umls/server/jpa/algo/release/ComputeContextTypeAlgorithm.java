@@ -90,7 +90,7 @@ public class ComputeContextTypeAlgorithm extends AbstractAlgorithm {
     fireProgressEvent(1, "Compute polyhierarchy flags");
     final Set<String> polyHierarchyTerminology = new HashSet<>();
     for (final String type : types) {
-      final javax.persistence.Query query = manager
+      final jakarta.persistence.Query query = manager
           .createQuery("select distinct terminology, version from " + type
               + "TreePositionJpa " + "group by terminology, version, node_id "
               + "having count(*)>1");
@@ -107,7 +107,7 @@ public class ComputeContextTypeAlgorithm extends AbstractAlgorithm {
     fireProgressEvent(10, "Compute include sibling flags");
     final Map<String, String> siblingTypeMap = new HashMap<>();
     for (final String type : types) {
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select distinct terminology, version from "
               + type + "TreePositionJpa "
               + "group by terminology, version, ancestorPath "
@@ -116,7 +116,7 @@ public class ComputeContextTypeAlgorithm extends AbstractAlgorithm {
       final List<Object[]> results = query.getResultList();
       checkCancel();
 
-      final javax.persistence.Query query2 =
+      final jakarta.persistence.Query query2 =
           manager.createQuery("select distinct terminology, version from "
               + type + "TreePositionJpa "
               + "group by terminology, version, ancestorPath "
@@ -187,7 +187,7 @@ public class ComputeContextTypeAlgorithm extends AbstractAlgorithm {
     // }
     // final IdType idType = IdType.valueOf(type.toUpperCase());
     //
-    // final javax.persistence.Query query = manager.createQuery(
+    // final jakarta.persistence.Query query = manager.createQuery(
     // "select a.node.id, b.node.id, a.additionalRelationshipType, a.terminology
     // from "
     // + type + "TreePositionJpa a, " + type + "TreePositionJpa b "

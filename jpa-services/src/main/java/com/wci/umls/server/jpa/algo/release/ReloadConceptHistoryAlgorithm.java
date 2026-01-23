@@ -13,7 +13,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ValidationResult;
@@ -119,7 +119,7 @@ public class ReloadConceptHistoryAlgorithm
     // Identify all concepts with concept histories in the DB
     final Set<String> dbConceptsWithHistories = new HashSet<>();
 
-    final javax.persistence.Query jpaQuery = getEntityManager().createQuery(
+    final jakarta.persistence.Query jpaQuery = getEntityManager().createQuery(
         "select c.terminologyId from ConceptJpa c where size(c.componentHistories) > 0");
 
     final List<String> conceptsTerminologyIds = jpaQuery.getResultList();

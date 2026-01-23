@@ -32,30 +32,30 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import javax.activation.DataHandler;
-import javax.activation.DataSource;
-import javax.activation.FileDataSource;
-import javax.mail.Authenticator;
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.Multipart;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status.Family;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
+import jakarta.activation.DataHandler;
+import jakarta.activation.DataSource;
+import jakarta.activation.FileDataSource;
+import jakarta.mail.Authenticator;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Message;
+import jakarta.mail.Multipart;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status.Family;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -82,7 +82,7 @@ import org.xml.sax.SAXException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import com.google.common.primitives.UnsignedBytes;
 import com.wci.umls.server.model.content.Component;
 
@@ -509,7 +509,7 @@ public class ConfigUtility {
         new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
     ObjectMapper mapper = new ObjectMapper();
     AnnotationIntrospector introspector =
-        new JaxbAnnotationIntrospector(mapper.getTypeFactory());
+        new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
     mapper.setAnnotationIntrospector(introspector);
     return mapper.readValue(in, graphClass);
 
@@ -537,7 +537,7 @@ public class ConfigUtility {
         new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
     ObjectMapper mapper = new ObjectMapper();
     AnnotationIntrospector introspector =
-        new JaxbAnnotationIntrospector(mapper.getTypeFactory());
+        new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
     mapper.setAnnotationIntrospector(introspector);
     return mapper.readValue(in, typeRef);
 
@@ -603,7 +603,7 @@ public class ConfigUtility {
   public static String getJsonForGraph(Object object) throws Exception {
     ObjectMapper mapper = new ObjectMapper();
     AnnotationIntrospector introspector =
-        new JaxbAnnotationIntrospector(mapper.getTypeFactory());
+        new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
     mapper.setAnnotationIntrospector(introspector);
     return mapper.writeValueAsString(object);
   }
@@ -907,7 +907,7 @@ public class ConfigUtility {
   /**
    * SMTPAuthenticator.
    */
-  public static class SMTPAuthenticator extends javax.mail.Authenticator {
+  public static class SMTPAuthenticator extends jakarta.mail.Authenticator {
 
     /**
      * Instantiates an empty {@link SMTPAuthenticator}.

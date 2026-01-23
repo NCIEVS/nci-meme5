@@ -17,8 +17,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import javax.persistence.NoResultException;
-import javax.persistence.metamodel.EntityType;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.metamodel.EntityType;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.index.Term;
@@ -192,9 +192,9 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
    */
   private static void init() {
     try {
-      if (ConfigUtility.getConfigProperties().containsKey("javax.persistence.query.timeout")) {
+      if (ConfigUtility.getConfigProperties().containsKey("jakarta.persistence.query.timeout")) {
         queryTimeout = Integer.parseInt(
-            ConfigUtility.getConfigProperties().getProperty("javax.persistence.query.timeout"));
+            ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.query.timeout"));
       }
 
       if (config == null)
@@ -401,7 +401,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     throws Exception {
     Logger.getLogger(getClass())
         .debug("Content Service - get atom subsets " + terminology + "/" + version);
-    final javax.persistence.Query query = manager.createQuery("select a from AtomSubsetJpa a where "
+    final jakarta.persistence.Query query = manager.createQuery("select a from AtomSubsetJpa a where "
         + "version = :version and terminology = :terminology");
     // Try to retrieve the single expected result If zero or more than one
     // result are returned, log error and set result to null
@@ -427,7 +427,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     throws Exception {
     Logger.getLogger(getClass())
         .debug("Content Service - get concept subsets " + terminology + "/" + version);
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         manager.createQuery("select a from ConceptSubsetJpa a where "
             + "version = :version and terminology = :terminology");
 
@@ -514,7 +514,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     String branch) {
     Logger.getLogger(getClass()).debug("Content Service - get subset members for atom " + atomId
         + "/" + terminology + "/" + version);
-    final javax.persistence.Query query = manager.createQuery(
+    final jakarta.persistence.Query query = manager.createQuery(
         "select a from AtomSubsetMemberJpa a, " + " AtomJpa b where b.terminologyId = :atomId "
             + "and b.version = :version " + "and b.terminology = :terminology and a.member = b");
 
@@ -547,7 +547,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     String version, String branch) {
     Logger.getLogger(getClass()).debug("Content Service - get subset members for concept "
         + conceptId + "/" + terminology + "/" + version);
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         manager.createQuery("select a from ConceptSubsetMemberJpa a, "
             + " ConceptJpa b where b.terminologyId = :conceptId " + "and b.version = :version "
             + "and b.terminology = :terminology and a.member = b");
@@ -1194,9 +1194,9 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         + " and super.terminology = :terminology " + " and super.terminologyId = :terminologyId"
         + " and tr.superType = super" + " and tr.subType = a " + " and tr.superType != tr.subType"
         + (childrenOnly ? " and depth = 1" : "");
-    final javax.persistence.Query query = applyPfsToJPQLQuery(queryStr, pfs);
+    final jakarta.persistence.Query query = applyPfsToJPQLQuery(queryStr, pfs);
 
-    final javax.persistence.Query ctQuery = manager.createQuery("select count(*) from "
+    final jakarta.persistence.Query ctQuery = manager.createQuery("select count(*) from "
         + clazz.getName().replace("Jpa", "TransitiveRelationshipJpa") + " tr, " + clazz.getName()
         + " super, " + clazz.getName() + " a " + " where super.version = :version "
         + " and super.terminology = :terminology " + " and super.terminologyId = :terminologyId"
@@ -1244,9 +1244,9 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         + " and sub.terminology = :terminology " + " and sub.terminologyId = :terminologyId"
         + " and tr.subType = sub" + " and tr.superType = a " + " and tr.subType != tr.superType"
         + (parentsOnly ? " and depth = 1" : "");
-    final javax.persistence.Query query = applyPfsToJPQLQuery(queryStr, pfs);
+    final jakarta.persistence.Query query = applyPfsToJPQLQuery(queryStr, pfs);
 
-    final javax.persistence.Query ctQuery = manager.createQuery("select count(*) from "
+    final jakarta.persistence.Query ctQuery = manager.createQuery("select count(*) from "
         + clazz.getName().replace("Jpa", "TransitiveRelationshipJpa") + " tr, " + clazz.getName()
         + " sub, " + clazz.getName() + " a " + " where sub.version = :version "
         + " and sub.terminology = :terminology " + " and sub.terminologyId = :terminologyId"
@@ -2411,12 +2411,12 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         throw new Exception("The JPQL query did not start with the keyword 'select'. " + JPQLQuery);
       if (JPQLQuery.contains(";"))
         throw new Exception("The JPQL query must not contain the ';'. " + JPQLQuery);
-      javax.persistence.Query hQuery = manager.createQuery(JPQLQuery);
+      jakarta.persistence.Query hQuery = manager.createQuery(JPQLQuery);
 
       // Support for this is probably in Mysql 5.7.4
       // See http://mysqlserverteam.com/server-side-select-statement-timeouts/
       // It doesn't work with Mysql 5.6, seems to simply be ignored
-      hQuery.setHint("javax.persistence.query.timeout", queryTimeout);
+      hQuery.setHint("jakarta.persistence.query.timeout", queryTimeout);
       try {
         final List<T> JPQLResults = hQuery.getResultList();
         for (final T r : JPQLResults) {
@@ -2618,7 +2618,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     assert branch != null;
 
     try {
-      final javax.persistence.Query query = manager.createQuery("select a from ConceptJpa a "
+      final jakarta.persistence.Query query = manager.createQuery("select a from ConceptJpa a "
           + "where version = :version " + "and terminology = :terminology "
           + "and (branch = :branch or branchedTo not like :branchMatch)");
       query.setParameter("terminology", terminology);
@@ -2665,7 +2665,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       }
 
       // Find lower name hashes that are ambiguous (e.g. in other concepts)
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select distinct a.lowerNameHash from ConceptJpa c join c.atoms a "
               + "where c.version = :version and c.terminology = :terminology "
               + " and a.lowerNameHash in (:lowerNameHashes)" + " and c.id != :conceptId");
@@ -2696,7 +2696,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     assert branch != null;
 
     try {
-      final javax.persistence.Query query = manager.createQuery("select a from DescriptorJpa a "
+      final jakarta.persistence.Query query = manager.createQuery("select a from DescriptorJpa a "
           + "where version = :version " + "and terminology = :terminology "
           + "and (branch = :branch or branchedTo not like :branchMatch)");
       query.setParameter("terminology", terminology);
@@ -2739,7 +2739,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     assert branch != null;
 
     try {
-      final javax.persistence.Query query = manager.createQuery("select a from CodeJpa a "
+      final jakarta.persistence.Query query = manager.createQuery("select a from CodeJpa a "
           + "where version = :version " + "and terminology = :terminology "
           + "and (branch = :branch or branchedTo not like :branchMatch)");
       query.setParameter("terminology", terminology);
@@ -2783,7 +2783,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         tx.begin();
       }
 
-      javax.persistence.Query query =
+      jakarta.persistence.Query query =
           manager.createQuery("DELETE From ConceptTransitiveRelationshipJpa "
               + " c where terminology = :terminology " + " and version = :version");
       query.setParameter("terminology", terminology);
@@ -2832,7 +2832,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         tx.begin();
       }
 
-      javax.persistence.Query query = manager.createQuery("DELETE From ConceptTreePositionJpa "
+      jakarta.persistence.Query query = manager.createQuery("DELETE From ConceptTreePositionJpa "
           + " c where terminology = :terminology " + " and version = :version");
       query.setParameter("terminology", terminology);
       query.setParameter("version", version);
@@ -2964,7 +2964,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         continue;
       }
       Logger.getLogger(getClass()).info("  " + jpaTable);
-      javax.persistence.Query query = null;
+      jakarta.persistence.Query query = null;
       if (terminology != null) {
         query = manager.createQuery("select count(*) from " + jpaTable
             + " where terminology = :terminology " + "and version = :version ");
@@ -3009,7 +3009,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
   protected <T extends Component> List getComponents(String terminologyId, String terminology,
     String version, Class<T> clazz) {
     try {
-      final javax.persistence.Query query = manager.createQuery("select a from " + clazz.getName()
+      final jakarta.persistence.Query query = manager.createQuery("select a from " + clazz.getName()
           + " a where terminologyId = :terminologyId and version = :version and terminology = :terminology");
       query.setParameter("terminologyId", terminologyId);
       query.setParameter("terminology", terminology);
@@ -3337,7 +3337,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       final List<Object[]> results = new ArrayList<>();
 
       String queryStr = null;
-      javax.persistence.Query query = null;
+      jakarta.persistence.Query query = null;
       if (includeConceptRels) {
         queryStr = "select a.id, a.terminologyId, a.terminology, a.version, "
             + "a.relationshipType, a.additionalRelationshipType, "
@@ -4033,7 +4033,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     String branch) throws Exception {
     Logger.getLogger(getClass())
         .debug("Content Service - get general concept axioms " + terminology + "/" + version);
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         manager.createQuery("select a from GeneralConceptAxiomJpa a where "
             + "version = :version and terminology = :terminology");
     // Try to retrieve the single expected result If zero or more than one
@@ -4137,7 +4137,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
   public MapSetList getMapSets(String terminology, String version, String branch) throws Exception {
     Logger.getLogger(getClass())
         .debug("Content Service - get mapsets " + terminology + "/" + version);
-    javax.persistence.Query query;
+    jakarta.persistence.Query query;
     String queryStr = "select a from MapSetJpa a ";
     if (terminology != null && version != null) {
       queryStr += " where version = :version and terminology = :terminology";
@@ -4314,7 +4314,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
 
     }
 
-    javax.persistence.Query query = manager.createQuery("select a.id, a.terminologyId from "
+    jakarta.persistence.Query query = manager.createQuery("select a.id, a.terminologyId from "
         + tableName + " a where " + "version = :version and terminology = :terminology");
 
     Map<Long, String> idMap = new HashMap<>();

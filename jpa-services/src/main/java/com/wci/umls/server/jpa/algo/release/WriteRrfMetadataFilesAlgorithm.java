@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import com.wci.umls.server.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -99,7 +99,7 @@ public class WriteRrfMetadataFilesAlgorithm
     final String queryStr = "select distinct a.terminology, a.termType "
         + "from ConceptJpa c join c.atoms a where c.terminology = :projectTerminology "
         + " and a.publishable = true";
-    final javax.persistence.Query query = manager.createQuery(queryStr);
+    final jakarta.persistence.Query query = manager.createQuery(queryStr);
     query.setParameter("projectTerminology", getProject().getTerminology());
     final List<Object[]> results = query.getResultList();
     final Set<String> sabTty = new HashSet<>();
@@ -415,7 +415,7 @@ public class WriteRrfMetadataFilesAlgorithm
   private String getTfr(String terminology) {
     String queryStr = "select count(*) " + "from AtomJpa a " + "where "
         + "a.terminology = :terminology and a.publishable = true";
-    javax.persistence.Query query = manager.createQuery(queryStr);
+    jakarta.persistence.Query query = manager.createQuery(queryStr);
     query.setParameter("terminology", terminology);
     return query.getSingleResult().toString();
   }
@@ -430,7 +430,7 @@ public class WriteRrfMetadataFilesAlgorithm
     String queryStr = "select count(distinct c.terminologyId) "
         + "from ConceptJpa c join c.atoms a where a.terminology = :terminology and c.terminology = :projectTerminology"
         + " and a.publishable = true";
-    javax.persistence.Query query = manager.createQuery(queryStr);
+    jakarta.persistence.Query query = manager.createQuery(queryStr);
     query.setParameter("terminology", terminology);
     query.setParameter("projectTerminology", getProject().getTerminology());
     return query.getSingleResult().toString();
@@ -446,7 +446,7 @@ public class WriteRrfMetadataFilesAlgorithm
     String queryStr = "select distinct termType "
         + "from AtomJpa a where a.terminology = :terminology"
         + " and a.publishable = true";
-    javax.persistence.Query query = manager.createQuery(queryStr);
+    jakarta.persistence.Query query = manager.createQuery(queryStr);
     query.setParameter("terminology", terminology);
     @SuppressWarnings("unchecked")
     List<String> list = query.getResultList();

@@ -15,14 +15,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.log4j.Logger;
 
@@ -170,9 +170,9 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       // validate the user-set properties
       validateProperty("source.data.dir", properties);
       validateProperty("hibernate.search.default.indexBase", properties);
-      validateProperty("javax.persistence.jdbc.url", properties);
-      validateProperty("javax.persistence.jdbc.user", properties);
-      validateProperty("javax.persistence.jdbc.password", properties);
+      validateProperty("jakarta.persistence.jdbc.url", properties);
+      validateProperty("jakarta.persistence.jdbc.user", properties);
+      validateProperty("jakarta.persistence.jdbc.password", properties);
 
       // TODO Test database connection with supplied parameters
       // Current (commented) code throws SQL Exceptions regarding no driver
@@ -182,9 +182,9 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       // Check (1) existence, (2) credentials
       /*
        * try { java.sql.Connection con = DriverManager.getConnection(
-       * properties.getProperty("javax.persistence.jdbc.url"),
-       * properties.getProperty("javax.persistence.jdbc.user"),
-       * properties.getProperty("javax.persistence.jdbc.password"));
+       * properties.getProperty("jakarta.persistence.jdbc.url"),
+       * properties.getProperty("jakarta.persistence.jdbc.user"),
+       * properties.getProperty("jakarta.persistence.jdbc.password"));
        * con.getMetaData();
        * 
        * } catch (SQLException e) { throw new LocalException(

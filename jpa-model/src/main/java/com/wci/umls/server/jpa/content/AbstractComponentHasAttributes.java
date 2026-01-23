@@ -6,9 +6,9 @@ package com.wci.umls.server.jpa.content;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.MappedSuperclass;
-import javax.persistence.OneToMany;
-import javax.xml.bind.annotation.XmlElement;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.OneToMany;
+import jakarta.xml.bind.annotation.XmlElement;
 
 import org.hibernate.envers.Audited;
 

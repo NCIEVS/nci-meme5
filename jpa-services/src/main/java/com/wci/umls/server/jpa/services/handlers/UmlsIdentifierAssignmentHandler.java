@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 import org.hibernate.ScrollMode;
@@ -209,7 +209,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
     if (maxConceptId == -1) {
       final ContentServiceJpa service = new ContentServiceJpa();
       try {
-        final javax.persistence.Query query = service.getEntityManager()
+        final jakarta.persistence.Query query = service.getEntityManager()
             .createQuery("select max(terminologyId) from ConceptJpa "
                 + "  where terminology = :terminology "
                 + "  and version = :version "

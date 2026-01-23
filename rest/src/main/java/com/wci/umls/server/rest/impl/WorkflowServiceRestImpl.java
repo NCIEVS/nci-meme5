@@ -27,17 +27,17 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -3775,7 +3775,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
         if (list.size() > 0) {
           final Date lastMatrixinit = list.get(0).getLastModified();
           // find project concepts touched since then\
-          final javax.persistence.Query query = algorithm.getEntityManager()
+          final jakarta.persistence.Query query = algorithm.getEntityManager()
               .createQuery("select c.id from ConceptJpa c " + "where terminology = :terminology "
                   + "  and version = :version and lastModified > :date");
           query.setParameter("terminology", project.getTerminology());

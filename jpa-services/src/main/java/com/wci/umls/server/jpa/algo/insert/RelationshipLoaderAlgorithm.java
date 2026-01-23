@@ -283,7 +283,7 @@ public class RelationshipLoaderAlgorithm
             final String query = "SELECT rel.id from " + clazz.getSimpleName()
                 + " rel where rel.terminology=:specifiedTerminology and rel.version=:specifiedVersion and rel.relationshipType=:relType and rel.additionalRelationshipType=:additionalRelType";
 
-            javax.persistence.Query jpaQuery =
+            jakarta.persistence.Query jpaQuery =
                 getEntityManager().createQuery(query);
             jpaQuery.setParameter("specifiedTerminology",
                 terminology.getTerminology());

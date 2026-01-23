@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
@@ -100,7 +100,7 @@ public class DT_I3B extends AbstractValidationCheck {
     // Query to find all concepts without a semantic type.
     // Step 1 = query to find all demoted relationships
     Set<Long> demotedRelIds = null;
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         ((ContentServiceJpa) contentService).getEntityManager()
             .createQuery("select c2.id "
                 + "from AtomRelationshipJpa a, ConceptJpa c2 join c2.atoms ca "
@@ -123,7 +123,7 @@ public class DT_I3B extends AbstractValidationCheck {
     // Step 2 = query to find all publishable concept relationships
     Set<Long> cRelIds = new HashSet<>();
     if (demotedRelIds.size() > 0 ){
-    final javax.persistence.Query query2 =
+    final jakarta.persistence.Query query2 =
         ((ContentServiceJpa) contentService).getEntityManager()
             .createQuery("select a.from.id " + "from ConceptRelationshipJpa a "
                 + "where terminology = :terminology and version = :version"

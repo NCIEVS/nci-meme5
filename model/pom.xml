@@ -64,12 +64,22 @@
       <groupId>org.glassfish.jersey.media</groupId>
       <artifactId>jersey-media-json-jackson</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+    </dependency>
 
     <!-- Required for Lucene -->
 
     <dependency>
       <groupId>org.hibernate.search</groupId>
       <artifactId>hibernate-search-mapper-orm</artifactId>
+    </dependency>
+
+    <!-- Lucene -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-queryparser</artifactId>
     </dependency>
 
   </dependencies>

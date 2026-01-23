@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.xml.bind.DatatypeConverter;
+import jakarta.xml.bind.DatatypeConverter;
 
 import org.apache.commons.io.FileUtils;
 

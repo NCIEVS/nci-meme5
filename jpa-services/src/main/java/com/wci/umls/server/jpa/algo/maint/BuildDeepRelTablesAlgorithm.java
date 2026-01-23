@@ -72,7 +72,7 @@ public class BuildDeepRelTablesAlgorithm
     String query = "TRUNCATE TABLE deep_atom_relationships;";
     logInfo("Performing: " + query);
     commitClearBegin();
-    javax.persistence.Query jpaQuery =
+    jakarta.persistence.Query jpaQuery =
         getEntityManager().createNativeQuery(query);
     jpaQuery.executeUpdate();
     

@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ValidationResult;
@@ -164,7 +164,7 @@ public class DailyEditingReport extends AbstractReportAlgorithm {
       report.append("EMS v3 Daily Editing Report for " + yesterday)
           .append("\n");
       report.append("Database : " + ConfigUtility.getConfigProperties()
-          .getProperty("javax.persistence.jdbc.url").replaceAll("\\?.*", ""))
+          .getProperty("jakarta.persistence.jdbc.url").replaceAll("\\?.*", ""))
           .append("\n");
       report.append("Time now: " + new Date(start)).append("\n");
       report.append("\n");

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
@@ -145,7 +145,7 @@ public class SourceDataServiceJpa extends RootServiceJpa
   public SourceDataFileList getSourceDataFiles() {
     Logger.getLogger(getClass())
         .debug("SourceData Service - get sourceDataFiles");
-    javax.persistence.Query query =
+    jakarta.persistence.Query query =
         manager.createQuery("select a from SourceDataFileJpa a");
     try {
       List<SourceDataFile> sourceDataFiles = query.getResultList();
@@ -268,7 +268,7 @@ public class SourceDataServiceJpa extends RootServiceJpa
   public SourceDataList getSourceDatas() {
     Logger.getLogger(getClass())
         .debug("Source Data Service - get all source datas");
-    javax.persistence.Query query =
+    jakarta.persistence.Query query =
         manager.createQuery("select a from SourceDataJpa a");
 
     // Try to retrieve the single expected result If zero or more than one

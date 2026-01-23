@@ -6,7 +6,7 @@ package com.wci.umls.server.services.handlers;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import com.wci.umls.server.helpers.Configurable;
 import com.wci.umls.server.helpers.HasId;

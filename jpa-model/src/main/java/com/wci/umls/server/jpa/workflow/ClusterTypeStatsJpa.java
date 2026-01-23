@@ -6,7 +6,7 @@ package com.wci.umls.server.jpa.workflow;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import com.wci.umls.server.model.workflow.ClusterTypeStats;
 

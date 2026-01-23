@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import com.wci.umls.server.ValidationResult;
 import com.wci.umls.server.helpers.Branch;

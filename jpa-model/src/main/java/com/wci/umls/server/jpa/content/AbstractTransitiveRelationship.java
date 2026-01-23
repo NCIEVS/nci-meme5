@@ -3,8 +3,8 @@
  */
 package com.wci.umls.server.jpa.content;
 
-import javax.persistence.Column;
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
 
 import org.hibernate.envers.Audited;
 

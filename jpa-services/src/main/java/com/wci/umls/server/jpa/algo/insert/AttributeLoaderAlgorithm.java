@@ -218,7 +218,7 @@ public class AttributeLoaderAlgorithm
                 + clazz.getSimpleName()
                 + " a join a.attributes att where att.terminology=:specifiedTerminology and att.version=:specifiedVersion and att.name=:name";
 
-            javax.persistence.Query jpaQuery =
+            jakarta.persistence.Query jpaQuery =
                 getEntityManager().createQuery(query);
             jpaQuery.setParameter("specifiedTerminology",
                 terminology.getTerminology());

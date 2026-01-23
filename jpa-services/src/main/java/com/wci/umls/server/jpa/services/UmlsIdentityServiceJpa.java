@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -75,7 +75,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     // If this is the first time this is called, lookup max ID from the database
     if (!maxIds.containsKey("ATUI")) {
       try {
-        final javax.persistence.Query query = manager
+        final jakarta.persistence.Query query = manager
             .createQuery("select max(a.id) from AttributeIdentityJpa a ");
         final Long attId2 = (Long) query.getSingleResult();
         attId = attId2 != null ? attId2 : attId;
@@ -83,7 +83,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
         attId = 0L;
       }
       try {
-        final javax.persistence.Query query = manager.createQuery(
+        final jakarta.persistence.Query query = manager.createQuery(
             "select max(a.id) from SemanticTypeComponentIdentityJpa a ");
         final Long styId2 = (Long) query.getSingleResult();
         styId = styId2 != null ? styId2 : styId;
@@ -185,7 +185,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     // If this is the first time this is called, lookup max ID from the database
     if (!maxIds.containsKey("ATUI")) {
       try {
-        final javax.persistence.Query query = manager
+        final jakarta.persistence.Query query = manager
             .createQuery("select max(a.id) from AttributeIdentityJpa a ");
         final Long attId2 = (Long) query.getSingleResult();
         attId = attId2 != null ? attId2 : attId;
@@ -193,7 +193,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
         attId = 0L;
       }
       try {
-        final javax.persistence.Query query = manager.createQuery(
+        final jakarta.persistence.Query query = manager.createQuery(
             "select max(a.id) from SemanticTypeComponentIdentityJpa a ");
         final Long styId2 = (Long) query.getSingleResult();
         styId = styId2 != null ? styId2 : styId;
@@ -296,7 +296,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     // If this is the first time this is called, lookup max ID from the database
     if (!maxIds.containsKey("AUI")) {
       try {
-        final javax.persistence.Query query =
+        final jakarta.persistence.Query query =
             manager.createQuery("select max(a.id) from AtomIdentityJpa a ");
         final Long atomId2 = (Long) query.getSingleResult();
         atomId = atomId2 != null ? atomId2 : atomId;
@@ -390,7 +390,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     // If this is the first time this is called, lookup max ID from the database
     if (!maxIds.containsKey("SUI")) {
       try {
-        final javax.persistence.Query query = manager
+        final jakarta.persistence.Query query = manager
             .createQuery("select max(a.id) from StringClassIdentityJpa a ");
         final Long stringId2 = (Long) query.getSingleResult();
         stringId = stringId2 != null ? stringId2 : stringId;
@@ -490,7 +490,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     // If this is the first time this is called, lookup max ID from the database
     if (!maxIds.containsKey("LUI")) {
       try {
-        final javax.persistence.Query query = manager
+        final jakarta.persistence.Query query = manager
             .createQuery("select max(a.id) from LexicalClassIdentityJpa a ");
         final Long lexicalId2 = (Long) query.getSingleResult();
         lexicalId = lexicalId2 != null ? lexicalId2 : lexicalId;
@@ -620,7 +620,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     // If this is the first time this is called, lookup max ID from the database
     if (!maxIds.containsKey("RUI")) {
       try {
-        final javax.persistence.Query query = manager
+        final jakarta.persistence.Query query = manager
             .createQuery("select max(a.id) from RelationshipIdentityJpa a ");
         final Long relationshipId2 = (Long) query.getSingleResult();
         relationshipId =

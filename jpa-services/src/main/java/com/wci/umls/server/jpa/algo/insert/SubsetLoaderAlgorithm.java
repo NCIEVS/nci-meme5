@@ -247,7 +247,7 @@ public class SubsetLoaderAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     params.put("termType", "SB");
 
     // Execute the query
-    javax.persistence.Query jpaQuery = getEntityManager().createQuery(query);
+    jakarta.persistence.Query jpaQuery = getEntityManager().createQuery(query);
 
     // Handle special query key-words
     if (params != null) {

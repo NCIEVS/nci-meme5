@@ -6,7 +6,7 @@ package com.wci.umls.server.jpa.services;
 import java.util.List;
 import java.util.Properties;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
@@ -63,7 +63,7 @@ public class InversionServiceJpa extends HistoryServiceJpa
     Logger.getLogger(getClass())
         .debug("Inversion Service - update sourceIdRange - " + sourceIdRange);
     // Get the max id previously assigned to any source
-    final javax.persistence.Query query = manager
+    final jakarta.persistence.Query query = manager
         .createQuery("select max(a.endSourceId) from SourceIdRangeJpa a");
     try {
       Long beginSourceId = beginId;
@@ -107,7 +107,7 @@ public class InversionServiceJpa extends HistoryServiceJpa
   @Override
   public SourceIdRangeList getSourceIdRange(Project project, String terminology) throws Exception {
 
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         manager.createQuery("select id from SourceIdRangeJpa a where "
             + "terminology like :terminology");
     try {
@@ -149,7 +149,7 @@ public class InversionServiceJpa extends HistoryServiceJpa
     int numberOfIds, long beginId) throws Exception {
 
     // Get the max id previously assigned to any source
-    final javax.persistence.Query query = manager
+    final jakarta.persistence.Query query = manager
         .createQuery("select max(a.endSourceId) from SourceIdRangeJpa a");
     try {
       // create a new SourceIdRange with the previous max id incremented by one

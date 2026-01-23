@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -130,7 +130,7 @@ public class EclConceptIndexingAlgorithm extends AbstractAlgorithm {
     // get entity manager for direct queries
     EntityManager manager = getEntityManager();
     List<Object[]> results = new ArrayList<>();
-    javax.persistence.Query query = null;
+    jakarta.persistence.Query query = null;
 
     //
     // Cache concept hibernate id -> terminologyId
@@ -260,7 +260,7 @@ public class EclConceptIndexingAlgorithm extends AbstractAlgorithm {
   private void computeTransitiveClosure() throws Exception {
 
     Logger.getLogger(getClass()).info("  Load hierarchical relationships");
-    final javax.persistence.Query query = manager
+    final jakarta.persistence.Query query = manager
         .createQuery("select r.from.id, r.to.id from ConceptRelationshipJpa "
             + " r where obsolete = 0 and inferred = 1 " + "and terminology = :terminology "
             + "and version = :version " + "and hierarchical = 1")

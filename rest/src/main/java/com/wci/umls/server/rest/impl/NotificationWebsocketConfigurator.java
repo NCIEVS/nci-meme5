@@ -6,7 +6,7 @@
  */
 package com.wci.umls.server.rest.impl;
 
-import javax.websocket.server.ServerEndpointConfig;
+import jakarta.websocket.server.ServerEndpointConfig;
 
 import org.apache.log4j.Logger;
 

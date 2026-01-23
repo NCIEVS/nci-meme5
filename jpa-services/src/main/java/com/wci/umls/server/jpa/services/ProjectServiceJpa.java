@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
@@ -66,7 +66,7 @@ public class ProjectServiceJpa extends RootServiceJpa
   @SuppressWarnings("unchecked")
   public ProjectList getProjects() {
     Logger.getLogger(getClass()).debug("Project Service - get projects");
-    javax.persistence.Query query =
+    jakarta.persistence.Query query =
         manager.createQuery("select a from ProjectJpa a");
     try {
       final List<Project> projects = query.getResultList();

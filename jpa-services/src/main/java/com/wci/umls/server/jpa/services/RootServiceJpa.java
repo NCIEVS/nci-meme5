@@ -20,14 +20,14 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.LockModeType;
-import javax.persistence.NoResultException;
-import javax.persistence.Persistence;
-import javax.persistence.Table;
-import javax.persistence.spi.PersistenceProvider;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.Table;
+import jakarta.persistence.spi.PersistenceProvider;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -328,10 +328,10 @@ public abstract class RootServiceJpa implements RootService {
    *
    * @param queryStr the query str
    * @param pfs the pfs
-   * @return the javax.persistence. query
+   * @return the jakarta.persistence. query
    * @throws Exception the exception
    */
-  public javax.persistence.Query applyPfsToJPQLQuery(final String queryStr,
+  public jakarta.persistence.Query applyPfsToJPQLQuery(final String queryStr,
     final PfsParameter pfs) throws Exception {
     final StringBuilder localQueryStr = new StringBuilder();
     localQueryStr.append(queryStr);
@@ -358,7 +358,7 @@ public abstract class RootServiceJpa implements RootService {
       }
     }
 
-    final javax.persistence.Query query =
+    final jakarta.persistence.Query query =
         manager.createQuery(localQueryStr.toString());
     if (pfs != null && pfs.getStartIndex() > -1 && pfs.getMaxResults() > -1) {
       query.setFirstResult(pfs.getStartIndex());
@@ -732,7 +732,7 @@ public abstract class RootServiceJpa implements RootService {
     if (userMap.containsKey(userName)) {
       return userMap.get(userName);
     }
-    final javax.persistence.Query query = manager
+    final jakarta.persistence.Query query = manager
         .createQuery("select u from UserJpa u where userName = :userName");
     query.setParameter("userName", userName);
     try {
@@ -1132,7 +1132,7 @@ public abstract class RootServiceJpa implements RootService {
     final String terminologyId, final String terminology, final String version,
     final Class<T> clazz) {
     try {
-      final javax.persistence.Query query = manager.createQuery("select a from "
+      final jakarta.persistence.Query query = manager.createQuery("select a from "
           + clazz.getName()
           + " a where terminologyId = :terminologyId and version = :version and terminology = :terminology");
       query.setParameter("terminologyId", terminologyId);
@@ -1731,7 +1731,7 @@ public abstract class RootServiceJpa implements RootService {
     // done in a way that could handle every way a query could be written.
 
     // Execute the query
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (queryType == QueryType.SQL) {
       jpaQuery = this.getEntityManager().createNativeQuery(query);
     } else if (queryType == QueryType.JPQL) {
@@ -1886,7 +1886,7 @@ public abstract class RootServiceJpa implements RootService {
           query.substring(0, fromIndex).replaceAll("\\.id", "")
               + query.substring(fromIndex);
 
-      javax.persistence.Query jpaTestQuery =
+      jakarta.persistence.Query jpaTestQuery =
           getEntityManager().createQuery(testQuery);
       jpaTestQuery.setMaxResults(1);
 
@@ -1914,7 +1914,7 @@ public abstract class RootServiceJpa implements RootService {
     }
 
     // Execute the query
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (queryType == QueryType.SQL) {
       jpaQuery = this.getEntityManager().createNativeQuery(query);
     } else if (queryType == QueryType.JPQL) {
@@ -2012,7 +2012,7 @@ public abstract class RootServiceJpa implements RootService {
     }
 
     // Execute the query
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (queryType == QueryType.SQL) {
       jpaQuery = this.getEntityManager().createNativeQuery(query);
     } else if (queryType == QueryType.JPQL) {
@@ -2084,7 +2084,7 @@ public abstract class RootServiceJpa implements RootService {
     }
 
     // Execute the query
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (queryType == QueryType.SQL) {
       jpaQuery = this.getEntityManager().createNativeQuery(query);
     } else if (queryType == QueryType.JPQL) {
@@ -2187,7 +2187,7 @@ public abstract class RootServiceJpa implements RootService {
     }
 
     // Execute the query
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (queryType == QueryType.SQL) {
       jpaQuery = getEntityManager().createNativeQuery(query);
     } else if (queryType == QueryType.JPQL) {
@@ -2390,7 +2390,7 @@ public abstract class RootServiceJpa implements RootService {
     }
 
     // Execute the query
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (queryType == QueryType.SQL) {
       jpaQuery = getEntityManager().createNativeQuery(query);
     } else if (queryType == QueryType.JPQL) {

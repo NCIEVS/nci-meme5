@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
@@ -276,7 +276,7 @@ public class SecurityServiceJpa extends RootServiceJpa
   /* see superclass */
   @Override
   public User getUser(String username) throws Exception {
-    javax.persistence.Query query = manager
+    jakarta.persistence.Query query = manager
         .createQuery("select u from UserJpa u where userName = :userName");
     query.setParameter("userName", username);
     try {
@@ -370,7 +370,7 @@ public class SecurityServiceJpa extends RootServiceJpa
   @SuppressWarnings("unchecked")
   @Override
   public UserList getUsers() {
-    javax.persistence.Query query =
+    jakarta.persistence.Query query =
         manager.createQuery("select u from UserJpa u");
     List<User> m = query.getResultList();
     UserListJpa mapUserList = new UserListJpa();

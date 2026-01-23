@@ -10,7 +10,7 @@ import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Properties;
 
-import javax.ws.rs.WebApplicationException;
+import jakarta.ws.rs.WebApplicationException;
 
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.log4j.Logger;

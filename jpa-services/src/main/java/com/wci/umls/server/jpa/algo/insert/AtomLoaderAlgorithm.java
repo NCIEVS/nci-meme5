@@ -92,7 +92,7 @@ public class AtomLoaderAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     final String query =
         "SELECT term.terminology, term.version from TerminologyJpa term";
 
-    javax.persistence.Query jpaQuery = getEntityManager().createQuery(query);
+    jakarta.persistence.Query jpaQuery = getEntityManager().createQuery(query);
 
     final List<Object[]> list = jpaQuery.getResultList();
 

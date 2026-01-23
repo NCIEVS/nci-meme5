@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import com.wci.umls.server.helpers.HasId;
 import com.wci.umls.server.helpers.LocalException;
@@ -92,7 +92,7 @@ public class QuerySearchHandler extends DefaultSearchHandler {
       throw new LocalException(
           "Workflow bin definition query must contain the term FROM");
 
-    javax.persistence.Query jpaQuery = null;
+    jakarta.persistence.Query jpaQuery = null;
     if (nativeFlag) {
       jpaQuery = manager.createNativeQuery(query);
       if (params != null) {

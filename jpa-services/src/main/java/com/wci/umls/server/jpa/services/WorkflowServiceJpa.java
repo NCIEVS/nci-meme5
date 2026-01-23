@@ -16,7 +16,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import javax.persistence.NoResultException;
+import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -1269,7 +1269,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
             + project.getId());
     final String epoch = getCurrentWorkflowEpoch(project).getName();
     // TODO: Make this JPQL query
-    final javax.persistence.Query query = manager.createNativeQuery(
+    final jakarta.persistence.Query query = manager.createNativeQuery(
         "select distinct toc.origConceptIds, w.name from worklists w, tracking_records t, "
             + "worklists_tracking_records wt, orig_concept_ids toc "
             + "where w.project_id = :projectId " + "  and w.epoch = :epoch "

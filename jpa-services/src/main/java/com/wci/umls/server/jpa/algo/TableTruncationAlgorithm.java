@@ -6,7 +6,7 @@ package com.wci.umls.server.jpa.algo;
 import java.util.List;
 import java.util.Properties;
 
-import javax.persistence.Query;
+import jakarta.persistence.Query;
 
 import org.apache.log4j.Logger;
 

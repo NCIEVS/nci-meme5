@@ -3,8 +3,8 @@
  */
 package com.wci.umls.server.jpa.content;
 
-import javax.persistence.MappedSuperclass;
-import javax.xml.bind.annotation.XmlSeeAlso;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 import org.hibernate.envers.Audited;
 

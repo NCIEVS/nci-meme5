@@ -19,8 +19,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.persistence.NoResultException;
-import javax.persistence.Query;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ProcessExecution;
@@ -127,7 +127,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     String query = "select value(b) from AtomJpa a join a.alternateTerminologyIds b "
         + "where KEY(b) = :terminology ";
     
-    javax.persistence.Query jpaQuery =
+    jakarta.persistence.Query jpaQuery =
       getEntityManager().createQuery(query);
     jpaQuery.setParameter("terminology", getProject().getTerminology() + "-SRC");
 
@@ -215,7 +215,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // which atoms are new)
     Long atomId = null;
     try {
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from AtomJpa a ");
       final Long atomId2 = (Long) query.getSingleResult();
       atomId = atomId2 != null ? atomId2 : atomId;
@@ -232,7 +232,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // newly created AUIs)
     Long AUI = null;
     try {
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from AtomIdentityJpa a ");
       final Long AUI2 = (Long) query.getSingleResult();
       AUI = AUI2 != null ? AUI2 : AUI;
@@ -248,7 +248,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // Get the max Semantic Type Component Id prior to the insertion starting
     Long styId = null;
     try {
-      final javax.persistence.Query query = manager
+      final jakarta.persistence.Query query = manager
           .createQuery("select max(a.id) from SemanticTypeComponentJpa a ");
       final Long styId2 = (Long) query.getSingleResult();
       styId = styId2 != null ? styId2 : styId;
@@ -263,7 +263,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // Get the max MapSet Id prior to the insertion starting
     Long mapSetId = null;
     try {
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from MapSetJpa a ");
       final Long mapSetId2 = (Long) query.getSingleResult();
       mapSetId = mapSetId2 != null ? mapSetId2 : mapSetId;
@@ -278,7 +278,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // Get the max Atom Subset Id prior to the insertion starting
     Long atomSubsetId = null;
     try {
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from AtomSubsetJpa a ");
       final Long atomSubsetId2 = (Long) query.getSingleResult();
       atomSubsetId = atomSubsetId2 != null ? atomSubsetId2 : atomSubsetId;
@@ -293,7 +293,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // Get the max Concept Subset Id prior to the insertion starting
     Long conceptSubsetId = null;
     try {
-      final javax.persistence.Query query =
+      final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from ConceptSubsetJpa a ");
       final Long conceptSubsetId2 = (Long) query.getSingleResult();
       conceptSubsetId =

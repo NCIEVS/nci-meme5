@@ -3,8 +3,8 @@
  */
 package com.wci.umls.server.rest.impl;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.User;

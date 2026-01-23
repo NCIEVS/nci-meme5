@@ -66,7 +66,7 @@ public class ReloadMrcuiTableAlgorithm
     String query = "TRUNCATE TABLE mrcui;";
     logInfo("Performing: " + query);
     commitClearBegin();
-    javax.persistence.Query jpaQuery =
+    jakarta.persistence.Query jpaQuery =
         getEntityManager().createNativeQuery(query);
     jpaQuery.executeUpdate();
     
@@ -80,9 +80,9 @@ public class ReloadMrcuiTableAlgorithm
     try {
       Class.forName("com.mysql.cj.jdbc.Driver");
       java.sql.Connection connection =
-          DriverManager.getConnection(ConfigUtility.getConfigProperties().getProperty("javax.persistence.jdbc.url"),
-              ConfigUtility.getConfigProperties().getProperty("javax.persistence.jdbc.user"),
-              ConfigUtility.getConfigProperties().getProperty("javax.persistence.jdbc.password"));
+          DriverManager.getConnection(ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.jdbc.url"),
+              ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.jdbc.user"),
+              ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.jdbc.password"));
       connection.getMetaData();
       connection.setAutoCommit(false);
       String sql="insert IGNORE into  ncimdb.mrcui values (?, ?, ?, ?, ?, ?, ?) ";

@@ -5,7 +5,7 @@ package com.wci.umls.server.test.jpa;
 
 import static org.junit.Assert.fail;
 
-import javax.persistence.PersistenceException;
+import jakarta.persistence.PersistenceException;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
