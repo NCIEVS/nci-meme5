@@ -36,8 +36,8 @@
 
     <!-- Websocket API -->
     <dependency>
-      <groupId>javax.websocket</groupId>
-      <artifactId>javax.websocket-api</artifactId>
+      <groupId>jakarta.websocket</groupId>
+      <artifactId>jakarta.websocket-api</artifactId>
     </dependency>
 
     <!-- Required for Jersey and JSON -->

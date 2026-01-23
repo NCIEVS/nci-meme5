@@ -55,10 +55,11 @@
     <releaseVersion>${project.version}</releaseVersion>
 
     <!-- Set third-party dependency versions -->
-    <hibernate.version>5.6.8.Final</hibernate.version>
-    <hibernate.search.version>5.11.10.Final</hibernate.search.version>
-    <hibernate.validator.version>5.0.1.Final</hibernate.validator.version>
-    <jersey.version>2.33</jersey.version>
+    <hibernate.version>6.4.4.Final</hibernate.version>
+    <hibernate.search.version>7.0.1.Final</hibernate.search.version>
+    <jersey.version>3.1.5</jersey.version>
+    <lucene.version>9.9.2</lucene.version>
+    <jackson.version>2.16.1</jackson.version>
   </properties>
 
   <dependencyManagement>
@@ -106,23 +107,28 @@
       <!-- <dependency> <groupId>javax.transaction</groupId> <artifactId>jta</artifactId> 
         <version>1.1</version> </dependency> -->
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.orm</groupId>
         <artifactId>hibernate-core</artifactId>
         <version>${hibernate.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.orm</groupId>
         <artifactId>hibernate-envers</artifactId>
         <version>${hibernate.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.orm</groupId>
         <artifactId>hibernate-c3p0</artifactId>
         <version>${hibernate.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.hibernate</groupId>
-        <artifactId>hibernate-search-orm</artifactId>
+        <groupId>org.hibernate.search</groupId>
+        <artifactId>hibernate-search-mapper-orm</artifactId>
+        <version>${hibernate.search.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hibernate.search</groupId>
+        <artifactId>hibernate-search-backend-lucene</artifactId>
         <version>${hibernate.search.version}</version>
       </dependency>
       <!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-envers</artifactId> 
@@ -132,12 +138,12 @@
       <dependency>
         <groupId>org.apache.lucene</groupId>
         <artifactId>lucene-queryparser</artifactId>
-        <version>5.5.5</version>
+        <version>${lucene.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.lucene</groupId>
         <artifactId>lucene-suggest</artifactId>
-        <version>5.5.5</version>
+        <version>${lucene.version}</version>
       </dependency>
       <dependency>
         <groupId>mysql</groupId>
@@ -178,10 +184,9 @@
 
       <!-- Websocket API -->
       <dependency>
-        <groupId>javax.websocket</groupId>
-        <artifactId>javax.websocket-api</artifactId>
-        <version>1.1</version>
-        <!-- Important, to let Tomcat use its library -->
+        <groupId>jakarta.websocket</groupId>
+        <artifactId>jakarta.websocket-api</artifactId>
+        <version>2.1.0</version>
         <scope>provided</scope>
       </dependency>
 
@@ -225,15 +230,55 @@
 </dependency>
 
       <dependency>
-        <groupId>io.swagger</groupId>
-        <artifactId>swagger-jersey2-jaxrs</artifactId>
-        <version>1.5.9</version>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-jaxrs2-jakarta</artifactId>
+        <version>2.2.20</version>
       </dependency>
       <dependency>
-        <groupId>javax.servlet</groupId>
-        <artifactId>javax.servlet-api</artifactId>
-        <version>3.1.0</version>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>6.0.0</version>
         <scope>provided</scope>
+      </dependency>
+
+      <!-- Jakarta EE APIs -->
+      <dependency>
+        <groupId>jakarta.ws.rs</groupId>
+        <artifactId>jakarta.ws.rs-api</artifactId>
+        <version>3.1.0</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.xml.bind</groupId>
+        <artifactId>jakarta.xml.bind-api</artifactId>
+        <version>4.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-runtime</artifactId>
+        <version>4.0.2</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.persistence</groupId>
+        <artifactId>jakarta.persistence-api</artifactId>
+        <version>3.1.0</version>
+      </dependency>
+
+      <!-- Jackson -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <artifactId>jackson-datatype-jsr310</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.module</groupId>
+        <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+        <version>${jackson.version}</version>
       </dependency>
 
       <!-- OWL API <version>4.1.0-RC2</version> -->
@@ -308,8 +353,13 @@
 
       <dependency>
         <groupId>com.sun.mail</groupId>
-        <artifactId>javax.mail</artifactId>
-        <version>1.6.2</version>
+        <artifactId>jakarta.mail</artifactId>
+        <version>2.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.activation</groupId>
+        <artifactId>jakarta.activation-api</artifactId>
+        <version>2.1.0</version>
       </dependency>
 
       <!-- Zip utility -->
@@ -352,12 +402,6 @@
       </dependency>
 
 
-      <!-- <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-core</artifactId> 
-        <version>${jackson.version}</version> </dependency> <dependency> <groupId>com.fasterxml.jackson.core</groupId> 
-        <artifactId>jackson-annotations</artifactId> <version>${jackson.version}</version> 
-        </dependency> -->
-      <!-- <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-databind</artifactId> 
-        <version>${jackson.version}</version> </dependency> -->
 
 
     </dependencies>

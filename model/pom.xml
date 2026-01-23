@@ -42,7 +42,7 @@
     <!-- Mail -->
     <dependency>
       <groupId>com.sun.mail</groupId>
-      <artifactId>javax.mail</artifactId>
+      <artifactId>jakarta.mail</artifactId>
     </dependency>
 
 
@@ -68,8 +68,8 @@
     <!-- Required for Lucene -->
 
     <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-search-orm</artifactId>
+      <groupId>org.hibernate.search</groupId>
+      <artifactId>hibernate-search-mapper-orm</artifactId>
     </dependency>
 
   </dependencies>
