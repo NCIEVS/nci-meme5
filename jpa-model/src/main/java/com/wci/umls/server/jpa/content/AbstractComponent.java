@@ -5,7 +5,6 @@ package com.wci.umls.server.jpa.content;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
@@ -37,8 +36,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId", strategy = "com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator")
-  @GeneratedValue(strategy = GenerationType.TABLE, generator = "ExistingOrGeneratedId")
+  @GenericGenerator(name = "ExistingOrGeneratedId", type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class)
+  @GeneratedValue(generator = "ExistingOrGeneratedId")
   private Long id;
 
   /** The suppressible flag. */

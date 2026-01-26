@@ -7,20 +7,24 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.hibernate.search.bridge.StringBridge;
+import org.hibernate.search.mapper.pojo.bridge.ValueBridge;
+import org.hibernate.search.mapper.pojo.bridge.runtime.ValueBridgeToIndexedValueContext;
 
 /**
- * Hibernate search field bridge for the key/values of a map.
+ * Hibernate search field bridge for a map of state history entries. Returns the
+ * key (state) with the most recent (max) date value.
  */
-public class MaxStateHistoryBridge implements StringBridge {
+@SuppressWarnings("rawtypes")
+public class MaxStateHistoryBridge implements ValueBridge<Map, String> {
 
   /* see superclass */
+  @SuppressWarnings("unchecked")
   @Override
-  public String objectToString(Object value) {
+  public String toIndexedValue(Map value,
+    ValueBridgeToIndexedValueContext context) {
     if (value != null) {
-      @SuppressWarnings("unchecked")
-      Map<String, Date> map = (Map<String, Date>) value;
-      Iterator<? extends Map.Entry<String, Date>> it =
+      final Map<String, Date> map = (Map<String, Date>) value;
+      final Iterator<? extends Map.Entry<String, Date>> it =
           map.entrySet().iterator();
       String max = "";
       long maxTime = 0L;

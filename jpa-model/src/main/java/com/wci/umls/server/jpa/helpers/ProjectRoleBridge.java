@@ -5,7 +5,8 @@ package com.wci.umls.server.jpa.helpers;
 
 import java.util.Map;
 
-import org.hibernate.search.bridge.StringBridge;
+import org.hibernate.search.mapper.pojo.bridge.ValueBridge;
+import org.hibernate.search.mapper.pojo.bridge.runtime.ValueBridgeToIndexedValueContext;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.UserRole;
@@ -14,16 +15,17 @@ import com.wci.umls.server.UserRole;
  * Hibernate search field bridge for searching project/role combinations. For
  * example, "projectRoleMap:10ADMIN"
  */
-public class ProjectRoleBridge implements StringBridge {
+@SuppressWarnings("rawtypes")
+public class ProjectRoleBridge implements ValueBridge<Map, String> {
 
   /* see superclass */
   @SuppressWarnings("unchecked")
   @Override
-  public String objectToString(Object value) {
+  public String toIndexedValue(Map value,
+    ValueBridgeToIndexedValueContext context) {
     if (value != null) {
-      StringBuilder buf = new StringBuilder();
-
-      final       Map<Project, UserRole> map = (Map<Project, UserRole>) value;
+      final StringBuilder buf = new StringBuilder();
+      final Map<Project, UserRole> map = (Map<Project, UserRole>) value;
       for (final Map.Entry<Project, UserRole> entry : map.entrySet()) {
         buf.append(entry.getKey().getId()).append(entry.getValue().toString())
             .append(",");

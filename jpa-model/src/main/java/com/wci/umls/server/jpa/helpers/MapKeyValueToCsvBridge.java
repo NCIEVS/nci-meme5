@@ -6,31 +6,32 @@ package com.wci.umls.server.jpa.helpers;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.hibernate.search.bridge.StringBridge;
+import org.hibernate.search.mapper.pojo.bridge.ValueBridge;
+import org.hibernate.search.mapper.pojo.bridge.runtime.ValueBridgeToIndexedValueContext;
 
 /**
  * Hibernate search field bridge for the key/values of a map.
  */
-public class MapKeyValueToCsvBridge implements StringBridge {
+@SuppressWarnings("rawtypes")
+public class MapKeyValueToCsvBridge implements ValueBridge<Map, String> {
 
   /* see superclass */
+  @SuppressWarnings("unchecked")
   @Override
-  public String objectToString(Object value) {
+  public String toIndexedValue(Map value,
+    ValueBridgeToIndexedValueContext context) {
     if (value != null) {
-      StringBuilder buf = new StringBuilder();
-
-      Map<?, ?> map = (Map<?, ?>) value;
-      Iterator<? extends Map.Entry<?, ?>> it = map.entrySet().iterator();
+      final StringBuilder buf = new StringBuilder();
+      final Iterator<Map.Entry<?, ?>> it = value.entrySet().iterator();
       while (it.hasNext()) {
-        Map.Entry<?, ?> entry = it.next();
-        String key = entry.getKey().toString();
-        String v = entry.getValue().toString();
+        final Map.Entry<?, ?> entry = it.next();
+        final String key = entry.getKey().toString();
+        final String v = entry.getValue().toString();
         buf.append(key).append("=").append(v);
         if (it.hasNext())
           buf.append(" ");
       }
       return buf.toString();
-
     }
     return null;
   }

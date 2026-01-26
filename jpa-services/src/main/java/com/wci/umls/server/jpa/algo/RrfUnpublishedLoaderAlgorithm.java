@@ -21,6 +21,7 @@ import org.apache.log4j.Logger;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
+import org.hibernate.query.NativeQuery;
 
 import com.google.common.io.Files;
 import com.wci.umls.server.ValidationResult;
@@ -241,14 +242,15 @@ public class RrfUnpublishedLoaderAlgorithm
         new File(getInputPath(), "atomNotes.txt"), Charset.forName("UTF-8"));
 
     final Session session = manager.unwrap(Session.class);
-    final org.hibernate.Query hQuery =
-        session.createSQLQuery("select b.alternateTerminologyIds, a.id "
+    final NativeQuery<Object[]> hQuery =
+        session.createNativeQuery("select b.alternateTerminologyIds, a.id "
             + "from atoms a, AtomJpa_alternateTerminologyIds b "
             + "where b.AtomJpa_id = a.id "
-            + "  and b.alternateTerminologyIds_KEY = :terminology ");
+            + "  and b.alternateTerminologyIds_KEY = :terminology ",
+            Object[].class);
     hQuery.setParameter("terminology", getTerminology());
     hQuery.setReadOnly(true).setFetchSize(2000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     final Map<String, Long> map = new HashMap<>();
     while (results.next()) {
       final String aui = (String) results.get()[0];
@@ -344,14 +346,15 @@ public class RrfUnpublishedLoaderAlgorithm
         new File(getInputPath(), "srcAtomIds.txt"), Charset.forName("UTF-8"));
 
     final Session session = manager.unwrap(Session.class);
-    final org.hibernate.Query hQuery =
-        session.createSQLQuery("select b.alternateTerminologyIds, a.id "
+    final NativeQuery<Object[]> hQuery =
+        session.createNativeQuery("select b.alternateTerminologyIds, a.id "
             + "from atoms a, AtomJpa_alternateTerminologyIds b "
             + "where b.AtomJpa_id = a.id "
-            + "  and b.alternateTerminologyIds_KEY = :terminology ");
+            + "  and b.alternateTerminologyIds_KEY = :terminology ",
+            Object[].class);
     hQuery.setParameter("terminology", getTerminology());
     hQuery.setReadOnly(true).setFetchSize(2000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     final Map<String, Long> map = new HashMap<>();
     while (results.next()) {
       final String aui = (String) results.get()[0];

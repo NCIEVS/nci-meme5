@@ -7,17 +7,20 @@ import org.hibernate.search.mapper.pojo.bridge.ValueBridge;
 import org.hibernate.search.mapper.pojo.bridge.runtime.ValueBridgeToIndexedValueContext;
 
 /**
- * Hibernate search field bridge for a string with underscores.
+ * Hibernate search field bridge for an object that can be turned into a string.
  */
-public class SplitUnderscoreBridge
-    implements ValueBridge<String, String> {
+public class ObjectToStringBridge implements ValueBridge<Object, String> {
 
   /* see superclass */
+  @SuppressWarnings("rawtypes")
   @Override
-  public String toIndexedValue(String value,
+  public String toIndexedValue(Object value,
     ValueBridgeToIndexedValueContext context) {
     if (value != null) {
-      return value.replaceAll("_", " ");
+      if (value.getClass().isEnum()) {
+        return ((Enum) value).name();
+      }
+      return value.toString();
     }
     return null;
   }

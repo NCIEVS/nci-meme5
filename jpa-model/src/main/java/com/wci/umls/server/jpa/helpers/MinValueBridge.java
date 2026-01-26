@@ -8,18 +8,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.hibernate.search.bridge.StringBridge;
+import org.hibernate.search.mapper.pojo.bridge.ValueBridge;
+import org.hibernate.search.mapper.pojo.bridge.runtime.ValueBridgeToIndexedValueContext;
 
 /**
- * Hibernate search field bridge for a list.
+ * Hibernate search field bridge for a collection that returns the minimum
+ * (sorted) value.
  */
-public class MinValueBridge implements StringBridge {
+@SuppressWarnings("rawtypes")
+public class MinValueBridge implements ValueBridge<Collection, String> {
 
   /* see superclass */
   @Override
-  public String objectToString(Object value) {
+  public String toIndexedValue(Collection value,
+    ValueBridgeToIndexedValueContext context) {
     if (value != null) {
-      final List<?> values = new ArrayList<>((Collection<?>) value);
+      final List<?> values = new ArrayList<>(value);
       Collections.sort(values,
           (a1, a2) -> a1.toString().compareTo(a2.toString()));
       if (values.size() > 0) {

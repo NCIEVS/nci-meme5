@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
+import org.hibernate.query.NativeQuery;
 
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
@@ -618,13 +619,14 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
 
     final Session session =
         getService().getEntityManager().unwrap(Session.class);
-    final org.hibernate.Query hQuery = session.createSQLQuery(
+    final NativeQuery<Object[]> hQuery = session.createNativeQuery(
         "select id, componentId, componentTerminology, hashCode, terminologyId from attribute_identity "
-            + "where terminology = :terminology and name = :name");
+            + "where terminology = :terminology and name = :name",
+        Object[].class);
     hQuery.setParameter("terminology", terminology);
     hQuery.setParameter("name", name);
     hQuery.setReadOnly(true).setFetchSize(100000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
       final Long id = ((BigInteger) results.get()[0]).longValue();
@@ -650,12 +652,13 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
 
     final Session session =
         getService().getEntityManager().unwrap(Session.class);
-    final org.hibernate.Query hQuery = session.createSQLQuery(
+    final NativeQuery<Object[]> hQuery = session.createNativeQuery(
         "select id, stringClassId, terminologyId, termType, codeId, conceptId, descriptorId from atom_identity "
-            + "where terminology = :terminology");
+            + "where terminology = :terminology",
+        Object[].class);
     hQuery.setParameter("terminology", terminology);
     hQuery.setReadOnly(true).setFetchSize(100000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
       final Long id = ((BigInteger) results.get()[0]).longValue();
@@ -681,10 +684,11 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
 
     final Session session =
         getService().getEntityManager().unwrap(Session.class);
-    final org.hibernate.Query hQuery = session
-        .createSQLQuery("select id, name, language from string_class_identity");
+    final NativeQuery<Object[]> hQuery = session
+        .createNativeQuery("select id, name, language from string_class_identity",
+            Object[].class);
     hQuery.setReadOnly(true).setFetchSize(100000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
       final Long id = ((BigInteger) results.get()[0]).longValue();
@@ -702,10 +706,11 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
 
     final Session session =
         getService().getEntityManager().unwrap(Session.class);
-    final org.hibernate.Query hQuery = session.createSQLQuery(
-        "select id, language, normalizedName from lexical_class_identity");
+    final NativeQuery<Object[]> hQuery = session.createNativeQuery(
+        "select id, language, normalizedName from lexical_class_identity",
+        Object[].class);
     hQuery.setReadOnly(true).setFetchSize(100000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
       final Long id = ((BigInteger) results.get()[0]).longValue();
@@ -725,14 +730,15 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
 
     final Session session =
         getService().getEntityManager().unwrap(Session.class);
-    final org.hibernate.Query hQuery = session.createSQLQuery(
+    final NativeQuery<Object[]> hQuery = session.createNativeQuery(
         "select id, additionalRelationshipType, fromId, fromTerminology, fromType, "
             + "relationshipType, terminologyId, toId, toTerminology, "
             + "toType from relationship_identity "
-            + "where terminology = :terminology");
+            + "where terminology = :terminology",
+        Object[].class);
     hQuery.setParameter("terminology", terminology);
     hQuery.setReadOnly(true).setFetchSize(100000).setCacheable(false);
-    final ScrollableResults results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
+    final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
       final Long id = ((BigInteger) results.get()[0]).longValue();

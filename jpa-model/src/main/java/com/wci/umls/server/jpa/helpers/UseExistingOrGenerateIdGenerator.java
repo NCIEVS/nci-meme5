@@ -3,12 +3,8 @@
  */
 package com.wci.umls.server.jpa.helpers;
 
-import java.io.Serializable;
-
-import org.hibernate.HibernateException;
-import org.hibernate.engine.spi.SessionImplementor;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
-import org.hibernate.id.MultipleHiLoPerTableGenerator;
+import org.hibernate.id.enhanced.SequenceStyleGenerator;
 
 import com.wci.umls.server.helpers.HasId;
 
@@ -16,22 +12,19 @@ import com.wci.umls.server.helpers.HasId;
  * Generator to create a unique ID for the object. If the object's ID is already
  * set, keep it.
  */
-@SuppressWarnings("deprecation")
-public class UseExistingOrGenerateIdGenerator extends MultipleHiLoPerTableGenerator {
+public class UseExistingOrGenerateIdGenerator extends SequenceStyleGenerator {
 
   /* see superclass */
   @Override
-  public synchronized Serializable generate(final SharedSessionContractImplementor session,
-    Object object) throws HibernateException {
+  public Object generate(SharedSessionContractImplementor session,
+    Object object) {
     if (object == null) {
-      throw new HibernateException(new NullPointerException());
+      throw new IllegalArgumentException("Object passed to generate is null");
     }
-    // NOTE: this may through a cast class exception if things don't implement
+    // NOTE: this may throw a cast class exception if things don't implement
     // HasId - this generator should ONLY be used where a class does implement
     // HasId.
     final Long id = ((HasId) object).getId();
-    // final Serializable id = session.getEntityPersister(null, object)
-    // .getClassMhetadata().getIdentifier(object, session);
     return id != null ? id : super.generate(session, object);
   }
 }

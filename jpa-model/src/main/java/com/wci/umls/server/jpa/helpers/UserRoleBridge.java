@@ -5,7 +5,8 @@ package com.wci.umls.server.jpa.helpers;
 
 import java.util.Map;
 
-import org.hibernate.search.bridge.StringBridge;
+import org.hibernate.search.mapper.pojo.bridge.ValueBridge;
+import org.hibernate.search.mapper.pojo.bridge.runtime.ValueBridgeToIndexedValueContext;
 
 import com.wci.umls.server.User;
 import com.wci.umls.server.UserRole;
@@ -14,15 +15,16 @@ import com.wci.umls.server.UserRole;
  * Hibernate search field bridge for searching user/role combinations. For
  * example, "userRoleMap:user1ADMIN"
  */
-public class UserRoleBridge implements StringBridge {
+@SuppressWarnings("rawtypes")
+public class UserRoleBridge implements ValueBridge<Map, String> {
 
   /* see superclass */
   @SuppressWarnings("unchecked")
   @Override
-  public String objectToString(Object value) {
+  public String toIndexedValue(Map value,
+    ValueBridgeToIndexedValueContext context) {
     if (value != null) {
-      StringBuilder buf = new StringBuilder();
-
+      final StringBuilder buf = new StringBuilder();
       final Map<User, UserRole> map = (Map<User, UserRole>) value;
       for (final Map.Entry<User, UserRole> entry : map.entrySet()) {
         buf.append(entry.getKey().getUserName())
