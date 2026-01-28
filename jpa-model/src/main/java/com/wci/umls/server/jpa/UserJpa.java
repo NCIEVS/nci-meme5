@@ -27,22 +27,22 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.User;
 import com.wci.umls.server.UserPreferences;
 import com.wci.umls.server.UserRole;
 import com.wci.umls.server.jpa.helpers.MapIdBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.jpa.helpers.ProjectRoleBridge;
 import com.wci.umls.server.jpa.helpers.ProjectRoleMapAdapter;
 
@@ -62,24 +62,28 @@ public class UserJpa implements User {
   @TableGenerator(name = "EntityIdGenUser", table = "table_generator_users", pkColumnValue = "Entity", initialValue = 50)
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenUser")
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The user name. */
   @Column(nullable = false, unique = true)
-  @Field
-  @SortableField(forField = "userName")
+  @KeywordField(searchable = Searchable.YES, sortable = Sortable.YES)
   private String userName;
 
   /** The name. */
   @Column(nullable = false)
+  @FullTextField
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   private String name;
 
   /** The team. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String team;
 
   /** The email. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String email;
 
   /** The editor level. */
@@ -89,6 +93,8 @@ public class UserJpa implements User {
   /** The application role. */
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private UserRole applicationRole;
 
   /** The auth token. */
@@ -106,6 +112,11 @@ public class UserJpa implements User {
   @CollectionTable(name = "user_project_role_map")
   @MapKeyJoinColumn(name = "project_id")
   @Column(name = "role")
+  @FullTextField(valueBridge = @ValueBridgeRef(type = ProjectRoleBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
+  @FullTextField(name = "projectAnyRole",
+      valueBridge = @ValueBridgeRef(type = MapIdBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<Project, UserRole> projectRoleMap;
 
   /**
@@ -135,8 +146,6 @@ public class UserJpa implements User {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getId() {
     return id;
   }
@@ -149,7 +158,6 @@ public class UserJpa implements User {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getUserName() {
     return userName;
   }
@@ -162,11 +170,6 @@ public class UserJpa implements User {
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
   public String getName() {
     return name;
   }
@@ -178,7 +181,6 @@ public class UserJpa implements User {
   }
 
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTeam() {
     return team;
   }
@@ -191,7 +193,6 @@ public class UserJpa implements User {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getEmail() {
     return email;
   }
@@ -216,7 +217,6 @@ public class UserJpa implements User {
 
   /* see superclass */
   @Override
-  @Field(bridge = @FieldBridge(impl = EnumBridge.class), index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public UserRole getApplicationRole() {
     return applicationRole;
   }
@@ -323,16 +323,12 @@ public class UserJpa implements User {
    * <pre> This supports searching both for a particular role on a particular
    * project or to determine if this user is assigned to any project. For
    * example:
-   * 
+   *
    * "projectRoleMap:10ADMIN" -> finds where the user has an ADMIN role on
    * project 10 "projectAnyRole:10" -> finds where the user has any role on
    * project 10 </pre>
    */
   @XmlJavaTypeAdapter(ProjectRoleMapAdapter.class)
-  @Fields({
-      @Field(bridge = @FieldBridge(impl = ProjectRoleBridge.class), index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "projectAnyRole", bridge = @FieldBridge(impl = MapIdBridge.class), index = Index.YES, analyze = Analyze.YES, store = Store.NO)
-  })
   @Override
   public Map<Project, UserRole> getProjectRoleMap() {
     if (projectRoleMap == null) {

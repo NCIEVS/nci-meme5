@@ -37,18 +37,15 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.User;
@@ -80,15 +77,18 @@ public class ProjectJpa implements Project {
   @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified = new Date();
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lastModifiedBy;
 
   /** The last modified. */
@@ -98,10 +98,13 @@ public class ProjectJpa implements Project {
 
   /** The name. */
   @Column(nullable = false)
+  @FullTextField
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   private String name;
 
   /** The description. */
   @Column(nullable = false)
+  @FullTextField
   private String description;
 
   /** The organization. */
@@ -118,6 +121,7 @@ public class ProjectJpa implements Project {
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The version. */
@@ -155,6 +159,11 @@ public class ProjectJpa implements Project {
   @MapKeyJoinColumn(name = "user_id")
   @Column(name = "role")
   @CollectionTable(name = "project_user_role_map")
+  @FullTextField(valueBridge = @ValueBridgeRef(type = UserRoleBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
+  @FullTextField(name = "userAnyRole",
+      valueBridge = @ValueBridgeRef(type = UserMapUserNameBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<User, UserRole> userRoleMap;
 
   /** The validation checks. */
@@ -182,6 +191,9 @@ public class ProjectJpa implements Project {
   /** The semantic type category map. */
   @ElementCollection
   @Column(nullable = false)
+  @FullTextField(name = "semanticTypeCategoryMap",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<String, String> semanticTypeCategoryMap = new HashMap<>();
 
   /** The valid categories. */
@@ -193,11 +205,11 @@ public class ProjectJpa implements Project {
   /** The editing enabled. */
   @Column(nullable = false)
   private boolean editingEnabled = true;
-  
+
   /** The automations enabled. */
   @Column(nullable = false)
   private boolean automationsEnabled = false;
-  
+
   /**
    * Instantiates an empty {@link ProjectJpa}.
    */
@@ -238,8 +250,6 @@ public class ProjectJpa implements Project {
   }
 
   /* see superclass */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public Long getId() {
     return this.id;
@@ -252,9 +262,6 @@ public class ProjectJpa implements Project {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getLastModified() {
     return lastModified;
@@ -279,7 +286,6 @@ public class ProjectJpa implements Project {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getLastModifiedBy() {
     return lastModifiedBy;
@@ -293,7 +299,6 @@ public class ProjectJpa implements Project {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -318,18 +323,12 @@ public class ProjectJpa implements Project {
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
   public String getName() {
     return name;
   }
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   public String getDescription() {
     return description;
   }
@@ -393,7 +392,7 @@ public class ProjectJpa implements Project {
   public void setEditingEnabled(boolean editingEnabled) {
     this.editingEnabled = editingEnabled;
   }
-  
+
   /* see superclass */
   @Override
   public boolean isAutomationsEnabled() {
@@ -405,13 +404,9 @@ public class ProjectJpa implements Project {
   public void setAutomationsEnabled(boolean automationsEnabled) {
     this.automationsEnabled = automationsEnabled;
   }
-  
+
   /* see superclass */
   @XmlJavaTypeAdapter(UserRoleMapAdapter.class)
-  @Fields({
-      @Field(bridge = @FieldBridge(impl = UserRoleBridge.class), index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "userAnyRole", bridge = @FieldBridge(impl = UserMapUserNameBridge.class), index = Index.YES, analyze = Analyze.YES, store = Store.NO)
-  })
   @Override
   public Map<User, UserRole> getUserRoleMap() {
     if (userRoleMap == null) {
@@ -543,8 +538,6 @@ public class ProjectJpa implements Project {
   }
 
   /* see superclass */
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "semanticTypeCategoryMap", index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   @Override
   public Map<String, String> getSemanticTypeCategoryMap() {
     if (semanticTypeCategoryMap == null) {

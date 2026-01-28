@@ -24,15 +24,15 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.jpa.ProjectJpa;
@@ -61,6 +61,9 @@ public abstract class AbstractChecklist extends AbstractHasLastModified implemen
 
   /** The name. */
   @Column(nullable = false, length = 255)
+  @FullTextField(analyzer = "noStopWord",
+      valueBridge = @ValueBridgeRef(type = SplitUnderscoreBridge.class))
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   private String name;
 
   /** The description. */
@@ -117,13 +120,6 @@ public abstract class AbstractChecklist extends AbstractHasLastModified implemen
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(name = "name", index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-          analyzer = @Analyzer(definition = "noStopWord"),
-          bridge = @FieldBridge(impl = SplitUnderscoreBridge.class)),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
   public String getName() {
     return name;
   }
@@ -160,8 +156,8 @@ public abstract class AbstractChecklist extends AbstractHasLastModified implemen
   }
 
   @XmlElement
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "project")))
   public Long getProjectId() {
     return project == null ? null : project.getId();
   }
@@ -198,7 +194,8 @@ public abstract class AbstractChecklist extends AbstractHasLastModified implemen
    *
    * @return the concept ids
    */
-  @Field(name = "conceptIds", index = Index.YES, analyze = Analyze.YES, store = Store.NO)
+  @FullTextField(name = "conceptIds")
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "trackingRecords")))
   private String getConceptIds() {
     final StringBuilder sb = new StringBuilder();
     for (final TrackingRecord r : getTrackingRecords()) {

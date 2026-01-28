@@ -21,17 +21,11 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.AlgorithmExecution;
 import com.wci.umls.server.ProcessConfig;
@@ -51,33 +45,40 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   /** The stop date. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date startDate;
 
   /** The stop date. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date stopDate;
 
   /** The finish date. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date finishDate;
 
   /** The fail date. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date failDate;
 
   /** The process config id. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES)
   private Long processConfigId;
 
   /** The work id. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String workId;
 
   /** The type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String type;
 
   /** The input path. */
@@ -148,9 +149,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getStartDate() {
     return startDate;
@@ -163,9 +161,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getStopDate() {
     return stopDate;
@@ -178,9 +173,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getFinishDate() {
     return finishDate;
@@ -193,9 +185,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getFailDate() {
     return failDate;
@@ -239,8 +228,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public Long getProcessConfigId() {
     return processConfigId;
@@ -253,7 +240,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getWorkId() {
     return workId;
@@ -266,7 +252,6 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getType() {
     return type;

@@ -21,19 +21,23 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.metamodel.EntityType;
 
 import org.apache.log4j.Logger;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.hibernate.search.SearchFactory;
-import org.hibernate.search.jpa.FullTextEntityManager;
-import org.hibernate.search.jpa.FullTextQuery;
-import org.hibernate.search.jpa.Search;
-import org.hibernate.search.query.dsl.QueryBuilder;
+import org.hibernate.search.backend.lucene.LuceneExtension;
+import org.hibernate.search.backend.lucene.index.LuceneIndexManager;
+import org.hibernate.search.engine.search.predicate.SearchPredicate;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.mapping.SearchMapping;
+import org.hibernate.search.mapper.orm.scope.SearchScope;
+import org.hibernate.search.mapper.orm.session.SearchSession;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.ValidationResult;
@@ -2530,40 +2534,54 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     final String TITLE_EDGE_NGRAM_INDEX = "atoms.edgeNGramName";
     final String TITLE_NGRAM_INDEX = "atoms.nGramName";
 
-    final FullTextEntityManager fullTextEntityManager = Search.getFullTextEntityManager(manager);
-    final QueryBuilder titleQB =
-        fullTextEntityManager.getSearchFactory().buildQueryBuilder().forEntity(clazz).get();
+    final SearchSession searchSession = Search.session(manager);
+    final SearchMapping mapping = Search.mapping(manager.getEntityManagerFactory());
+    final Analyzer analyzer = mapping.indexedEntity(clazz).indexManager()
+        .unwrap(LuceneIndexManager.class).searchAnalyzer();
 
-    final Query query = titleQB.phrase().withSlop(2).onField(TITLE_NGRAM_INDEX)
-        .andField(TITLE_EDGE_NGRAM_INDEX).boostedTo(5).andField("atoms.name").boostedTo(5)
-        .sentence(searchTerm.toLowerCase()).createQuery();
+    // Build phrase queries for each field using per-field analyzer routing
+    final String escaped = QueryParserBase.escape(searchTerm.toLowerCase());
+    final String phraseQueryStr = "\"" + escaped + "\"~2";
 
-    final Query term1 = new TermQuery(new Term("terminology", terminology));
-    final Query term2 = new TermQuery(new Term("version", version));
-    final Query term3 = new TermQuery(new Term("atoms.suppressible", "false"));
-    final Query term4 = new TermQuery(new Term("suppressible", "false"));
-    final BooleanQuery booleanQuery = new BooleanQuery();
-    booleanQuery.add(term1, BooleanClause.Occur.MUST);
-    booleanQuery.add(term2, BooleanClause.Occur.MUST);
-    booleanQuery.add(term3, BooleanClause.Occur.MUST);
-    booleanQuery.add(term4, BooleanClause.Occur.MUST);
+    final QueryParser ngramParser = new QueryParser(TITLE_NGRAM_INDEX, analyzer);
+    final Query ngramQuery = ngramParser.parse(phraseQueryStr);
+
+    final QueryParser edgeNgramParser = new QueryParser(TITLE_EDGE_NGRAM_INDEX, analyzer);
+    final Query edgeNgramQuery = new BoostQuery(edgeNgramParser.parse(phraseQueryStr), 5f);
+
+    final QueryParser nameParser = new QueryParser("atoms.name", analyzer);
+    final Query nameQuery = new BoostQuery(nameParser.parse(phraseQueryStr), 5f);
+
+    // Combine phrase queries as SHOULD (any field can match)
+    final BooleanQuery.Builder phraseBuilder = new BooleanQuery.Builder();
+    phraseBuilder.add(ngramQuery, BooleanClause.Occur.SHOULD);
+    phraseBuilder.add(edgeNgramQuery, BooleanClause.Occur.SHOULD);
+    phraseBuilder.add(nameQuery, BooleanClause.Occur.SHOULD);
+
+    // Build filter conditions
+    final BooleanQuery.Builder builder = new BooleanQuery.Builder();
+    builder.add(new TermQuery(new Term("terminology", terminology)), BooleanClause.Occur.MUST);
+    builder.add(new TermQuery(new Term("version", version)), BooleanClause.Occur.MUST);
+    builder.add(new TermQuery(new Term("atoms.suppressible", "false")), BooleanClause.Occur.MUST);
+    builder.add(new TermQuery(new Term("suppressible", "false")), BooleanClause.Occur.MUST);
     // Only for concepts
     if (Concept.class.isAssignableFrom(clazz)) {
-      final Query term5 = new TermQuery(new Term("anonymous", "false"));
-      booleanQuery.add(term5, BooleanClause.Occur.MUST);
+      builder.add(new TermQuery(new Term("anonymous", "false")), BooleanClause.Occur.MUST);
     }
-    booleanQuery.add(query, BooleanClause.Occur.MUST);
+    builder.add(phraseBuilder.build(), BooleanClause.Occur.MUST);
+    final BooleanQuery booleanQuery = builder.build();
 
-    final FullTextQuery fullTextQuery =
-        fullTextEntityManager.createFullTextQuery(booleanQuery, clazz);
+    // Execute via Hibernate Search 7
+    final SearchScope<T> scope = searchSession.scope(clazz);
+    final SearchPredicate predicate = scope.predicate()
+        .extension(LuceneExtension.get()).fromLuceneQuery(booleanQuery).toPredicate();
+    final org.hibernate.search.engine.search.query.SearchResult<T> searchResult = searchSession.search(scope)
+        .where(predicate)
+        .fetch(20);
 
-    fullTextQuery.setMaxResults(20);
-
-    @SuppressWarnings("unchecked")
-    final List<AtomClass> results = fullTextQuery.getResultList();
     final StringList list = new StringList();
-    list.setTotalCount(fullTextQuery.getResultSize());
-    for (final AtomClass result : results) {
+    list.setTotalCount((int) searchResult.total().hitCount());
+    for (final T result : searchResult.hits()) {
       // exclude duplicates
       if (!list.contains(result.getName()))
         list.getObjects().add(result.getName());
@@ -3821,11 +3839,12 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     Tree parentTree = tree;
 
     // Prepare lucene
-    final FullTextEntityManager fullTextEntityManager = Search.getFullTextEntityManager(manager);
-    final SearchFactory searchFactory = fullTextEntityManager.getSearchFactory();
+    final SearchSession searchSession = Search.session(manager);
+    final SearchMapping mapping = Search.mapping(manager.getEntityManagerFactory());
     final QueryParser queryParser = new MultiFieldQueryParser(
         IndexUtility.getIndexedFieldNames(clazz, true).toArray(new String[] {}),
-        searchFactory.getAnalyzer(clazz));
+        mapping.indexedEntity(clazz).indexManager()
+            .unwrap(LuceneIndexManager.class).searchAnalyzer());
     final String fullAncPath = treePosition.getAncestorPath()
         + (treePosition.getAncestorPath().isEmpty() ? "" : "~") + tpId;
     // Iterate over ancestor path
@@ -3845,30 +3864,12 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       // Prepare the manager and lucene query
 
       final Query luceneQuery = queryParser.parse(finalQuery.toString());
-      final FullTextQuery fullTextQuery =
-          fullTextEntityManager.createFullTextQuery(luceneQuery, clazz);
-
-      // // projection approach -- don't want to have to instantiate node Jpa
-      // object (could be faster)
-      // fullTextQuery.setProjection("nodeId", "nodeTerminologyId", "nodeName",
-      // "childCt", "ancestorPath");
-      //
-      // List<Object[]> results = fullTextQuery.getResultList();
-      //
-      // if (fullTextQuery.getResultSize() != 1) {
-      // throw new Exception("Unexpected number of results: "
-      // + fullTextQuery.getResultSize());
-      // }
-      // Object[] result = results.get(0);
-      //
-      // // fill in the tree object
-      // partTree.setId((Long) result[0]);
-      // partTree.setTerminologyId((String) result[1]);
-      // partTree.setName((String) result[2]);
-      // partTree.setChildCt((Integer) result[3]);
-      // partTree.setAncestorPath((String) result[4]);
-      // partTree.setTerminology(treePosition.getTerminology());
-      // partTree.setVersion(treePosition.getVersion());
+      final SearchScope<?> scope = searchSession.scope(clazz);
+      final SearchPredicate predicate = scope.predicate()
+          .extension(LuceneExtension.get()).fromLuceneQuery(luceneQuery).toPredicate();
+      final org.hibernate.search.engine.search.query.SearchResult<?> searchResult = searchSession.search(scope)
+          .where(predicate)
+          .fetchAll();
 
       // this is necessary because additionalRelationshipType is not indexed
       TreePosition<?> treepos = null;
@@ -3876,7 +3877,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       final String treePositionRela =
           ConfigUtility.isEmpty(treePosition.getAdditionalRelationshipType()) ? ""
               : treePosition.getAdditionalRelationshipType();
-      for (final TreePosition<?> tp : (List<TreePosition<?>>) fullTextQuery.getResultList()) {
+      for (final TreePosition<?> tp : (List<TreePosition<?>>) searchResult.hits()) {
         final String tpRela = ConfigUtility.isEmpty(tp.getAdditionalRelationshipType()) ? ""
             : tp.getAdditionalRelationshipType();
         if (tpRela.equals(treePositionRela)) {

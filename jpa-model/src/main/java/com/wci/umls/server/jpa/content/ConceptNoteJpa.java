@@ -8,13 +8,14 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.model.content.Concept;
@@ -76,8 +77,8 @@ public class ConceptNoteJpa extends AbstractNote {
    * @return the concept id
    */
   @XmlElement
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "concept")))
   public Long getConceptId() {
     return (concept != null) ? concept.getId() : 0;
   }
@@ -88,7 +89,8 @@ public class ConceptNoteJpa extends AbstractNote {
    * @return the concept name
    */
   @XmlElement
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
+  @FullTextField
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "concept")))
   public String getConceptName() {
     return (concept != null) ? concept.getName() : "";
   }
@@ -99,7 +101,8 @@ public class ConceptNoteJpa extends AbstractNote {
    * @return the concept name
    */
   @XmlElement
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "concept")))
   public String getConceptTerminologyId() {
     return (concept != null) ? concept.getTerminologyId() : "";
   }

@@ -16,11 +16,9 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.AlgorithmConfig;
 import com.wci.umls.server.ProcessConfig;
@@ -45,6 +43,7 @@ public class ProcessConfigJpa extends AbstractProcessInfo<AlgorithmConfig>
 
   /** The type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String type;
 
   /** The input path. */
@@ -89,7 +88,6 @@ public class ProcessConfigJpa extends AbstractProcessInfo<AlgorithmConfig>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getType() {
     return type;

@@ -26,16 +26,18 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.jpa.helpers.MapKeyValueToCsvBridge;
 import com.wci.umls.server.model.content.Attribute;
@@ -75,6 +77,9 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
   @Fetch(FetchMode.JOIN)
   @MapKeyColumn(length = 100)
   @Column(nullable = true, length = 100)
+  @FullTextField(name = "alternateTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<String, String> alternateTerminologyIds; // index
 
   /** The attributes. */
@@ -157,8 +162,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the from id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "from")))
   public Long getFromId() {
     return from == null ? null : from.getId();
   }
@@ -180,7 +185,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the from terminology
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "from")))
   public String getFromTerminology() {
     return from == null ? null : from.getTerminology();
   }
@@ -202,7 +208,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the from version
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "from")))
   public String getFromVersion() {
     return from == null ? null : from.getVersion();
   }
@@ -224,7 +231,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the from terminology id
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "from")))
   public String getFromTerminologyId() {
     return from == null ? null : from.getTerminologyId();
   }
@@ -246,12 +254,9 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the from term
    */
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO,
-          analyzer = @Analyzer(definition = "noStopWord")),
-      @Field(name = "fromNameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "fromNameSort")
+  @FullTextField(analyzer = "noStopWord")
+  @KeywordField(name = "fromNameSort", sortable = Sortable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "from")))
   public String getFromName() {
     return from == null ? null : from.getName();
   }
@@ -286,8 +291,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the to id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "to")))
   public Long getToId() {
     return to == null ? null : to.getId();
   }
@@ -309,7 +314,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the to terminology id
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "to")))
   public String getToTerminologyId() {
     return to == null ? null : to.getTerminologyId();
   }
@@ -331,7 +337,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the to terminology
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "to")))
   public String getToTerminology() {
     return to == null ? null : to.getTerminology();
   }
@@ -353,7 +360,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the to version
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "to")))
   public String getToVersion() {
     return to == null ? null : to.getVersion();
   }
@@ -375,11 +383,9 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the to term
    */
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "toNameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "toNameSort")
+  @FullTextField
+  @KeywordField(name = "toNameSort", sortable = Sortable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "to")))
   public String getToName() {
     return to == null ? null : to.getName();
   }
@@ -398,9 +404,6 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "alternateTerminologyIds", index = Index.YES, analyze = Analyze.YES,
-      store = Store.NO)
   public Map<String, String> getAlternateTerminologyIds() {
     if (alternateTerminologyIds == null) {
       alternateTerminologyIds = new HashMap<>(2);

@@ -12,13 +12,13 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 
 import com.wci.umls.server.model.content.SemanticTypeComponent;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
@@ -66,7 +66,7 @@ public class SemanticTypeComponentJpa extends AbstractComponent
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getSemanticType() {
     return semanticType;
   }
@@ -79,8 +79,8 @@ public class SemanticTypeComponentJpa extends AbstractComponent
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public WorkflowStatus getWorkflowStatus() {
     return workflowStatus;
   }

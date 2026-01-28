@@ -33,6 +33,11 @@ local.properties
 # PDT-specific
 .buildpath
 
+#################
+## Intellij
+#################
+.idea/*
+.smarttomcat/*
 
 #################
 ## Visual Studio

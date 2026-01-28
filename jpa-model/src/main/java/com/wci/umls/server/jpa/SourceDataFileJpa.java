@@ -19,18 +19,12 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.SourceData;
 import com.wci.umls.server.SourceDataFile;
@@ -51,6 +45,7 @@ public class SourceDataFileJpa implements SourceDataFile {
   @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The source data. */
@@ -60,6 +55,8 @@ public class SourceDataFileJpa implements SourceDataFile {
 
   /** The file name. */
   @Column(nullable = false, unique = false, length = 250)
+  @FullTextField()
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   private String name;
 
   /** The directory. */
@@ -80,6 +77,7 @@ public class SourceDataFileJpa implements SourceDataFile {
 
   /** The last modified. */
   @Column(nullable = false, unique = false)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified;
 
   /** The last modified by. */
@@ -111,10 +109,7 @@ public class SourceDataFileJpa implements SourceDataFile {
   }
 
   /* see superclass */
-  @Override  
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
+  @Override
   public Date getLastModified() {
     return this.lastModified;
   }
@@ -138,8 +133,6 @@ public class SourceDataFileJpa implements SourceDataFile {
   }
 
   /* see superclass */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public Long getId() {
     return this.id;
@@ -153,11 +146,6 @@ public class SourceDataFileJpa implements SourceDataFile {
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
   public String getName() {
     return this.name;
   }

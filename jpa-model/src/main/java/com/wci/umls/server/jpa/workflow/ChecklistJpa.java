@@ -22,8 +22,10 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.model.workflow.Checklist;
@@ -51,7 +53,8 @@ public class ChecklistJpa extends AbstractChecklist {
 
   /** The notes. */
   @OneToMany(mappedBy = "checklist", targetEntity = ChecklistNoteJpa.class)
-  @IndexedEmbedded(targetElement = ChecklistNoteJpa.class)
+  @IndexedEmbedded(targetType = ChecklistNoteJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Note> notes = new ArrayList<>();
 
   /**

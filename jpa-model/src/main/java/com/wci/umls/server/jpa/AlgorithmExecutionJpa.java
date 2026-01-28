@@ -19,17 +19,14 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.AlgorithmConfig;
 import com.wci.umls.server.AlgorithmExecution;
@@ -50,24 +47,29 @@ public class AlgorithmExecutionJpa extends
   /** The last modified. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date startDate;
 
   /** The finish date. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date finishDate;
 
   /** The fail date. */
   @Column(nullable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date failDate;
 
   /** The algorithm config id. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES)
   private Long algorithmConfigId;
 
   /** The activity id. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String activityId;
 
   /** The project. */
@@ -122,9 +124,6 @@ public class AlgorithmExecutionJpa extends
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getStartDate() {
     return startDate;
@@ -137,9 +136,6 @@ public class AlgorithmExecutionJpa extends
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getFinishDate() {
     return finishDate;
@@ -152,9 +148,6 @@ public class AlgorithmExecutionJpa extends
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getFailDate() {
     return failDate;
@@ -185,8 +178,8 @@ public class AlgorithmExecutionJpa extends
    *
    * @return the process id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "process")))
   public Long getProcessId() {
     return process == null ? null : process.getId();
   }
@@ -204,8 +197,6 @@ public class AlgorithmExecutionJpa extends
   }
 
   /* see superclass */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public Long getAlgorithmConfigId() {
     return algorithmConfigId;
@@ -218,7 +209,6 @@ public class AlgorithmExecutionJpa extends
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getActivityId() {
     return activityId;

@@ -18,15 +18,16 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.meta.IdType;
@@ -51,27 +52,33 @@ public class AtomicActionJpa implements AtomicAction {
 
   /** The object id. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES)
   private Long objectId;
 
   /** The old value. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String oldValue;
 
   /** The new value. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String newValue;
 
   /** The field. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String field;
 
   /** The type. */
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
+  @GenericField(searchable = Searchable.YES, valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private IdType idType;
 
   /** The class name. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String className;
 
   /** The collection class name. */
@@ -142,8 +149,8 @@ public class AtomicActionJpa implements AtomicAction {
    *
    * @return the molecular action id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "molecularAction")))
   public Long getMolecularActionId() {
     return molecularAction == null ? null : molecularAction.getId();
   }
@@ -162,8 +169,6 @@ public class AtomicActionJpa implements AtomicAction {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public IdType getIdType() {
     return idType;
   }
@@ -176,7 +181,6 @@ public class AtomicActionJpa implements AtomicAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getClassName() {
     return className;
   }
@@ -201,8 +205,6 @@ public class AtomicActionJpa implements AtomicAction {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getObjectId() {
     return objectId;
   }
@@ -215,7 +217,6 @@ public class AtomicActionJpa implements AtomicAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getField() {
     return field;
   }
@@ -228,7 +229,6 @@ public class AtomicActionJpa implements AtomicAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getOldValue() {
     return oldValue;
   }
@@ -241,7 +241,6 @@ public class AtomicActionJpa implements AtomicAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getNewValue() {
     return newValue;
   }

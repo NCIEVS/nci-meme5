@@ -157,7 +157,7 @@ public class EclExpressionHandler extends AbstractConfigurable implements Expres
         final ScoreDoc[] scoreDocs = topDocs.scoreDocs;
 
         // construct the search results
-        results.setTotalCount(topDocs.totalHits);
+        results.setTotalCount((int) topDocs.totalHits.value);
 
         for (int a = 0; a < scoreDocs.length; a++) {
           ScoreDoc scoreDoc = scoreDocs[a];
@@ -276,7 +276,7 @@ public class EclExpressionHandler extends AbstractConfigurable implements Expres
     // get the top document (i.e. restrict to 1 result)
     final TopDocs docs =
         indexSearcher.search(new TermQuery(new Term(EclConceptFieldNames.ID, conceptId)), 1);
-    if (docs.totalHits < 1) {
+    if (docs.totalHits.value < 1) {
       throw new Exception(conceptId + " has no index document");
     }
     return indexSearcher.doc(docs.scoreDocs[0].doc);

@@ -26,16 +26,17 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.jpa.ComponentInfoJpa;
@@ -96,6 +97,9 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
   @ElementCollection(fetch = FetchType.EAGER)
   @Fetch(FetchMode.JOIN)
   @Column(nullable = true)
+  @FullTextField(name = "alternateTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<String, String> alternateTerminologyIds; // index
 
   /** The attributes. */
@@ -197,7 +201,7 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getFromTerminology() {
     return fromTerminology;
   }
@@ -210,7 +214,7 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getFromVersion() {
     return fromVersion;
   }
@@ -223,8 +227,8 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public IdType getFromType() {
     return fromType;
   }
@@ -237,7 +241,7 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getFromTerminologyId() {
     return fromTerminologyId;
   }
@@ -250,12 +254,8 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO,
-          analyzer = @Analyzer(definition = "noStopWord")),
-      @Field(name = "fromNameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "fromNameSort")
+  @FullTextField(analyzer = "noStopWord")
+  @KeywordField(name = "fromNameSort", sortable = Sortable.YES)
   public String getFromName() {
     return fromName;
   }
@@ -291,7 +291,7 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getToTerminologyId() {
     return toTerminologyId;
   }
@@ -304,7 +304,7 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getToTerminology() {
     return toTerminology;
   }
@@ -317,7 +317,7 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getToVersion() {
     return toVersion;
   }
@@ -330,8 +330,8 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public IdType getToType() {
     return toType;
   }
@@ -344,11 +344,8 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "toNameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "toNameSort")
+  @FullTextField
+  @KeywordField(name = "toNameSort", sortable = Sortable.YES)
   public String getToName() {
     return toName;
   }
@@ -361,9 +358,6 @@ public class ComponentInfoRelationshipJpa extends AbstractRelationship<Component
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "alternateTerminologyIds", index = Index.YES, analyze = Analyze.YES,
-      store = Store.NO)
   public Map<String, String> getAlternateTerminologyIds() {
     if (alternateTerminologyIds == null) {
       alternateTerminologyIds = new HashMap<>(2);

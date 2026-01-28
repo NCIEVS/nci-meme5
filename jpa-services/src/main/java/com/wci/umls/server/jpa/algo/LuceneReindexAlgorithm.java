@@ -12,9 +12,9 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.hibernate.CacheMode;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.jpa.FullTextEntityManager;
-import org.hibernate.search.jpa.Search;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.session.SearchSession;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.reflections.Reflections;
 
 import com.wci.umls.server.AlgorithmParameter;
@@ -32,8 +32,8 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
   /** The terminology. */
   private String indexedObjects;
 
-  /** The full text entity manager. */
-  private FullTextEntityManager fullTextEntityManager;
+  /** The search session. */
+  private SearchSession searchSession;
 
   /**
    * Instantiates an empty {@link LuceneReindexAlgorithm}.
@@ -55,12 +55,11 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
   /* see superclass */
   @Override
   public void compute() throws Exception {
-    logInfo("Starting " + getName());    
-    if (fullTextEntityManager == null) {
-      fullTextEntityManager = Search.getFullTextEntityManager(manager);
+    logInfo("Starting " + getName());
+    if (searchSession == null) {
+      searchSession = Search.session(manager);
     }
     computeLuceneIndexes(indexedObjects);
-    // fullTextEntityManager.close();
 
     logInfo("Finished " + getName());    
   }
@@ -68,11 +67,10 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
   /* see superclass */
   @Override
   public void reset() throws Exception {
-    if (fullTextEntityManager == null) {
-      fullTextEntityManager = Search.getFullTextEntityManager(manager);
+    if (searchSession == null) {
+      searchSession = Search.session(manager);
     }
     // clearLuceneIndexes();
-    // fullTextEntityManager.close();
   }
 
   /**
@@ -127,12 +125,10 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
       // Concepts
       if (objectsToReindex.contains(key)) {
         Logger.getLogger(getClass()).info("  Creating indexes for " + key);
-        fullTextEntityManager.purgeAll(reindexMap.get(key));
-        fullTextEntityManager.flushToIndexes();
-        fullTextEntityManager.createIndexer(reindexMap.get(key))
+        searchSession.massIndexer(reindexMap.get(key))
+            .purgeAllOnStart(true)
             .batchSizeToLoadObjects(100).cacheMode(CacheMode.IGNORE)
             .idFetchSize(100).threadsToLoadObjects(10).startAndWait();
-        // optimize flags are default true.
         objectsToReindex.remove(key);
       }
     }
@@ -157,7 +153,13 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
     final Reflections reflections = new Reflections();
     for (final Class<?> clazz : reflections
         .getTypesAnnotatedWith(Indexed.class)) {
-      fullTextEntityManager.purgeAll(clazz);
+      try {
+        // Purge and do not reindex (limitIndexedObjectsTo 0)
+        searchSession.massIndexer(clazz).purgeAllOnStart(true)
+            .limitIndexedObjectsTo(0).startAndWait();
+      } catch (final IllegalArgumentException e) {
+        Logger.getLogger(getClass()).warn("      NOT AN ENTITY in this project");
+      }
     }
   }
 

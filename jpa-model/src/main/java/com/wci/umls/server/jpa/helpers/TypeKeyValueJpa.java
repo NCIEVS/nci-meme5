@@ -18,19 +18,13 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.TypeKeyValue;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
@@ -48,37 +42,45 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   @TableGenerator(name = "EntityIdGenTransformer", table = "table_generator_transformer", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenTransformer")
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String type;
 
   /** The key. */
   @Column(name = "key_field", nullable = true, length = 4000)
+  @FullTextField()
+  @KeywordField(name = "keySort", sortable = Sortable.YES)
   private String key;
 
   /** The value. */
   @Column(nullable = true, length = 4000)
+  @KeywordField(searchable = Searchable.YES)
   private String value;
-  
+
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified = new Date();
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lastModifiedBy;
 
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
   private Date timestamp = new Date();
-  
+
   /** The workflow status. */
   @Enumerated(EnumType.STRING)
   @Column(nullable = true)
+  @GenericField(searchable = Searchable.YES, valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private WorkflowStatus workflowStatus;
 
   /**
@@ -123,8 +125,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
    * @return the id
    */
   /* see superclass */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public Long getId() {
     return id;
@@ -142,7 +142,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getType() {
     return type;
@@ -155,11 +154,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   }
 
   /* see superclass */
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "keySort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "keySort")
   @Override
   public String getKey() {
     return key;
@@ -172,7 +166,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getValue() {
     return value;
@@ -185,9 +178,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   }
   
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getLastModified() {
     return lastModified;
@@ -212,7 +202,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getLastModifiedBy() {
     return lastModifiedBy;
@@ -226,8 +215,6 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public WorkflowStatus getWorkflowStatus() {
     return workflowStatus;
   }

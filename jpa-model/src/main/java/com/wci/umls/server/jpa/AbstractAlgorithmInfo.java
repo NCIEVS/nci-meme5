@@ -22,12 +22,8 @@ import jakarta.xml.bind.annotation.XmlSeeAlso;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 
 import com.wci.umls.server.AlgorithmInfo;
 import com.wci.umls.server.AlgorithmParameter;
@@ -214,8 +210,7 @@ public abstract class AbstractAlgorithmInfo<T extends ProcessInfo<?>>
    *
    * @return the project id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
   public Long getProjectId() {
     return project == null ? null : project.getId();
   }

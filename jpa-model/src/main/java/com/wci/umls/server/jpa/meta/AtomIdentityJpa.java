@@ -10,13 +10,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.model.meta.AtomIdentity;
 
@@ -41,34 +41,42 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /** The id. */
   @Id
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The string class id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String stringClassId;
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The terminology id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminologyId;
 
   /** The term type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String termType;
 
   /** The code id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String codeId;
 
   /** The concept id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String conceptId;
 
   /** The descriptor id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String descriptorId;
 
   /**
@@ -97,8 +105,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.YES)
   public Long getId() {
     return id;
   }
@@ -111,7 +117,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminologyId() {
     return terminologyId;
   }
@@ -124,7 +129,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -137,7 +141,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getStringClassId() {
     return stringClassId;
   }
@@ -150,7 +153,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTermType() {
     return termType;
   }
@@ -163,7 +165,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getCodeId() {
     return codeId;
   }
@@ -177,7 +178,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getConceptId() {
     return conceptId;
   }
@@ -190,7 +190,6 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getDescriptorId() {
     return descriptorId;
   }
@@ -271,7 +270,16 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = {
+      @ObjectPath(@PropertyValue(propertyName = "stringClassId")),
+      @ObjectPath(@PropertyValue(propertyName = "terminology")),
+      @ObjectPath(@PropertyValue(propertyName = "terminologyId")),
+      @ObjectPath(@PropertyValue(propertyName = "termType")),
+      @ObjectPath(@PropertyValue(propertyName = "codeId")),
+      @ObjectPath(@PropertyValue(propertyName = "conceptId")),
+      @ObjectPath(@PropertyValue(propertyName = "descriptorId"))
+  })
   public String getIdentityCode() {
     return stringClassId + terminology + terminologyId + termType + codeId
         + conceptId + descriptorId;

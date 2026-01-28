@@ -8,11 +8,9 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.model.content.ComponentHasAttributesAndName;
 import com.wci.umls.server.model.content.TreePosition;
@@ -36,6 +34,7 @@ public abstract class AbstractTreePosition<T extends ComponentHasAttributesAndNa
 
   /** The ancestor path. */
   @Column(nullable = true, length = 4000)
+  @KeywordField(searchable = Searchable.YES, sortable = Sortable.YES)
   private String ancestorPath;
 
   /** The child ct. */
@@ -80,8 +79,6 @@ public abstract class AbstractTreePosition<T extends ComponentHasAttributesAndNa
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @SortableField(forField = "ancestorPath")
   @Override
   public String getAncestorPath() {
     return ancestorPath;

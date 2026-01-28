@@ -18,16 +18,15 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Concept;
@@ -138,8 +137,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the member id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "member")))
   public Long getMemberId() {
     return member == null ? null : member.getId();
   }
@@ -161,7 +160,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the member terminology id
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "member")))
   public String getMemberTerminologyId() {
     return member == null ? null : member.getTerminologyId();
   }
@@ -183,7 +183,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the member terminology
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "member")))
   public String getMemberTerminology() {
     return member == null ? null : member.getTerminology();
   }
@@ -205,7 +206,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the member version
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "member")))
   public String getMemberVersion() {
     return member == null ? null : member.getVersion();
   }
@@ -227,12 +229,9 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the member name
    */
-  @Fields({
-      @Field(index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-          analyzer = @Analyzer(definition = "noStopWord")),
-      @Field(name = "memberNameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "memberNameSort")
+  @FullTextField(analyzer = "noStopWord")
+  @KeywordField(name = "memberNameSort", sortable = Sortable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "member")))
   public String getMemberName() {
     return member == null ? null : member.getName();
   }
@@ -267,8 +266,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the subset id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "subset")))
   public Long getSubsetId() {
     return subset == null ? null : subset.getId();
   }
@@ -290,7 +289,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the subset terminology id
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "subset")))
   public String getSubsetTerminologyId() {
     return subset == null ? null : subset.getTerminologyId();
   }
@@ -312,7 +312,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the subset terminology
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "subset")))
   public String getSubsetTerminology() {
     return subset == null ? null : subset.getTerminology();
   }
@@ -334,7 +335,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the subset version
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "subset")))
   public String getSubsetVersion() {
     return subset == null ? null : subset.getVersion();
   }
@@ -356,8 +358,8 @@ public class ConceptSubsetMemberJpa extends AbstractSubsetMember<Concept, Concep
    *
    * @return the subset name
    */
-  @Field(index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-      analyzer = @Analyzer(definition = "noStopWord"))
+  @FullTextField(analyzer = "noStopWord")
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "subset")))
   public String getSubsetName() {
     return subset == null ? null : subset.getName();
   }

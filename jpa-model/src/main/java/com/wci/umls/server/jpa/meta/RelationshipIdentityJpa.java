@@ -12,14 +12,16 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.meta.IdType;
 import com.wci.umls.server.model.meta.RelationshipIdentity;
 
@@ -36,48 +38,61 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /** The id. */
   @Id
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The terminology id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminologyId;
 
   /** The relationship type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String relationshipType;
 
   /** The additional relationship type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String additionalRelationshipType;
 
   /** The from id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String fromId;
 
   /** The from type. */
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private IdType fromType;
 
   /** The from terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String fromTerminology;
 
   /** The to id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String toId;
 
   /** The to type. */
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private IdType toType;
 
   /** The to terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String toTerminology;
 
   /** The inverse id. */
@@ -114,8 +129,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.YES)
   public Long getId() {
     return id;
   }
@@ -128,7 +141,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminologyId() {
     return terminologyId;
   }
@@ -141,7 +153,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -154,7 +165,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getRelationshipType() {
     return relationshipType;
   }
@@ -167,7 +177,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getAdditionalRelationshipType() {
     return additionalRelationshipType;
   }
@@ -180,7 +189,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getFromId() {
     return fromId;
   }
@@ -193,7 +201,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public IdType getFromType() {
     return fromType;
   }
@@ -206,7 +213,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getFromTerminology() {
     return fromTerminology;
   }
@@ -219,7 +225,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getToId() {
     return toId;
   }
@@ -232,7 +237,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public IdType getToType() {
     return toType;
   }
@@ -245,7 +249,6 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getToTerminology() {
     return toTerminology;
   }
@@ -352,7 +355,19 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = {
+      @ObjectPath(@PropertyValue(propertyName = "additionalRelationshipType")),
+      @ObjectPath(@PropertyValue(propertyName = "fromId")),
+      @ObjectPath(@PropertyValue(propertyName = "fromTerminology")),
+      @ObjectPath(@PropertyValue(propertyName = "fromType")),
+      @ObjectPath(@PropertyValue(propertyName = "relationshipType")),
+      @ObjectPath(@PropertyValue(propertyName = "terminology")),
+      @ObjectPath(@PropertyValue(propertyName = "terminologyId")),
+      @ObjectPath(@PropertyValue(propertyName = "toId")),
+      @ObjectPath(@PropertyValue(propertyName = "toTerminology")),
+      @ObjectPath(@PropertyValue(propertyName = "toType"))
+  })
   public String getIdentityCode() {
     return additionalRelationshipType + fromId + fromTerminology + fromType
         + relationshipType + terminology + terminologyId + toId + toTerminology

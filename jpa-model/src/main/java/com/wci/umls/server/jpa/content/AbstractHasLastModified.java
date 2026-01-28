@@ -11,15 +11,10 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.HasLastModified;
 
@@ -38,15 +33,18 @@ public abstract class AbstractHasLastModified implements HasLastModified {
   /** the timestamp. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   protected Date timestamp = null;
 
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   protected Date lastModified = null;
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   protected String lastModifiedBy;
 
   /**
@@ -70,9 +68,6 @@ public abstract class AbstractHasLastModified implements HasLastModified {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getTimestamp() {
     return timestamp;
@@ -85,9 +80,6 @@ public abstract class AbstractHasLastModified implements HasLastModified {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getLastModified() {
     return lastModified;
@@ -110,7 +102,6 @@ public abstract class AbstractHasLastModified implements HasLastModified {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getLastModifiedBy() {
     return lastModifiedBy;

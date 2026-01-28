@@ -20,14 +20,18 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.jpa.ProjectJpa;
@@ -75,7 +79,8 @@ public class WorkflowEpochJpa implements WorkflowEpoch {
 
   /** The workflow bins. */
   @OneToMany(targetEntity = WorkflowBinJpa.class)
-  @IndexedEmbedded(targetElement = WorkflowBinJpa.class, includeEmbeddedObjectId=true)
+  @IndexedEmbedded(targetType = WorkflowBinJpa.class, includeEmbeddedObjectId = true)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   @CollectionTable(name = "workflow_epochs_workflow_bins", joinColumns = @JoinColumn(name = "workflow_epochs_id"))
   private List<WorkflowBin> workflowBins = null;
 
@@ -131,7 +136,7 @@ public class WorkflowEpochJpa implements WorkflowEpoch {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getLastModifiedBy() {
     return lastModifiedBy;
   }
@@ -156,7 +161,7 @@ public class WorkflowEpochJpa implements WorkflowEpoch {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getName() {
     return name;
   }
@@ -168,7 +173,8 @@ public class WorkflowEpochJpa implements WorkflowEpoch {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @Override
   public boolean isActive() {
     return active;
@@ -198,8 +204,8 @@ public class WorkflowEpochJpa implements WorkflowEpoch {
    *
    * @return the project id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "project")))
   public Long getProjectId() {
     return project == null ? null : project.getId();
   }

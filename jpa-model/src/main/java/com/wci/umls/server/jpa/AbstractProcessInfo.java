@@ -18,17 +18,11 @@ import jakarta.xml.bind.annotation.XmlSeeAlso;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.AlgorithmInfo;
 import com.wci.umls.server.ProcessInfo;
@@ -55,10 +49,12 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified;
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lastModifiedBy;
 
   /** The last modified. */
@@ -68,18 +64,23 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /** The name. */
   @Column(nullable = false)
+  @FullTextField()
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   private String name;
 
   /** The description. */
   @Column(nullable = false)
+  @FullTextField()
   private String description;
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The version. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String version;
 
   /** The project. */
@@ -129,9 +130,6 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   public Date getLastModified() {
     return lastModified;
   }
@@ -144,7 +142,6 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLastModifiedBy() {
     return lastModifiedBy;
   }
@@ -169,11 +166,6 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
   public String getName() {
     return name;
   }
@@ -186,7 +178,6 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   public String getDescription() {
     return description;
   }
@@ -199,7 +190,6 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -212,7 +202,6 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getVersion() {
     return version;
   }
@@ -241,8 +230,7 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
    *
    * @return the project id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
   public Long getProjectId() {
     return project == null ? null : project.getId();
   }

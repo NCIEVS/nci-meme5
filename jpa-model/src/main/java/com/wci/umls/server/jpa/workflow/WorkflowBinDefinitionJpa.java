@@ -22,18 +22,17 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.model.workflow.WorkflowBinDefinition;
@@ -150,9 +149,7 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   public Date getLastModified() {
     return lastModified;
   }
@@ -165,7 +162,7 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getLastModifiedBy() {
     return lastModifiedBy;
   }
@@ -190,7 +187,7 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getName() {
     return name;
   }
@@ -215,7 +212,8 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isEditable() {
     return editable;
   }
@@ -228,7 +226,8 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isEnabled() {
     return enabled;
   }
@@ -241,7 +240,8 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
   
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isRequired() {
     return required;
   }
@@ -266,7 +266,8 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(bridge = @FieldBridge(impl = EnumBridge.class), index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public QueryType getQueryType() {
     return queryType;
   }
@@ -295,8 +296,8 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
    *
    * @return the workflow config id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "workflowConfig")))
   public Long getWorkflowConfigId() {
     return workflowConfig == null ? null : workflowConfig.getId();
   }
@@ -306,7 +307,6 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
    *
    * @param id the workflow config id
    */
-  @Field()
   public void setWorkflowConfigId(Long id) {
     if (workflowConfig == null) {
       workflowConfig = new WorkflowConfigJpa();
@@ -316,7 +316,7 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getAutofix() {
     return autofix;
   }

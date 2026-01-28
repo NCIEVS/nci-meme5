@@ -10,13 +10,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.model.meta.LexicalClassIdentity;
@@ -34,14 +34,17 @@ public class LexicalClassIdentityJpa implements LexicalClassIdentity {
 
   /** The id. */
   @Id
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The normalized name. */
   @Column(nullable = false, length = 4000)
+  @KeywordField(searchable = Searchable.YES)
   private String normalizedName;
 
   /** The language */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String language;
 
   /** The normalized name hash. */
@@ -79,8 +82,6 @@ public class LexicalClassIdentityJpa implements LexicalClassIdentity {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.YES)
   public Long getId() {
     return id;
   }
@@ -93,7 +94,6 @@ public class LexicalClassIdentityJpa implements LexicalClassIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getNormalizedName() {
     return normalizedName;
   }
@@ -108,7 +108,6 @@ public class LexicalClassIdentityJpa implements LexicalClassIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLanguage() {
     return language;
   }
@@ -153,7 +152,11 @@ public class LexicalClassIdentityJpa implements LexicalClassIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = {
+      @ObjectPath(@PropertyValue(propertyName = "language")),
+      @ObjectPath(@PropertyValue(propertyName = "normalizedName"))
+  })
   public String getIdentityCode() {
     return language + normalizedName;
   }

@@ -23,14 +23,14 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.jpa.helpers.MapKeyValueToCsvBridge;
 import com.wci.umls.server.model.content.Attribute;
@@ -180,11 +180,8 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO),
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
+  @FullTextField(analyzer = "noStopWord")
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   public String getName() {
     return name;
   }
@@ -273,7 +270,7 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getFromTerminology() {
     return fromTerminology;
   }
@@ -286,7 +283,7 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getToTerminology() {
     return toTerminology;
   }
@@ -299,7 +296,7 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getFromVersion() {
     return fromVersion;
   }
@@ -312,7 +309,7 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getToVersion() {
     return toVersion;
   }
@@ -343,8 +340,9 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "alternateTerminologyIds", index = Index.YES, analyze = Analyze.YES, store = Store.NO)
+  @FullTextField(name = "alternateTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   public Map<String, String> getAlternateTerminologyIds() {
     if (alternateTerminologyIds == null) {
       alternateTerminologyIds = new HashMap<>(2);

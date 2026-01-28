@@ -21,18 +21,14 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
@@ -56,36 +52,44 @@ public class MolecularActionJpa implements MolecularAction {
 
   /** The version. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String version;
 
   /** The component id. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES)
   private Long componentId;
 
   /** The component id 2. */
   @Column(nullable = true)
+  @GenericField(searchable = Searchable.YES)
   private Long componentId2;
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The name. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String name;
 
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified = new Date();
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lastModifiedBy;
 
   /** The timestamp. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date timestamp = null;
 
   /** The batch id. */
@@ -94,10 +98,12 @@ public class MolecularActionJpa implements MolecularAction {
 
   /** The activity id. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String activityId;
 
   /** The work id. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String workId;
 
   /** The macro action. */
@@ -109,7 +115,8 @@ public class MolecularActionJpa implements MolecularAction {
   private boolean undoneFlag = false;
 
   /** The molecular action. */
-  @IndexedEmbedded(targetElement = AtomicActionJpa.class)
+  @IndexedEmbedded(targetType = AtomicActionJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   @OneToMany(mappedBy = "molecularAction", targetEntity = AtomicActionJpa.class)
   private List<AtomicAction> atomicActions = new ArrayList<>();
 
@@ -160,8 +167,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getComponentId() {
     return componentId;
   }
@@ -174,8 +179,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getComponentId2() {
     return componentId2;
   }
@@ -188,7 +191,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -201,7 +203,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getVersion() {
     return version;
   }
@@ -214,9 +215,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   public Date getTimestamp() {
     return timestamp;
   }
@@ -229,9 +227,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   public Date getLastModified() {
     return lastModified;
   }
@@ -244,7 +239,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLastModifiedBy() {
     return lastModifiedBy;
   }
@@ -257,7 +251,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getName() {
     return name;
   }
@@ -299,7 +292,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getActivityId() {
     return activityId;
   }
@@ -312,7 +304,6 @@ public class MolecularActionJpa implements MolecularAction {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getWorkId() {
     return workId;
   }

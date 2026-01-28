@@ -14,7 +14,7 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.GeneralConceptAxiom;

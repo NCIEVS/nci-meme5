@@ -22,19 +22,15 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 
 import com.wci.umls.server.SourceData;
 import com.wci.umls.server.SourceDataFile;
@@ -157,10 +153,8 @@ public class SourceDataJpa implements SourceData {
    *
    * @return the last modified
    */
-  @Override  
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
+  @Override
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   public Date getLastModified() {
     return this.lastModified;
   }
@@ -200,8 +194,7 @@ public class SourceDataJpa implements SourceData {
    *
    * @return the id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
   @Override
   public Long getId() {
     return this.id;
@@ -223,11 +216,8 @@ public class SourceDataJpa implements SourceData {
    * @return the name
    */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nameSort")
+  @FullTextField(analyzer = "noStopWord")
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
   public String getName() {
     return this.name;
   }
@@ -243,7 +233,7 @@ public class SourceDataJpa implements SourceData {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   @Override
   public String getHandler() {
     return this.handler;
@@ -256,7 +246,8 @@ public class SourceDataJpa implements SourceData {
   }
 
   /* see superclass */
-  @Field(bridge = @FieldBridge(impl = EnumBridge.class), index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @Override
   public SourceData.Status getStatus() {
     return handlerStatus;

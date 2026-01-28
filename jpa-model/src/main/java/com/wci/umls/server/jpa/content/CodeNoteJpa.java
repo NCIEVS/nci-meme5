@@ -11,13 +11,14 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.model.content.Code;
@@ -79,8 +80,8 @@ public class CodeNoteJpa extends AbstractNote {
    * @return the code id
    */
   @XmlElement
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "code")))
   public Long getCodeId() {
     return (code != null) ? code.getId() : 0;
   }
@@ -91,7 +92,8 @@ public class CodeNoteJpa extends AbstractNote {
    * @return the code name
    */
   @XmlElement
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
+  @FullTextField
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "code")))
   public String getCodeName() {
     return (code != null) ? code.getName() : "";
   }
@@ -102,7 +104,8 @@ public class CodeNoteJpa extends AbstractNote {
    * @return the code name
    */
   @XmlElement
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "code")))
   public String getCodeTerminologyId() {
     return (code != null) ? code.getTerminologyId() : "";
   }

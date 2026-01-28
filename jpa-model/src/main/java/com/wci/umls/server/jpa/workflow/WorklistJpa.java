@@ -31,20 +31,24 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.jpa.helpers.CollectionToCsvBridge;
 import com.wci.umls.server.jpa.helpers.MaxStateHistoryBridge;
 import com.wci.umls.server.jpa.helpers.MinValueBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.workflow.TrackingRecord;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
 import com.wci.umls.server.model.workflow.Worklist;
@@ -72,28 +76,43 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
   /** The authors. */
   @ElementCollection
   @CollectionTable(name = "worklist_authors")
+  @FullTextField(valueBridge = @ValueBridgeRef(type = CollectionToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
+  @KeywordField(name = "authorsSort", sortable = Sortable.YES,
+      valueBridge = @ValueBridgeRef(type = MinValueBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private List<String> authors = new ArrayList<>();
 
   /** The reviewers. */
   @ElementCollection
   @CollectionTable(name = "worklist_reviewers")
+  @FullTextField(valueBridge = @ValueBridgeRef(type = CollectionToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
+  @KeywordField(name = "reviewersSort", sortable = Sortable.YES,
+      valueBridge = @ValueBridgeRef(type = MinValueBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private List<String> reviewers = new ArrayList<>();
 
   /** The team (e.g. worklist group). */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String team;
 
   /** The workflow bin. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String workflowBinName;
 
   /** The epoch. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String epoch;
 
   /** The workflow status. */
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private WorkflowStatus workflowStatus;
 
   /** The number, also the last part of the name. */
@@ -110,11 +129,17 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
 
   /** The workflow state history. */
   @ElementCollection
+  @FullTextField(valueBridge = @ValueBridgeRef(type = MaxStateHistoryBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
+  @KeywordField(name = "workflowStateSort", sortable = Sortable.YES,
+      valueBridge = @ValueBridgeRef(type = MaxStateHistoryBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<String, Date> workflowStateHistory = new HashMap<>();
 
   /** The notes. */
   @OneToMany(mappedBy = "worklist", targetEntity = WorklistNoteJpa.class)
-  @IndexedEmbedded(targetElement = WorklistNoteJpa.class)
+  @IndexedEmbedded(targetType = WorklistNoteJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Note> notes = new ArrayList<>();
 
   /** The author available. */
@@ -193,13 +218,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
   }
 
   /* see superclass */
-  @Fields({
-      @Field(bridge = @FieldBridge(impl = CollectionToCsvBridge.class), index = Index.YES,
-          analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "authorsSort", bridge = @FieldBridge(impl = MinValueBridge.class),
-          index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })	
-  @SortableField(forField = "authorsSort")
   @Override
   public List<String> getAuthors() {
     if (authors == null) {
@@ -215,13 +233,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
   }
 
   /* see superclass */
-  @Fields({
-      @Field(bridge = @FieldBridge(impl = MaxStateHistoryBridge.class), index = Index.YES,
-          analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "workflowStateSort", bridge = @FieldBridge(impl = MaxStateHistoryBridge.class),
-          index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })	
-  @SortableField(forField = "workflowStateSort")
   @Override
   public Map<String, Date> getWorkflowState() {
     return getWorkflowStateHistory();
@@ -243,13 +254,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
   }
 
   /* see superclass */
-  @Fields({
-      @Field(bridge = @FieldBridge(impl = CollectionToCsvBridge.class), index = Index.YES,
-          analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "reviewersSort", bridge = @FieldBridge(impl = MinValueBridge.class),
-          index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })	
-  @SortableField(forField = "reviewersSort")
   @Override
   public List<String> getReviewers() {
     if (reviewers == null) {
@@ -266,7 +270,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public WorkflowStatus getWorkflowStatus() {
     return workflowStatus;
   }
@@ -280,7 +283,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTeam() {
     return team;
   }
@@ -293,7 +295,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getWorkflowBinName() {
     return workflowBinName;
   }
@@ -306,7 +307,6 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getEpoch() {
     return epoch;
   }

@@ -16,17 +16,12 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.LogEntry;
 
@@ -48,38 +43,47 @@ public class LogEntryJpa implements LogEntry {
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified = new Date();
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lastModifiedBy;
 
   /** The message. */
   @Column(nullable = false, length = 4000)
+  @FullTextField()
   private String message;
 
   /** The object id. */
   @Column(nullable = true)
+  @GenericField(searchable = Searchable.YES)
   private Long objectId;
 
   /** The project id. */
   @Column(nullable = true)
+  @GenericField(searchable = Searchable.YES)
   private Long projectId;
 
   /** The terminology. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The version. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String version;
 
   /** The from id type. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String activityId;
 
   /** The from id type. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String workId;
 
   /** the timestamp. */
@@ -127,9 +131,6 @@ public class LogEntryJpa implements LogEntry {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   @Override
   public Date getLastModified() {
     return lastModified;
@@ -142,7 +143,6 @@ public class LogEntryJpa implements LogEntry {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getLastModifiedBy() {
     return lastModifiedBy;
@@ -156,7 +156,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   public String getMessage() {
     return message;
   }
@@ -173,8 +172,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getObjectId() {
     return objectId;
   }
@@ -187,8 +184,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getProjectId() {
     return projectId;
   }
@@ -201,7 +196,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getActivityId() {
     return activityId;
   }
@@ -214,7 +208,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getWorkId() {
     return workId;
   }
@@ -227,7 +220,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getVersion() {
     return version;
   }
@@ -240,7 +232,6 @@ public class LogEntryJpa implements LogEntry {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }

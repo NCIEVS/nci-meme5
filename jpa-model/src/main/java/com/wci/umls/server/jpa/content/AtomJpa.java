@@ -30,20 +30,22 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.jpa.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomRelationship;
 import com.wci.umls.server.model.content.AtomSubsetMember;
@@ -85,7 +87,8 @@ public class AtomJpa extends AbstractComponent implements Atom {
   /** The definitions. */
   @OneToMany(targetEntity = DefinitionJpa.class)
   @CollectionTable(name = "atoms_definitions", joinColumns = @JoinColumn(name = "atoms_id"))
-  @IndexedEmbedded(targetElement = DefinitionJpa.class)
+  @IndexedEmbedded(targetType = DefinitionJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Definition> definitions = null;
 
   /** The members. */
@@ -105,7 +108,8 @@ public class AtomJpa extends AbstractComponent implements Atom {
   private List<AtomTreePosition> treePositions = null;
 
   /** The component histories. */
-  @IndexedEmbedded(targetElement = ComponentHistoryJpa.class, includeEmbeddedObjectId = true)
+  @IndexedEmbedded(targetType = ComponentHistoryJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   @CollectionTable(name = "atoms_component_histories", joinColumns = @JoinColumn(name = "atoms_id"))
   @OneToMany(targetEntity = ComponentHistoryJpa.class)
   private List<ComponentHistory> componentHistories = null;
@@ -114,6 +118,9 @@ public class AtomJpa extends AbstractComponent implements Atom {
   @ElementCollection
   @MapKeyColumn(length = 100)
   @Column(nullable = true, length = 100)
+  @FullTextField(name = "conceptTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   Map<String, String> conceptTerminologyIds;
 
   /** The alternate terminology ids. */
@@ -121,47 +128,64 @@ public class AtomJpa extends AbstractComponent implements Atom {
   @Fetch(FetchMode.JOIN)
   @MapKeyColumn(length = 100)
   @Column(nullable = true, length = 100)
+  @FullTextField(name = "alternateTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<String, String> alternateTerminologyIds;
 
   /** The code id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String codeId;
 
   /** The descriptor id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String descriptorId;
 
   /** The concept id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String conceptId;
 
   /** The language. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String language;
 
   /** The lexical class id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lexicalClassId;
 
   /** The string class id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String stringClassId;
 
   /** The lower name hash. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String lowerNameHash;
 
   /** The name. */
   @Column(nullable = false, length = 4000)
+  @FullTextField(analyzer = "noStopWord")
+  @KeywordField(name = "nameSort", sortable = Sortable.YES)
+  @FullTextField(name = "edgeNGramName", analyzer = "autocompleteEdgeAnalyzer")
+  @FullTextField(name = "nGramName", analyzer = "autocompleteNGramAnalyzer")
   private String name;
 
   /** The term type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String termType;
 
   /** The workflow status. */
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private WorkflowStatus workflowStatus;
 
   /** The last published rank. */
@@ -171,7 +195,8 @@ public class AtomJpa extends AbstractComponent implements Atom {
   /** The notes. */
   // NOTE: this could cause a performance problem with the join
   @OneToMany(mappedBy = "atom", targetEntity = AtomNoteJpa.class)
-  @IndexedEmbedded(targetElement = AtomNoteJpa.class)
+  @IndexedEmbedded(targetType = AtomNoteJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Note> notes = new ArrayList<>();
 
   /** The attributes. */
@@ -180,9 +205,10 @@ public class AtomJpa extends AbstractComponent implements Atom {
   @JoinTable(name = "atoms_attributes", inverseJoinColumns = @JoinColumn(name = "attributes_id"),
       joinColumns = @JoinColumn(name = "atoms_id"))
   private List<Attribute> attributes = null;
-  
+
   /** The rxcui. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String rxcui;
 
   /**
@@ -265,7 +291,7 @@ public class AtomJpa extends AbstractComponent implements Atom {
     matchingAttributes.sort(Comparator.comparing(Attribute::getLastModified).reversed());
     if (matchingAttributes.size() != 0) {
       return matchingAttributes.get(0);
-    } 
+    }
     return null;
   }
 
@@ -327,12 +353,8 @@ public class AtomJpa extends AbstractComponent implements Atom {
     this.treePositions = treePositions;
   }
 
-  /*
-   * see superc /* see superclass
-   */
+  /* see superclass */
   @Override
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "conceptTerminologyIds", index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   public Map<String, String> getConceptTerminologyIds() {
     if (conceptTerminologyIds == null) {
       conceptTerminologyIds = new HashMap<>(2);
@@ -366,7 +388,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getCodeId() {
     return codeId;
   }
@@ -379,7 +400,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getDescriptorId() {
     return descriptorId;
   }
@@ -392,7 +412,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getConceptId() {
     return conceptId;
   }
@@ -405,7 +424,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLanguage() {
     return language;
   }
@@ -418,7 +436,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLexicalClassId() {
     return lexicalClassId;
   }
@@ -431,7 +448,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getStringClassId() {
     return stringClassId;
   }
@@ -444,7 +460,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getRxcui() {
 	if (rxcui == null) {
 	  return "";
@@ -457,29 +472,19 @@ public class AtomJpa extends AbstractComponent implements Atom {
   public void setRxcui(String rxcui) {
     this.rxcui = rxcui;
   }
+
   /**
    * Returns the lower name hash.
    *
    * @return the lower name hash
    */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLowerNameHash() {
     return lowerNameHash;
   }
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(name = "name", index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-          analyzer = @Analyzer(definition = "noStopWord")),
-      @Field(name = "nameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO),
-      @Field(name = "edgeNGramName", index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-          analyzer = @Analyzer(definition = "autocompleteEdgeAnalyzer")),
-      @Field(name = "nGramName", index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-          analyzer = @Analyzer(definition = "autocompleteNGramAnalyzer"))
-  })
-  @SortableField(forField = "nameSort")
   public String getName() {
     return name;
   }
@@ -490,7 +495,7 @@ public class AtomJpa extends AbstractComponent implements Atom {
    * @return the name norm
    */
   @XmlTransient
-  @Field(index = Index.YES, store = Store.NO, analyze = Analyze.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getNameNorm() {
     return ConfigUtility.normalize(name);
   }
@@ -504,7 +509,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTermType() {
     return termType;
   }
@@ -517,8 +521,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public WorkflowStatus getWorkflowStatus() {
     return workflowStatus;
   }
@@ -532,9 +534,6 @@ public class AtomJpa extends AbstractComponent implements Atom {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "alternateTerminologyIds", index = Index.YES, analyze = Analyze.YES,
-      store = Store.NO)
   public Map<String, String> getAlternateTerminologyIds() {
     if (alternateTerminologyIds == null) {
       alternateTerminologyIds = new HashMap<>(2);

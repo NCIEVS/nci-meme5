@@ -16,14 +16,14 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
 import com.wci.umls.server.AlgorithmConfig;
 import com.wci.umls.server.ProcessConfig;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 
 /**
  * JPA and JAXB enabled implementation of {@link AlgorithmConfig}.
@@ -104,7 +104,7 @@ public class AlgorithmConfigJpa extends AbstractAlgorithmInfo<ProcessConfig>
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "enabled", searchable = Searchable.YES, valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @Override
   public boolean isEnabled() {
     return enabled;

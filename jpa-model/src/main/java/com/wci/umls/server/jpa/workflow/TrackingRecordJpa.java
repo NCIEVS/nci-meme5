@@ -30,24 +30,24 @@ import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.DateBridge;
-import org.hibernate.search.annotations.EncodingType;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Resolution;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.jpa.ProjectJpa;
 import com.wci.umls.server.jpa.content.ConceptJpa;
 import com.wci.umls.server.jpa.helpers.CollectionToCsvBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.workflow.TrackingRecord;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
@@ -65,15 +65,18 @@ public class TrackingRecordJpa implements TrackingRecord {
   @TableGenerator(name = "EntityIdGenWorkflow", table = "table_generator_wf", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenWorkflow")
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Date lastModified = new Date();
 
   /** The last modified. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String lastModifiedBy;
 
   /** the timestamp. */
@@ -85,39 +88,51 @@ public class TrackingRecordJpa implements TrackingRecord {
   @ElementCollection
   @CollectionTable(name = "component_ids")
   @Fetch(value = FetchMode.SELECT)
+  @FullTextField(valueBridge = @ValueBridgeRef(type = CollectionToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Set<Long> componentIds = new HashSet<>();
 
   /** The cluster id. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES)
+  @KeywordField(name = "clusterIdSort", sortable = Sortable.YES)
   private Long clusterId;
 
   /** The cluster type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String clusterType;
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The version. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String version;
 
   /** The workflow bin. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String workflowBinName;
 
   /** The worklist name. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String worklistName;
 
   /** The checklist name. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES)
   private String checklistName;
 
   /** The original concept ids . */
   @ElementCollection
   @CollectionTable(name = "orig_concept_ids")
+  @FullTextField(valueBridge = @ValueBridgeRef(type = CollectionToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Set<Long> origConceptIds = new HashSet<>();
 
   /** The concepts. */
@@ -131,14 +146,20 @@ public class TrackingRecordJpa implements TrackingRecord {
   /** The workflow status. */
   @Enumerated(EnumType.STRING)
   @Column(nullable = true)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private WorkflowStatus workflowStatus;
 
   /** The indexed data. */
   @Column(nullable = true, length = 4000)
+  @FullTextField
+  @KeywordField(name = "indexedDataSort", sortable = Sortable.YES)
   private String indexedData;
 
   /** The finished. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private boolean finished = false;
 
   /**
@@ -175,8 +196,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public Long getId() {
     return this.id;
   }
@@ -189,9 +208,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @DateBridge(resolution = Resolution.SECOND, encoding = EncodingType.STRING)
-  @SortableField
   public Date getLastModified() {
     return lastModified;
   }
@@ -203,7 +219,6 @@ public class TrackingRecordJpa implements TrackingRecord {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getLastModifiedBy() {
     return lastModifiedBy;
@@ -216,7 +231,6 @@ public class TrackingRecordJpa implements TrackingRecord {
   }
 
   /* see superclass */
-  @Field(bridge = @FieldBridge(impl = CollectionToCsvBridge.class), index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   @Override
   public Set<Long> getComponentIds() {
     if (componentIds == null) {
@@ -232,7 +246,6 @@ public class TrackingRecordJpa implements TrackingRecord {
   }
 
   /* see superclass */
-  @Field(bridge = @FieldBridge(impl = CollectionToCsvBridge.class), index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   @Override
   public Set<Long> getOrigConceptIds() {
     if (origConceptIds == null) {
@@ -265,11 +278,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO, bridge = @FieldBridge(impl = LongBridge.class)),
-      @Field(name = "clusterIdSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "clusterIdSort")
   public Long getClusterId() {
     return clusterId;
   }
@@ -310,8 +318,8 @@ public class TrackingRecordJpa implements TrackingRecord {
    *
    * @return the project id
    */
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "project")))
   public Long getProjectId() {
     return project == null ? null : project.getId();
   }
@@ -330,7 +338,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -343,7 +350,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getVersion() {
     return version;
   }
@@ -355,11 +361,6 @@ public class TrackingRecordJpa implements TrackingRecord {
   }
 
   /* see superclass */
-  @Fields({
-      @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO),
-      @Field(name = "indexedDataSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })	
-  @SortableField(forField = "indexedDataSort")
   @Override
   public String getIndexedData() {
     return indexedData;
@@ -376,7 +377,6 @@ public class TrackingRecordJpa implements TrackingRecord {
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   @Override
   public String getClusterType() {
     return clusterType;
@@ -390,7 +390,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getWorkflowBinName() {
     return workflowBinName;
   }
@@ -403,7 +402,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getWorklistName() {
     return worklistName;
   }
@@ -416,7 +414,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getChecklistName() {
     return checklistName;
   }
@@ -429,8 +426,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public WorkflowStatus getWorkflowStatus() {
     return workflowStatus;
   }
@@ -444,7 +439,6 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public boolean isFinished() {
     return finished;
   }

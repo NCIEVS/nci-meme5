@@ -24,8 +24,10 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.model.content.Atom;
@@ -65,7 +67,8 @@ public class CodeJpa extends AbstractAtomClass implements Code {
 
   /** The notes. */
   @OneToMany(mappedBy = "code", targetEntity = CodeNoteJpa.class)
-  @IndexedEmbedded(targetElement = CodeNoteJpa.class)
+  @IndexedEmbedded(targetType = CodeNoteJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Note> notes = new ArrayList<>();
 
   /** The labels. */
@@ -77,7 +80,8 @@ public class CodeJpa extends AbstractAtomClass implements Code {
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
   @CollectionTable(name = "codes_atoms", joinColumns = @JoinColumn(name = "codes_id"))
-  @IndexedEmbedded(targetElement = AtomJpa.class)
+  @IndexedEmbedded(targetType = AtomJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;
 
   /** The attributes. */

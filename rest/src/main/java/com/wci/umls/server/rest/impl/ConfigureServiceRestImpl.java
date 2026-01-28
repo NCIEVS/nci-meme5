@@ -169,7 +169,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
 
       // validate the user-set properties
       validateProperty("source.data.dir", properties);
-      validateProperty("hibernate.search.default.indexBase", properties);
+      validateProperty("hibernate.search.backend.directory.root", properties);
       validateProperty("jakarta.persistence.jdbc.url", properties);
       validateProperty("jakarta.persistence.jdbc.user", properties);
       validateProperty("jakarta.persistence.jdbc.password", properties);

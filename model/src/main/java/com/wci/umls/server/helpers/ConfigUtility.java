@@ -1080,7 +1080,7 @@ public class ConfigUtility {
    */
   public static String getBaseIndexDirectory() throws Exception {
     return getConfigProperties()
-        .getProperty("hibernate.search.default.indexBase");
+        .getProperty("hibernate.search.backend.directory.root");
   }
 
   /**
@@ -1147,11 +1147,11 @@ public class ConfigUtility {
   public static int getLuceneMaxClauseCount()
     throws NumberFormatException, Exception {
     if (!getConfigProperties()
-        .containsKey("hibernate.search.max.clause.count")) {
+        .containsKey("org.apache.lucene.search.BooleanQuery.maxClauseCount")) {
       return 100000;
     }
     return Integer.valueOf(
-        getConfigProperties().getProperty("hibernate.search.max.clause.count"));
+        getConfigProperties().getProperty("org.apache.lucene.search.BooleanQuery.maxClauseCount"));
   }
 
   /**

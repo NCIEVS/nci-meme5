@@ -10,13 +10,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.model.meta.StringClassIdentity;
@@ -35,10 +35,12 @@ public class StringClassIdentityJpa implements StringClassIdentity {
 
   /** The id. */
   @Id
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The name. */
   @Column(nullable = false, length = 4000)
+  @KeywordField(searchable = Searchable.YES)
   private String name;
 
   /** The name pre. */
@@ -47,6 +49,7 @@ public class StringClassIdentityJpa implements StringClassIdentity {
 
   /** The language. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String language;
 
   /**
@@ -89,8 +92,6 @@ public class StringClassIdentityJpa implements StringClassIdentity {
    */
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.YES)
   public Long getId() {
     return id;
   }
@@ -113,7 +114,6 @@ public class StringClassIdentityJpa implements StringClassIdentity {
    */
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getName() {
     return name;
   }
@@ -133,7 +133,6 @@ public class StringClassIdentityJpa implements StringClassIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getLanguage() {
     return language;
   }
@@ -190,7 +189,11 @@ public class StringClassIdentityJpa implements StringClassIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = {
+      @ObjectPath(@PropertyValue(propertyName = "name")),
+      @ObjectPath(@PropertyValue(propertyName = "language"))
+  })
   public String getIdentityCode() {
     return name + language;
   }

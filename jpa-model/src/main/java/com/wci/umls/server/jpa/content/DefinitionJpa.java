@@ -23,10 +23,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Definition;
@@ -117,7 +114,7 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
+  @FullTextField
   public String getValue() {
     return value;
   }

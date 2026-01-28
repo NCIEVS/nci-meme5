@@ -12,15 +12,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.meta.AttributeIdentity;
 import com.wci.umls.server.model.meta.IdType;
 
@@ -37,35 +35,44 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /** The id. */
   @Id
+  @GenericField(searchable = Searchable.YES)
   private Long id;
 
   /** The attribute name. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String name;
 
   /** The terminology id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminologyId;
 
   /** The terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String terminology;
 
   /** The component id. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String componentId;
 
   /** The component type. */
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private IdType componentType;
 
   /** The component terminology. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String componentTerminology;
 
   /** The attribute value hash code. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES)
   private String hashcode;
 
   /**
@@ -93,8 +100,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.YES)
   public Long getId() {
     return id;
   }
@@ -107,7 +112,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminologyId() {
     return terminologyId;
   }
@@ -120,7 +124,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getTerminology() {
     return terminology;
   }
@@ -133,7 +136,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getComponentId() {
     return componentId;
   }
@@ -146,8 +148,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public IdType getComponentType() {
     return componentType;
   }
@@ -160,7 +160,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getComponentTerminology() {
     return componentTerminology;
   }
@@ -173,7 +172,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getHashcode() {
     return hashcode;
   }
@@ -186,7 +184,6 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public String getName() {
     return name;
   }
@@ -265,7 +262,7 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(name = "identityCode", searchable = Searchable.YES)
   public String getIdentityCode() {
     return componentId + componentTerminology + hashcode + name + terminology
         + terminologyId;

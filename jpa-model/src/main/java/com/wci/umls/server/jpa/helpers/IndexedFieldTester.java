@@ -3,13 +3,16 @@
  */
 package com.wci.umls.server.jpa.helpers;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.hibernate.search.annotations.Analyze;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.ProxyTester;
 
@@ -21,7 +24,7 @@ public class IndexedFieldTester extends ProxyTester {
   /**
    * Constructs a new getter/setter tester to test objects of a particular
    * class.
-   * 
+   *
    * @param obj Object fto test.
    */
   public IndexedFieldTester(Object obj) {
@@ -97,23 +100,55 @@ public class IndexedFieldTester extends ProxyTester {
   }
 
   /**
-   * Returns the name analyzed pairs from annotation.
+   * Returns the name analyzed pairs from annotation. Checks both field-level
+   * and method-level annotations (HS6 style: annotations on fields, with
+   * computed getters keeping annotations on methods).
    *
    * @param clazz the clazz
    * @return the name analyzed pairs from annotation
-   * @throws NoSuchMethodException the no such method exception
-   * @throws SecurityException the security exception
    */
   @SuppressWarnings("static-method")
-  private Map<String, Boolean> getAnalyzedFieldsMap(Class<?> clazz)
-    throws NoSuchMethodException, SecurityException {
+  private Map<String, Boolean> getAnalyzedFieldsMap(Class<?> clazz) {
 
     // initialize the name->analyzed pair map
     final Map<String, Boolean> nameAnalyzedPairs = new HashMap<>();
 
+    // Check field-level annotations (primary location in HS6)
+    for (final Field f : clazz.getDeclaredFields()) {
+      String fieldName = f.getName();
+
+      // check for @FullTextField annotation (analyzed)
+      if (f.isAnnotationPresent(FullTextField.class)) {
+        final FullTextField ann = f.getAnnotation(FullTextField.class);
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), true);
+      }
+
+      // check for @KeywordField annotation (not analyzed)
+      if (f.isAnnotationPresent(KeywordField.class)) {
+        final KeywordField ann = f.getAnnotation(KeywordField.class);
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), false);
+      }
+
+      // check for @GenericField annotation (not analyzed)
+      if (f.isAnnotationPresent(GenericField.class)) {
+        final GenericField ann = f.getAnnotation(GenericField.class);
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), false);
+      }
+    }
+
+    // Check method-level annotations (for computed getters)
     for (final Method m : clazz.getMethods()) {
 
-      // Look at "get" method sfor field annotations
+      // Look at "get" and "is" methods
       String fieldName = null;
       if (m.getName().startsWith("get")) {
         fieldName = m.getName().substring(3);
@@ -127,28 +162,31 @@ public class IndexedFieldTester extends ProxyTester {
         continue;
       }
 
-      // check for Field annotation
-      if (m.isAnnotationPresent(org.hibernate.search.annotations.Field.class)) {
-        nameAnalyzedPairs.put(fieldName.toLowerCase(),
-            m.getAnnotation(org.hibernate.search.annotations.Field.class)
-                .analyze().equals(Analyze.YES));
+      // check for @FullTextField annotation (analyzed)
+      if (m.isAnnotationPresent(FullTextField.class)) {
+        final FullTextField ann = m.getAnnotation(FullTextField.class);
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), true);
       }
 
-      // check for Fields annotation
-      if (m
-          .isAnnotationPresent(org.hibernate.search.annotations.Fields.class)) {
-        // add all specified fields
-        for (final org.hibernate.search.annotations.Field f : m
-            .getAnnotation(org.hibernate.search.annotations.Fields.class)
-            .value()) {
-          if (f.name().equals("")) {
-            nameAnalyzedPairs.put(fieldName.toLowerCase(),
-                f.analyze().equals(Analyze.YES));
-          } else {
-            nameAnalyzedPairs.put(f.name().toLowerCase(),
-                f.analyze().equals(Analyze.YES));
-          }
-        }
+      // check for @KeywordField annotation (not analyzed)
+      if (m.isAnnotationPresent(KeywordField.class)) {
+        final KeywordField ann = m.getAnnotation(KeywordField.class);
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), false);
+      }
+
+      // check for @GenericField annotation (not analyzed)
+      if (m.isAnnotationPresent(GenericField.class)) {
+        final GenericField ann = m.getAnnotation(GenericField.class);
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), false);
       }
     }
     return nameAnalyzedPairs;

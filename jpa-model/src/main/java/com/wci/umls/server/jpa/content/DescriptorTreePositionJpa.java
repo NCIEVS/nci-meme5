@@ -19,16 +19,15 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Analyzer;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Fields;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Descriptor;
@@ -123,8 +122,8 @@ public class DescriptorTreePositionJpa extends AbstractTreePosition<Descriptor>
    * @return the node id
    */
   @XmlElement
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "node")))
   public Long getNodeId() {
     return node == null ? null : node.getId();
   }
@@ -146,12 +145,9 @@ public class DescriptorTreePositionJpa extends AbstractTreePosition<Descriptor>
    *
    * @return the node name
    */
-  @Fields({
-      @Field(name = "nodeName", index = Index.YES, store = Store.NO, analyze = Analyze.YES,
-          analyzer = @Analyzer(definition = "noStopWord")),
-      @Field(name = "nodeNameSort", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  })
-  @SortableField(forField = "nodeNameSort")
+  @FullTextField(name = "nodeName", analyzer = "noStopWord")
+  @KeywordField(name = "nodeNameSort", sortable = Sortable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "node")))
   public String getNodeName() {
     return node == null ? null : node.getName();
   }
@@ -173,7 +169,8 @@ public class DescriptorTreePositionJpa extends AbstractTreePosition<Descriptor>
    *
    * @return the node terminology id
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "node")))
   public String getNodeTerminologyId() {
     return node == null ? null : node.getTerminologyId();
   }
@@ -195,7 +192,8 @@ public class DescriptorTreePositionJpa extends AbstractTreePosition<Descriptor>
    *
    * @return the node terminology
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "node")))
   public String getNodeTerminology() {
     return node == null ? null : node.getTerminology();
   }
@@ -217,7 +215,8 @@ public class DescriptorTreePositionJpa extends AbstractTreePosition<Descriptor>
    *
    * @return the node version
    */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "node")))
   public String getNodeVersion() {
     return node == null ? null : node.getVersion();
   }

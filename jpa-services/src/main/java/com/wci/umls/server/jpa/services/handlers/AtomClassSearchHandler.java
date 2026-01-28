@@ -27,8 +27,6 @@ import org.apache.lucene.search.spell.PlainTextDictionary;
 import org.apache.lucene.search.spell.SpellChecker;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.hibernate.search.engine.ProjectionConstants;
-import org.hibernate.search.jpa.FullTextQuery;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
@@ -99,15 +97,13 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
     String branch, String query, String literalField, Class<T> clazz, PfsParameter pfs,
     int[] totalCt, EntityManager manager) throws Exception {
 
-    final FullTextQuery fullTextQuery =
+    final IndexUtility.FullTextQueryResult fullTextQueryResult =
         helper(terminology, version, branch, query, literalField, clazz, pfs, totalCt, manager);
 
     // Retrieve the scores for the returned objects
-    fullTextQuery.setProjection(ProjectionConstants.SCORE, ProjectionConstants.THIS);
     final List<T> classes = new ArrayList<>();
 
-    @SuppressWarnings("unchecked")
-    final List<Object[]> results = fullTextQuery.getResultList();
+    final List<Object[]> results = fullTextQueryResult.getResultList();
     String literalQuery = null;
     if (query != null && query.startsWith("\"") && query.endsWith("\"")) {
       literalQuery = query.substring(1, query.length() - 1);
@@ -139,17 +135,15 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
     String literalField, Class<?> clazz, PfsParameter pfs, int[] totalCt, EntityManager manager)
     throws Exception {
 
-    final FullTextQuery fullTextQuery =
+    final IndexUtility.FullTextQueryResult fullTextQueryResult =
         helper(terminology, version, branch, query, literalField, clazz, pfs, totalCt, manager);
 
-    // Retrieve the scores for the returned objects
-    fullTextQuery.setProjection(ProjectionConstants.ID);
+    // Extract IDs from entity results
     final List<Long> ids = new ArrayList<>();
 
-    @SuppressWarnings("unchecked")
-    final List<Object[]> results = fullTextQuery.getResultList();
+    final List<Object[]> results = fullTextQueryResult.getResultList();
     for (final Object[] result : results) {
-      final Long id = (Long) result[0];
+      final Long id = ((HasId) result[1]).getId();
       ids.add(id);
     }
 
@@ -168,12 +162,12 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
    * @param pfs the pfs
    * @param totalCt the total ct
    * @param manager the manager
-   * @return the full text query
+   * @return the full text query result
    * @throws Exception the exception
    */
-  public FullTextQuery helper(String terminology, String version, String branch, String query,
-    String literalField, Class<?> clazz, PfsParameter pfs, int[] totalCt, EntityManager manager)
-    throws Exception {
+  public IndexUtility.FullTextQueryResult helper(String terminology, String version, String branch,
+    String query, String literalField, Class<?> clazz, PfsParameter pfs, int[] totalCt,
+    EntityManager manager) throws Exception {
 
     // check assumption: class queried must extend AbstractAtomClass
     if (!AbstractAtomClass.class.isAssignableFrom(clazz)) {
@@ -330,37 +324,37 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
     }
 
     // Construct the full text query and perform the search
-    FullTextQuery fullTextQuery = null;
+    IndexUtility.FullTextQueryResult fullTextQueryResult = null;
 
     // if fielded, try fielded query first
     if (fieldedQuery != null) {
       try {
-        fullTextQuery =
+        fullTextQueryResult =
             IndexUtility.applyPfsToLuceneQuery(clazz, fieldedQuery.toString(), pfs, manager);
       } catch (ParseException | LocalException | IllegalArgumentException e) {
-        fullTextQuery = null;
+        fullTextQueryResult = null;
       }
     }
 
     // if not a fielded search or fielded search returned no results
-    if (fullTextQuery == null || fullTextQuery.getResultSize() == 0) {
+    if (fullTextQueryResult == null || fullTextQueryResult.getResultSize() == 0) {
 
       // try the parsed query
       try {
-        fullTextQuery =
+        fullTextQueryResult =
             IndexUtility.applyPfsToLuceneQuery(clazz, finalQuery.toString(), pfs, manager);
       }
 
       // If there's a parse exception, try the literal query
       catch (ParseException | LocalException | IllegalArgumentException e) {
-        fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz, escapedQuery + terminologyClause,
-            pfs, manager);
+        fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
+            escapedQuery + terminologyClause, pfs, manager);
       }
     }
 
     // Apply paging and sorting parameters for the PFSC case
     // This is needed for the combined search with "search criteria"
-    totalCt[0] = fullTextQuery.getResultSize();
+    totalCt[0] = fullTextQueryResult.getResultSize();
 
     // Only look to other algorithms if this is NOT a potential fielded query
     // and the query exists
@@ -390,9 +384,9 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
         }
         // Try the query again (if at least one expansion was found)
         if (found) {
-          fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz,
+          fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
               newQuery.toString() + terminologyClause, pfs, manager);
-          totalCt[0] = fullTextQuery.getResultSize();
+          totalCt[0] = fullTextQueryResult.getResultSize();
         }
       }
 
@@ -421,9 +415,9 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
 
         // Try the query again (if replacement found)
         if (found) {
-          fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz,
+          fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
               newQuery.toString() + terminologyClause, pfs, manager);
-          totalCt[0] = fullTextQuery.getResultSize();
+          totalCt[0] = fullTextQueryResult.getResultSize();
         }
       }
 
@@ -446,15 +440,15 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
         }
         newQuery.append(")");
         // Try the query again
-        fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz,
+        fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
             newQuery.toString() + terminologyClause, pfs, manager);
-        totalCt[0] = fullTextQuery.getResultSize();
+        totalCt[0] = fullTextQueryResult.getResultSize();
 
       }
 
     }
 
-    return fullTextQuery;
+    return fullTextQueryResult;
 
   }
 

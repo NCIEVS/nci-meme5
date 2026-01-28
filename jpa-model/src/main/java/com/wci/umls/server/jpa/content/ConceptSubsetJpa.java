@@ -24,11 +24,10 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 
 import com.wci.umls.server.jpa.helpers.MapKeyValueToCsvBridge;
 import com.wci.umls.server.model.content.Attribute;
@@ -65,6 +64,9 @@ public class ConceptSubsetJpa extends AbstractSubset implements ConceptSubset {
   @Fetch(FetchMode.JOIN)
   @MapKeyColumn(length = 100)
   @Column(nullable = true, length = 100)
+  @FullTextField(name = "alternateTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private Map<String, String> alternateTerminologyIds;
 
   /** The attributes. */
@@ -180,8 +182,6 @@ public Attribute getAttributeByName(String name) {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = MapKeyValueToCsvBridge.class)
-  @Field(name = "alternateTerminologyIds", index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   public Map<String, String> getAlternateTerminologyIds() {
     if (alternateTerminologyIds == null) {
       alternateTerminologyIds = new HashMap<>(2);

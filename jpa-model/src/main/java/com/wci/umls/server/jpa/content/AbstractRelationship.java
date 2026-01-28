@@ -11,15 +11,14 @@ import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 import org.apache.log4j.Logger;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.SortableField;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.EnumBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.ComponentInfo;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Relationship;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
 
@@ -41,35 +40,48 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /** The relationship type. */
   @Column(nullable = false)
+  @KeywordField(searchable = Searchable.YES, sortable = Sortable.YES)
   private String relationshipType;
 
   /** The additional relationship type. */
   @Column(nullable = true)
+  @KeywordField(searchable = Searchable.YES, sortable = Sortable.YES)
   private String additionalRelationshipType;
 
   /** The group. */
   @Column(name = "relGroup", nullable = true)
+  @KeywordField(searchable = Searchable.YES, sortable = Sortable.YES)
   private String group = "";
 
   /** The inferred. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private boolean inferred;
 
   /** The stated. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private boolean stated;
 
   /** The hierarchical. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private boolean hierarchical;
 
   /** The asserted direction flag. */
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private boolean assertedDirection;
 
   /** The workflow status. */
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private WorkflowStatus workflowStatus;
 
   /**
@@ -100,8 +112,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @SortableField
   public String getRelationshipType() {
     return relationshipType;
   }
@@ -114,8 +124,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @SortableField
   public String getAdditionalRelationshipType() {
     return additionalRelationshipType;
   }
@@ -128,8 +136,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
-  @SortableField
   public String getGroup() {
     return group;
   }
@@ -142,7 +148,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public boolean isInferred() {
     return inferred;
   }
@@ -155,7 +160,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public boolean isStated() {
     return stated;
   }
@@ -168,7 +172,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public boolean isHierarchical() {
     return hierarchical;
   }
@@ -181,7 +184,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public boolean isAssertedDirection() {
     return assertedDirection;
   }
@@ -194,8 +196,6 @@ public abstract class AbstractRelationship<S extends ComponentInfo, T extends Co
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = EnumBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
   public WorkflowStatus getWorkflowStatus() {
     return workflowStatus;
   }

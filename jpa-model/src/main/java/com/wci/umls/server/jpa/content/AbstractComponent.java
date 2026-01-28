@@ -10,15 +10,13 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Store;
-import org.hibernate.search.bridge.builtin.LongBridge;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.Branch;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Component;
 import com.wci.umls.server.model.content.ComponentHasAttributes;
 import com.wci.umls.server.model.meta.IdType;
@@ -26,7 +24,6 @@ import com.wci.umls.server.model.meta.IdType;
 /**
  * Abstract implementation of {@link ComponentHasAttributes} for use with JPA.
  */
-//@Audited
 @MappedSuperclass
 @XmlSeeAlso({
     ConceptJpa.class
@@ -102,8 +99,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = LongBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(searchable = Searchable.YES)
   public Long getId() {
     return this.id;
   }
@@ -116,7 +112,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @Field(name = "suppressible", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "suppressible", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isSuppressible() {
     return suppressible;
   }
@@ -128,7 +125,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
   }
 
   /* see superclass */
-  @Field(name = "obsolete", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "obsolete", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @Override
   public boolean isObsolete() {
     return obsolete;
@@ -139,7 +137,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
    *
    * @return <code>true</code> if so, <code>false</code> otherwise
    */
-  @Field(name = "active", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "active", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private boolean isActive() {
     return !obsolete;
   }
@@ -152,7 +151,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @Field(name = "published", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "published", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isPublished() {
     return published;
   }
@@ -165,7 +165,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @Field(name = "publishable", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "publishable", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isPublishable() {
     return publishable;
   }
@@ -178,7 +179,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getBranch() {
     return branch;
   }
@@ -191,7 +192,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getVersion() {
     return version;
   }
@@ -203,7 +204,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
   }
 
   /* see superclass */
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   @Override
   public String getTerminology() {
     return terminology;
@@ -217,7 +218,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @Field(index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @KeywordField(searchable = Searchable.YES)
   public String getTerminologyId() {
     return terminologyId;
   }

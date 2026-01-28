@@ -35,7 +35,7 @@ public class EmptyEnversPostInsertEventListenerImpl
 
   /* see superclass */
   @Override
-  public boolean requiresPostCommitHanding(EntityPersister persister) {
+  public boolean requiresPostCommitHandling(EntityPersister persister) {
     // Do nothing
     return false;
   }

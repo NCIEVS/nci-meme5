@@ -32,9 +32,8 @@ import jakarta.persistence.spi.PersistenceProvider;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
-import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
 import org.hibernate.jpa.HibernatePersistenceProvider;
-import org.hibernate.search.jpa.FullTextQuery;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.User;
@@ -209,7 +208,7 @@ public abstract class RootServiceJpa implements RootService {
     tx = manager.getTransaction();
 
     // set the max clause count from config
-    BooleanQuery.setMaxClauseCount(ConfigUtility.getLuceneMaxClauseCount());
+    IndexSearcher.setMaxClauseCount(ConfigUtility.getLuceneMaxClauseCount());
   }
 
   /* see superclass */
@@ -487,11 +486,12 @@ public abstract class RootServiceJpa implements RootService {
       for (final T t : list) {
         final StringBuilder sb = new StringBuilder();
         for (final Method m : t.getClass().getMethods()) {
-          // TODO Add annotation check for @Field, @Fields...
-          if (m.getName().startsWith("get") && (m
-              .isAnnotationPresent(org.hibernate.search.annotations.Field.class)
+          if (m.getName().startsWith("get") && (m.isAnnotationPresent(
+              org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField.class)
               || m.isAnnotationPresent(
-                  org.hibernate.search.annotations.Fields.class))) {
+                  org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField.class)
+              || m.isAnnotationPresent(
+                  org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField.class))) {
             try {
 
               Object val = m.invoke(t);
@@ -861,9 +861,9 @@ public abstract class RootServiceJpa implements RootService {
       throw new Exception("Unexpected empty query.");
     }
 
-    FullTextQuery fullTextQuery = null;
+    IndexUtility.FullTextQueryResult fullTextQueryResult = null;
     try {
-      fullTextQuery =
+      fullTextQueryResult =
           IndexUtility.applyPfsToLuceneQuery(clazz, query, pfs, manager);
     } catch (ParseException e) {
       // If parse exception, try a literal query
@@ -871,12 +871,17 @@ public abstract class RootServiceJpa implements RootService {
       if (query != null && !query.isEmpty()) {
         escapedQuery.append(QueryParserBase.escape(query));
       }
-      fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz,
+      fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
           escapedQuery.toString(), pfs, manager);
     }
 
-    totalCt[0] = fullTextQuery.getResultSize();
-    return fullTextQuery.getResultList();
+    totalCt[0] = fullTextQueryResult.getResultSize();
+    // Extract entities from [score, entity] result pairs
+    final List<Object> entities = new ArrayList<>();
+    for (final Object[] result : fullTextQueryResult.getResultList()) {
+      entities.add(result[1]);
+    }
+    return entities;
 
   }
 

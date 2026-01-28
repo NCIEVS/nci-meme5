@@ -14,8 +14,6 @@ import jakarta.persistence.EntityManager;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
-import org.hibernate.search.engine.ProjectionConstants;
-import org.hibernate.search.jpa.FullTextQuery;
 
 import com.wci.umls.server.helpers.HasId;
 import com.wci.umls.server.helpers.PfsParameter;
@@ -46,16 +44,14 @@ public class DefaultSearchHandler extends AbstractConfigurable
     Class<T> clazz, PfsParameter pfs, int[] totalCt, EntityManager manager)
     throws Exception {
 
-    final FullTextQuery fullTextQuery = helper(terminology, version, branch,
-        query, literalField, clazz, pfs, manager);
-    totalCt[0] = fullTextQuery.getResultSize();
+    final IndexUtility.FullTextQueryResult fullTextQueryResult =
+        helper(terminology, version, branch, query, literalField, clazz, pfs,
+            manager);
+    totalCt[0] = fullTextQueryResult.getResultSize();
 
     // Perform the final query and save score values
-    fullTextQuery.setProjection(ProjectionConstants.SCORE,
-        ProjectionConstants.THIS);
     final List<T> classes = new ArrayList<>();
-    @SuppressWarnings("unchecked")
-    final List<Object[]> results = fullTextQuery.getResultList();
+    final List<Object[]> results = fullTextQueryResult.getResultList();
     for (final Object[] result : results) {
       Object score = result[0];
       @SuppressWarnings("unchecked")
@@ -89,17 +85,16 @@ public class DefaultSearchHandler extends AbstractConfigurable
     String branch, String query, String literalField, Class<?> clazz,
     PfsParameter pfs, int[] totalCt, EntityManager manager) throws Exception {
 
-    final FullTextQuery fullTextQuery = helper(terminology, version, branch,
-        query, literalField, clazz, pfs, manager);
-    totalCt[0] = fullTextQuery.getResultSize();
+    final IndexUtility.FullTextQueryResult fullTextQueryResult =
+        helper(terminology, version, branch, query, literalField, clazz, pfs,
+            manager);
+    totalCt[0] = fullTextQueryResult.getResultSize();
 
-    // Perform the final query and save score values
-    fullTextQuery.setProjection(ProjectionConstants.ID);
+    // Extract IDs from entity results
     final List<Long> ids = new ArrayList<>();
-    @SuppressWarnings("unchecked")
-    final List<Object[]> results = fullTextQuery.getResultList();
+    final List<Object[]> results = fullTextQueryResult.getResultList();
     for (final Object[] result : results) {
-      Long l = (Long) result[0];
+      Long l = ((HasId) result[1]).getId();
       ids.add(l);
     }
 
@@ -117,12 +112,12 @@ public class DefaultSearchHandler extends AbstractConfigurable
    * @param clazz the clazz
    * @param pfs the pfs
    * @param manager the manager
-   * @return the full text query
+   * @return the full text query result
    * @throws Exception the exception
    */
-  public FullTextQuery helper(String terminology, String version, String branch,
-    String query, String literalField, Class<?> clazz, PfsParameter pfs,
-    EntityManager manager) throws Exception {
+  public IndexUtility.FullTextQueryResult helper(String terminology,
+    String version, String branch, String query, String literalField,
+    Class<?> clazz, PfsParameter pfs, EntityManager manager) throws Exception {
     // Default Search Handler algorithm
     // If empty query or ":" detected, perform query as written
     // If no results, perform tokenized/quoted search
@@ -182,19 +177,19 @@ public class DefaultSearchHandler extends AbstractConfigurable
       finalQuery.append(combinedQuery).append(terminologyClause);
 
     }
-    FullTextQuery fullTextQuery = null;
+    IndexUtility.FullTextQueryResult fullTextQueryResult = null;
     try {
-      fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz,
+      fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
           finalQuery.toString(), pfs, manager);
     } catch (ParseException | IllegalArgumentException e) {
       e.printStackTrace();
       // If there's a parse exception, try the literal query
       Logger.getLogger(getClass()).debug("PE query = " + finalQuery);
-      fullTextQuery = IndexUtility.applyPfsToLuceneQuery(clazz,
+      fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
           escapedQuery + terminologyClause, pfs, manager);
     }
 
-    return fullTextQuery;
+    return fullTextQueryResult;
 
   }
 

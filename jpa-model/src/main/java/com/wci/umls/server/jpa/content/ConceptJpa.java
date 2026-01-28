@@ -27,17 +27,21 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.envers.Audited;
-import org.hibernate.search.annotations.Analyze;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.FieldBridge;
-import org.hibernate.search.annotations.Index;
-import org.hibernate.search.annotations.Indexed;
-import org.hibernate.search.annotations.IndexedEmbedded;
-import org.hibernate.search.annotations.Store;
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.helpers.SearchResult;
 import com.wci.umls.server.jpa.helpers.CollectionToCsvBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.ComponentHistory;
@@ -67,7 +71,8 @@ import com.wci.umls.server.model.meta.IdType;
 public class ConceptJpa extends AbstractAtomClass implements Concept {
 
   /** The definitions. */
-  @IndexedEmbedded(targetElement = DefinitionJpa.class, includeEmbeddedObjectId=true)
+  @IndexedEmbedded(targetType = DefinitionJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   @CollectionTable(name = "concepts_definitions", joinColumns = @JoinColumn(name = "concepts_id"))
   @OneToMany(targetEntity = DefinitionJpa.class)
   private List<Definition> definitions = null;
@@ -85,13 +90,15 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
   private List<ConceptTreePosition> treePositions = null;
 
   /** The component histories. */
-  @IndexedEmbedded(targetElement = ComponentHistoryJpa.class, includeEmbeddedObjectId=true)
+  @IndexedEmbedded(targetType = ComponentHistoryJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   @CollectionTable(name = "concepts_component_histories", joinColumns = @JoinColumn(name = "concepts_id"))
   @OneToMany(targetEntity = ComponentHistoryJpa.class)
   private List<ComponentHistory> componentHistories = null;
 
   /** The semantic type components. */
-  @IndexedEmbedded(targetElement = SemanticTypeComponentJpa.class, includeEmbeddedObjectId=true)
+  @IndexedEmbedded(targetType = SemanticTypeComponentJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   @CollectionTable(name = "concepts_semantic_type_components", joinColumns = @JoinColumn(name = "concepts_id"))
   @OneToMany(targetEntity = SemanticTypeComponentJpa.class)
   private List<SemanticTypeComponent> semanticTypes = null;
@@ -102,13 +109,16 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
 
   /** The notes. */
   @OneToMany(mappedBy = "concept", targetEntity = ConceptNoteJpa.class)
-  @IndexedEmbedded(targetElement = ConceptNoteJpa.class)
+  @IndexedEmbedded(targetType = ConceptNoteJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Note> notes = new ArrayList<>();
 
   /** The concept terminology id map. */
   @ElementCollection(fetch = FetchType.EAGER)
   @Fetch(FetchMode.JOIN)
   @JoinColumn(nullable = true)
+  @FullTextField(valueBridge = @ValueBridgeRef(type = CollectionToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private List<String> labels;
 
   /** The fully defined. */
@@ -139,9 +149,10 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
   @CollectionTable(name = "concepts_atoms", joinColumns = @JoinColumn(name = "concepts_id"))
-  @IndexedEmbedded(targetElement = AtomJpa.class)
+  @IndexedEmbedded(targetType = AtomJpa.class)
+  @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;
-  
+
   /** The attributes. */
   @OneToMany(targetEntity = AttributeJpa.class)
   @JoinColumn(name = "attributes_id")
@@ -149,7 +160,7 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
       inverseJoinColumns = @JoinColumn(name = "attributes_id"),
       joinColumns = @JoinColumn(name = "concepts_id"))
   private List<Attribute> attributes = null;
-  
+
   /**
    * Instantiates an empty {@link ConceptJpa}.
    */
@@ -218,7 +229,7 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
   public void setAtoms(List<Atom> atoms) {
     this.atoms = atoms;
   }
-  
+
   /* see superclass */
   @Override
   @XmlElement(type = AttributeJpa.class)
@@ -246,7 +257,7 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
     }
     return null;
   }
-  
+
   /**
    * Returns the definitions.
    *
@@ -318,7 +329,8 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
    * @return <code>true</code> if so, <code>false</code> otherwise
    */
   @Override
-  @Field(name = "fullyDefined", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "fullyDefined", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isFullyDefined() {
     return fullyDefined;
   }
@@ -339,7 +351,8 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
    * @return <code>true</code> if so, <code>false</code> otherwise
    */
   @Override
-  @Field(name = "anonymous", index = Index.YES, analyze = Analyze.NO, store = Store.NO)
+  @GenericField(name = "anonymous", searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isAnonymous() {
     return anonymous;
   }
@@ -413,8 +426,6 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
 
   /* see superclass */
   @Override
-  @FieldBridge(impl = CollectionToCsvBridge.class)
-  @Field(index = Index.YES, analyze = Analyze.YES, store = Store.NO)
   public List<String> getLabels() {
     if (labels == null) {
       labels = new ArrayList<>();
