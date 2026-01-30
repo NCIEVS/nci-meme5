@@ -16,7 +16,6 @@ import java.lang.System.Logger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -112,6 +111,7 @@ import com.wci.umls.server.model.meta.RootTerminology;
 import com.wci.umls.server.model.meta.Terminology;
 import com.wci.umls.server.model.workflow.Checklist;
 import com.wci.umls.server.model.workflow.TrackingRecord;
+import com.wci.umls.server.jpa.workflow.WorkflowBinJpa;
 import com.wci.umls.server.model.workflow.WorkflowBin;
 import com.wci.umls.server.model.workflow.WorkflowBinDefinition;
 import com.wci.umls.server.model.workflow.WorkflowConfig;
@@ -5378,81 +5378,68 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
   /**
    * Fixes workflow bin ranks for QUALITY_ASSURANCE bins.
-   * Sets pn_pn_ambig to rank 0, nci_merge to rank 1, nci_sub_split to rank 2,
-   * and assigns incremented random ranks to the remaining bins.
+   * Sets specific bins to predetermined ranks, and any leftover bins get rank 20+.
    *
    * @throws Exception the exception
    */
+  @SuppressWarnings("unchecked")
   private void fixWorkflowBinRanks() throws Exception {
     logInfo("Starting fixWorkflowBinRanks");
 
-    WorkflowService workflowService = new WorkflowServiceJpa();
-    try {
-      // Get all WorkflowBins of type QUALITY_ASSURANCE
-      List<WorkflowBin> bins = workflowService.getWorkflowBins(getProject(), "QUALITY_ASSURANCE");
-      logInfo("  Found " + bins.size() + " QUALITY_ASSURANCE bins");
+    // Define the bin name to rank mapping
+    Map<String, Integer> binRanks = new HashMap<>();
+    binRanks.put("nci_merge", 1);
+    binRanks.put("nci_sub_split", 2);
+    binRanks.put("sct_sepfnpt", 3);
+    binRanks.put("cdsty_coc", 4);
+    binRanks.put("multsty", 5);
+    binRanks.put("styisa", 6);
+    binRanks.put("sfo_lfo", 7);
+    binRanks.put("deleted_cui", 8);
+    binRanks.put("cbo_chem", 9);
+    binRanks.put("mdr_chem", 10);
+    binRanks.put("go_chem", 11);
+    binRanks.put("rxnorm_split", 12);
+    binRanks.put("nosty", 13);
+    binRanks.put("missing_sty", 14);
+    binRanks.put("ambig_no_pn", 15);
+    binRanks.put("ambig_no_rel", 16);
+    binRanks.put("multiple_pn", 17);
+    binRanks.put("pn_orphan", 18);
+    binRanks.put("pn_pn_ambig", 19);
 
-      // Separate bins into specific ones and others
-      WorkflowBin pnPnAmbig = null;
-      WorkflowBin nciMerge = null;
-      WorkflowBin nciSubSplit = null;
-      List<WorkflowBin> otherBins = new ArrayList<>();
+    // Use direct JPQL query to get QUALITY_ASSURANCE bins for the project
+    Query query = getEntityManager().createQuery(
+        "SELECT b FROM WorkflowBinJpa b WHERE b.project.id = :projectId AND b.type = :type");
+    query.setParameter("projectId", getProject().getId());
+    query.setParameter("type", "QUALITY_ASSURANCE");
 
-      for (WorkflowBin bin : bins) {
-        if ("pn_pn_ambig".equals(bin.getName())) {
-          pnPnAmbig = bin;
-        } else if ("nci_merge".equals(bin.getName())) {
-          nciMerge = bin;
-        } else if ("nci_sub_split".equals(bin.getName())) {
-          nciSubSplit = bin;
-        } else {
-          otherBins.add(bin);
-        }
-      }
+    List<WorkflowBin> bins = query.getResultList();
+    logInfo("  Found " + bins.size() + " QUALITY_ASSURANCE bins for project " + getProject().getId());
 
-      // Shuffle the other bins for random ordering
-      Collections.shuffle(otherBins);
+    List<WorkflowBin> leftoverBins = new ArrayList<>();
 
-      int currentRank = 0;
-
-      // Assign rank 0 to pn_pn_ambig
-      if (pnPnAmbig != null) {
-        pnPnAmbig.setRank(currentRank++);
-        workflowService.updateWorkflowBin(pnPnAmbig);
-        logInfo("  Set pn_pn_ambig to rank 0");
+    // Assign predetermined ranks to known bins
+    for (WorkflowBin bin : bins) {
+      logInfo("  Found bin: " + bin.getName() + " with current rank " + bin.getRank());
+      if (binRanks.containsKey(bin.getName())) {
+        int newRank = binRanks.get(bin.getName());
+        bin.setRank(newRank);
+        logInfo("  Set " + bin.getName() + " to rank " + newRank);
       } else {
-        logInfo("  WARNING: pn_pn_ambig bin not found");
+        leftoverBins.add(bin);
       }
-
-      // Assign rank 1 to nci_merge
-      if (nciMerge != null) {
-        nciMerge.setRank(currentRank++);
-        workflowService.updateWorkflowBin(nciMerge);
-        logInfo("  Set nci_merge to rank 1");
-      } else {
-        logInfo("  WARNING: nci_merge bin not found");
-      }
-
-      // Assign rank 2 to nci_sub_split
-      if (nciSubSplit != null) {
-        nciSubSplit.setRank(currentRank++);
-        workflowService.updateWorkflowBin(nciSubSplit);
-        logInfo("  Set nci_sub_split to rank 2");
-      } else {
-        logInfo("  WARNING: nci_sub_split bin not found");
-      }
-
-      // Assign incremented ranks to remaining bins (in shuffled order)
-      for (WorkflowBin bin : otherBins) {
-        bin.setRank(currentRank++);
-        workflowService.updateWorkflowBin(bin);
-        logInfo("  Set " + bin.getName() + " to rank " + (currentRank - 1));
-      }
-
-      logInfo("Finished fixWorkflowBinRanks - updated " + bins.size() + " bins");
-    } finally {
-      workflowService.close();
     }
+
+    // Assign ranks 20+ to leftover bins
+    int currentRank = 20;
+    for (WorkflowBin bin : leftoverBins) {
+      bin.setRank(currentRank);
+      logInfo("  Set leftover bin " + bin.getName() + " to rank " + currentRank);
+      currentRank++;
+    }
+
+    logInfo("Finished fixWorkflowBinRanks - updated " + bins.size() + " bins");
   }
 
   /**
