@@ -114,37 +114,30 @@ public class IndexedFieldTester extends ProxyTester {
     final Map<String, Boolean> nameAnalyzedPairs = new HashMap<>();
 
     // Check field-level annotations (primary location in HS6)
-    for (final Field f : clazz.getDeclaredFields()) {
-      String fieldName = f.getName();
-
-      // check for @FullTextField annotation (analyzed)
-      if (f.isAnnotationPresent(FullTextField.class)) {
-        final FullTextField ann = f.getAnnotation(FullTextField.class);
-        final String name =
-            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
-                : fieldName;
-        nameAnalyzedPairs.put(name.toLowerCase(), true);
+    // Check all fields including inherited ones from superclasses
+    Class<?> currentClass = clazz;
+    while (currentClass != null && currentClass != Object.class) {
+      for (final Field f : currentClass.getDeclaredFields()) {
+        checkFieldAnnotations(f, nameAnalyzedPairs);
       }
-
-      // check for @KeywordField annotation (not analyzed)
-      if (f.isAnnotationPresent(KeywordField.class)) {
-        final KeywordField ann = f.getAnnotation(KeywordField.class);
-        final String name =
-            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
-                : fieldName;
-        nameAnalyzedPairs.put(name.toLowerCase(), false);
-      }
-
-      // check for @GenericField annotation (not analyzed)
-      if (f.isAnnotationPresent(GenericField.class)) {
-        final GenericField ann = f.getAnnotation(GenericField.class);
-        final String name =
-            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
-                : fieldName;
-        nameAnalyzedPairs.put(name.toLowerCase(), false);
-      }
+      currentClass = currentClass.getSuperclass();
     }
 
+    // Also check method-level annotations (for computed getters)
+    // clazz.getMethods() already includes inherited methods
+    checkMethodAnnotations(clazz, nameAnalyzedPairs);
+
+    return nameAnalyzedPairs;
+  }
+
+  /**
+   * Check method annotations and add to the map.
+   *
+   * @param clazz the class to check
+   * @param nameAnalyzedPairs the name analyzed pairs map
+   */
+  @SuppressWarnings("static-method")
+  private void checkMethodAnnotations(Class<?> clazz, Map<String, Boolean> nameAnalyzedPairs) {
     // Check method-level annotations (for computed getters)
     for (final Method m : clazz.getMethods()) {
 
@@ -162,34 +155,65 @@ public class IndexedFieldTester extends ProxyTester {
         continue;
       }
 
-      // check for @FullTextField annotation (analyzed)
-      if (m.isAnnotationPresent(FullTextField.class)) {
-        final FullTextField ann = m.getAnnotation(FullTextField.class);
+      // check for @FullTextField annotations (analyzed) - use getAnnotationsByType for repeatable
+      for (final FullTextField ann : m.getAnnotationsByType(FullTextField.class)) {
         final String name =
             (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
                 : fieldName;
         nameAnalyzedPairs.put(name.toLowerCase(), true);
       }
 
-      // check for @KeywordField annotation (not analyzed)
-      if (m.isAnnotationPresent(KeywordField.class)) {
-        final KeywordField ann = m.getAnnotation(KeywordField.class);
+      // check for @KeywordField annotations (not analyzed) - use getAnnotationsByType for repeatable
+      for (final KeywordField ann : m.getAnnotationsByType(KeywordField.class)) {
         final String name =
             (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
                 : fieldName;
         nameAnalyzedPairs.put(name.toLowerCase(), false);
       }
 
-      // check for @GenericField annotation (not analyzed)
-      if (m.isAnnotationPresent(GenericField.class)) {
-        final GenericField ann = m.getAnnotation(GenericField.class);
+      // check for @GenericField annotations (not analyzed) - use getAnnotationsByType for repeatable
+      for (final GenericField ann : m.getAnnotationsByType(GenericField.class)) {
         final String name =
             (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
                 : fieldName;
         nameAnalyzedPairs.put(name.toLowerCase(), false);
       }
     }
-    return nameAnalyzedPairs;
+  }
+
+  /**
+   * Check field annotations and add to the map.
+   *
+   * @param f the field
+   * @param nameAnalyzedPairs the name analyzed pairs map
+   */
+  @SuppressWarnings("static-method")
+  private void checkFieldAnnotations(Field f, Map<String, Boolean> nameAnalyzedPairs) {
+      String fieldName = f.getName();
+
+      // check for @FullTextField annotations (analyzed) - use getAnnotationsByType for repeatable
+      for (final FullTextField ann : f.getAnnotationsByType(FullTextField.class)) {
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), true);
+      }
+
+      // check for @KeywordField annotations (not analyzed) - use getAnnotationsByType for repeatable
+      for (final KeywordField ann : f.getAnnotationsByType(KeywordField.class)) {
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), false);
+      }
+
+      // check for @GenericField annotations (not analyzed) - use getAnnotationsByType for repeatable
+      for (final GenericField ann : f.getAnnotationsByType(GenericField.class)) {
+        final String name =
+            (ann.name() != null && !ann.name().isEmpty()) ? ann.name()
+                : fieldName;
+        nameAnalyzedPairs.put(name.toLowerCase(), false);
+      }
   }
 
 }

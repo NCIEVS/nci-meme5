@@ -129,7 +129,8 @@ public class WorklistJpa extends AbstractChecklist implements Worklist {
 
   /** The workflow state history. */
   @ElementCollection
-  @FullTextField(valueBridge = @ValueBridgeRef(type = MaxStateHistoryBridge.class),
+  @FullTextField(name = "workflowState",
+      valueBridge = @ValueBridgeRef(type = MaxStateHistoryBridge.class),
       extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   @KeywordField(name = "workflowStateSort", sortable = Sortable.YES,
       valueBridge = @ValueBridgeRef(type = MaxStateHistoryBridge.class),
