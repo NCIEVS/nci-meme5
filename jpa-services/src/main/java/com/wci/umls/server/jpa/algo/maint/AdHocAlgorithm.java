@@ -16,6 +16,7 @@ import java.lang.System.Logger;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -111,6 +112,7 @@ import com.wci.umls.server.model.meta.RootTerminology;
 import com.wci.umls.server.model.meta.Terminology;
 import com.wci.umls.server.model.workflow.Checklist;
 import com.wci.umls.server.model.workflow.TrackingRecord;
+import com.wci.umls.server.model.workflow.WorkflowBin;
 import com.wci.umls.server.model.workflow.WorkflowBinDefinition;
 import com.wci.umls.server.model.workflow.WorkflowConfig;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
@@ -325,6 +327,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       removeUnbalancedConceptRelationships();
     } else if (actionName.contentEquals("Write Meddra Ncit Overlap Report")) {
       writeMeddraNcitOverlapReport();
+    } else if (actionName.contentEquals("Fix Workflow Bin Ranks")) {
+      fixWorkflowBinRanks();
     } else {
       throw new Exception("Valid Action Name not specified.");
     }
@@ -5371,6 +5375,86 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	        return conceptsToDelete;
 	    }
 	}
+
+  /**
+   * Fixes workflow bin ranks for QUALITY_ASSURANCE bins.
+   * Sets pn_pn_ambig to rank 0, nci_merge to rank 1, nci_sub_split to rank 2,
+   * and assigns incremented random ranks to the remaining bins.
+   *
+   * @throws Exception the exception
+   */
+  private void fixWorkflowBinRanks() throws Exception {
+    logInfo("Starting fixWorkflowBinRanks");
+
+    WorkflowService workflowService = new WorkflowServiceJpa();
+    try {
+      // Get all WorkflowBins of type QUALITY_ASSURANCE
+      List<WorkflowBin> bins = workflowService.getWorkflowBins(getProject(), "QUALITY_ASSURANCE");
+      logInfo("  Found " + bins.size() + " QUALITY_ASSURANCE bins");
+
+      // Separate bins into specific ones and others
+      WorkflowBin pnPnAmbig = null;
+      WorkflowBin nciMerge = null;
+      WorkflowBin nciSubSplit = null;
+      List<WorkflowBin> otherBins = new ArrayList<>();
+
+      for (WorkflowBin bin : bins) {
+        if ("pn_pn_ambig".equals(bin.getName())) {
+          pnPnAmbig = bin;
+        } else if ("nci_merge".equals(bin.getName())) {
+          nciMerge = bin;
+        } else if ("nci_sub_split".equals(bin.getName())) {
+          nciSubSplit = bin;
+        } else {
+          otherBins.add(bin);
+        }
+      }
+
+      // Shuffle the other bins for random ordering
+      Collections.shuffle(otherBins);
+
+      int currentRank = 0;
+
+      // Assign rank 0 to pn_pn_ambig
+      if (pnPnAmbig != null) {
+        pnPnAmbig.setRank(currentRank++);
+        workflowService.updateWorkflowBin(pnPnAmbig);
+        logInfo("  Set pn_pn_ambig to rank 0");
+      } else {
+        logInfo("  WARNING: pn_pn_ambig bin not found");
+      }
+
+      // Assign rank 1 to nci_merge
+      if (nciMerge != null) {
+        nciMerge.setRank(currentRank++);
+        workflowService.updateWorkflowBin(nciMerge);
+        logInfo("  Set nci_merge to rank 1");
+      } else {
+        logInfo("  WARNING: nci_merge bin not found");
+      }
+
+      // Assign rank 2 to nci_sub_split
+      if (nciSubSplit != null) {
+        nciSubSplit.setRank(currentRank++);
+        workflowService.updateWorkflowBin(nciSubSplit);
+        logInfo("  Set nci_sub_split to rank 2");
+      } else {
+        logInfo("  WARNING: nci_sub_split bin not found");
+      }
+
+      // Assign incremented ranks to remaining bins (in shuffled order)
+      for (WorkflowBin bin : otherBins) {
+        bin.setRank(currentRank++);
+        workflowService.updateWorkflowBin(bin);
+        logInfo("  Set " + bin.getName() + " to rank " + (currentRank - 1));
+      }
+
+      logInfo("Finished fixWorkflowBinRanks - updated " + bins.size() + " bins");
+    } finally {
+      workflowService.close();
+    }
+  }
+
   /**
    * Returns the parameters.
    *
@@ -5408,7 +5492,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         "Fix Component Info Atoms", "Fix atom errors to unpublishable", "Fix bequeathal rels to unpublishable",
         "Approve worklist cluster","Cleanup corrupted process config","Remove bad bequeathal relationships",
         "Update Root Terminology Contact Info From UMLS","Reload Workflow Bin Definition Queries",
-        "Remove Unbalanced Concept Relationships", "Write Meddra Ncit Overlap Report"));
+        "Remove Unbalanced Concept Relationships", "Write Meddra Ncit Overlap Report",
+        "Fix Workflow Bin Ranks"));
     params.add(param);
     param = new AlgorithmParameterJpa("Integer parameter (optional)", "integerParameter",
             "Integer parameter (optional)", "e.g. 37", 10, AlgorithmParameter.Type.INTEGER, "50");
