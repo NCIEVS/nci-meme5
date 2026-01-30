@@ -20,8 +20,9 @@ import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.services.MetadataService;
 
-import io.swagger.jaxrs.config.BeanConfig;
-import io.swagger.util.Json;
+// Swagger imports removed - config code is commented out
+// import io.swagger.jaxrs.config.BeanConfig;
+// import io.swagger.util.Json;
 
 /**
  * The application (for jersey). Also serves the role of the initialization

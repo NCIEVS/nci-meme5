@@ -189,6 +189,11 @@
         <version>2.1.0</version>
         <scope>provided</scope>
       </dependency>
+      <dependency>
+        <groupId>jakarta.websocket</groupId>
+        <artifactId>jakarta.websocket-client-api</artifactId>
+        <version>2.1.0</version>
+      </dependency>
 
       <!-- Required for Jersey and JSON -->
 
@@ -233,6 +238,18 @@
         <groupId>io.swagger.core.v3</groupId>
         <artifactId>swagger-jaxrs2-jakarta</artifactId>
         <version>2.2.20</version>
+      </dependency>
+      <!-- Swagger 1.x annotations for backward compatibility -->
+      <dependency>
+        <groupId>io.swagger</groupId>
+        <artifactId>swagger-annotations</artifactId>
+        <version>1.6.12</version>
+      </dependency>
+      <!-- Jackson JAXB module -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.module</groupId>
+        <artifactId>jackson-module-jaxb-annotations</artifactId>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>jakarta.servlet</groupId>
