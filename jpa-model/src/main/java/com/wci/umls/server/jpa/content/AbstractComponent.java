@@ -3,14 +3,6 @@
  */
 package com.wci.umls.server.jpa.content;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
-import jakarta.xml.bind.annotation.XmlSeeAlso;
-
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Parameter;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
@@ -21,31 +13,30 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyVa
 
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
+import com.wci.umls.server.jpa.helpers.UseExistingOrGeneratedId;
 import com.wci.umls.server.model.content.Component;
 import com.wci.umls.server.model.content.ComponentHasAttributes;
 import com.wci.umls.server.model.meta.IdType;
 
-/**
- * Abstract implementation of {@link ComponentHasAttributes} for use with JPA.
- */
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
+
+/** Abstract implementation of {@link ComponentHasAttributes} for use with JPA. */
 @MappedSuperclass
-@XmlSeeAlso({
-    ConceptJpa.class
-})
-public abstract class AbstractComponent extends AbstractHasLastModified
-    implements Component {
+@XmlSeeAlso({ConceptJpa.class})
+public abstract class AbstractComponent extends AbstractHasLastModified implements Component {
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId",
-      type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class,
-      parameters = {
-          @Parameter(name = "sequence_name", value = "table_generator"),
-          @Parameter(name = "initial_value", value = "1"),
-          @Parameter(name = "increment_size", value = "1"),
-          @Parameter(name = "optimizer", value = "pooled-lo")
-      })
-  @GeneratedValue(generator = "ExistingOrGeneratedId")
+  @UseExistingOrGeneratedId
+  @SequenceGenerator(
+      name = "table_generator_seq",
+      sequenceName = "table_generator",
+      initialValue = 1,
+      allocationSize = 50)
   private Long id;
 
   /** The suppressible flag. */
@@ -80,9 +71,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
   @Column(nullable = true)
   private String branch = Branch.ROOT;
 
-  /**
-   * Instantiates an empty {@link AbstractComponent}.
-   */
+  /** Instantiates an empty {@link AbstractComponent}. */
   public AbstractComponent() {
     // do nothing
   }
@@ -110,7 +99,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @GenericField(searchable = Searchable.YES,
+  @GenericField(
+      searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public Long getId() {
     return this.id;
@@ -124,7 +114,9 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @GenericField(name = "suppressible", searchable = Searchable.YES,
+  @GenericField(
+      name = "suppressible",
+      searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isSuppressible() {
     return suppressible;
@@ -137,7 +129,9 @@ public abstract class AbstractComponent extends AbstractHasLastModified
   }
 
   /* see superclass */
-  @GenericField(name = "obsolete", searchable = Searchable.YES,
+  @GenericField(
+      name = "obsolete",
+      searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @Override
   public boolean isObsolete() {
@@ -149,7 +143,9 @@ public abstract class AbstractComponent extends AbstractHasLastModified
    *
    * @return <code>true</code> if so, <code>false</code> otherwise
    */
-  @GenericField(name = "active", searchable = Searchable.YES,
+  @GenericField(
+      name = "active",
+      searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "obsolete")))
   private boolean isActive() {
@@ -164,7 +160,9 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @GenericField(name = "published", searchable = Searchable.YES,
+  @GenericField(
+      name = "published",
+      searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isPublished() {
     return published;
@@ -178,7 +176,9 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @GenericField(name = "publishable", searchable = Searchable.YES,
+  @GenericField(
+      name = "publishable",
+      searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public boolean isPublishable() {
     return publishable;
@@ -272,53 +272,77 @@ public abstract class AbstractComponent extends AbstractHasLastModified
     result = prime * result + ((branch == null) ? 0 : branch.hashCode());
     result = prime * result + (obsolete ? 1231 : 1237);
     result = prime * result + (suppressible ? 1231 : 1237);
-    result =
-        prime * result + ((terminology == null) ? 0 : terminology.hashCode());
-    result = prime * result
-        + ((terminologyId == null) ? 0 : terminologyId.hashCode());
+    result = prime * result + ((terminology == null) ? 0 : terminology.hashCode());
+    result = prime * result + ((terminologyId == null) ? 0 : terminologyId.hashCode());
     return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     AbstractComponent other = (AbstractComponent) obj;
     if (branch == null) {
-      if (other.branch != null)
+      if (other.branch != null) {
         return false;
-    } else if (!branch.equals(other.branch))
+      }
+    } else if (!branch.equals(other.branch)) {
       return false;
-    if (obsolete != other.obsolete)
+    }
+    if (obsolete != other.obsolete) {
       return false;
-    if (suppressible != other.suppressible)
+    }
+    if (suppressible != other.suppressible) {
       return false;
+    }
     if (terminology == null) {
-      if (other.terminology != null)
+      if (other.terminology != null) {
         return false;
-    } else if (!terminology.equals(other.terminology))
+      }
+    } else if (!terminology.equals(other.terminology)) {
       return false;
+    }
     if (terminologyId == null) {
-      if (other.terminologyId != null)
+      if (other.terminologyId != null) {
         return false;
-    } else if (!terminologyId.equals(other.terminologyId))
+      }
+    } else if (!terminologyId.equals(other.terminologyId)) {
       return false;
+    }
     return true;
   }
 
   /* see superclass */
   @Override
   public String toString() {
-    return "id=" + id + ", terminologyId=" + terminologyId + ", lastModified="
-        + getLastModified() + ", lastModifiedBy=" + getLastModifiedBy()
-        + ", suppressible=" + suppressible + ", obsolete=" + obsolete
-        + ", published=" + published + ", publishable=" + publishable
-        + ", terminology=" + terminology + ", version=" + version + ", branch="
+    return "id="
+        + id
+        + ", terminologyId="
+        + terminologyId
+        + ", lastModified="
+        + getLastModified()
+        + ", lastModifiedBy="
+        + getLastModifiedBy()
+        + ", suppressible="
+        + suppressible
+        + ", obsolete="
+        + obsolete
+        + ", published="
+        + published
+        + ", publishable="
+        + publishable
+        + ", terminology="
+        + terminology
+        + ", version="
+        + version
+        + ", branch="
         + branch;
   }
-
 }

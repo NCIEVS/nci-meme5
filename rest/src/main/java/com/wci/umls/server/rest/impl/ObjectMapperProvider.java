@@ -3,25 +3,21 @@
  */
 package com.wci.umls.server.rest.impl;
 
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
+
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
 
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-
-/**
- * Custom ObjectMapperProvider.
- */
+/** Custom ObjectMapperProvider. */
 @Provider
 public class ObjectMapperProvider implements ContextResolver<ObjectMapper> {
 
   /** The default object mapper. */
   final ObjectMapper defaultObjectMapper;
 
-  /**
-   * Instantiates an empty {@link ObjectMapperProvider}.
-   */
+  /** Instantiates an empty {@link ObjectMapperProvider}. */
   public ObjectMapperProvider() {
     defaultObjectMapper = createDefaultMapper();
   }
@@ -40,7 +36,7 @@ public class ObjectMapperProvider implements ContextResolver<ObjectMapper> {
   private static ObjectMapper createDefaultMapper() {
     ObjectMapper mapper = new ObjectMapper();
     AnnotationIntrospector introspector =
-        new JaxbAnnotationIntrospector(mapper.getTypeFactory());
+        new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
     mapper.setAnnotationIntrospector(introspector);
 
     // final AnnotationIntrospector jacksonIntrospector =
@@ -49,5 +45,4 @@ public class ObjectMapperProvider implements ContextResolver<ObjectMapper> {
     // jaxbIntrospector);
     return mapper;
   }
-
 }

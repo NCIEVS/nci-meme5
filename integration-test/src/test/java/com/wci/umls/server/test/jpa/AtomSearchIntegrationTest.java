@@ -27,9 +27,9 @@ import com.wci.umls.server.model.workflow.WorkflowStatus;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
- * Integration test for AtomJpa persistence and search.
- * Tests searching by all indexed field types: String, Date, Boolean, Long, Enum.
- * Serves as documentation for query patterns after Hibernate Search 7.x migration.
+ * Integration test for AtomJpa persistence and search. Tests searching by all indexed field types:
+ * String, Date, Boolean, Long, Enum. Serves as documentation for query patterns after Hibernate
+ * Search 7.x migration.
  */
 public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
@@ -42,9 +42,7 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
   /** Unique suffix for this test run. */
   private String uniqueSuffix = null;
 
-  /**
-   * Setup class.
-   */
+  /** Setup class. */
   @BeforeClass
   public static void setupClass() {
     // do nothing
@@ -93,6 +91,52 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
   }
 
   /**
+   * Test atom jpa persistence.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testAtomJpaPersistence() throws Exception {
+    Logger.getLogger(getClass()).info("TEST " + name.getMethodName());
+
+    // Create a service
+    final ContentServiceJpa service = new ContentServiceJpa();
+    try {
+      service.setLastModifiedBy("test");
+      service.setLastModifiedFlag(true);
+      service.setTransactionPerOperation(true);
+
+      Atom atom = new AtomJpa();
+      atom.setId(100000L);
+      atom.setName("test name");
+      atom = service.addAtom(atom);
+      assertTrue(atom.getId() == 100000L);
+
+      atom = new AtomJpa();
+      atom.setId(null);
+      atom.setName("test name");
+      atom = service.addAtom(atom);
+      assertTrue(atom.getId() != null);
+      assertTrue(atom.getId() > 0);
+      long origId = atom.getId();
+
+      atom = new AtomJpa();
+      atom.setId(null);
+      atom.setName("test name");
+      atom = service.addAtom(atom);
+      assertTrue(atom.getId() != null);
+      assertTrue(atom.getId() == origId + 1);
+
+      service.removeAtom(100000L);
+      service.removeAtom(origId);
+      service.removeAtom(atom.getId());
+
+    } finally {
+      service.close();
+    }
+  }
+
+  /**
    * Test full-text search on name field (analyzed @FullTextField).
    *
    * @throws Exception the exception
@@ -104,13 +148,14 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
     int[] totalCt = new int[1];
 
     // Search by single word in name
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "name:acetaminophen", AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>) service.getQueryResults("name:acetaminophen", AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by name word", results.size() > 0);
 
     // Search by unique identifier in name
-    results = (List<Atom>) service.getQueryResults(
-        "name:unique" + uniqueSuffix, AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults("name:unique" + uniqueSuffix, AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by unique name token", results.size() > 0);
     assertEquals(addedAtom.getId(), results.get(0).getId());
   }
@@ -118,12 +163,10 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
   /**
    * Test autocomplete fields derived from name (@FullTextField with analyzers).
    *
-   * The name field has multiple index representations:
-   * - name: full-text with noStopWord analyzer
-   * - edgeNGramName: autocomplete edge analyzer (prefix matching)
-   * - nGramName: autocomplete ngram analyzer (partial matching)
-   * - nameSort: keyword for sorting
-   * - nameNorm: normalized keyword (derived field)
+   * <p>The name field has multiple index representations: - name: full-text with noStopWord
+   * analyzer - edgeNGramName: autocomplete edge analyzer (prefix matching) - nGramName:
+   * autocomplete ngram analyzer (partial matching) - nameSort: keyword for sorting - nameNorm:
+   * normalized keyword (derived field)
    *
    * @throws Exception the exception
    */
@@ -135,21 +178,36 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Search by edgeNGramName (prefix autocomplete) - should match "aceta" prefix
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND edgeNGramName:aceta", AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND edgeNGramName:aceta",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find atom by edgeNGramName prefix 'aceta'", results.size() > 0);
     assertEquals(addedAtom.getId(), results.get(0).getId());
 
     // Search by nGramName (ngram autocomplete) - should match partial "amino"
-    results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND nGramName:amino", AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND nGramName:amino",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find atom by nGramName partial 'amino'", results.size() > 0);
     assertEquals(addedAtom.getId(), results.get(0).getId());
 
     // Search by nameNorm (normalized name - derived field)
     // nameNorm is the result of ConfigUtility.normalize(name)
-    results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND nameNorm:*", AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND nameNorm:*",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find atom with nameNorm indexed", results.size() > 0);
   }
 
@@ -166,24 +224,25 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Search by terminologyId (exact match required)
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix, AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix, AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by terminologyId", results.size() > 0);
     assertEquals(addedAtom.getId(), results.get(0).getId());
 
     // Search by codeId
-    results = (List<Atom>) service.getQueryResults(
-        "codeId:CTEST" + uniqueSuffix, AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults("codeId:CTEST" + uniqueSuffix, AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by codeId", results.size() > 0);
 
     // Search by termType
-    results = (List<Atom>) service.getQueryResults(
-        "termType:PT", AtomJpa.class, null, totalCt);
+    results = (List<Atom>) service.getQueryResults("termType:PT", AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by termType", results.size() > 0);
 
     // Search by language
-    results = (List<Atom>) service.getQueryResults(
-        "language:ENG", AtomJpa.class, null, totalCt);
+    results = (List<Atom>) service.getQueryResults("language:ENG", AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by language", results.size() > 0);
   }
 
@@ -200,13 +259,23 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Search by obsolete=false
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND obsolete:false", AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND obsolete:false",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find non-obsolete atom", results.size() > 0);
 
     // Search by published=true
-    results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND published:true", AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND published:true",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find published atom", results.size() > 0);
   }
 
@@ -223,8 +292,13 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Search by workflowStatus combined with unique terminologyId
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND workflowStatus:READY_FOR_PUBLICATION", AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND workflowStatus:READY_FOR_PUBLICATION",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find atom by workflowStatus", results.size() > 0);
   }
 
@@ -241,8 +315,9 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Search by id
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "id:" + addedAtom.getId(), AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults("id:" + addedAtom.getId(), AtomJpa.class, null, totalCt);
     assertTrue("Should find atom by id", results.size() > 0);
     assertEquals(addedAtom.getId(), results.get(0).getId());
   }
@@ -260,22 +335,30 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Combine multiple fields with AND
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND termType:PT AND published:true",
-        AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND termType:PT AND published:true",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find atom with combined query", results.size() > 0);
 
     // Negative query with NOT
-    results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND NOT obsolete:true",
-        AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix + " AND NOT obsolete:true",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find non-obsolete atom", results.size() > 0);
   }
 
   /**
    * Test date range search on lastModified field (@GenericField with DateToIsoFormatBridge).
    *
-   * Uses ISO 8601 date format for range queries (e.g., "2024-12-11T03:10:27.000Z").
+   * <p>Uses ISO 8601 date format for range queries (e.g., "2024-12-11T03:10:27.000Z").
    *
    * @throws Exception the exception
    */
@@ -291,30 +374,50 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Define a range that INCLUDES the atom's lastModified (1 hour before to 1 hour after)
     final long oneHourMs = 60 * 60 * 1000;
-    final String rangeStart = DateTimeFormatter.ISO_INSTANT
-        .format(Instant.ofEpochMilli(atomTime - oneHourMs));
-    final String rangeEnd = DateTimeFormatter.ISO_INSTANT
-        .format(Instant.ofEpochMilli(atomTime + oneHourMs));
+    final String rangeStart =
+        DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(atomTime - oneHourMs));
+    final String rangeEnd =
+        DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(atomTime + oneHourMs));
 
     // Search with date range that includes the atom - use terminologyId to isolate our test atom
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND lastModified:[" + rangeStart + " TO " + rangeEnd + "]",
-        AtomJpa.class, null, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST"
+                    + uniqueSuffix
+                    + " AND lastModified:["
+                    + rangeStart
+                    + " TO "
+                    + rangeEnd
+                    + "]",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should find atom within date range", results.size() > 0);
     assertEquals(addedAtom.getId(), results.get(0).getId());
 
     // Define a range that EXCLUDES the atom's lastModified (1 day ago to 1 hour ago)
     final long oneDayMs = 24 * 60 * 60 * 1000;
-    final String excludeRangeStart = DateTimeFormatter.ISO_INSTANT
-        .format(Instant.ofEpochMilli(atomTime - oneDayMs));
-    final String excludeRangeEnd = DateTimeFormatter.ISO_INSTANT
-        .format(Instant.ofEpochMilli(atomTime - oneHourMs));
+    final String excludeRangeStart =
+        DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(atomTime - oneDayMs));
+    final String excludeRangeEnd =
+        DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(atomTime - oneHourMs));
 
     // Search with date range that excludes the atom
-    results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix + " AND lastModified:[" + excludeRangeStart + " TO " + excludeRangeEnd + "]",
-        AtomJpa.class, null, totalCt);
+    results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST"
+                    + uniqueSuffix
+                    + " AND lastModified:["
+                    + excludeRangeStart
+                    + " TO "
+                    + excludeRangeEnd
+                    + "]",
+                AtomJpa.class,
+                null,
+                totalCt);
     assertTrue("Should NOT find atom outside date range", results.isEmpty());
   }
 
@@ -334,8 +437,10 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
 
     // Search with pagination using unique terminologyId
     @SuppressWarnings("unchecked")
-    List<Atom> results = (List<Atom>) service.getQueryResults(
-        "terminologyId:ATEST" + uniqueSuffix, AtomJpa.class, pfs, totalCt);
+    List<Atom> results =
+        (List<Atom>)
+            service.getQueryResults(
+                "terminologyId:ATEST" + uniqueSuffix, AtomJpa.class, pfs, totalCt);
     assertTrue("Should find atom with pagination", results.size() > 0);
     assertTrue("Total count should be set", totalCt[0] > 0);
   }
@@ -358,9 +463,7 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
     }
   }
 
-  /**
-   * Teardown class.
-   */
+  /** Teardown class. */
   @AfterClass
   public static void teardownClass() {
     // do nothing
