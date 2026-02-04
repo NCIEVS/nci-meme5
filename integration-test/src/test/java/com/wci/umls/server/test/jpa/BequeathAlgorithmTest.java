@@ -108,6 +108,8 @@ public class BequeathAlgorithmTest extends IntegrationUnitSupport {
     preInsertionalgo.setProject(processExecution.getProject());
     preInsertionalgo.setTerminology("NCI");
     preInsertionalgo.setVersion("2016_05E");
+    preInsertionalgo.setTransactionPerOperation(false);
+    preInsertionalgo.beginTransaction();
     preInsertionalgo.compute();
 
     // Create and configure the algorithm

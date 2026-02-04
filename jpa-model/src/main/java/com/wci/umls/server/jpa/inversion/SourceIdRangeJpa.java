@@ -18,8 +18,11 @@ import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.Project;
@@ -42,7 +45,8 @@ public class SourceIdRangeJpa implements SourceIdRange {
   @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The last modified. */

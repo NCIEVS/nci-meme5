@@ -38,7 +38,8 @@ public class RelationshipIdentityJpa implements RelationshipIdentity {
 
   /** The id. */
   @Id
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The terminology. */

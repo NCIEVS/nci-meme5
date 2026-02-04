@@ -66,6 +66,10 @@ public class ProjectJpaTest extends IntegrationUnitSupport {
     ProjectService projectService = new ProjectServiceJpa();
     SecurityService securityService = new SecurityServiceJpa();
     try {
+      // Set last modified by on services
+      projectService.setLastModifiedBy("admin");
+      securityService.setLastModifiedBy("admin");
+
       // Add Project
       User adminUser = securityService.getUser("admin");
       User guestUser = securityService.getUser("guest");
@@ -74,10 +78,16 @@ public class ProjectJpaTest extends IntegrationUnitSupport {
       project.setName("Test Project");
       project.setLastModifiedBy("dss");
       project.setLastModified(new Date());
+      project.setTimestamp(new Date());
       project.setTerminology("SNOMECT");
+      project.setVersion("latest");
+      project.setLanguage("ENG");
       project.setBranch("branch");
       project.setDescription("Test Project Description");
       project.setFeedbackEmail("dshapiro@wcinformatics.com");
+      project.setTeamBased(false);
+      project.setEditingEnabled(true);
+      project.setAutomationsEnabled(false);
       PrecedenceList precedenceList = new PrecedenceListJpa();
       KeyValuePairList prec = new KeyValuePairList();
       KeyValuePair pair = new KeyValuePair("MTH", "PN");

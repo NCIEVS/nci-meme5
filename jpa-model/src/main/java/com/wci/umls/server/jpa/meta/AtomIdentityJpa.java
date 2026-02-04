@@ -11,8 +11,11 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
@@ -41,7 +44,8 @@ public class AtomIdentityJpa implements AtomIdentity {
 
   /** The id. */
   @Id
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The string class id. */

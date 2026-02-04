@@ -52,7 +52,8 @@ public class AtomicActionJpa implements AtomicAction {
 
   /** The object id. */
   @Column(nullable = false)
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long objectId;
 
   /** The old value. */
@@ -149,7 +150,8 @@ public class AtomicActionJpa implements AtomicAction {
    *
    * @return the molecular action id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "molecularAction")))
   public Long getMolecularActionId() {
     return molecularAction == null ? null : molecularAction.getId();

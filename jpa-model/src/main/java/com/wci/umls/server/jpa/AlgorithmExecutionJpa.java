@@ -21,8 +21,11 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.envers.Audited;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
@@ -64,7 +67,8 @@ public class AlgorithmExecutionJpa extends
 
   /** The algorithm config id. */
   @Column(nullable = false)
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long algorithmConfigId;
 
   /** The activity id. */
@@ -178,7 +182,8 @@ public class AlgorithmExecutionJpa extends
    *
    * @return the process id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "process")))
   public Long getProcessId() {
     return process == null ? null : process.getId();

@@ -147,7 +147,8 @@ public class ReportJpa extends AbstractHasLastModified implements Report {
 
   /* see superclass */
   @Override
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public Long getId() {
     return this.id;
   }
@@ -237,7 +238,8 @@ public class ReportJpa extends AbstractHasLastModified implements Report {
   }
 
   @Override
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public Long getReport1Id() {
     return this.report1Id;
   }
@@ -249,7 +251,8 @@ public class ReportJpa extends AbstractHasLastModified implements Report {
   }
 
   @Override
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public Long getReport2Id() {
     return this.report2Id;
   }
@@ -291,7 +294,8 @@ public class ReportJpa extends AbstractHasLastModified implements Report {
    * @return the project id
    */
   @XmlElement
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "project")))
   public Long getProjectId() {
     return (project != null) ? project.getId() : 0;

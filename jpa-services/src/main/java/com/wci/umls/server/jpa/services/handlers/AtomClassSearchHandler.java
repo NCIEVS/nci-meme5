@@ -431,10 +431,10 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
         StringBuilder newQuery = new StringBuilder();
         newQuery.append("(");
         for (final String token : tokens) {
-          if (newQuery.length() != 1) {
-            newQuery.append(" OR ");
-          }
           if (token.length() > 0) {
+            if (newQuery.length() != 1) {
+              newQuery.append(" OR ");
+            }
             newQuery.append(token).append("*");
           }
         }

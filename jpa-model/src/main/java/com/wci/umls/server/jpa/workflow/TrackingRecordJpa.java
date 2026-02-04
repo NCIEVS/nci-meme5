@@ -65,7 +65,8 @@ public class TrackingRecordJpa implements TrackingRecord {
   @TableGenerator(name = "EntityIdGenWorkflow", table = "table_generator_wf", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenWorkflow")
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The last modified. */
@@ -94,7 +95,8 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /** The cluster id. */
   @Column(nullable = false)
-  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long clusterId;
 
   /** The cluster type. */
@@ -317,7 +319,8 @@ public class TrackingRecordJpa implements TrackingRecord {
    *
    * @return the project id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "project")))
   public Long getProjectId() {
     return project == null ? null : project.getId();

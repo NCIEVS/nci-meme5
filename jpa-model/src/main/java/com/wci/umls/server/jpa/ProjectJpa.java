@@ -54,6 +54,7 @@ import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.TypeKeyValue;
 import com.wci.umls.server.jpa.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.jpa.helpers.PrecedenceListJpa;
 import com.wci.umls.server.jpa.helpers.TypeKeyValueJpa;
 import com.wci.umls.server.jpa.helpers.UserMapUserNameBridge;
@@ -77,7 +78,8 @@ public class ProjectJpa implements Project {
   @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The last modified. */

@@ -86,6 +86,8 @@ public class AddRemoveIntegrityCheckAlgorithmTest extends IntegrationUnitSupport
     algo.setProject(processExecution.getProject());
     algo.setTerminology(processExecution.getTerminology());
     algo.setVersion(processExecution.getVersion());
+    algo.setTransactionPerOperation(false);
+    algo.beginTransaction();
 
   }
 

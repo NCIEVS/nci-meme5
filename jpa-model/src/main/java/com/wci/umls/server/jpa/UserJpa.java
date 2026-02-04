@@ -62,7 +62,8 @@ public class UserJpa implements User {
   @TableGenerator(name = "EntityIdGenUser", table = "table_generator_users", pkColumnValue = "Entity", initialValue = 50)
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenUser")
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The user name. */

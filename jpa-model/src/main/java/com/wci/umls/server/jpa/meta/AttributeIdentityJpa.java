@@ -38,7 +38,8 @@ public class AttributeIdentityJpa implements AttributeIdentity {
 
   /** The id. */
   @Id
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The attribute name. */

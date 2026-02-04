@@ -23,8 +23,11 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import org.hibernate.envers.Audited;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.AlgorithmExecution;
@@ -68,7 +71,8 @@ public class ProcessExecutionJpa extends AbstractProcessInfo<AlgorithmExecution>
 
   /** The process config id. */
   @Column(nullable = false)
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long processConfigId;
 
   /** The work id. */

@@ -42,7 +42,8 @@ public class TypeKeyValueJpa implements TypeKeyValue, Comparable<TypeKeyValue> {
   @TableGenerator(name = "EntityIdGenTransformer", table = "table_generator_transformer", pkColumnValue = "Entity")
   @Id
   @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenTransformer")
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long id;
 
   /** The type. */

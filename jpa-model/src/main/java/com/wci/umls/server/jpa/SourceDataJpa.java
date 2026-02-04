@@ -194,7 +194,8 @@ public class SourceDataJpa implements SourceData {
    *
    * @return the id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @Override
   public Long getId() {
     return this.id;

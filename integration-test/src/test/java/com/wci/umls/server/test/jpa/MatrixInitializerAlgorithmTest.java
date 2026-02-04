@@ -31,6 +31,7 @@ import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.actions.MolecularActionList;
+import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomRelationship;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
@@ -85,21 +86,23 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
     algo.setProject(algo.getProjects().getObjects().get(0));
     algo.setTerminology("MTH");
     algo.setVersion("latest");
+    algo.setTransactionPerOperation(false);
+    algo.beginTransaction();
 
-//    // C0000005 is PUBLISHED, and all components are PUBLISHED as well.
-//    concept = contentService.getConcept("C0000005", "MTH", "latest", null);
-//
-//    // C0029744 is PUBLISHED, but contains a DEMOTION relationship.
-//    concept2 = contentService.getConcept("C0029744", "MTH", "latest", null);
-//
-//    OUTER: for (final Atom atom : concept2.getAtoms()) {
-//      for (final AtomRelationship rel : atom.getRelationships()) {
-//        if (rel.getWorkflowStatus().equals(WorkflowStatus.DEMOTION)) {
-//          relationship = rel;
-//          break OUTER;
-//        }
-//      }
-//    }
+    // C0000005 is PUBLISHED, and all components are PUBLISHED as well.
+    concept = contentService.getConcept("C0000005", "MTH", "latest", null);
+
+    // C0029744 is PUBLISHED, but contains a DEMOTION relationship.
+    concept2 = contentService.getConcept("C0029744", "MTH", "latest", null);
+
+    OUTER: for (final Atom atom : concept2.getAtoms()) {
+      for (final AtomRelationship rel : atom.getRelationships()) {
+        if (rel.getWorkflowStatus().equals(WorkflowStatus.DEMOTION)) {
+          relationship = rel;
+          break OUTER;
+        }
+      }
+    }
   }
 
   /**
@@ -363,7 +366,7 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
     // Set all objects back to their original workflow status
     // If something fails, this can be changed to @Test and run to reset
     // everything's original status.
-    if (!concept.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
+    if (concept != null && !concept.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
       final UpdateConceptMolecularAction action =
           new UpdateConceptMolecularAction();
       try {

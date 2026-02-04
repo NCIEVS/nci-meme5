@@ -24,8 +24,11 @@ import jakarta.xml.bind.annotation.XmlTransient;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
@@ -57,12 +60,14 @@ public class MolecularActionJpa implements MolecularAction {
 
   /** The component id. */
   @Column(nullable = false)
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long componentId;
 
   /** The component id 2. */
   @Column(nullable = true)
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   private Long componentId2;
 
   /** The terminology. */

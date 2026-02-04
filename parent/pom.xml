@@ -411,11 +411,11 @@
         <version>1.10</version>
       </dependency>
 
-      <!-- ANTLR Expression Parser -->
+      <!-- ANTLR Expression Parser - version 4.13.0 required by Hibernate Search 7.x -->
       <dependency>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-runtime</artifactId>
-        <version>4.5.1</version>
+        <version>4.13.0</version>
       </dependency>
 
 
