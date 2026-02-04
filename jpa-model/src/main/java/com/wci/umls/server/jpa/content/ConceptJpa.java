@@ -116,7 +116,8 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
   /** The concept terminology id map. */
   @ElementCollection(fetch = FetchType.EAGER)
   @Fetch(FetchMode.JOIN)
-  @JoinColumn(nullable = true)
+  @CollectionTable(name = "conceptjpa_labels",
+      joinColumns = @JoinColumn(nullable = true))
   @FullTextField(valueBridge = @ValueBridgeRef(type = CollectionToCsvBridge.class),
       extraction = @ContainerExtraction(extract = ContainerExtract.NO))
   private List<String> labels;

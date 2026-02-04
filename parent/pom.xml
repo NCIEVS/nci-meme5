@@ -131,6 +131,12 @@
         <artifactId>hibernate-search-backend-lucene</artifactId>
         <version>${hibernate.search.version}</version>
       </dependency>
+      <!-- jboss-logging - required version for Hibernate Search 7.x -->
+      <dependency>
+        <groupId>org.jboss.logging</groupId>
+        <artifactId>jboss-logging</artifactId>
+        <version>3.6.0.Final</version>
+      </dependency>
       <!-- <dependency> <groupId>org.hibernate</groupId> <artifactId>hibernate-envers</artifactId> 
         <version>${hibernate.version}</version> </dependency> <dependency> <groupId>org.hibernate</groupId> 
         <artifactId>hibernate-validator</artifactId> <version>${hibernate.validator.version}</version> 
@@ -244,12 +250,6 @@
         <groupId>io.swagger</groupId>
         <artifactId>swagger-annotations</artifactId>
         <version>1.6.12</version>
-      </dependency>
-      <!-- Jackson JAXB module -->
-      <dependency>
-        <groupId>com.fasterxml.jackson.module</groupId>
-        <artifactId>jackson-module-jaxb-annotations</artifactId>
-        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>jakarta.servlet</groupId>

@@ -232,7 +232,6 @@ public class TrackingRecordJpaUnitTest extends ModelUnitSupport {
     tester.include("lastModified");
     tester.include("lastModifiedBy");
     tester.include("clusterId");
-    tester.include("clusterIdSort");
     tester.include("clusterType");
     tester.include("terminology");
     tester.include("version");

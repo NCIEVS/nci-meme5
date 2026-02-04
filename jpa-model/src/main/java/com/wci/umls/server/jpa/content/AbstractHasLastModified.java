@@ -13,10 +13,12 @@ import jakarta.persistence.TemporalType;
 import org.hibernate.envers.Audited;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.HasLastModified;
+import com.wci.umls.server.jpa.helpers.DateToIsoFormatBridge;
 
 /**
  * Abstract implementation of {@link HasLastModified} for use with JPA.
@@ -33,13 +35,15 @@ public abstract class AbstractHasLastModified implements HasLastModified {
   /** the timestamp. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES,
+      valueBridge = @ValueBridgeRef(type = DateToIsoFormatBridge.class))
   protected Date timestamp = null;
 
   /** The last modified. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES,
+      valueBridge = @ValueBridgeRef(type = DateToIsoFormatBridge.class))
   protected Date lastModified = null;
 
   /** The last modified. */

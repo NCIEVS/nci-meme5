@@ -89,15 +89,15 @@ public class PrecedenceListJpa implements PrecedenceList {
 
   /** The terminology list. */
   @ElementCollection
-  @CollectionTable(name = "precedence_list_terminologies")
-  @JoinColumn(nullable = false)
+  @CollectionTable(name = "precedence_list_terminologies",
+      joinColumns = @JoinColumn(nullable = false))
   @OrderColumn
   private List<String> terminologies;
 
   /** The term types. */
   @ElementCollection
-  @CollectionTable(name = "precedence_list_term_types")
-  @JoinColumn(nullable = false)
+  @CollectionTable(name = "precedence_list_term_types",
+      joinColumns = @JoinColumn(nullable = false))
   @OrderColumn
   private List<String> termTypes;
 

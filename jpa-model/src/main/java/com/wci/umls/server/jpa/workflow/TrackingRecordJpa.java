@@ -94,8 +94,7 @@ public class TrackingRecordJpa implements TrackingRecord {
 
   /** The cluster id. */
   @Column(nullable = false)
-  @GenericField(searchable = Searchable.YES)
-  @KeywordField(name = "clusterIdSort", sortable = Sortable.YES)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
   private Long clusterId;
 
   /** The cluster type. */

@@ -172,8 +172,8 @@ public class ProjectJpa implements Project {
   //@CollectionTable(name = "project_validation_checks")
   @ElementCollection(fetch = FetchType.LAZY)
   // @Fetch(FetchMode.JOIN)
-  @JoinColumn(nullable = true)
-  @CollectionTable(name = "project_validation_checks", joinColumns = @JoinColumn(name = "projectJpa_id"))
+  @CollectionTable(name = "project_validation_checks",
+      joinColumns = @JoinColumn(name = "projectJpa_id", nullable = true))
   private List<String> validationChecks = new ArrayList<>();
 
   /** The validation data. */

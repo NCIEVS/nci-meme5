@@ -10,10 +10,14 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
@@ -33,7 +37,14 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId", type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class)
+  @GenericGenerator(name = "ExistingOrGeneratedId",
+      type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class,
+      parameters = {
+          @Parameter(name = "sequence_name", value = "table_generator"),
+          @Parameter(name = "initial_value", value = "1"),
+          @Parameter(name = "increment_size", value = "1"),
+          @Parameter(name = "optimizer", value = "pooled-lo")
+      })
   @GeneratedValue(generator = "ExistingOrGeneratedId")
   private Long id;
 
@@ -99,7 +110,8 @@ public abstract class AbstractComponent extends AbstractHasLastModified
 
   /* see superclass */
   @Override
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public Long getId() {
     return this.id;
   }
@@ -139,6 +151,7 @@ public abstract class AbstractComponent extends AbstractHasLastModified
    */
   @GenericField(name = "active", searchable = Searchable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
+  @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "obsolete")))
   private boolean isActive() {
     return !obsolete;
   }

@@ -19,6 +19,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Parameter;
 
 import com.wci.umls.server.jpa.content.AbstractHasLastModified;
 import com.wci.umls.server.model.report.Report;
@@ -36,7 +37,14 @@ public class ReportResultJpa extends AbstractHasLastModified
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId", type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class)
+  @GenericGenerator(name = "ExistingOrGeneratedId",
+      type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class,
+      parameters = {
+          @Parameter(name = "sequence_name", value = "table_generator"),
+          @Parameter(name = "initial_value", value = "1"),
+          @Parameter(name = "increment_size", value = "1"),
+          @Parameter(name = "optimizer", value = "pooled-lo")
+      })
   @GeneratedValue(generator = "ExistingOrGeneratedId")
   private Long id;
 

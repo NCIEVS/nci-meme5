@@ -16,7 +16,10 @@ import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.meta.AttributeIdentity;
@@ -263,6 +266,14 @@ public class AttributeIdentityJpa implements AttributeIdentity {
   /* see superclass */
   @Override
   @KeywordField(name = "identityCode", searchable = Searchable.YES)
+  @IndexingDependency(derivedFrom = {
+      @ObjectPath(@PropertyValue(propertyName = "componentId")),
+      @ObjectPath(@PropertyValue(propertyName = "componentTerminology")),
+      @ObjectPath(@PropertyValue(propertyName = "hashcode")),
+      @ObjectPath(@PropertyValue(propertyName = "name")),
+      @ObjectPath(@PropertyValue(propertyName = "terminology")),
+      @ObjectPath(@PropertyValue(propertyName = "terminologyId"))
+  })
   public String getIdentityCode() {
     return componentId + componentTerminology + hashcode + name + terminology
         + terminologyId;

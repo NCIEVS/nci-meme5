@@ -57,8 +57,8 @@ public class LexicalClassJpa extends AbstractAtomClass implements LexicalClass {
 
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
-  @JoinColumn(name = "atoms_id")
-  @JoinTable(name = "lexical_classes_atoms", inverseJoinColumns = @JoinColumn(name = "atoms_id"),
+  @JoinTable(name = "lexical_classes_atoms",
+      inverseJoinColumns = @JoinColumn(name = "atoms_id"),
       joinColumns = @JoinColumn(name = "lexical_classes_id"))
   // @CollectionTable(name = "lexical_classes_atoms", joinColumns =
   // @JoinColumn(name = "atoms_id"))
@@ -67,8 +67,8 @@ public class LexicalClassJpa extends AbstractAtomClass implements LexicalClass {
 
   /** The attributes. */
   @OneToMany(targetEntity = AttributeJpa.class)
-  @JoinColumn(name = "attributes_id")
-  @JoinTable(name = "lexical_classes_attributes", inverseJoinColumns = @JoinColumn(name = "attributes_id"),
+  @JoinTable(name = "lexical_classes_attributes",
+      inverseJoinColumns = @JoinColumn(name = "attributes_id"),
       joinColumns = @JoinColumn(name = "lexical_classes_id"))
   private List<Attribute> attributes = null;
 

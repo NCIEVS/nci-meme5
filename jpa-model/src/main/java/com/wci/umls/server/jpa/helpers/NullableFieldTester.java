@@ -7,6 +7,7 @@ import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
 
@@ -85,6 +86,17 @@ public class NullableFieldTester extends ProxyTester {
         final JoinColumn annotation = field.getAnnotation(JoinColumn.class);
         if (!annotation.nullable()) {
           results.add(field.getName().toLowerCase());
+        }
+      }
+
+      // Check for @CollectionTable with joinColumns (Hibernate 6 style)
+      if (field.isAnnotationPresent(CollectionTable.class)) {
+        final CollectionTable annotation = field.getAnnotation(CollectionTable.class);
+        for (final JoinColumn jc : annotation.joinColumns()) {
+          if (!jc.nullable()) {
+            results.add(field.getName().toLowerCase());
+            break;
+          }
         }
       }
 
