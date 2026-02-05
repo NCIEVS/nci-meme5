@@ -97,6 +97,7 @@ public class TrackingRecordJpa implements TrackingRecord {
   @Column(nullable = false)
   @GenericField(searchable = Searchable.YES, sortable = Sortable.YES,
       valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
+  @GenericField(name = "clusterIdSort", searchable = Searchable.NO, sortable = Sortable.YES)
   private Long clusterId;
 
   /** The cluster type. */

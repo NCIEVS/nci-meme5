@@ -3,15 +3,12 @@ package com.wci.umls.server.jpa.content;
 import java.util.Date;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Parameter;
 import org.hibernate.envers.Audited;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
@@ -20,6 +17,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
 import com.wci.umls.server.helpers.Note;
+import com.wci.umls.server.jpa.helpers.UseExistingOrGeneratedId;
 import com.wci.umls.server.jpa.workflow.ChecklistNoteJpa;
 import com.wci.umls.server.jpa.workflow.WorklistNoteJpa;
 
@@ -36,15 +34,7 @@ public abstract class AbstractNote implements Note {
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId",
-      type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class,
-      parameters = {
-          @Parameter(name = "sequence_name", value = "table_generator"),
-          @Parameter(name = "initial_value", value = "1"),
-          @Parameter(name = "increment_size", value = "1"),
-          @Parameter(name = "optimizer", value = "pooled-lo")
-      })
-  @GeneratedValue(generator = "ExistingOrGeneratedId")
+  @UseExistingOrGeneratedId
   private Long id;
 
   /** The timestamp. */

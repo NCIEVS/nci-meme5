@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -427,7 +428,8 @@ public Attribute getAttributeByName(String name) {
    *
    * @return the map set id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+          valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "mapSet")))
   public Long getMapSetId() {
     return mapSet == null ? null : mapSet.getId();

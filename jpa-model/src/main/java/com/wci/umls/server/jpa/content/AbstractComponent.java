@@ -21,7 +21,6 @@ import com.wci.umls.server.model.meta.IdType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.SequenceGenerator;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 
 /** Abstract implementation of {@link ComponentHasAttributes} for use with JPA. */
@@ -32,11 +31,6 @@ public abstract class AbstractComponent extends AbstractHasLastModified implemen
   /** The id. */
   @Id
   @UseExistingOrGeneratedId
-  @SequenceGenerator(
-      name = "table_generator_seq",
-      sequenceName = "table_generator",
-      initialValue = 1,
-      allocationSize = 50)
   private Long id;
 
   /** The suppressible flag. */

@@ -296,7 +296,8 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
    *
    * @return the workflow config id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+          valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "workflowConfig")))
   public Long getWorkflowConfigId() {
     return workflowConfig == null ? null : workflowConfig.getId();

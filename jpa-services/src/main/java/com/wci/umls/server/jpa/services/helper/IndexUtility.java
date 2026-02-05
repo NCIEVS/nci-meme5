@@ -281,9 +281,10 @@ public class IndexUtility {
    * @return true if annotated
    */
   private static boolean doesMethodHaveFieldAnnotation(final Method method) {
-    return (method.isAnnotationPresent(FullTextField.class)
-        || method.isAnnotationPresent(GenericField.class)
-        || method.isAnnotationPresent(KeywordField.class));
+    // Use getAnnotationsByType to handle repeatable annotations
+    return (method.getAnnotationsByType(FullTextField.class).length > 0
+        || method.getAnnotationsByType(GenericField.class).length > 0
+        || method.getAnnotationsByType(KeywordField.class).length > 0);
   }
 
   /**
@@ -293,9 +294,10 @@ public class IndexUtility {
    * @return true if annotated
    */
   private static boolean doesFieldHaveFieldAnnotation(final java.lang.reflect.Field field) {
-    return (field.isAnnotationPresent(FullTextField.class)
-        || field.isAnnotationPresent(GenericField.class)
-        || field.isAnnotationPresent(KeywordField.class));
+    // Use getAnnotationsByType to handle repeatable annotations
+    return (field.getAnnotationsByType(FullTextField.class).length > 0
+        || field.getAnnotationsByType(GenericField.class).length > 0
+        || field.getAnnotationsByType(KeywordField.class).length > 0);
   }
 
   /**
@@ -306,14 +308,15 @@ public class IndexUtility {
    */
   private static Set<Object> getMethodAnnotations(final Method method) {
     final Set<Object> annotations = new HashSet<>();
-    if (method.isAnnotationPresent(FullTextField.class)) {
-      annotations.add(method.getAnnotation(FullTextField.class));
+    // Use getAnnotationsByType to handle repeatable annotations (multiple @GenericField, etc.)
+    for (final FullTextField a : method.getAnnotationsByType(FullTextField.class)) {
+      annotations.add(a);
     }
-    if (method.isAnnotationPresent(KeywordField.class)) {
-      annotations.add(method.getAnnotation(KeywordField.class));
+    for (final KeywordField a : method.getAnnotationsByType(KeywordField.class)) {
+      annotations.add(a);
     }
-    if (method.isAnnotationPresent(GenericField.class)) {
-      annotations.add(method.getAnnotation(GenericField.class));
+    for (final GenericField a : method.getAnnotationsByType(GenericField.class)) {
+      annotations.add(a);
     }
     return annotations;
   }
@@ -326,14 +329,15 @@ public class IndexUtility {
    */
   private static Set<Object> getFieldAnnotations(final java.lang.reflect.Field field) {
     final Set<Object> annotations = new HashSet<>();
-    if (field.isAnnotationPresent(FullTextField.class)) {
-      annotations.add(field.getAnnotation(FullTextField.class));
+    // Use getAnnotationsByType to handle repeatable annotations (multiple @GenericField, etc.)
+    for (final FullTextField a : field.getAnnotationsByType(FullTextField.class)) {
+      annotations.add(a);
     }
-    if (field.isAnnotationPresent(KeywordField.class)) {
-      annotations.add(field.getAnnotation(KeywordField.class));
+    for (final KeywordField a : field.getAnnotationsByType(KeywordField.class)) {
+      annotations.add(a);
     }
-    if (field.isAnnotationPresent(GenericField.class)) {
-      annotations.add(field.getAnnotation(GenericField.class));
+    for (final GenericField a : field.getAnnotationsByType(GenericField.class)) {
+      annotations.add(a);
     }
     return annotations;
   }

@@ -10,7 +10,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -18,10 +17,8 @@ import jakarta.persistence.Table;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Parameter;
-
 import com.wci.umls.server.jpa.content.AbstractHasLastModified;
+import com.wci.umls.server.jpa.helpers.UseExistingOrGeneratedId;
 import com.wci.umls.server.model.report.Report;
 import com.wci.umls.server.model.report.ReportResult;
 import com.wci.umls.server.model.report.ReportResultItem;
@@ -37,15 +34,7 @@ public class ReportResultJpa extends AbstractHasLastModified
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId",
-      type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class,
-      parameters = {
-          @Parameter(name = "sequence_name", value = "table_generator"),
-          @Parameter(name = "initial_value", value = "1"),
-          @Parameter(name = "increment_size", value = "1"),
-          @Parameter(name = "optimizer", value = "pooled-lo")
-      })
-  @GeneratedValue(generator = "ExistingOrGeneratedId")
+  @UseExistingOrGeneratedId
   private Long id;
 
   /** The report. */

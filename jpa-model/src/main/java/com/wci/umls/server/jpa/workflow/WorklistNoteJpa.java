@@ -15,7 +15,9 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.jpa.content.AbstractNote;
 import com.wci.umls.server.model.workflow.Worklist;
@@ -78,7 +80,8 @@ public class WorklistNoteJpa extends AbstractNote {
    * @return the worklist id
    */
   @XmlElement
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "worklist")))
   public Long getWorklistId() {
     return (worklist != null) ? worklist.getId() : 0;

@@ -204,7 +204,8 @@ public class WorkflowEpochJpa implements WorkflowEpoch {
    *
    * @return the project id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+          valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "project")))
   public Long getProjectId() {
     return project == null ? null : project.getId();

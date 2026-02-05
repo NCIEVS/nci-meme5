@@ -40,6 +40,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.jpa.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.ConceptRelationship;
@@ -162,7 +163,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the from id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "from")))
   public Long getFromId() {
     return from == null ? null : from.getId();
@@ -291,7 +293,8 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    *
    * @return the to id
    */
-  @GenericField(searchable = Searchable.YES)
+  @GenericField(searchable = Searchable.YES,
+      valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "to")))
   public Long getToId() {
     return to == null ? null : to.getId();

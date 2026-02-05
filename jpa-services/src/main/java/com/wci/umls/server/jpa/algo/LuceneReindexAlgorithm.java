@@ -15,6 +15,7 @@ import org.hibernate.CacheMode;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.massindexing.impl.PojoMassIndexingLoggingMonitor;
 import org.reflections.Reflections;
 
 import com.wci.umls.server.AlgorithmParameter;
@@ -125,10 +126,17 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
       // Concepts
       if (objectsToReindex.contains(key)) {
         Logger.getLogger(getClass()).info("  Creating indexes for " + key);
+//        searchSession.massIndexer(reindexMap.get(key))
+//            .purgeAllOnStart(true)
+//            .batchSizeToLoadObjects(100).cacheMode(CacheMode.IGNORE)
+//            .idFetchSize(100).threadsToLoadObjects(10).startAndWait();
         searchSession.massIndexer(reindexMap.get(key))
-            .purgeAllOnStart(true)
-            .batchSizeToLoadObjects(100).cacheMode(CacheMode.IGNORE)
-            .idFetchSize(100).threadsToLoadObjects(10).startAndWait();
+                .dropAndCreateSchemaOnStart(true)
+                .batchSizeToLoadObjects(100).cacheMode(CacheMode.IGNORE)
+                .idFetchSize(1000).threadsToLoadObjects(10)
+                .monitor(new PojoMassIndexingLoggingMonitor(100000))
+                .mergeSegmentsOnFinish(false)
+                .startAndWait();
         objectsToReindex.remove(key);
       }
     }

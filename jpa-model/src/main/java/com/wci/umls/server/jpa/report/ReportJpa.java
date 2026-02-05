@@ -12,7 +12,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -20,9 +19,6 @@ import jakarta.persistence.Table;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
-
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.annotations.Parameter;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
@@ -35,6 +31,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
+import com.wci.umls.server.jpa.helpers.UseExistingOrGeneratedId;
 
 import com.wci.umls.server.Project;
 import com.wci.umls.server.helpers.QueryType;
@@ -54,15 +51,7 @@ public class ReportJpa extends AbstractHasLastModified implements Report {
 
   /** The id. */
   @Id
-  @GenericGenerator(name = "ExistingOrGeneratedId",
-      type = com.wci.umls.server.jpa.helpers.UseExistingOrGenerateIdGenerator.class,
-      parameters = {
-          @Parameter(name = "sequence_name", value = "table_generator"),
-          @Parameter(name = "initial_value", value = "1"),
-          @Parameter(name = "increment_size", value = "1"),
-          @Parameter(name = "optimizer", value = "pooled-lo")
-      })
-  @GeneratedValue(generator = "ExistingOrGeneratedId")
+  @UseExistingOrGeneratedId
   private Long id;
 
   /** The name. */
@@ -258,9 +247,10 @@ public class ReportJpa extends AbstractHasLastModified implements Report {
   }
 
   @Override
+  @GenericField(searchable = Searchable.YES,
+          valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
   public void setReport2Id(Long reportId) {
     this.report2Id = reportId;
-
   }
 
   @Override

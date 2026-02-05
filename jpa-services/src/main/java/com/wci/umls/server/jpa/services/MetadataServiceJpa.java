@@ -409,7 +409,7 @@ public class MetadataServiceJpa extends ProjectServiceJpa
   public TerminologyList getCurrentTerminologies() throws Exception {
     Logger.getLogger(getClass()).debug("Metadata service - get terminologies ");
     final Query query =
-        manager.createQuery("SELECT t FROM TerminologyJpa t WHERE current = 1");
+        manager.createQuery("SELECT t FROM TerminologyJpa t WHERE current = true");
 
     final List<Terminology> results = query.getResultList();
     final TerminologyList list = new TerminologyListJpa();
@@ -427,7 +427,7 @@ public class MetadataServiceJpa extends ProjectServiceJpa
     Logger.getLogger(getClass())
         .debug("Metadata service - get current terminology ");
     final Query query = manager.createQuery(
-        "SELECT t FROM TerminologyJpa t WHERE terminology = :terminology AND current = 1");
+        "SELECT t FROM TerminologyJpa t WHERE terminology = :terminology AND current = true");
     query.setParameter("terminology", terminologyName);
 
     final List<Terminology> results = query.getResultList();
@@ -601,7 +601,7 @@ public class MetadataServiceJpa extends ProjectServiceJpa
         .debug("Metadata service - get non grouping relationship types "
             + terminology + ", " + version);
     final Query query = manager.createQuery(
-        "SELECT r from RelationshipTypeJpa r " + " where groupingType = 0"
+        "SELECT r from RelationshipTypeJpa r " + " where groupingType = false"
             + " and terminology = :terminology" + " and version = :version");
     query.setParameter("terminology", terminology);
     query.setParameter("version", version);

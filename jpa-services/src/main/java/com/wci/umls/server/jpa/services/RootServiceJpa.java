@@ -343,10 +343,10 @@ public abstract class RootServiceJpa implements RootService {
       }
 
       if (pfs.getActiveOnly()) {
-        localQueryStr.append("  AND a.obsolete = 0 ");
+        localQueryStr.append("  AND a.obsolete = false ");
       }
       if (pfs.getInactiveOnly()) {
-        localQueryStr.append("  AND a.obsolete = 1 ");
+        localQueryStr.append("  AND a.obsolete = true ");
       }
 
       // add an order by clause to end of the query, assume driving table

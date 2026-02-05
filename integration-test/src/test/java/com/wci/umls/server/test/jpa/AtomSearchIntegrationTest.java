@@ -104,36 +104,66 @@ public class AtomSearchIntegrationTest extends IntegrationUnitSupport {
     try {
       service.setLastModifiedBy("test");
       service.setLastModifiedFlag(true);
+      service.setMolecularActionFlag(false);
       service.setTransactionPerOperation(true);
 
-      Atom atom = new AtomJpa();
-      atom.setId(100000L);
-      atom.setName("test name");
-      atom = service.addAtom(atom);
-      assertTrue(atom.getId() == 100000L);
+      // Use a unique ID based on timestamp to avoid conflicts with existing data
+      long assignedId = System.currentTimeMillis();
 
-      atom = new AtomJpa();
-      atom.setId(null);
-      atom.setName("test name");
+      Atom atom = createTestAtom("assigned");
+      atom.setId(assignedId);
       atom = service.addAtom(atom);
-      assertTrue(atom.getId() != null);
-      assertTrue(atom.getId() > 0);
+      assertTrue("Assigned ID should be preserved", atom.getId() == assignedId);
+
+      atom = createTestAtom("gen1");
+      atom.setId(null);
+      atom = service.addAtom(atom);
+      assertTrue("Generated ID should not be null", atom.getId() != null);
+      assertTrue("Generated ID should be positive", atom.getId() > 0);
       long origId = atom.getId();
 
-      atom = new AtomJpa();
+      atom = createTestAtom("gen2");
       atom.setId(null);
-      atom.setName("test name");
       atom = service.addAtom(atom);
-      assertTrue(atom.getId() != null);
-      assertTrue(atom.getId() == origId + 1);
+      assertTrue("Second generated ID should not be null", atom.getId() != null);
+      assertTrue("IDs should be sequential", atom.getId() == origId + 1);
 
-      service.removeAtom(100000L);
+      service.removeAtom(assignedId);
       service.removeAtom(origId);
       service.removeAtom(atom.getId());
 
     } finally {
       service.close();
     }
+  }
+
+  /**
+   * Creates a test atom with all required fields populated.
+   *
+   * @param suffix the suffix to make identifiers unique
+   * @return the atom
+   */
+  private Atom createTestAtom(String suffix) {
+    final Atom atom = new AtomJpa();
+    atom.setBranch(Branch.ROOT);
+    atom.setName("test name " + suffix);
+    atom.setTerminology("MTH");
+    atom.setTerminologyId("ATEST" + suffix);
+    atom.setVersion("latest");
+    atom.setCodeId("CTEST" + suffix);
+    atom.setConceptId("CLTEST" + suffix);
+    atom.setDescriptorId("");
+    atom.setLanguage("ENG");
+    atom.setTermType("PT");
+    atom.setLexicalClassId("LTEST" + suffix);
+    atom.setStringClassId("STEST" + suffix);
+    atom.setTimestamp(new Date());
+    atom.setObsolete(false);
+    atom.setSuppressible(false);
+    atom.setPublished(true);
+    atom.setPublishable(true);
+    atom.setWorkflowStatus(WorkflowStatus.READY_FOR_PUBLICATION);
+    return atom;
   }
 
   /**

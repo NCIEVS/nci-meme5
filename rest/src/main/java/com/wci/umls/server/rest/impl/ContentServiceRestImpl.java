@@ -3279,7 +3279,7 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
 
       // get tree positions where ancestor path is empty
       rootTreePositions = contentService.findTreePositions(null, terminology,
-          version, Branch.ROOT, "-ancestorPath:[* TO *]",
+          version, Branch.ROOT, "ancestorPath:\"\"",
           ConceptTreePositionJpa.class, pfs);
 
       Tree rootTree = null;
@@ -3365,7 +3365,7 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
 
       // get tree positions where ancestor path is empty
       rootTreePositions = contentService.findTreePositions(null, terminology,
-          version, Branch.ROOT, "-ancestorPath:[* TO *]",
+          version, Branch.ROOT, "ancestorPath:\"\"",
           DescriptorTreePositionJpa.class, pfs);
 
       Tree rootTree = null;
@@ -3456,7 +3456,7 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
 
       // get tree positions where ancestor path is empty
       rootTreePositions = contentService.findTreePositions(null, terminology,
-          version, Branch.ROOT, "-ancestorPath:[* TO *]",
+          version, Branch.ROOT, "ancestorPath:\"\"",
           CodeTreePositionJpa.class, pfs);
 
       Tree rootTree = null;

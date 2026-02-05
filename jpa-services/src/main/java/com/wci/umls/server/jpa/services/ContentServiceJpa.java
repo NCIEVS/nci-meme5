@@ -3000,7 +3000,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         if (terminology != null) {
 
           query = manager.createQuery("select count(*) from " + jpaTable
-              + " where obsolete = 0 and terminology = :terminology " + "and version = :version ");
+              + " where obsolete = false and terminology = :terminology " + "and version = :version ");
           query.setParameter("terminology", terminology);
           query.setParameter("version", version);
         } else {
@@ -3856,13 +3856,14 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
           + " AND version:" + treePosition.getVersion() + " AND ");
       if (partAncPath.isEmpty()) {
         // query for empty value
-        finalQuery.append("NOT ancestorPath:[* TO *]");
+        finalQuery.append("ancestorPath:\"\"");
       } else {
         finalQuery.append("ancestorPath:\"" + partAncPath + "\"");
       }
 
       // Prepare the manager and lucene query
 
+      // Prepare the manager and lucene query
       final Query luceneQuery = queryParser.parse(finalQuery.toString());
       final SearchScope<?> scope = searchSession.scope(clazz);
       final SearchPredicate predicate = scope.predicate()
