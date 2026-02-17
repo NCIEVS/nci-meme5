@@ -732,13 +732,21 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
     } catch (Exception e) {
       handleException(e, "trying to load terminology delta from RF2 directory");
     } finally {
-      algo.close();
+      if (algo != null) {
+        algo.close();
+      }
       if (algo2 != null) {
         algo2.close();
       }
-      algo3.close();
-      algo4.close();
-      algo5.close();
+      if (algo3 != null) {
+        algo3.close();
+      }
+      if (algo4 != null) {
+        algo4.close();
+      }
+      if (algo5 != null) {
+        algo5.close();
+      }
       contentService.close();
       securityService.close();
     }
@@ -838,15 +846,21 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       handleException(e,
           "trying to load terminology snapshot from RF2 directory");
     } finally {
-      algo.close();
+      if (algo != null) {
+        algo.close();
+      }
       if (algo2 != null) {
         algo2.close();
       }
       if (algo3 != null) {
         algo3.close();
       }
-      algo4.close();
-      algo5.close();
+      if (algo4 != null) {
+        algo4.close();
+      }
+      if (algo5 != null) {
+        algo5.close();
+      }
       contentService.close();
       securityService.close();
     }

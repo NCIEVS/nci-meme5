@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.services.handlers;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -629,7 +628,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
     final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
-      final Long id = ((BigInteger) results.get()[0]).longValue();
+      final Long id = ((Number) results.get()[0]).longValue();
       final String componentId = (String) results.get()[1];
       final String componentTerminology = (String) results.get()[2];
       final String hashcode = (String) results.get()[3];
@@ -661,7 +660,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
     final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
-      final Long id = ((BigInteger) results.get()[0]).longValue();
+      final Long id = ((Number) results.get()[0]).longValue();
       final String stringClassId = (String) results.get()[1];
       final String terminologyId = (String) results.get()[2];
       final String termType = (String) results.get()[3];
@@ -691,7 +690,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
     final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
-      final Long id = ((BigInteger) results.get()[0]).longValue();
+      final Long id = ((Number) results.get()[0]).longValue();
       final String name = (String) results.get()[1];
       final String language = (String) results.get()[2];
       final String identityCode = name + language;
@@ -713,7 +712,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
     final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
-      final Long id = ((BigInteger) results.get()[0]).longValue();
+      final Long id = ((Number) results.get()[0]).longValue();
       final String language = (String) results.get()[1];
       final String normalizedName = (String) results.get()[2];
       final String identityCode = language + normalizedName;
@@ -741,7 +740,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
     final ScrollableResults<Object[]> results = hQuery.scroll(ScrollMode.FORWARD_ONLY);
     while (results.next()) {
 
-      final Long id = ((BigInteger) results.get()[0]).longValue();
+      final Long id = ((Number) results.get()[0]).longValue();
       final String additionalRelationshipType = (String) results.get()[1];
       final String fromId = (String) results.get()[2];
       final String fromTerminology = (String) results.get()[3];

@@ -4,7 +4,6 @@
 package com.wci.umls.server.jpa.algo;
 
 import java.io.File;
-import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -254,7 +253,7 @@ public class RrfUnpublishedLoaderAlgorithm
     final Map<String, Long> map = new HashMap<>();
     while (results.next()) {
       final String aui = (String) results.get()[0];
-      final Long id = ((BigInteger) results.get()[1]).longValue();
+      final Long id = ((Number) results.get()[1]).longValue();
       map.put(aui, id);
     }
     results.close();
@@ -358,7 +357,7 @@ public class RrfUnpublishedLoaderAlgorithm
     final Map<String, Long> map = new HashMap<>();
     while (results.next()) {
       final String aui = (String) results.get()[0];
-      final Long id = ((BigInteger) results.get()[1]).longValue();
+      final Long id = ((Number) results.get()[1]).longValue();
       map.put(aui, id);
     }
     results.close();

@@ -262,8 +262,8 @@ public class EclConceptIndexingAlgorithm extends AbstractAlgorithm {
     Logger.getLogger(getClass()).info("  Load hierarchical relationships");
     final jakarta.persistence.Query query = manager
         .createQuery("select r.from.id, r.to.id from ConceptRelationshipJpa "
-            + " r where obsolete = 0 and inferred = 1 " + "and terminology = :terminology "
-            + "and version = :version " + "and hierarchical = 1")
+            + " r where obsolete = false and inferred = true " + "and terminology = :terminology "
+            + "and version = :version " + "and hierarchical = true")
         .setParameter("terminology", getTerminology()).setParameter("version", getVersion());
 
     @SuppressWarnings("unchecked")

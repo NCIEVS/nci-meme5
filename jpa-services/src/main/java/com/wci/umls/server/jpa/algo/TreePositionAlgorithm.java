@@ -186,10 +186,10 @@ public class TreePositionAlgorithm extends AbstractAlgorithm {
           .createQuery(
               "select r.from.id, r.to.id from " + tableName + " r where "
                   + "version = :version and terminology = :terminology "
-                  + "and hierarchical = 1 and inferred = 1 and obsolete = 0 "
+                  + "and hierarchical = true and inferred = true and obsolete = false "
                   + "and additionalRelationshipType = :additionalRelationshipType "
                   + "and r.from in (select o from " + tableName2
-                  + " o where obsolete = 0)")
+                  + " o where obsolete = false)")
           .setParameter("terminology", getTerminology())
           .setParameter("version", getVersion())
           .setParameter("additionalRelationshipType",

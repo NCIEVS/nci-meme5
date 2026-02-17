@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo.maint;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -320,8 +319,8 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
           getEntityManager().createNativeQuery("select * from component_ids");
       final List<Object[]> list = query.getResultList();
       for (final Object[] entry : list) {
-        Long atomId = ((BigInteger) entry[1]).longValue();
-        Long trackingRecordId = ((BigInteger) entry[0]).longValue();
+        Long atomId = ((Number) entry[1]).longValue();
+        Long trackingRecordId = ((Number) entry[0]).longValue();
         if (!atomIdToTrackingRecordIds.containsKey(atomId)) {
           final Set<Long> trackingRecordIds = new HashSet<>();
           atomIdToTrackingRecordIds.put(atomId, trackingRecordIds);

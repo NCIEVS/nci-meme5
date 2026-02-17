@@ -29,7 +29,7 @@ public abstract class AbstractAtomClass extends AbstractComponent
     implements AtomClass {
 
   /** The name. */
-  @Column(nullable = false, length = 4000)
+  @Column(nullable = false, columnDefinition = "LONGTEXT")
   private String name;
 
   /** branched to tracking. */
