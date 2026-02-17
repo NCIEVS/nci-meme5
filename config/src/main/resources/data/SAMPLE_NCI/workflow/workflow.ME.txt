@@ -22,7 +22,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 51
+      "workflowConfigId": 51,
+      "autofix": ""
     },
     {
       "id": 102,
@@ -36,7 +37,8 @@
       "editable": false,
       "enabled": true,
       "required": false,
-      "workflowConfigId": 51
+      "workflowConfigId": 51,
+      "autofix": ""
     },
     {
       "id": 103,
@@ -50,7 +52,8 @@
       "editable": false,
       "enabled": true,
       "required": false,
-      "workflowConfigId": 51
+      "workflowConfigId": 51,
+      "autofix": ""
     },
     {
       "id": 104,
@@ -64,7 +67,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 51
+      "workflowConfigId": 51,
+      "autofix": ""
     },
     {
       "id": 105,
@@ -78,7 +82,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 51
+      "workflowConfigId": 51,
+      "autofix": ""
     },
     {
       "id": 106,
@@ -92,7 +97,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 51
+      "workflowConfigId": 51,
+      "autofix": ""
     }
   ]
 }

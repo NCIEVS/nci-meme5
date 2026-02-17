@@ -22,7 +22,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 55
+      "workflowConfigId": 55,
+      "autofix": ""
     },
     {
       "id": 140,
@@ -36,7 +37,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 55
+      "workflowConfigId": 55,
+      "autofix": ""
     },
     {
       "id": 141,
@@ -50,7 +52,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 55
+      "workflowConfigId": 55,
+      "autofix": ""
     },
     {
       "id": 142,
@@ -64,7 +67,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 55
+      "workflowConfigId": 55,
+      "autofix": ""
     }
   ]
 }

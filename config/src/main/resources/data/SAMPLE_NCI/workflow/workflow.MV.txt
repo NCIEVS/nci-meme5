@@ -22,7 +22,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 53
+      "workflowConfigId": 53,
+      "autofix": ""
     }
   ]
 }

@@ -22,7 +22,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 54
+      "workflowConfigId": 54,
+      "autofix": ""
     },
     {
       "id": 138,
@@ -36,7 +37,8 @@
       "editable": true,
       "enabled": true,
       "required": true,
-      "workflowConfigId": 54
+      "workflowConfigId": 54,
+      "autofix": ""
     }
   ]
 }
