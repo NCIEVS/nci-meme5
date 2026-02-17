@@ -82,6 +82,19 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
 //    logInfo("  Process MMSYS");
 //    zipDirectory(mmsysPath, out, mmsysPath.getPath().length() + 1);
 
+    // Add release.dat if it exists in the version folder
+    final File releaseDat =
+        new File(path, "/" + getProcess().getVersion() + "/release.dat");
+    if (releaseDat.exists()) {
+      logInfo("  Process release.dat");
+      final ZipEntry zipEntry = new ZipEntry("release.dat");
+      out.putNextEntry(zipEntry);
+      try (FileInputStream inputStream = new FileInputStream(releaseDat)) {
+        IOUtils.copy(inputStream, out);
+      }
+      out.closeEntry();
+    }
+
     out.close();
     logInfo("Finished " + getName());
 
