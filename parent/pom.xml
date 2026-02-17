@@ -234,11 +234,16 @@
         <artifactId>jersey-media-json-jackson</artifactId>
         <version>${jersey.version}</version>
       </dependency>
-<dependency>
-    <groupId>org.glassfish.jersey.inject</groupId>
-    <artifactId>jersey-hk2</artifactId>
-    <version>${jersey.version}</version>
-</dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.media</groupId>
+        <artifactId>jersey-media-jaxb</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jersey.inject</groupId>
+        <artifactId>jersey-hk2</artifactId>
+        <version>${jersey.version}</version>
+      </dependency>
 
       <dependency>
         <groupId>io.swagger.core.v3</groupId>
@@ -476,6 +481,9 @@
           <version>3.2.5</version>
           <configuration>
             <skipTests>false</skipTests>
+            <environmentVariables>
+              <M2_HOME>${maven.home}</M2_HOME>
+            </environmentVariables>
           </configuration>
         </plugin>
 

@@ -63,6 +63,9 @@
             <additionalClasspathElement>src/main/resources</additionalClasspathElement>
           </additionalClasspathElements>
           <skipTests>${skipTests}</skipTests>
+          <environmentVariables>
+            <M2_HOME>${maven.home}</M2_HOME>
+          </environmentVariables>
         </configuration>
       </plugin>
     </plugins>
@@ -145,6 +148,9 @@
                 <additionalClasspathElement>src/main/resources</additionalClasspathElement>
               </additionalClasspathElements>
               <skipTests>${skipTests}</skipTests>
+              <environmentVariables>
+                <M2_HOME>${maven.home}</M2_HOME>
+              </environmentVariables>
             </configuration>
           </plugin>
         </plugins>
@@ -168,6 +174,9 @@
                 <additionalClasspathElement>src/main/resources</additionalClasspathElement>
               </additionalClasspathElements>
               <skipTests>${skipTests}</skipTests>
+              <environmentVariables>
+                <M2_HOME>${maven.home}</M2_HOME>
+              </environmentVariables>
             </configuration>
           </plugin>
         </plugins>
@@ -191,6 +200,9 @@
                 <additionalClasspathElement>src/main/resources</additionalClasspathElement>
               </additionalClasspathElements>
               <skipTests>${skipTests}</skipTests>
+              <environmentVariables>
+                <M2_HOME>${maven.home}</M2_HOME>
+              </environmentVariables>
             </configuration>
           </plugin>
         </plugins>
@@ -213,6 +225,9 @@
                 <additionalClasspathElement>src/main/resources</additionalClasspathElement>
               </additionalClasspathElements>
               <skipTests>${skipTests}</skipTests>
+              <environmentVariables>
+                <M2_HOME>${maven.home}</M2_HOME>
+              </environmentVariables>
             </configuration>
           </plugin>
         </plugins>
