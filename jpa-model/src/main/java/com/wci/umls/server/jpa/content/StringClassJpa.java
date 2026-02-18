@@ -6,7 +6,6 @@ package com.wci.umls.server.jpa.content;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -53,7 +52,9 @@ public class StringClassJpa extends AbstractAtomClass implements StringClass {
 
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
-  @CollectionTable(name = "concepts_atoms", joinColumns = @JoinColumn(name = "concepts_id"))
+  @JoinTable(name = "string_classes_atoms",
+      inverseJoinColumns = @JoinColumn(name = "atoms_id"),
+      joinColumns = @JoinColumn(name = "string_classes_id"))
   @IndexedEmbedded(targetType = AtomJpa.class)
   @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;

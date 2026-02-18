@@ -40,7 +40,7 @@ public class CitationJpa implements Citation {
   private String author;
 
   /** The availability statement. */
-  @Column(nullable = true, length = 4000)
+  @Column(nullable = true, columnDefinition = "LONGTEXT")
   private String availabilityStatement;
 
   /** The content designator. */
@@ -76,7 +76,7 @@ public class CitationJpa implements Citation {
   private String mediumDesignator;
 
   /** The notes. */
-  @Column(nullable = true, length = 4000)
+  @Column(nullable = true, columnDefinition = "LONGTEXT")
   private String notes;
 
   /** The organization. */
@@ -104,7 +104,7 @@ public class CitationJpa implements Citation {
   private String language;
 
   /** The unstructured value. */
-  @Column(nullable = true, length = 4000)
+  @Column(nullable = true, columnDefinition = "LONGTEXT")
   private String unstructuredValue;
 
   /**
@@ -415,13 +415,13 @@ public class CitationJpa implements Citation {
 
   @Override
   public String getLanguage() {
-    return title;
+    return language;
   }
 
   /* see superclass */
   @Override
-  public void setLanguage(String title) {
-    this.title = title;
+  public void setLanguage(String language) {
+    this.language = language;
   }
 
   /* see superclass */

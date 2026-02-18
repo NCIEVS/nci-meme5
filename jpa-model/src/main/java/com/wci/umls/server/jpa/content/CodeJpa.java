@@ -6,7 +6,6 @@ package com.wci.umls.server.jpa.content;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -79,7 +78,9 @@ public class CodeJpa extends AbstractAtomClass implements Code {
 
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
-  @CollectionTable(name = "codes_atoms", joinColumns = @JoinColumn(name = "codes_id"))
+  @JoinTable(name = "codes_atoms",
+      inverseJoinColumns = @JoinColumn(name = "atoms_id"),
+      joinColumns = @JoinColumn(name = "codes_id"))
   @IndexedEmbedded(targetType = AtomJpa.class)
   @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;

@@ -149,7 +149,9 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
 
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
-  @CollectionTable(name = "concepts_atoms", joinColumns = @JoinColumn(name = "concepts_id"))
+  @JoinTable(name = "concepts_atoms",
+      inverseJoinColumns = @JoinColumn(name = "atoms_id"),
+      joinColumns = @JoinColumn(name = "concepts_id"))
   @IndexedEmbedded(targetType = AtomJpa.class)
   @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;

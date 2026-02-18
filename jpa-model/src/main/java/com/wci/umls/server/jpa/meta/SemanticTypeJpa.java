@@ -26,11 +26,11 @@ public class SemanticTypeJpa extends AbstractAbbreviation implements
     SemanticType {
 
   /** The definition. */
-  @Column(nullable = false, length = 4000)
+  @Column(nullable = false, columnDefinition = "LONGTEXT")
   private String definition;
 
   /** The example. */
-  @Column(nullable = true, length = 4000)
+  @Column(nullable = true, columnDefinition = "LONGTEXT")
   private String example;
 
   /** The type id. */
@@ -42,11 +42,11 @@ public class SemanticTypeJpa extends AbstractAbbreviation implements
   private boolean nonHuman;
 
   /** The tree number. */
-  @Column(nullable = true, length = 4000)
+  @Column(nullable = true, columnDefinition = "LONGTEXT")
   private String treeNumber;
 
   /** The usage note. */
-  @Column(nullable = true, length = 4000)
+  @Column(nullable = true, columnDefinition = "LONGTEXT")
   private String usageNote;
 
   /** The structural chemical. */

@@ -88,7 +88,9 @@ public class DescriptorJpa extends AbstractAtomClass implements Descriptor {
 
   /** The descriptions. */
   @ManyToMany(targetEntity = AtomJpa.class)
-  @CollectionTable(name = "descriptors_atoms", joinColumns = @JoinColumn(name = "descriptors_id"))
+  @JoinTable(name = "descriptors_atoms",
+      inverseJoinColumns = @JoinColumn(name = "atoms_id"),
+      joinColumns = @JoinColumn(name = "descriptors_id"))
   @IndexedEmbedded(targetType = AtomJpa.class)
   @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;

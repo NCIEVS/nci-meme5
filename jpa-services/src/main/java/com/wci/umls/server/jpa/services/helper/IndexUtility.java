@@ -645,8 +645,10 @@ public class IndexUtility {
     queryParser.setAllowLeadingWildcard(true);
 
     // construct the query
-    final String finalQuery = (pfsQuery.toString().startsWith(" AND "))
+    String finalQuery = (pfsQuery.toString().startsWith(" AND "))
         ? pfsQuery.toString().substring(5) : pfsQuery.toString();
+    // Convert [* TO *] range syntax to proper Lucene 9 wildcard for "field exists" semantics
+    finalQuery = finalQuery.replaceAll("(\\w+):\\[\\* TO \\*\\]", "$1:*");
 
     // ONLY log this if in dev mode
     if ("DEV".equals(ConfigUtility.getConfigProperties().getProperty("deploy.mode"))) {
