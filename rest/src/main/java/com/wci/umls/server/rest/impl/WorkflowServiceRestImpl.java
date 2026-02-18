@@ -2063,19 +2063,9 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
             : worklistList.getObjects().get(0).getNumber() + 1;
         worklistName.append(new String(Integer.toString(nextNumber + 1000)).substring(1));
 
-        // build query to retrieve tracking records that will be in worklist
-        final StringBuilder sb = new StringBuilder();
-        // Find records from this workflow bin that
-        // are not on a worklist and not owned by a checklist
-        sb.append("workflowBinName:").append(workflowBin.getName());
-        sb.append(" AND ").append("NOT worklistName:[* TO *] ")
-            .append("NOT checklistName:[* TO *] ");
-        if (!ConfigUtility.isEmpty(clusterType)) {
-          sb.append(" AND ").append("clusterType:").append(clusterType);
-        } else {
-          sb.append(" AND NOT clusterType:[* TO *]");
-        }
-
+        // Find records from this workflow bin that are not on a worklist and
+        // not owned by a checklist. [* TO *] is converted to proper Lucene 9
+        // wildcard "exists" queries by IndexUtility.applyPfsToLuceneQuery.
         final PfsParameter localPfs =
             pfs == null ? new PfsParameterJpa() : new PfsParameterJpa(pfs);
         // Always work in clusterId order, unless specified by user
@@ -2083,8 +2073,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
         if (pfs != null && !ConfigUtility.isEmpty(pfs.getSortField())) {
           localPfs.setSortField(pfs.getSortField());
         }
+        final String recordQuery = "workflowBinName:" + workflowBin.getName()
+            + " AND NOT worklistName:[* TO *]"
+            + " AND NOT checklistName:[* TO *]"
+            + (ConfigUtility.isEmpty(clusterType) ? " AND clusterType:\"\""
+                : " AND clusterType:" + clusterType);
         final TrackingRecordList recordResultList =
-            workflowService.findTrackingRecords(project, sb.toString(), localPfs);
+            workflowService.findTrackingRecords(project, recordQuery, localPfs);
 
         // Bail if there are no more records to make worklists from
         if (recordResultList.size() == 0) {
