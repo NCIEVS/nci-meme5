@@ -595,15 +595,22 @@ public class GenerateSampleDataMojo extends AbstractLoaderMojo {
     definition.setName("demotions");
     definition.setDescription(
         "Clustered concepts that failed insertion merges.  Must be either related or merged.");
+    // NOTE: Terminology filters are intentionally omitted from this query.
+    // AddDemotionMolecularAction sets atom_relationship.terminology from
+    // concept.getTerminology(), which may differ from project.getTerminology()
+    // because MEME5 allows cross-terminology operations (the mismatch check in
+    // AbstractMolecularAction is intentionally disabled). Filtering by
+    // :terminology would therefore exclude valid demotions. The workflowStatus
+    // filter alone is sufficient since DEMOTION status is set exclusively by
+    // the demotion workflow action.
     definition
         .setQuery("select d.concepts_id conceptId1, e.concepts_id conceptId2 "
             + "from atom_relationships a, atoms b, atoms c, "
             + "concepts_atoms d, concepts_atoms e, concepts f, concepts g "
-            + "where a.terminology = :terminology and a.workflowStatus = 'DEMOTION' "
+            + "where a.workflowStatus = 'DEMOTION' "
             + "  and a.from_id = b.id and a.to_id = c.id "
             + "  and b.id = d.atoms_id and c.id = e.atoms_id "
-            + "  and d.concepts_id = f.id and e.concepts_id = g.id"
-            + "  and f.terminology = :terminology and g.terminology = :terminology");
+            + "  and d.concepts_id = f.id and e.concepts_id = g.id");
     definition.setEditable(true);
     definition.setEnabled(true);
     definition.setRequired(true);
@@ -732,104 +739,118 @@ public class GenerateSampleDataMojo extends AbstractLoaderMojo {
           "    non chem = " + (bin.getTrackingRecords().size() - chemRecords));
 
       if (bin.isEditable()) {
-        pfs = new PfsParameterJpa();
-        pfs.setStartIndex(0);
-        pfs.setMaxResults(5);
-        workflowService = new WorkflowServiceRestImpl();
-        // Create a chem worklist
-        Worklist worklist = workflowService.createWorklist(projectId,
-            bin.getId(), "chem", pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForWorklist(projectId,
-                worklist.getId(), pfs, authToken).getTotalCount());
+        try {
+          pfs = new PfsParameterJpa();
+          pfs.setStartIndex(0);
+          pfs.setMaxResults(5);
+          workflowService = new WorkflowServiceRestImpl();
+          // Create a chem worklist
+          Worklist worklist = workflowService.createWorklist(projectId,
+              bin.getId(), "chem", pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForWorklist(projectId,
+                  worklist.getId(), pfs, authToken).getTotalCount());
 
-        // Create two non-chem worklist
-        workflowService = new WorkflowServiceRestImpl();
-        worklist = workflowService.createWorklist(projectId, bin.getId(), null,
-            pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForWorklist(projectId,
-                worklist.getId(), pfs, authToken).getTotalCount());
+          // Create two non-chem worklist
+          workflowService = new WorkflowServiceRestImpl();
+          worklist = workflowService.createWorklist(projectId, bin.getId(), null,
+              pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForWorklist(projectId,
+                  worklist.getId(), pfs, authToken).getTotalCount());
 
-        workflowService = new WorkflowServiceRestImpl();
-        worklist = workflowService.createWorklist(projectId, bin.getId(), null,
-            pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForWorklist(projectId,
-                worklist.getId(), pfs, authToken).getTotalCount());
+          workflowService = new WorkflowServiceRestImpl();
+          worklist = workflowService.createWorklist(projectId, bin.getId(), null,
+              pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForWorklist(projectId,
+                  worklist.getId(), pfs, authToken).getTotalCount());
 
-        lastWorklist = worklist;
+          lastWorklist = worklist;
 
-        // Create some checklist
-        pfs.setMaxResults(10);
-        workflowService = new WorkflowServiceRestImpl();
-        Checklist checklist = workflowService.createChecklist(projectId,
-            bin.getId(), null, "chk_random_nonworklist_" + chk++, "test desc",
-            true, true, "", pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForChecklist(projectId,
-                checklist.getId(), pfs, authToken).getTotalCount());
+          // Create some checklist
+          pfs.setMaxResults(10);
+          workflowService = new WorkflowServiceRestImpl();
+          Checklist checklist = workflowService.createChecklist(projectId,
+              bin.getId(), null, "chk_random_nonworklist_" + chk++, "test desc",
+              true, true, "", pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForChecklist(projectId,
+                  checklist.getId(), pfs, authToken).getTotalCount());
 
-        workflowService = new WorkflowServiceRestImpl();
-        checklist = workflowService.createChecklist(projectId, bin.getId(),
-            null, "chk_random_worklist_" + chk++, "test desc", true, false, "",
-            pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForChecklist(projectId,
-                checklist.getId(), pfs, authToken).getTotalCount());
+          workflowService = new WorkflowServiceRestImpl();
+          checklist = workflowService.createChecklist(projectId, bin.getId(),
+              null, "chk_random_worklist_" + chk++, "test desc", true, false, "",
+              pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForChecklist(projectId,
+                  checklist.getId(), pfs, authToken).getTotalCount());
 
-        workflowService = new WorkflowServiceRestImpl();
-        checklist = workflowService.createChecklist(projectId, bin.getId(),
-            null, "chk_nonrandom_noworklist_" + chk++, "test desc", false, true,
-            "", pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForChecklist(projectId,
-                checklist.getId(), pfs, authToken).getTotalCount());
+          workflowService = new WorkflowServiceRestImpl();
+          checklist = workflowService.createChecklist(projectId, bin.getId(),
+              null, "chk_nonrandom_noworklist_" + chk++, "test desc", false, true,
+              "", pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForChecklist(projectId,
+                  checklist.getId(), pfs, authToken).getTotalCount());
 
-        workflowService = new WorkflowServiceRestImpl();
-        checklist = workflowService.createChecklist(projectId, bin.getId(),
-            null, "chk_nonrandom_worklist_" + chk++, "test desc", false, false,
-            "", pfs, authToken);
-        workflowService = new WorkflowServiceRestImpl();
-        getLog().info("    count = "
-            + workflowService.findTrackingRecordsForChecklist(projectId,
-                checklist.getId(), pfs, authToken).getTotalCount());
+          workflowService = new WorkflowServiceRestImpl();
+          checklist = workflowService.createChecklist(projectId, bin.getId(),
+              null, "chk_nonrandom_worklist_" + chk++, "test desc", false, false,
+              "", pfs, authToken);
+          workflowService = new WorkflowServiceRestImpl();
+          getLog().info("    count = "
+              + workflowService.findTrackingRecordsForChecklist(projectId,
+                  checklist.getId(), pfs, authToken).getTotalCount());
 
+        } catch (Exception e) {
+          getLog().warn("  WARNING: could not create worklists/checklists for bin "
+              + bin.getName() + ": " + e.getMessage());
+        }
       }
     }
 
     // March "last worklist" through some workflow changes so other dates show
-    Logger.getLogger(getClass()).debug("  Walk worklist through workflow");
-    // Assign
-    workflowService = new WorkflowServiceRestImpl();
-    workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
-        authToken, UserRole.AUTHOR, WorkflowAction.ASSIGN, authToken);
+    if (lastWorklist == null) {
+      getLog().warn("  WARNING: no worklist was created; skipping workflow action steps");
+    } else {
+      Logger.getLogger(getClass()).debug("  Walk worklist through workflow");
+      try {
+        // Assign
+        workflowService = new WorkflowServiceRestImpl();
+        workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
+            authToken, UserRole.AUTHOR, WorkflowAction.ASSIGN, authToken);
 
-    // Save
-    workflowService = new WorkflowServiceRestImpl();
-    workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
-        authToken, UserRole.AUTHOR, WorkflowAction.SAVE, authToken);
+        // Save
+        workflowService = new WorkflowServiceRestImpl();
+        workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
+            authToken, UserRole.AUTHOR, WorkflowAction.SAVE, authToken);
 
-    // Finish
-    workflowService = new WorkflowServiceRestImpl();
-    workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
-        authToken, UserRole.AUTHOR, WorkflowAction.FINISH, authToken);
+        // Finish
+        workflowService = new WorkflowServiceRestImpl();
+        workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
+            authToken, UserRole.AUTHOR, WorkflowAction.FINISH, authToken);
 
-    // Assign for review
-    workflowService = new WorkflowServiceRestImpl();
-    workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
-        authToken, UserRole.REVIEWER, WorkflowAction.ASSIGN, authToken);
+        // Assign for review
+        workflowService = new WorkflowServiceRestImpl();
+        workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
+            authToken, UserRole.REVIEWER, WorkflowAction.ASSIGN, authToken);
 
-    // Finish review
-    workflowService = new WorkflowServiceRestImpl();
-    workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
-        authToken, UserRole.REVIEWER, WorkflowAction.FINISH, authToken);
+        // Finish review
+        workflowService = new WorkflowServiceRestImpl();
+        workflowService.performWorkflowAction(projectId, lastWorklist.getId(),
+            authToken, UserRole.REVIEWER, WorkflowAction.FINISH, authToken);
+      } catch (Exception e) {
+        getLog().warn("  WARNING: could not complete workflow actions for last worklist "
+            + lastWorklist.getId() + ": " + e.getMessage());
+      }
+    }
 
     //
     // Add a QA bins workflow config for the current project

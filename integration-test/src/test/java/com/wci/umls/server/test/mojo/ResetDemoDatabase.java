@@ -249,7 +249,7 @@ public class ResetDemoDatabase {
       throw result.getExecutionException();
     }
 
-    // Generate Sample Data
+    // Generate Demo Data
     request = new DefaultInvocationRequest();
     request.setPomFile(new File("../admin/loader/pom.xml"));
     request.setProfiles(Arrays.asList("GenerateDemoData"));
