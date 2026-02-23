@@ -157,6 +157,7 @@ public class WorkflowBinDefinitionJpaUnitTest extends ModelUnitSupport {
     tester = new IndexedFieldTester(object);
     tester.include("lastModifiedBy");
     tester.include("lastModified");
+    tester.include("timestamp");
     tester.include("name");
     tester.include("editable");
     tester.include("enabled");

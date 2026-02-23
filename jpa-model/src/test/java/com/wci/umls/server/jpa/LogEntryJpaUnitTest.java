@@ -141,6 +141,7 @@ public class LogEntryJpaUnitTest extends ModelUnitSupport {
     // Test non analyzed fields
     tester = new IndexedFieldTester(object);
     tester.include("lastModified");
+    tester.include("timestamp");
     tester.include("lastModifiedBy");
     tester.include("objectId");
     tester.include("projectId");

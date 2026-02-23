@@ -178,7 +178,7 @@ public class ConceptTreePositionJpa extends AbstractTreePosition<Concept>
    *
    * @return the node terminology id
    */
-  @KeywordField(searchable = Searchable.YES)
+  @KeywordField(searchable = Searchable.YES, sortable = Sortable.YES)
   @IndexingDependency(derivedFrom = @ObjectPath(@PropertyValue(propertyName = "node")))
   public String getNodeTerminologyId() {
     return node == null ? null : node.getTerminologyId();

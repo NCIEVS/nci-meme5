@@ -56,13 +56,17 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
   /* see superclass */
   @Override
   public void compute() throws Exception {
-    logInfo("Starting " + getName());
+    // NM-272: Use Logger directly (not logInfo) here to avoid writing a
+    // LogEntryJpa to the DB before the LogEntryJpa index schema is updated.
+    // logInfo triggers auto-indexing which conflicts with the stale index when
+    // new @GenericField/@KeywordField annotations have been added.
+    Logger.getLogger(getClass()).info("Starting " + getName());
     if (searchSession == null) {
       searchSession = Search.session(manager);
     }
     computeLuceneIndexes(indexedObjects);
 
-    logInfo("Finished " + getName());    
+    Logger.getLogger(getClass()).info("Finished " + getName());
   }
 
   /* see superclass */

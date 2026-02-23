@@ -269,7 +269,9 @@ public class SecurityServiceJpa extends RootServiceJpa
   @Override
   public User getUser(Long id) throws Exception {
     final User user = manager.find(UserJpa.class, id);
-    handleLazyInit(user);
+    if (user != null) {
+      handleLazyInit(user);
+    }
     return user;
   }
 
