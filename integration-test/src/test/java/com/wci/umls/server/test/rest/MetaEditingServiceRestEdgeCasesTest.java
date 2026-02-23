@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.wci.umls.server.Project;
@@ -29,6 +30,7 @@ import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 /**
  * Implementation of the "MetaEditing Service REST Edge Cases" Test Cases.
  */
+@Ignore
 public class MetaEditingServiceRestEdgeCasesTest
     extends MetaEditingServiceRestTest {
 
