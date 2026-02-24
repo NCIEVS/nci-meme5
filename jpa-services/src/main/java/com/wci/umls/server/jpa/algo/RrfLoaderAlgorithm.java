@@ -351,8 +351,10 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     // Load the metadata
     //
 
-    // Load semantic types (for META styles)
-    if (style.toString().startsWith("META")) {
+    // Load semantic types (for META and MULTI styles)
+    // MULTI mode loads the full UMLS database and needs the universal semantic
+    // type network definitions (SRDEF) under MTH/latest.
+    if (style.toString().startsWith("META") || style == Style.MULTI) {
       loadSrdef();
     }
 
@@ -1313,9 +1315,12 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
       pair.setValue(fields[2]);
       lkvp.add(pair);
 
-      // Set term-type suppress
-      loadedTermTypes.get(fields[2]).setSuppressible(fields[3].equals("Y"));
-      updateTermType(loadedTermTypes.get(fields[2]));
+      // Set term-type suppress (guard against TTYs in MRRANK not in MRDOC)
+      final TermType termType = loadedTermTypes.get(fields[2]);
+      if (termType != null) {
+        termType.setSuppressible(fields[3].equals("Y"));
+        updateTermType(termType);
+      }
     }
 
     final KeyValuePairList kvpl = new KeyValuePairList();
@@ -1324,7 +1329,7 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     list.setTimestamp(releaseVersionDate);
     list.setLastModified(releaseVersionDate);
     list.setLastModifiedBy(loader);
-    list.setName(getTerminology());
+    list.setName("DEFAULT");
     addPrecedenceList(list);
 
   }

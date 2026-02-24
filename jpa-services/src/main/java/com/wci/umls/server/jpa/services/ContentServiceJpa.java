@@ -3242,17 +3242,36 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     }
     T defaultBranch = null;
     for (final T obj : results) {
+      final String objBranch = obj.getBranch();
+      // NM-272: guard against null branch values (e.g. entities persisted
+      // without an explicit setBranch() call under Hibernate 6 where the
+      // nullable column may not receive the Java field default).
+      if (objBranch == null) {
+        Logger.getLogger(getClass()).warn("  null branch for " + clazz.getName()
+            + " terminologyId=" + obj.getTerminologyId());
+        continue;
+      }
       // handle default case
-      if (obj.getBranch().equals(Branch.ROOT)) {
+      if (objBranch.equals(Branch.ROOT)) {
         defaultBranch = obj;
       }
-      if (obj.getBranch().equals(branch)) {
+      if (objBranch.equals(branch)) {
         return obj;
       }
     }
     // If no matching branch is found, use default
     if (defaultBranch != null) {
       return defaultBranch;
+    }
+    // NM-272: log what branches are actually present when the lookup fails,
+    // to diagnose entities with unexpected branch values in the DB.
+    if (!results.isEmpty()) {
+      final StringBuilder branches = new StringBuilder();
+      for (final T obj : results) {
+        branches.append("[").append(obj.getBranch()).append("]");
+      }
+      Logger.getLogger(getClass()).warn("  no " + clazz.getSimpleName()
+          + " found for branch=" + branch + "; actual branches in DB: " + branches);
     }
     // If nothing found, return null;
     return null;

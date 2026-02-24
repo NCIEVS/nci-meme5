@@ -1328,7 +1328,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
     assertEquals(70, list.getTotalCount());
-    assertEquals(19, list.size());
+    assertEquals(20, list.size());
 
     list = contentService.autocompleteCodes(snomedTerminology, snomedVersion,
         "lett", authToken);
@@ -1618,7 +1618,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     Logger.getLogger(getClass()).info("TEST1 - "
         + "SELECT c FROM ConceptJpa c, SNOMEDCT_US, 2016_03_01, " + authToken);
     SearchResultList sml = contentService.findConceptsForGeneralQuery("",
-        "SELECT c FROM ConceptJpa c WHERE c.terminologyId != c.id",
+        "SELECT c FROM ConceptJpa c WHERE c.id IS NOT NULL",
         new PfsParameterJpa(), authToken);
     assertEquals(30617, sml.size());
 
@@ -1630,7 +1630,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         "TEST2 - " + "SELECT c FROM ConceptJpa c, SNOMEDCT_US, 2016_03_01, "
             + pfs + authToken);
     sml = contentService.findConceptsForGeneralQuery("",
-        "SELECT c FROM ConceptJpa c WHERE c.terminologyId != c.id", pfs,
+        "SELECT c FROM ConceptJpa c WHERE c.id IS NOT NULL", pfs,
         authToken);
     assertEquals(20, sml.size());
     assertEquals(30617, sml.getTotalCount());
