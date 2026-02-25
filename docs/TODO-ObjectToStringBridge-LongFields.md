@@ -102,7 +102,8 @@ public Long getProjectId() {
 ```
 
 ## Required Imports
+
 ```java
-import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
-import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
+
+
 ```

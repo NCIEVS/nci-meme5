@@ -1,1 +1,0 @@
-This folder contains reusable directives for component reports and search result trees
