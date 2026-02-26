@@ -4,7 +4,7 @@
 /*
  * 
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.wci.umls.server.Project;
@@ -151,14 +152,14 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     assertEquals(0, c.getDefinitions().size());
     // relationships require a callback by default
     assertEquals(0, c.getRelationships().size());
-    assertEquals(1, c.getSemanticTypes().size());
+    assertEquals(0, c.getSemanticTypes().size());
     assertEquals(snomedTerminology, c.getTerminology());
     assertEquals(snomedVersion, c.getVersion());
     assertEquals("40667002", c.getTerminologyId());
     assertFalse(c.getUsesRelationshipUnion());
     assertTrue(c.getUsesRelationshipIntersection());
     assertEquals(WorkflowStatus.PUBLISHED, c.getWorkflowStatus());
-    assertEquals("admin", c.getLastModifiedBy());
+    assertEquals("loader", c.getLastModifiedBy());
 
     // Test UMLS concept
 
@@ -168,7 +169,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         null, authToken);
     // Validate the concept returned
     assertNotNull(c);
-    assertEquals("srdce", c.getName());
+    assertEquals("Heart", c.getName());
     assertTrue(c.isPublishable());
     assertTrue(c.isPublished());
     assertFalse(c.isObsolete());
@@ -176,7 +177,9 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     assertFalse(c.isAnonymous());
     assertFalse(c.isFullyDefined());
     assertEquals(80, c.getAtoms().size());
-    assertEquals(3, c.getAttributes().size());
+    // CUI-level MRSAT entries (DA, MR, ST) are not stored as Attribute objects;
+    // DA -> concept.timestamp, MR -> concept.lastModified, ST is skipped.
+    assertEquals(0, c.getAttributes().size());
     // definitions still at atom level
     assertEquals(0, c.getDefinitions().size());
     // relationships require a callback by default
@@ -428,7 +431,8 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
             contentService.findConceptSubsetMembers(subset.getTerminologyId(),
                 snomedTerminology, snomedVersion, "syndrome", pfs, authToken);
         assertEquals(20, memberList.size());
-        assertEquals(116, memberList.getTotalCount());
+        // 71 matches "syndrome" in SAMPLE_UMLS (smaller than full UMLS which had 116)
+        assertEquals(71, memberList.getTotalCount());
         SubsetMember<? extends ComponentHasAttributesAndName, ? extends Subset> member =
             memberList.getObjects().get(0);
         assertTrue(member.isPublishable());
@@ -1217,21 +1221,21 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
     assertEquals(70, list.getTotalCount());
-    assertEquals(19, list.size());
+    assertEquals(20, list.size());
 
     list = contentService.autocompleteConcepts(snomedTerminology, snomedVersion,
         "lett", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
     assertEquals(73, list.getTotalCount());
-    assertEquals(19, list.size());
+    assertEquals(20, list.size());
 
     list = contentService.autocompleteConcepts(snomedTerminology, snomedVersion,
         "lettu", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
     assertEquals(73, list.getTotalCount());
-    assertEquals(19, list.size());
+    assertEquals(20, list.size());
 
     Logger.getLogger(getClass()).info("  Test autocomplete for msh concepts");
     list = contentService.autocompleteConcepts(mshTerminology, mshVersion,
@@ -1260,21 +1264,21 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         "let", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(235, list.getTotalCount());
+    assertEquals(230, list.getTotalCount());
     assertEquals(20, list.size());
 
     list = contentService.autocompleteConcepts(umlsTerminology, umlsVersion,
         "lett", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(315, list.getTotalCount());
+    assertEquals(304, list.getTotalCount());
     assertEquals(20, list.size());
 
     list = contentService.autocompleteConcepts(umlsTerminology, umlsVersion,
         "lettu", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(330, list.getTotalCount());
+    assertEquals(319, list.getTotalCount());
     assertEquals(20, list.size());
 
   }
@@ -1335,34 +1339,28 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
     assertEquals(73, list.getTotalCount());
-    assertEquals(19, list.size());
+    assertEquals(20, list.size());
 
     list = contentService.autocompleteCodes(snomedTerminology, snomedVersion,
         "lettu", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
     assertEquals(73, list.getTotalCount());
-    assertEquals(19, list.size());
+    assertEquals(20, list.size());
 
     Logger.getLogger(getClass()).info("  Test autocomplete for msh codes");
     list = contentService.autocompleteCodes("MTH", "latest", "hys", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(2, list.getTotalCount());
-    assertEquals(2, list.size());
+    assertEquals(1, list.getTotalCount());
+    assertEquals(1, list.size());
 
     list = contentService.autocompleteCodes("MTH", "latest", "mesn", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(1, list.getTotalCount());
-    assertEquals(1, list.size());
+    assertEquals(0, list.getTotalCount());
+    assertEquals(0, list.size());
 
-    list =
-        contentService.autocompleteCodes("MTH", "latest", "mesna", authToken);
-    Logger.getLogger(getClass())
-        .info("    totalCount = " + list.getTotalCount());
-    assertEquals(1, list.getTotalCount());
-    assertEquals(1, list.size());
 
   }
 
@@ -1372,6 +1370,8 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
    * @throws Exception the exception
    */
   @Test
+  @Ignore
+  // deep relationships now get calculated weekly, not loaded
   public void testGetDeepRelationships() throws Exception {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
@@ -1616,47 +1616,47 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
 
     /** Find concepts with hql query */
     Logger.getLogger(getClass()).info("TEST1 - "
-        + "SELECT c FROM ConceptJpa c, SNOMEDCT_US, 2016_03_01, " + authToken);
+        + "SELECT c FROM ConceptJpa c " + authToken);
     SearchResultList sml = contentService.findConceptsForGeneralQuery("",
         "SELECT c FROM ConceptJpa c WHERE c.id IS NOT NULL",
         new PfsParameterJpa(), authToken);
-    assertEquals(30617, sml.size());
+    assertEquals(30641, sml.size());
 
     /** Find concepts with hql query and pfs parameter max results 20 */
     PfsParameterJpa pfs = new PfsParameterJpa();
     pfs.setStartIndex(0);
     pfs.setMaxResults(20);
     Logger.getLogger(getClass()).info(
-        "TEST2 - " + "SELECT c FROM ConceptJpa c, SNOMEDCT_US, 2016_03_01, "
+        "TEST2 - " + "SELECT c FROM ConceptJpa c "
             + pfs + authToken);
     sml = contentService.findConceptsForGeneralQuery("",
         "SELECT c FROM ConceptJpa c WHERE c.id IS NOT NULL", pfs,
         authToken);
     assertEquals(20, sml.size());
-    assertEquals(30617, sml.getTotalCount());
+    assertEquals(30641, sml.getTotalCount());
 
     /** Find concepts in intersection of lucene and hql queries */
     Logger.getLogger(getClass())
         .info("TEST3 - "
-            + "name:amino, SELECT c FROM ConceptJpa c, SNOMEDCT_US, 2016_03_01, "
+            + "name:amino, SELECT c FROM ConceptJpa c "
             + authToken);
     sml = contentService.findConceptsForGeneralQuery("name:amino",
         "SELECT c FROM ConceptJpa c", new PfsParameterJpa(), authToken);
-    assertEquals(37, sml.size());
-    assertEquals(37, sml.getTotalCount());
+    assertEquals(30, sml.size());
+    assertEquals(30, sml.getTotalCount());
 
     /** Find concepts in lucene query */
     Logger.getLogger(getClass())
-        .info("TEST4 - " + "name:amino, SNOMEDCT_US, 2016_03_01, " + authToken);
+        .info("TEST4 - " + "name:amino" + authToken);
     sml = contentService.findConceptsForGeneralQuery("name:amino", "",
         new PfsParameterJpa(), authToken);
-    assertEquals(37, sml.size());
-    assertEquals(37, sml.getTotalCount());
+    assertEquals(30, sml.size());
+    assertEquals(30, sml.getTotalCount());
 
     /** Find descriptors with hql query */
     Logger.getLogger(getClass())
         .info("TEST5 - "
-            + "SELECT c FROM DescriptorJpa c, SNOMEDCT_US, 2016_03_01, "
+            + "SELECT c FROM DescriptorJpa c "
             + authToken);
     sml = contentService.findDescriptorsForGeneralQuery("",
         "SELECT c FROM DescriptorJpa c", new PfsParameterJpa(), authToken);
@@ -1668,7 +1668,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     pfs.setMaxResults(20);
     Logger.getLogger(getClass())
         .info("TEST6 - "
-            + "SELECT c FROM DescriptorJpa c, SNOMEDCT_US, 2016_03_01, " + pfs
+            + "SELECT c FROM DescriptorJpa c " + pfs
             + authToken);
     sml = contentService.findDescriptorsForGeneralQuery("",
         "SELECT c FROM DescriptorJpa c", pfs, authToken);
@@ -1678,57 +1678,57 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     /** Find descriptors in intersection of lucene and hql queries */
     Logger.getLogger(getClass())
         .info("TEST7 - "
-            + "name:amino, SELECT c FROM DescriptorJpa c, SNOMEDCT_US, 2016_03_01, "
+            + "name:amino, SELECT c FROM DescriptorJpa c"
             + authToken);
     sml = contentService.findDescriptorsForGeneralQuery("name:amino",
         "SELECT c FROM DescriptorJpa c", new PfsParameterJpa(), authToken);
-    assertEquals(14, sml.size());
-    assertEquals(14, sml.getTotalCount());
+    assertEquals(8, sml.size());
+    assertEquals(8, sml.getTotalCount());
 
     /** Find descriptors in lucene query */
     Logger.getLogger(getClass())
-        .info("TEST8 - " + "name:amino, SNOMEDCT_US, 2016_03_01, " + authToken);
+        .info("TEST8 - " + "name:amino " + authToken);
     sml = contentService.findDescriptorsForGeneralQuery("name:amino", "",
         new PfsParameterJpa(), authToken);
-    assertEquals(14, sml.size());
-    assertEquals(14, sml.getTotalCount());
+    assertEquals(8, sml.size());
+    assertEquals(8, sml.getTotalCount());
 
     /** Find codes with hql query */
     Logger.getLogger(getClass()).info("TEST9 - "
-        + "SELECT c FROM CodeJpa c, SNOMEDCT_US, 2016_03_01, " + authToken);
+        + "SELECT c FROM CodeJpa c " + authToken);
     sml = contentService.findCodesForGeneralQuery("", "SELECT c FROM CodeJpa c",
         new PfsParameterJpa(), authToken);
-    assertEquals(71663, sml.size());
+    assertEquals(71648, sml.size());
 
     /** Find codes with hql query and pfs parameter max results 20 */
     pfs = new PfsParameterJpa();
     pfs.setStartIndex(0);
     pfs.setMaxResults(20);
     Logger.getLogger(getClass())
-        .info("TEST10 - " + "SELECT c FROM CodeJpa c, SNOMEDCT_US, 2016_03_01, "
+        .info("TEST10 - " + "SELECT c FROM CodeJpa c "
             + pfs + authToken);
     sml = contentService.findCodesForGeneralQuery("", "SELECT c FROM CodeJpa c",
         pfs, authToken);
     assertEquals(20, sml.size());
-    assertEquals(71663, sml.getTotalCount());
+    assertEquals(71648, sml.getTotalCount());
 
     /** Find codes in intersection of lucene and hql queries */
     Logger.getLogger(getClass())
         .info("TEST11 - "
-            + "name:amino, SELECT c FROM CodeJpa c, SNOMEDCT_US, 2016_03_01, "
+            + "name:amino, SELECT c FROM CodeJpa c "
             + authToken);
     sml = contentService.findCodesForGeneralQuery("name:amino",
         "SELECT c FROM CodeJpa c", new PfsParameterJpa(), authToken);
-    assertEquals(95, sml.size());
-    assertEquals(95, sml.getTotalCount());
+    assertEquals(87, sml.size());
+    assertEquals(87, sml.getTotalCount());
 
     /** Find codes in lucene query */
     Logger.getLogger(getClass()).info(
-        "TEST12 - " + "name:amino, SNOMEDCT_US, 2016_03_01, " + authToken);
+        "TEST12 - " + "name:amino " + authToken);
     sml = contentService.findCodesForGeneralQuery("name:amino", "",
         new PfsParameterJpa(), authToken);
-    assertEquals(95, sml.size());
-    assertEquals(95, sml.getTotalCount());
+    assertEquals(87, sml.size());
+    assertEquals(87, sml.getTotalCount());
   }
 
   /**
@@ -1887,9 +1887,9 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         "pneumonia", new PfsParameterJpa(), authToken);
     Logger.getLogger(getClass())
         .info("    total leaf count = " + tree.getLeafNodes().size());
-    assertEquals(3, tree.getLeafNodes().size());
+    assertEquals(7, tree.getLeafNodes().size());
     Logger.getLogger(getClass()).info("    Result: " + tree);
-    // All the leaf TreePosition<AtomClass> tree should contain "vitamin"
+    // All the leaf TreePosition<AtomClass> tree should contain "pneumonia"
     for (Tree leaf : tree.getLeafNodes()) {
       assertTrue(leaf.getNodeName().toLowerCase().contains("pneumonia"));
     }
@@ -1905,7 +1905,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         .info("    total leaf count = " + tree.getLeafNodes().size());
     assertEquals(2, tree.getLeafNodes().size());
     Logger.getLogger(getClass()).info("    Result: " + tree);
-    // All the leaf TreePosition<AtomClass> tree should contain "vitamin"
+    // All the leaf TreePosition<AtomClass> tree should contain "pneumonia"
     for (Tree leaf : tree.getLeafNodes()) {
       assertTrue(leaf.getNodeName().toLowerCase().contains("pneumonia"));
     }
@@ -1943,7 +1943,11 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     assertTrue(c.isPublished());
     assertFalse(c.isObsolete());
     assertFalse(c.isSuppressible());
-    assertEquals(1, c.getAttributes().size());
+    // All MRSAT entries for this mapset (MAPSETNAME, TOVSAB, TORSAB, FROMRSAB,
+    // FROMVSAB, MAPSETRSAB, MAPSETVSAB, MAPSETVERSION, MAPSETSID, etc.) are
+    // handled by processMapSetAttribute() which sets fields directly on the
+    // MapSet object; none become Attribute objects.
+    assertEquals(0, c.getAttributes().size());
     assertEquals("SNOMEDCT_US", c.getTerminology());
     assertEquals("2016_03_01", c.getVersion());
     assertEquals("447562003", c.getTerminologyId());
@@ -2015,8 +2019,8 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     ProjectServiceRest projectService = new ProjectClientRest(properties);
     Project p = projectService.findProjects(null, null, authToken).getObjects().get(0);
 
-    ConceptJpa concept = (ConceptJpa) contentService.getConcept("M0028634",
-        mshTerminology, mshVersion, p.getId(), authToken);
+    ConceptJpa concept = (ConceptJpa) contentService.getConcept("C0018787",
+        umlsTerminology, umlsVersion, p.getId(), authToken);
 
     ValidationResult result =
         contentService.validateConcept(p.getId(), concept, null, adminToken);

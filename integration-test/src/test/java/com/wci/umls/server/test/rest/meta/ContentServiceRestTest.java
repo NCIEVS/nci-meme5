@@ -1,7 +1,7 @@
 /*
- *    Copyright 2016 West Coast Informatics, LLC
+ * Copyright 2016 West Coast Informatics, LLC
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import java.util.Properties;
 
@@ -12,31 +12,19 @@ import org.junit.BeforeClass;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.rest.client.ContentClientRest;
-import com.wci.umls.server.rest.client.IntegrationTestClientRest;
-import com.wci.umls.server.rest.client.ProjectClientRest;
-import com.wci.umls.server.rest.client.ReportClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
- * Integration test for REST report service.
+ * Integration test for REST content service.
  */
-public class ReportServiceRestTest extends IntegrationUnitSupport {
+public class ContentServiceRestTest extends IntegrationUnitSupport {
 
   /** The service. */
   protected static ContentClientRest contentService;
 
   /** The security service. */
   protected static SecurityClientRest securityService;
-
-  /** the project service */
-  protected static ProjectClientRest projectService;
-
-  /** The report service */
-  protected static ReportClientRest reportService;
-  
-  /**  The integration service. */
-  protected static IntegrationTestClientRest integrationTestService;
 
   /** The properties. */
   protected static Properties properties;
@@ -65,11 +53,8 @@ public class ReportServiceRestTest extends IntegrationUnitSupport {
     properties = ConfigUtility.getConfigProperties();
 
     // instantiate required services
-    reportService = new ReportClientRest(properties);
-    projectService = new ProjectClientRest(properties);
     contentService = new ContentClientRest(properties);
     securityService = new SecurityClientRest(properties);
-    integrationTestService = new IntegrationTestClientRest(properties);
 
     // test run.config.ts has viewer user
     testUser = properties.getProperty("viewer.user");

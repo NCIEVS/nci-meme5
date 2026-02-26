@@ -3,8 +3,10 @@
  */
 package com.wci.umls.server.jpa.algo.maint;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 import com.wci.umls.server.AlgorithmParameter;
@@ -19,9 +21,11 @@ import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
 public class FailOnceAlgorithm extends AbstractAlgorithm {
 
   /**
-   * Flag saying whether this is the first time the algorithm has run or not.
+   * Tracks process execution IDs that have already failed once.
+   * A given execution fails on first run and succeeds on restart.
+   * Keyed by ProcessExecution ID so state resets naturally per execution.
    */
-  private static Boolean firstRun = true;
+  private static final Set<Long> alreadyFailed = new HashSet<>();
 
   /**
    * Instantiates an empty {@link FailOnceAlgorithm}.
@@ -50,13 +54,14 @@ public class FailOnceAlgorithm extends AbstractAlgorithm {
   public void compute() throws Exception {
     logInfo("Starting " + getName());
 
-    // If this is the first time running, throw a failure message
-    if (firstRun) {
-      setFirstRun(false);
+    // If this process execution has not failed yet, fail it now.
+    final Long executionId = getProcess().getId();
+    if (!alreadyFailed.contains(executionId)) {
+      alreadyFailed.add(executionId);
       throw new Exception("FAILONCE first run failed.");
     }
 
-    // If this is a restart, succeed and finish.
+    // On restart of the same execution, succeed.
     else {
       fireProgressEvent(100, "FAILONCE progress: " + 100 + "%");
     }
@@ -71,16 +76,6 @@ public class FailOnceAlgorithm extends AbstractAlgorithm {
     logInfo("Starting RESET " + getName());
     // n/a - No reset
     logInfo("Finished RESET " + getName());
-  }
-
-  /**
-   * Sets the first run.
-   *
-   * @param firstRun the first run
-   */
-  @SuppressWarnings("static-method")
-  public void setFirstRun(Boolean firstRun) {
-    FailOnceAlgorithm.firstRun = firstRun;
   }
 
   /* see superclass */

@@ -1,7 +1,7 @@
 /*
  * Copyright 2016 West Coast Informatics, LLC
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import java.util.Properties;
 
@@ -9,19 +9,21 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.rest.client.ContentClientRest;
+import com.wci.umls.server.rest.client.MetadataClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
- * Integration test for REST content service.
+ * Implementation of the "Metadata Service REST Normal Use" Test Cases.
  */
-public class ContentServiceRestTest extends IntegrationUnitSupport {
+@Ignore
+public class MetadataServiceRestTest extends IntegrationUnitSupport {
 
   /** The service. */
-  protected static ContentClientRest contentService;
+  protected static MetadataClientRest metadataService;
 
   /** The security service. */
   protected static SecurityClientRest securityService;
@@ -53,16 +55,18 @@ public class ContentServiceRestTest extends IntegrationUnitSupport {
     properties = ConfigUtility.getConfigProperties();
 
     // instantiate required services
-    contentService = new ContentClientRest(properties);
+    metadataService = new MetadataClientRest(properties);
     securityService = new SecurityClientRest(properties);
 
-    // test run.config.ts has viewer user
+    /**
+     * Test prerequisites Terminology SNOMEDCT exists in database Terminology
+     * ICD9CM exists in database The run.config.umls has "viewer.user" and
+     * "viewer.password" specified
+     */
+
+    // test run.config.umls has viewer user
     testUser = properties.getProperty("viewer.user");
     testPassword = properties.getProperty("viewer.password");
-
-    // test run.config.ts has admin user
-    adminUser = properties.getProperty("admin.user");
-    adminPassword = properties.getProperty("admin.password");
 
     if (testUser == null || testUser.isEmpty()) {
       throw new Exception("Test prerequisite: viewer.user must be specified");
@@ -71,11 +75,17 @@ public class ContentServiceRestTest extends IntegrationUnitSupport {
       throw new Exception(
           "Test prerequisite: viewer.password must be specified");
     }
+
+    // admin run.config.umls has viewer user
+    adminUser = properties.getProperty("admin.user");
+    adminPassword = properties.getProperty("admin.password");
+
     if (adminUser == null || adminUser.isEmpty()) {
-      throw new Exception("Test prerequisite: admin.user must be specified");
+      throw new Exception("admin prerequisite: admin.user must be specified");
     }
     if (adminPassword == null || adminPassword.isEmpty()) {
-      throw new Exception("Test prerequisite: admin.password must be specified");
+      throw new Exception(
+          "admin prerequisite: admin.password must be specified");
     }
 
   }

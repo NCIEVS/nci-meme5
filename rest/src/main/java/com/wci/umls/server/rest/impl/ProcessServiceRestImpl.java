@@ -799,24 +799,27 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
    * @return the process execution list
    * @throws Exception the exception
    */
-  @SuppressWarnings("static-method")
   public ProcessExecutionList findCurrentlyExecutingHelper(Long projectId,
     ProcessService processService) throws Exception {
-    final ProcessExecutionList processExecutions =
-        processService.findProcessExecutions(projectId,
-            "startDate:[* TO *] AND NOT failDate:[* TO *] AND NOT finishDate:[* TO *] AND NOT stopDate:[* TO *]",
-            null);
-
-    // Only keep process Executions if they in the currently
-    // executing processes progress map and have a progress of less than 100
-    for (final ProcessExecution processExecution : new ArrayList<ProcessExecution>(
-        processExecutions.getObjects())) {
-      if (!lookupPeProgressMap.containsKey(processExecution.getId())
-          || lookupPeProgressMap.get(processExecution.getId()) == 100) {
-        processExecutions.getObjects().remove(processExecution);
+    // Use lookupPeProgressMap as the authoritative source of running processes.
+    // Lucene [* TO *] range queries on numeric Date fields do not work in
+    // Lucene 9 (dates are indexed as longs, not text), so we drive the query
+    // from the progress map and do direct JPA lookups to verify state.
+    final ProcessExecutionList result = new ProcessExecutionListJpa();
+    for (final Map.Entry<Long, Integer> entry :
+        new HashMap<>(lookupPeProgressMap).entrySet()) {
+      if (entry.getValue() < 100) {
+        final ProcessExecution pe =
+            processService.getProcessExecution(entry.getKey());
+        if (pe != null && pe.getProject().getId().equals(projectId)
+            && pe.getStartDate() != null && pe.getFailDate() == null
+            && pe.getFinishDate() == null && pe.getStopDate() == null) {
+          result.getObjects().add(pe);
+        }
       }
     }
-    return processExecutions;
+    result.setTotalCount(result.getObjects().size());
+    return result;
   }
 
   /* see superclass */

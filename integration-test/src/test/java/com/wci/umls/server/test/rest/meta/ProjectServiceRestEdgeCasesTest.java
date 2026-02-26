@@ -4,7 +4,7 @@
 /*
  * 
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -78,6 +78,8 @@ public class ProjectServiceRestEdgeCasesTest extends ProjectServiceRestTest {
     project2.setDescription("Sample " + new Date().getTime());
     project2.setName("Sample");
     project2.setTerminology("MTH");
+    project2.setVersion("latest");
+    project2.setLanguage("ENG");
     project2.setWorkflowPath("DEFAULT");
 
     project2 = (ProjectJpa) projectService.addProject(project2, adminAuthToken);

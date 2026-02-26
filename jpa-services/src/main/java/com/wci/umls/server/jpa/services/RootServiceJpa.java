@@ -1010,6 +1010,11 @@ public abstract class RootServiceJpa implements RootService {
       tx = manager.getTransaction();
       T hasLastModified = manager.find(clazz, id);
 
+      // Entity not found - nothing to remove, treat as no-op
+      if (hasLastModified == null) {
+        return null;
+      }
+
       // set last modified fields (user, timestamp)
       if (isLastModifiedFlag()) {
         if (getLastModifiedBy() == null) {

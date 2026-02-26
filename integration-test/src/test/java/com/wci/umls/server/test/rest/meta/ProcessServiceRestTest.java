@@ -1,7 +1,7 @@
 /*
- *    Copyright 2016 West Coast Informatics, LLC
+ * Copyright 2016 West Coast Informatics, LLC
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import java.util.Properties;
 
@@ -9,35 +9,33 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.rest.client.ContentClientRest;
-import com.wci.umls.server.rest.client.IntegrationTestClientRest;
-import com.wci.umls.server.rest.client.MetaEditingClientRest;
+import com.wci.umls.server.rest.client.ProcessClientRest;
 import com.wci.umls.server.rest.client.ProjectClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
- * Integration test for REST content service.
+ * Superclass for "Process Service REST" Test Cases.
  */
-public class MetaEditingServiceRestTest extends IntegrationUnitSupport  {
+@Ignore
+public class ProcessServiceRestTest extends IntegrationUnitSupport {
 
   /** The service. */
+  protected static ProcessClientRest processService;
+  
+  /** The project service. */
+  protected static ProjectClientRest projectService;
+  
+  /** The content service. */
   protected static ContentClientRest contentService;
 
   /** The security service. */
   protected static SecurityClientRest securityService;
-  
-  /** the project service */
-  protected static ProjectClientRest projectService;
-  
-  /** The meta editing service */
-  protected static MetaEditingClientRest metaEditingService;
 
-  /**  The test service. */
-  protected static IntegrationTestClientRest testService;
-  
   /** The properties. */
   protected static Properties properties;
 
@@ -65,9 +63,8 @@ public class MetaEditingServiceRestTest extends IntegrationUnitSupport  {
     properties = ConfigUtility.getConfigProperties();
 
     // instantiate required services
-    metaEditingService = new MetaEditingClientRest(properties);
+    processService = new ProcessClientRest(properties);
     projectService = new ProjectClientRest(properties);
-    testService = new IntegrationTestClientRest(properties);
     contentService = new ContentClientRest(properties);
     securityService = new SecurityClientRest(properties);
 
@@ -92,7 +89,6 @@ public class MetaEditingServiceRestTest extends IntegrationUnitSupport  {
     if (adminPassword == null || adminPassword.isEmpty()) {
       throw new Exception("Test prerequisite: admin.password must be specified");
     }
-    
 
   }
 
@@ -109,7 +105,7 @@ public class MetaEditingServiceRestTest extends IntegrationUnitSupport  {
      */
 
   }
-  
+
   /**
    * Teardown.
    *

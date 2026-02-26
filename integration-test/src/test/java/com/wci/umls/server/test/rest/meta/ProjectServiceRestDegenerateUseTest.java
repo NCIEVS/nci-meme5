@@ -4,7 +4,7 @@
 /*
  * 
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import static org.junit.Assert.fail;
 

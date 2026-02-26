@@ -4,7 +4,7 @@
 /*
  * 
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import static org.junit.Assert.fail;
 
@@ -64,6 +64,8 @@ public class ProjectServiceRestRoleCheckTest extends ProjectServiceRestTest {
     project.setDescription("Sample " + new Date().getTime());
     project.setName("Sample");
     project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
     project.setWorkflowPath("DEFAULT");
 
     try {

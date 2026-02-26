@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -187,7 +188,8 @@ public class ProjectJpa implements Project {
   private List<TypeKeyValue> validationData = null;
 
   /** The prec list. */
-  @OneToOne(targetEntity = PrecedenceListJpa.class, optional = true)
+  @OneToOne(targetEntity = PrecedenceListJpa.class, optional = true,
+      cascade = CascadeType.REMOVE)
   private PrecedenceList precedenceList;
 
   /** The semantic type category map. */
@@ -610,6 +612,9 @@ public class ProjectJpa implements Project {
   /* see superclass */
   @Override
   public List<String> getNewAtomTermgroups() {
+    if (newAtomTermgroups == null) {
+      newAtomTermgroups = new ArrayList<>();
+    }
     return this.newAtomTermgroups;
   }
 

@@ -1,7 +1,7 @@
 /*
- * Copyright 2016 West Coast Informatics, LLC
+ *    Copyright 2016 West Coast Informatics, LLC
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.ncimeta;
 
 import java.util.Properties;
 
@@ -9,25 +9,35 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.rest.client.MetadataClientRest;
+import com.wci.umls.server.rest.client.ContentClientRest;
+import com.wci.umls.server.rest.client.IntegrationTestClientRest;
+import com.wci.umls.server.rest.client.MetaEditingClientRest;
+import com.wci.umls.server.rest.client.ProjectClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
- * Implementation of the "Metadata Service REST Normal Use" Test Cases.
+ * Integration test for REST content service.
  */
-@Ignore
-public class MetadataServiceRestTest extends IntegrationUnitSupport {
+public class MetaEditingServiceRestTest extends IntegrationUnitSupport  {
 
   /** The service. */
-  protected static MetadataClientRest metadataService;
+  protected static ContentClientRest contentService;
 
   /** The security service. */
   protected static SecurityClientRest securityService;
+  
+  /** the project service */
+  protected static ProjectClientRest projectService;
+  
+  /** The meta editing service */
+  protected static MetaEditingClientRest metaEditingService;
 
+  /**  The test service. */
+  protected static IntegrationTestClientRest testService;
+  
   /** The properties. */
   protected static Properties properties;
 
@@ -55,18 +65,19 @@ public class MetadataServiceRestTest extends IntegrationUnitSupport {
     properties = ConfigUtility.getConfigProperties();
 
     // instantiate required services
-    metadataService = new MetadataClientRest(properties);
+    metaEditingService = new MetaEditingClientRest(properties);
+    projectService = new ProjectClientRest(properties);
+    testService = new IntegrationTestClientRest(properties);
+    contentService = new ContentClientRest(properties);
     securityService = new SecurityClientRest(properties);
 
-    /**
-     * Test prerequisites Terminology SNOMEDCT exists in database Terminology
-     * ICD9CM exists in database The run.config.umls has "viewer.user" and
-     * "viewer.password" specified
-     */
-
-    // test run.config.umls has viewer user
+    // test run.config.ts has viewer user
     testUser = properties.getProperty("viewer.user");
     testPassword = properties.getProperty("viewer.password");
+
+    // test run.config.ts has admin user
+    adminUser = properties.getProperty("admin.user");
+    adminPassword = properties.getProperty("admin.password");
 
     if (testUser == null || testUser.isEmpty()) {
       throw new Exception("Test prerequisite: viewer.user must be specified");
@@ -75,18 +86,13 @@ public class MetadataServiceRestTest extends IntegrationUnitSupport {
       throw new Exception(
           "Test prerequisite: viewer.password must be specified");
     }
-
-    // admin run.config.umls has viewer user
-    adminUser = properties.getProperty("admin.user");
-    adminPassword = properties.getProperty("admin.password");
-
     if (adminUser == null || adminUser.isEmpty()) {
-      throw new Exception("admin prerequisite: admin.user must be specified");
+      throw new Exception("Test prerequisite: admin.user must be specified");
     }
     if (adminPassword == null || adminPassword.isEmpty()) {
-      throw new Exception(
-          "admin prerequisite: admin.password must be specified");
+      throw new Exception("Test prerequisite: admin.password must be specified");
     }
+    
 
   }
 
@@ -103,7 +109,7 @@ public class MetadataServiceRestTest extends IntegrationUnitSupport {
      */
 
   }
-
+  
   /**
    * Teardown.
    *

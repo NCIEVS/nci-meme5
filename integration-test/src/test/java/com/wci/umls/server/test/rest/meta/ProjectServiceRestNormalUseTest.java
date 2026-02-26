@@ -1,7 +1,7 @@
 /*
  * Copyright 2016 West Coast Informatics, LLC
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import static org.junit.Assert.assertNull;
 
@@ -59,6 +59,8 @@ public class ProjectServiceRestNormalUseTest extends ProjectServiceRestTest {
     project.setDescription("Sample");
     project.setName("Sample " + new Date().getTime());
     project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
     project.setWorkflowPath("DEFAULT");
     ProjectJpa project2 =
         (ProjectJpa) projectService.addProject(project, authToken);
@@ -102,6 +104,8 @@ public class ProjectServiceRestNormalUseTest extends ProjectServiceRestTest {
     project.setDescription("Sample");
     project.setName("Sample " + new Date().getTime());
     project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
     project.setWorkflowPath("DEFAULT");
     ProjectJpa project2 = new ProjectJpa(project);
     project = (ProjectJpa) projectService.addProject(project, authToken);
@@ -111,6 +115,8 @@ public class ProjectServiceRestNormalUseTest extends ProjectServiceRestTest {
     project2.setName("Sample 2 " + new Date().getTime());
     project2.setDescription("Sample 2");
     project2.setTerminology("MTH");
+    project2.setVersion("latest");
+    project2.setLanguage("ENG");
     project2.setWorkflowPath("DEFAULT");
     project2 = (ProjectJpa) projectService.addProject(project2, authToken);
 

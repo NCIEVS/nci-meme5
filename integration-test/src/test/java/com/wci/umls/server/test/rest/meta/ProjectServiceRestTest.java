@@ -1,7 +1,7 @@
 /*
  * Copyright 2016 West Coast Informatics, LLC
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.meta;
 
 import java.util.Properties;
 

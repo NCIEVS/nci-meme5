@@ -644,6 +644,25 @@ public class IndexUtility {
             .searchAnalyzer());
     queryParser.setAllowLeadingWildcard(true);
 
+    // Validate query restriction fields - Lucene 9 no longer throws
+    // ParseException for unknown field names, so validate explicitly.
+    // Extract all "fieldName:" references and check against indexed fields.
+    if (pfs != null && pfs.getQueryRestriction() != null
+        && !pfs.getQueryRestriction().isEmpty()) {
+      final Set<String> validFields =
+          new HashSet<>(IndexUtility.getIndexedFieldNames(clazz, true));
+      final java.util.regex.Matcher m = java.util.regex.Pattern
+          .compile("(?<![:\\w])([A-Za-z]\\w*):")
+          .matcher(pfs.getQueryRestriction());
+      while (m.find()) {
+        final String field = m.group(1);
+        if (!validFields.contains(field)) {
+          throw new LocalException(
+              "Invalid query restriction field: " + field);
+        }
+      }
+    }
+
     // construct the query
     String finalQuery = (pfsQuery.toString().startsWith(" AND "))
         ? pfsQuery.toString().substring(5) : pfsQuery.toString();

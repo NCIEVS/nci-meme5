@@ -4,7 +4,7 @@
 /*
  * 
  */
-package com.wci.umls.server.test.rest;
+package com.wci.umls.server.test.rest.ncimeta;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
