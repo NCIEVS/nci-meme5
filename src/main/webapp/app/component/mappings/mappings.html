@@ -1,0 +1,36 @@
+
+<!-- Mappings -->
+<div ng-show="mapSetCt > 0">
+  <i style="float: left" class="noul glyphicon" ng-click="showing = !showing"
+    ng-class="[{'glyphicon-chevron-down' : showing}, {'glyphicon-chevron-right' : !showing}]"></i>
+  <h5 class="ml10">{{metadata.mappingsLabel}} ({{mapSetCt}})</h5>
+  <div ng-show="showing">
+    <ul>
+      <li class="cr-list" ng-repeat="(key,value) in mapSets">{{mapSets[key].mapSet.name}}
+        <div>
+          <ul>
+            <li
+              ng-repeat="item in mapSets[key].mappings | orderBy:['group','rank']"><span
+                ng-show="item.group > 0">
+                <span class="label label-success"
+                  uib-tooltip="Mapping group {{item.group}}">{{item.group}}</span>
+                &nbsp;
+                <span class="label label-success"
+                  uib-tooltip="Mapping rank {{item.rank}}">{{item.rank}}</span>
+              </span> &nbsp; <span class="label label-default" ng-show="item.obsolete"
+                uib-tooltip="{{metadata.obsoleteLabel}}">{{metadata.obsoleteIndicator}}</span>
+              <span class="label label-info"
+                uib-tooltip="{{callbacks.getRelationshipTypeName(item.relationshipType,metadata)}}">{{item.relationshipType}}</span>
+              {{item.rule}} <!-- Mobile friendly switch --> <span
+                class="hidden-xs">
+                <a
+                  ng-click="callbacks.getComponent({ type: item.toIdType, terminologyId: item.toTerminologyId, terminology: mapSets[key].mapSet.toTerminology, version: mapSets[key].mapSet.toVersion})"
+                  uib-tooltip="{{mapSets[key].mapSet.toTerminology}} {{item.toIdType | lowercase}}">{{item.toTerminologyId}}</a>
+                {{item.toName}} {{item.advice}}
+              </span></li>
+          </ul>
+        </div>
+    </ul>
+  </div>
+</div>
+<!-- end Mappings -->

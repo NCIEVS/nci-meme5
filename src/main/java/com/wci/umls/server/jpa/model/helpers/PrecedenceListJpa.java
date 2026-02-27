@@ -1,0 +1,372 @@
+/*
+ *    Copyright 2015 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.helpers;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
+import jakarta.persistence.TableGenerator;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
+
+import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+
+import com.wci.umls.server.helpers.Branch;
+import com.wci.umls.server.helpers.KeyValuePair;
+import com.wci.umls.server.helpers.KeyValuePairList;
+import com.wci.umls.server.helpers.PrecedenceList;
+
+/**
+ * JPA and JAXB enabled implementation of {@link PrecedenceList}. This is a list
+ * of TTYs used for a particular context. Individual editors can have their own
+ * TTY perspectives, projects can have their own TTY perspectives, and the
+ * release can have its own TTY perspective. This mechanism is used to determine
+ * which atoms represent preferred names.
+ */
+@Entity
+//@Audited
+@Table(name = "precedence_lists")
+@XmlRootElement(name = "precedenceList")
+public class PrecedenceListJpa implements PrecedenceList {
+
+  /** The id. */
+  @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
+  @Id
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  private Long id;
+
+  /** the timestamp. */
+  @Column(nullable = false)
+  @Temporal(TemporalType.TIMESTAMP)
+  private Date timestamp = new Date();
+
+  /** The last modified. */
+  @Column(nullable = false)
+  @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES, sortable = Sortable.YES)
+  private Date lastModified = new Date();
+
+  /** The last modified. */
+  @Column(nullable = false)
+  private String lastModifiedBy;
+
+  /** The terminology. */
+  @Column(nullable = false)
+  private String terminology;
+
+  /** The version. */
+  @Column(nullable = false)
+  private String version;
+
+  /** The branch. */
+  @Column(nullable = true)
+  private String branch = Branch.ROOT;
+
+  /** The name. */
+  @Column(nullable = false)
+  private String name;
+
+  /** The terminology list. */
+  @ElementCollection
+  @CollectionTable(name = "precedence_list_terminologies",
+      joinColumns = @JoinColumn(nullable = false))
+  @OrderColumn
+  private List<String> terminologies;
+
+  /** The term types. */
+  @ElementCollection
+  @CollectionTable(name = "precedence_list_term_types",
+      joinColumns = @JoinColumn(nullable = false))
+  @OrderColumn
+  private List<String> termTypes;
+
+  /**
+   * Instantiates an empty {@link PrecedenceListJpa}.
+   */
+  public PrecedenceListJpa() {
+    // do nothing
+  }
+
+  /**
+   * Instantiates a {@link PrecedenceListJpa} from the specified parameters.
+   *
+   * @param precedenceList the precedence list
+   */
+  public PrecedenceListJpa(PrecedenceList precedenceList) {
+    id = precedenceList.getId();
+    timestamp = precedenceList.getTimestamp();
+    lastModified = precedenceList.getLastModified();
+    lastModifiedBy = precedenceList.getLastModifiedBy();
+    name = precedenceList.getName();
+    setPrecedence(precedenceList.getPrecedence());
+    terminology = precedenceList.getTerminology();
+    version = precedenceList.getVersion();
+    branch = precedenceList.getBranch();
+  }
+
+  /* see superclass */
+  @Override
+  public Long getId() {
+    return this.id;
+  }
+
+  /* see superclass */
+  @Override
+  public void setId(Long id) {
+    this.id = id;
+  }
+
+  /* see superclass */
+  @Override
+  public String getName() {
+    return name;
+  }
+
+  /* see superclass */
+  @Override
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  /* see superclass */
+  @Override
+  public String getBranch() {
+    return branch;
+  }
+
+  /* see superclass */
+  @Override
+  public void setBranch(String branch) {
+    this.branch = branch;
+  }
+
+  /* see superclass */
+  @Override
+  public String getTerminology() {
+    return terminology;
+  }
+
+  /* see superclass */
+  @Override
+  public void setTerminology(String terminology) {
+    this.terminology = terminology;
+  }
+
+  /* see superclass */
+  @Override
+  public String getVersion() {
+    return version;
+  }
+
+  /* see superclass */
+  @Override
+  public void setVersion(String version) {
+    this.version = version;
+  }
+
+  /* see superclass */
+  @Override
+  public void setPrecedence(KeyValuePairList precedence) {
+    terminologies = new ArrayList<>();
+    termTypes = new ArrayList<>();
+    if (precedence == null) {
+      return;
+    }
+    for (final KeyValuePair pair : precedence.getKeyValuePairs()) {
+      terminologies.add(pair.getKey());
+      termTypes.add(pair.getValue());
+    }
+  }
+
+  /* see superclass */
+  @Override
+  public KeyValuePairList getPrecedence() {
+    final KeyValuePairList precedence = new KeyValuePairList();
+    if (termTypes != null) {
+      for (int i = 0; i < termTypes.size(); i++) {
+        final KeyValuePair pair = new KeyValuePair();
+        pair.setKey(terminologies.get(i));
+        pair.setValue(termTypes.get(i));
+        precedence.addKeyValuePair(pair);
+      }
+    }
+    return precedence;
+  }
+
+  /* see superclass */
+  @Override
+  public Date getTimestamp() {
+    return timestamp;
+  }
+
+  /* see superclass */
+  @Override
+  public void setTimestamp(Date timestamp) {
+    this.timestamp = timestamp;
+  }
+
+  /* see superclass */
+  public Date getLastModified() {
+    return lastModified;
+  }
+
+  /* see superclass */
+  @Override
+  public void setLastModified(Date lastModified) {
+    this.lastModified = lastModified;
+  }
+
+  /* see superclass */
+  @Override
+  public String getLastModifiedBy() {
+    return lastModifiedBy;
+  }
+
+  /* see superclass */
+  @Override
+  public void setLastModifiedBy(String lastModifiedBy) {
+    this.lastModifiedBy = lastModifiedBy;
+  }
+
+  /* see superclass */
+  @Override
+  public void addTerminologyTermType(String terminology, String termType) {
+    terminologies.add(terminology);
+    termTypes.add(termType);
+  }
+
+  /* see superclass */
+  @Override
+  public void removeTerminologyTermType(String terminology, String termType) {
+    for (int i = 0; i < termTypes.size(); i++) {
+      if (terminology.equals(terminologies.get(i))
+          && termType.equals(termTypes.get(i))) {
+        terminologies.remove(i);
+        termTypes.remove(i);
+        break;
+      }
+    }
+  }
+
+  /* see superclass */
+  @Override
+  public String toString() {
+    return "PrecedenceListJpa [id=" + id + ", timestamp=" + timestamp
+        + ", lastModified=" + lastModified + ", lastModifiedBy="
+        + lastModifiedBy + ", terminology=" + terminology + ", version="
+        + version + ", branch=" + branch + ", name=" + name + ", terminologies="
+        + terminologies + ", termTypes=" + termTypes + "]";
+  }
+
+  /* see superclass */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((terminology == null) ? 0 : version.hashCode());
+    result = prime * result + ((version == null) ? 0 : terminology.hashCode());
+    result = prime * result + ((termTypes == null) ? 0 : termTypes.hashCode());
+    result = prime * result
+        + ((terminologies == null) ? 0 : terminologies.hashCode());
+    return result;
+  }
+
+  /* see superclass */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    PrecedenceListJpa other = (PrecedenceListJpa) obj;
+    if (name == null) {
+      if (other.name != null)
+        return false;
+    } else if (!name.equals(other.name))
+      return false;
+    if (terminology == null) {
+      if (other.terminology != null)
+        return false;
+    } else if (!terminology.equals(other.terminology))
+      return false;
+    if (version == null) {
+      if (other.version != null)
+        return false;
+    } else if (!version.equals(other.version))
+      return false;
+    if (termTypes == null) {
+      if (other.termTypes != null)
+        return false;
+    } else if (!termTypes.equals(other.termTypes))
+      return false;
+    if (terminologies == null) {
+      if (other.terminologies != null)
+        return false;
+    } else if (!terminologies.equals(other.terminologies))
+      return false;
+    return true;
+  }
+
+  /* see superclass */
+  @XmlTransient
+  @Override
+  public Map<String, String> getTermTypeRankMap() {
+    // Otherwise, build the TTY map
+    final Map<String, String> ttyRankMap = new HashMap<>();
+    final List<KeyValuePair> list2 = getPrecedence().getKeyValuePairs();
+    int ct = 1;
+    for (int i = list2.size() - 1; i >= 0; i--) {
+      String padded = "0000" + ct++;
+      padded = padded.substring(padded.length() - 4);
+      final KeyValuePair pair = list2.get(i);
+      ttyRankMap.put(pair.getKey() + "/" + pair.getValue(), padded);
+    }
+    return ttyRankMap;
+  }
+
+  /* see superclass */
+  @XmlTransient
+  @Override
+  public Map<String, String> getTerminologyRankMap() {
+    // Otherwise, build the terminology map
+    final Map<String, String> terminologyRankMap = new HashMap<>();
+    final List<KeyValuePair> list2 = getPrecedence().getKeyValuePairs();
+    int ct = 1;
+    final Set<String> seen = new HashSet<>();
+    for (int i = list2.size() - 1; i >= 0; i--) {
+      final KeyValuePair pair = list2.get(i);
+      if (seen.contains(pair.getKey())) {
+        continue;
+      }
+      seen.add(pair.getKey());
+      String padded = "0000" + ct++;
+      padded = padded.substring(padded.length() - 4);
+      terminologyRankMap.put(pair.getKey(), padded);
+    }
+    return terminologyRankMap;
+  }
+
+}

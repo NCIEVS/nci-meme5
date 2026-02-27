@@ -1,0 +1,257 @@
+
+<!-- Source view -->
+<div class="row">
+  <div class="col-md-12 col-xs-12">
+    <h4>Source Data</h4>
+    <!-- Actions header template for source data ng-table -->
+    <script type="text/ng-template" id="headerActions.html">
+      <button class="btn btn-xs btn-primary" 
+        ng-click="createSourceData()">Add</button>  
+  	</script>
+    <!--  Source data ng-table -->
+    <table ng-table="tpSourceDatas" class="slim table">
+      <tr ng-repeat="item in $data">
+        <td data-title="'Name'" sortable="'name'"
+          ng-click="viewSourceData(item)">{{item.name ? item.name :
+          '(Unnamed Source Data)'}}</td>
+        <td data-title="'Status'" sortable="'status'"
+          ng-click="viewSourceData(item)">{{getHumanText(item.status)}}</td>
+        <td data-title="'Last Modified'" sortable="'lastModified'"
+          ng-click="viewSourceData(item)">{{item.lastModified | date:
+          'medium'}}</td>
+        <td data-title="'Source Files'" sortable="'sourceDataFiles.length'"
+          ng-click="viewSourceData(item)">{{item.sourceDataFiles ?
+          item.sourceDataFiles.length : 0}}</td>
+        <td header="'headerActions.html'" sortable="''">
+          <i class="glyphicon glyphicon-trash noul"
+            ng-click="removeSourceData(item)"></i>
+        </td>
+      </tr>
+    </table>
+    <!-- Source Data details -->
+    <div class="row" ng-show="currentSourceData" style="margin-top: 75px;">
+      <div class="col-md-4 col-xs-4">
+        <h4>Source Data Details</h4>
+        <table class="slim table">
+          <tr>
+            <td class="col-md-3 col-xs-3">Name</td>
+            <td class="col-md-9 col-md-9" col-xs-9>
+              <textarea style="width: 100%" ng-model="currentSourceData.name"
+                placeholder="Unique name for source data"></textarea>
+            </td>
+          </tr>
+          <tr>
+            <td>Description</td>
+            <td class="col-md-9 col-xs-9">
+              <textarea style="height: 100px; width: 100%"
+                ng-model="currentSourceData.description"
+                placeholder="Optional description"></textarea>
+            </td>
+          </tr>
+          <tr>
+            <td>Terminology</td>
+            <td>
+              <input size="27" ng-model="currentSourceData.terminology"
+                placeholder="e.g. SNOMEDCT">
+            </td>
+          </tr>
+          <tr>
+            <td>Version</td>
+            <td>
+              <input size="27" ng-model="currentSourceData.version"
+                placeholder="e.g. latest">
+            </td>
+          </tr>
+          <tr>
+            <td>Loader</td>
+            <td>
+              <select ng-model="currentSourceData.handler"
+                ng-options=" handler.value as handler.key for handler in sourceDataHandlers">
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Actions</td>
+            <td class="col-md-9 col-xs-9">
+              <button class="btn btn-xs btn-primary"
+                ng-click="saveSourceData(currentSourceData)"
+                ng-show="isSourceDataModified">Save</button>
+              <button class="btn btn-xs btn-warning"
+                ng-click="cancelSourceDataModifications()"
+                ng-show="isSourceDataModified">Cancel</button>
+              <button class="btn btn-success btn-xs"
+                ng-click="loadFromSourceData(currentSourceData)"
+                ng-show="!isSourceDataModified && currentSourceData.status === 'NEW' && currentSourceData.sourceDataFiles.length > 0">
+                <span class="glyphicon glyphicon-play"></span>
+                &nbsp;Load Data
+              </button>
+              <button class="btn btn-success btn-xs"
+                ng-show="!isSourceDataModified && currentSourceData.status === 'REMOVAL_COMPLETE'"
+                ng-click="loadFromSourceData(currentSourceData)">
+                <span class="glyphicon glyphicon-play"></span>
+                &nbsp;Reload Terminology
+              </button>
+              <button class="btn btn-danger btn-xs"
+                ng-click="removeFromSourceData(currentSourceData)"
+                ng-show="!isSourceDataModified && (currentSourceData.status === 'LOADING_FAILED' || currentSourceData.status === 'LOADING_COMPLETE')">
+                <span class="glyphicon glyphicon-trash"></span>
+                &nbsp;Remove Terminology
+              </button>
+              <button class="btn btn-warning btn-xs"
+                ng-click="cancelSourceDataProcess(currentSourceData)"
+                ng-show="currentSourceData.status === 'LOADING' || currentSourceData.status === 'REMOVING'">
+                <span class="glyphicon glyphicon-ban">Stop</span>
+              </button>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <!-- Upload File -->
+      <div class="col-md-8 col-xs-8" ng-show="!currentSourceData.id">
+        <div class="row">
+          <h4>Upload File</h4>
+          <div class="alert alert-warning">Please specify a name for your
+            source data configuration and click save.</div>
+        </div>
+      </div>
+      <div class="col-md-8 col-xs-8" ng-show="polls[currentSourceData.id]">
+        <h4>Activity Log:
+          {{getHumanText(polls[currentSourceData.id].status)}}</h4>
+        <div class="well well-md" style="overflow-y: auto; max-height: 350px;">
+          <span ng-show="!polls[currentSourceData.id].logEntries">
+            Retrieving activity log.... </span>
+          <pre>{{polls[currentSourceData.id].logEntries}}</pre>
+        </div>
+      </div>
+      <div class="col-md-8 col-xs-8"
+        ng-show="currentSourceData.id && !polls[currentSourceData.id]">
+        <!--  Upload interface -->
+        <div class="row">
+          <h4>Upload File</h4>
+          <!--  <div ng-show="uploader.isHTML5" style="display: inline-block;">
+           <div class="well afu-drop-zone" nv-file-over="" uploader="uploader">
+              Drop files here</div>
+          </div> -->
+          <!-- Example: nv-file-select="" uploader="{Object}" options="{Object}" filters="{String}" -->
+          <input type="file" nv-file-select="" uploader="uploader" /><br />
+        </div>
+        <div class="row" style="margin-bottom: 75px"
+          ng-show="uploader.queue.length > 0">
+          <h4>Upload queue</h4>
+          <p>Queue length: {{ uploader.queue.length }}</p>
+          <table class="slim table">
+            <thead>
+              <tr>
+                <th ng-show="hasZippedFiles">Unzip</th>
+                <th width="50%">Name</th>
+                <th ng-show="uploader.isHTML5">Size</th>
+                <th ng-show="uploader.isHTML5">Progress</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="item in uploader.queue">
+                <td ng-show="hasZippedFiles">
+                  <input type="checkbox" ng-show="item.isZipped"
+                    ng-model="item.unzip">
+                </td>
+                <td>
+                  <strong>{{ item.file.name }}</strong>
+                </td>
+                <td ng-show="uploader.isHTML5" nowrap>{{
+                  item.file.size/1024/1024|number:2 }} MB</td>
+                <td ng-show="uploader.isHTML5">
+                  <div class="progress">
+                    <div class="progress-bar" role="progressbar"
+                      ng-style="{ 'width': item.progress + '%' }"></div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span ng-show="item.isSuccess">
+                    <i class="glyphicon glyphicon-ok"></i>
+                  </span>
+                  <span ng-show="item.isCancel">
+                    <i class="glyphicon glyphicon-ban-circle"></i>
+                  </span>
+                  <span ng-show="item.isError">
+                    <i class="noul glyphicon glyphicon-remove"></i>
+                  </span>
+                </td>
+                <td nowrap>
+                  <button type="button" class="btn btn-success btn-xs"
+                    ng-click="item.upload()"
+                    ng-disabled="item.isReady || item.isUploading || item.isSuccess">
+                    <span class="glyphicon glyphicon-upload"></span>
+                    {{ item.isError || item.isCancel ? 'Retry' : 'Upload'}}
+                  </button>
+                  <button type="button" class="btn btn-warning btn-xs"
+                    ng-click="item.cancel()" ng-disabled="!item.isUploading">
+                    <span class="glyphicon glyphicon-ban-circle"></span>
+                    Cancel
+                  </button>
+                  <button type="button" class="btn btn-danger btn-xs"
+                    ng-click="item.remove()">
+                    <span class="glyphicon glyphicon-trash "></span>
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div>
+            Queue progress:
+            <div class="progress">
+              <div class="progress-bar" role="progressbar"
+                ng-style="{ 'width': uploader.progress + '%' }"></div>
+            </div>
+          </div>
+          <!-- Removed as unnecessary but may want to add in later
+          button type="button" class="btn btn-success btn-s"
+            ng-click="uploader.uploadAll()"
+            ng-disabled="!uploader.getNotUploadedItems().length">
+            <span class="glyphicon glyphicon-upload"></span>
+            Upload all
+          </button>
+          <button type="button" class="btn btn-warning btn-s"
+            ng-click="uploader.cancelAll()" ng-disabled="!uploader.isUploading">
+            <span class="glyphicon glyphicon-ban-circle"></span>
+            Cancel all
+          </button>
+          <button type="button" class="btn btn-danger btn-s"
+            ng-click="uploader.clearQueue()"
+            ng-disabled="!uploader.queue.length">
+            <span class="glyphicon glyphicon-trash"></span>
+            Remove all
+          </button> -->
+        </div>
+        <div class="row" ng-show="currentSourceData.sourceDataFiles.length > 0">
+          <h4>Source Data Files</h4>
+          <div class="pull-right">
+            <input type="checkbox" ng-model="showFullPath"> Show Full
+            Paths
+          </div>
+          <div class="alert alert-warning"
+            ng-show="!currentSourceData.sourceDataFiles || currentSourceData.sourceDataFiles.length === 0">No
+            source data files added.</div>
+          <table ng-table="tpSourceDataFiles" class="slim able"
+            ng-show="currentSourceData.sourceDataFiles.length > 0">
+            <tr ng-repeat="item in $data">
+              <td data-title="'Name'" sortable="'name'"
+                stye="word-break: break-all;">{{showFullPath ?
+                getFilePath(item) : item.name}}</td>
+              <td data-title="'Size'" sortable="'size'">{{item.size/1024/1024|number:2
+                }} MB</td>
+              <td data-title="'Uploaded'" sortable="'date'">{{item.timestamp
+                | date : medium}}</td>
+              <td data-title="''" sortable="''">
+                <i class="glyphicon glyphicon-trash noul"
+                  ng-click="removeSourceDataFileFromSourceData(item)"></i>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

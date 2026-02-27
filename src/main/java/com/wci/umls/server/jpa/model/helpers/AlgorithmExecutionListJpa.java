@@ -1,0 +1,30 @@
+/**
+ * Copyright 2016 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.helpers;
+
+import java.util.List;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+
+import com.wci.umls.server.model.algo.AlgorithmExecution;
+import com.wci.umls.server.helpers.AbstractResultList;
+import com.wci.umls.server.helpers.AlgorithmExecutionList;
+import com.wci.umls.server.jpa.model.AlgorithmExecutionJpa;
+
+/**
+ * JAXB enabled implementation of {@link AlgorithmExecutionList}.
+ */
+@XmlRootElement(name = "algorithmList")
+public class AlgorithmExecutionListJpa extends
+    AbstractResultList<AlgorithmExecution> implements AlgorithmExecutionList {
+
+  /* see superclass */
+  @Override
+  @XmlElement(type = AlgorithmExecutionJpa.class, name = "algorithms")
+  public List<AlgorithmExecution> getObjects() {
+    return super.getObjectsTransient();
+  }
+
+}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WCI Term Server API - Swagger UI</title>
+<link rel="icon" type="image/png" href="images/favicon.png" />
+
+<link href='css/typography.css' media='screen' rel='stylesheet' type='text/css' />
+<link href='css/reset.css' media='screen' rel='stylesheet' type='text/css' />
+<link href='css/screen.css' media='screen' rel='stylesheet' type='text/css' />
+<link href='css/reset.css' media='print' rel='stylesheet' type='text/css' />
+<link href='css/print.css' media='print' rel='stylesheet' type='text/css' />
+
+<script src='lib/object-assign-pollyfill.js' type='text/javascript'></script>
+<script src='lib/jquery-1.8.0.min.js' type='text/javascript'></script>
+<script src='lib/jquery.slideto.min.js' type='text/javascript'></script>
+<script src='lib/jquery.wiggle.min.js' type='text/javascript'></script>
+<script src='lib/jquery.ba-bbq.min.js' type='text/javascript'></script>
+<script src='lib/handlebars-2.0.0.js' type='text/javascript'></script>
+<script src='lib/lodash.min.js' type='text/javascript'></script>
+<script src='lib/backbone-min.js' type='text/javascript'></script>
+<script src='swagger-ui.min.js' type='text/javascript'></script>
+<script src='lib/highlight.9.1.0.pack.js' type='text/javascript'></script>
+<script src='lib/highlight.9.1.0.pack_extended.js' type='text/javascript'></script>
+<script src='lib/jsoneditor.min.js' type='text/javascript'></script>
+<script src='lib/marked.js' type='text/javascript'></script>
+<script src='lib/swagger-oauth.js' type='text/javascript'></script>
+
+<!-- Bootstrap CSS  -->
+<link rel="stylesheet"
+  href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+<!-- Application style overrides -->
+<link href="css/tsApp.css" rel="stylesheet">
+
+<script type="text/javascript">
+  $(function() {
+    var url = window.location.href.replace('/swagger.html', '');
+    console.debug("URL = ", url);
+    hljs.configure({
+      highlightSizeThreshold : 5000
+    });
+
+    // Get configuration props
+    $.ajax(url + '/configure/properties').done(function(data) {
+      window.swaggerUi = new SwaggerUi({
+        url : data['base.url'] + '/swagger.json',
+        dom_id : 'swagger-ui-container',
+        supportedSubmitMethods : [ 'get', 'post', 'put', 'delete', 'patch' ],
+        onFailure : function(data) {
+          log("Unable to Load SwaggerUI");
+        },
+        docExpansion : "none",
+        jsonEditor : false,
+        defaultModelRendering : 'schema',
+        showRequestHeaders : false
+      });
+
+      window.swaggerUi.load();
+    });
+
+    function log() {
+      if ('console' in window) {
+        console.log.apply(console, arguments);
+      }
+    }
+  });
+  
+  function includeHTML() {
+	  var z, i, elmnt, file, xhttp;
+	  /*loop through a collection of all HTML elements:*/
+	  z = document.getElementsByTagName("*");
+	  for (i = 0; i < z.length; i++) {
+	    elmnt = z[i];
+	    /*search for elements with a certain atrribute:*/
+	    file = elmnt.getAttribute("w3-include-html");
+	    if (file) {
+	      /*make an HTTP request using the attribute value as the file name:*/
+	      xhttp = new XMLHttpRequest();
+	      xhttp.onreadystatechange = function() {
+	        if (this.readyState == 4) {
+	          if (this.status == 200) {elmnt.innerHTML = this.responseText;}
+	          if (this.status == 404) {elmnt.innerHTML = "Page not found.";}
+	          /*remove the attribute, and call this function once more:*/
+	          elmnt.removeAttribute("w3-include-html");
+	          includeHTML();
+	        }
+	      } 
+	      xhttp.open("GET", file, true);
+	      xhttp.send();
+	      /*exit the function:*/
+	      return;
+	    }
+	  }
+	}
+  
+</script>
+</head>
+
+<body class="swagger-section">
+
+  <nav style="background: #00008A url('images/background.jpg');"
+    class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <table>
+          <tr>
+            <td>
+              <a href="http://www.westcoastinformatics.com">
+                <img class="hidden-xs" height="72px"
+                  style="background-color: white; padding: 5px; margin: 5px; border-radius: 5px;"
+                  src="images/logo65x72.jpg"> <img class="visible-xs"
+                  height="40px"
+                  style="background-color: white; padding: 3px; margin: 3px; border-radius: 3px;"
+                  src="images/logo36x40.jpg">
+              </a>
+            </td>
+            <td style="vertical-align: middle">
+              <b style="color: white;">WCI Terminology Server API </b>
+            </td>
+            <td>
+				<div w3-include-html="app/page/general/notification.html"></div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </nav>
+  <div class="hidden-xs" style="height: 94px;">Makes room for content</div>
+  <div class="visible-xs" style="height: 60px;">Makes room for content</div>
+  <div id="message-bar" class="swagger-ui-wrap">&nbsp;</div>
+  <div id="swagger-ui-container" class="swagger-ui-wrap"></div>
+  
+  <script>includeHTML();</script>
+</body>
+
+</html>

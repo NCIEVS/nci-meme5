@@ -1,0 +1,30 @@
+/*
+ * Copyright 2016 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.helpers.meta;
+
+import java.util.List;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+
+import com.wci.umls.server.helpers.AbstractResultList;
+import com.wci.umls.server.helpers.meta.TerminologyList;
+import com.wci.umls.server.jpa.model.meta.TerminologyJpa;
+import com.wci.umls.server.model.meta.Terminology;
+
+/**
+ * JAXB enabled implementation of {@link TerminologyList}.
+ */
+@XmlRootElement(name = "terminologyList")
+public class TerminologyListJpa extends AbstractResultList<Terminology>
+    implements TerminologyList {
+
+  /* see superclass */
+  @Override
+  @XmlElement(type = TerminologyJpa.class, name = "terminologies")
+  public List<Terminology> getObjects() {
+    return super.getObjectsTransient();
+  }
+
+}

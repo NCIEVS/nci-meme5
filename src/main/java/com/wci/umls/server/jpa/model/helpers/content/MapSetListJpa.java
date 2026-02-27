@@ -1,0 +1,30 @@
+/*
+ * Copyright 2016 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.helpers.content;
+
+import java.util.List;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+
+import com.wci.umls.server.helpers.AbstractResultList;
+import com.wci.umls.server.helpers.content.MapSetList;
+import com.wci.umls.server.jpa.model.content.MapSetJpa;
+import com.wci.umls.server.model.content.MapSet;
+
+/**
+ * JAXB enabled implementation of {@link MapSetList}.
+ */
+@XmlRootElement(name = "mapSetList")
+public class MapSetListJpa extends AbstractResultList<MapSet> implements
+    MapSetList {
+
+  /* see superclass */
+  @Override
+  @XmlElement(type = MapSetJpa.class, name = "mapSets")
+  public List<MapSet> getObjects() {
+    return super.getObjectsTransient();
+  }
+
+}

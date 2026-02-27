@@ -1,0 +1,160 @@
+/*
+ *    Copyright 2015 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.content;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtract;
+import org.hibernate.search.mapper.pojo.extractor.mapping.annotation.ContainerExtraction;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+
+import com.wci.umls.server.jpa.model.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.model.content.Atom;
+import com.wci.umls.server.model.content.AtomSubset;
+import com.wci.umls.server.model.content.AtomSubsetMember;
+import com.wci.umls.server.model.content.Attribute;
+import com.wci.umls.server.model.content.Subset;
+
+/**
+ * JPA and JAXB enabled implementation of an {@link Atom} {@link Subset}.
+ */
+@Entity
+@Table(name = "atom_subsets", uniqueConstraints = @UniqueConstraint(columnNames = {
+    "terminologyId", "terminology", "version", "id"
+}))
+//@Audited
+@XmlRootElement(name = "atomSubset")
+public class AtomSubsetJpa extends AbstractSubset implements AtomSubset {
+
+  /** The members. */
+  @OneToMany(mappedBy = "subset", targetEntity = AtomSubsetMemberJpa.class)
+  private List<AtomSubsetMember> members = null;
+
+  /** The alternate terminology ids. */
+  @ElementCollection(fetch = FetchType.EAGER)
+  @Fetch(FetchMode.JOIN)
+  @MapKeyColumn(length = 100)
+  @Column(nullable = true, length = 100)
+  @FullTextField(name = "alternateTerminologyIds",
+      valueBridge = @ValueBridgeRef(type = MapKeyValueToCsvBridge.class),
+      extraction = @ContainerExtraction(extract = ContainerExtract.NO))
+  private Map<String, String> alternateTerminologyIds;
+
+  /** The attributes. */
+  @OneToMany(targetEntity = AttributeJpa.class)
+  @JoinColumn(name = "attributes_id")
+  @JoinTable(name = "atom_subsets_attributes", inverseJoinColumns = @JoinColumn(name = "attributes_id"),
+      joinColumns = @JoinColumn(name = "atom_subsets_id"))
+  private List<Attribute> attributes = null;
+
+  /**
+   * Instantiates an empty {@link AtomSubsetJpa}.
+   */
+  public AtomSubsetJpa() {
+    // do nothing
+  }
+
+  /**
+   * Instantiates a {@link AtomSubsetJpa} from the specified parameters.
+   *
+   * @param subset the subset
+   * @param collectionCopy the deep copy
+   */
+  public AtomSubsetJpa(AtomSubset subset, boolean collectionCopy) {
+    super(subset, collectionCopy);
+    alternateTerminologyIds = new HashMap<>(subset.getAlternateTerminologyIds());
+
+    if (collectionCopy) {
+      members = new ArrayList<>(subset.getMembers());
+      for (final Attribute attribute : subset.getAttributes()) {
+        getAttributes().add(new AttributeJpa(attribute));
+      }
+    }
+  }
+
+  /* see superclass */
+  @Override
+  @XmlElement(type = AttributeJpa.class)
+  public List<Attribute> getAttributes() {
+    if (attributes == null) {
+      attributes = new ArrayList<>(1);
+    }
+    return attributes;
+  }
+
+  /* see superclass */
+  @Override
+  public void setAttributes(List<Attribute> attributes) {
+    this.attributes = attributes;
+  }
+
+  /* see superclass */
+  @Override
+  public Attribute getAttributeByName(String name) {
+    for (final Attribute attribute : getAttributes()) {
+      // If there are more than one, this just returns the first.
+      if (attribute.getName().equals(name)) {
+        return attribute;
+      }
+    }
+    return null;
+  }
+
+  /* see superclass */
+  @Override
+  @XmlElement(type = AtomSubsetMemberJpa.class)
+  public List<AtomSubsetMember> getMembers() {
+    if (members == null) {
+      members = new ArrayList<>();
+    }
+    return members;
+  }
+
+  /* see superclass */
+  @Override
+  public void setMembers(List<AtomSubsetMember> members) {
+    this.members = members;
+  }
+
+  /* see superclass */
+  @Override
+  public void clearMembers() {
+    members = new ArrayList<>();
+  }
+
+  /* see superclass */
+  @Override
+  public Map<String, String> getAlternateTerminologyIds() {
+    if (alternateTerminologyIds == null) {
+      alternateTerminologyIds = new HashMap<>(2);
+    }
+    return alternateTerminologyIds;
+  }
+
+  /* see superclass */
+  @Override
+  public void setAlternateTerminologyIds(Map<String, String> alternateTerminologyIds) {
+    this.alternateTerminologyIds = alternateTerminologyIds;
+  }
+
+}

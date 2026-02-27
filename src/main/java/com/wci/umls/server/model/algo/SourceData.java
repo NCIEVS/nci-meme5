@@ -1,0 +1,136 @@
+/*
+ *    Copyright 2016 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.model.algo;
+
+import java.util.List;
+
+import com.wci.umls.server.helpers.HasLastModified;
+import com.wci.umls.server.helpers.HasName;
+import com.wci.umls.server.helpers.HasTerminology;
+
+/**
+ * Represents a collection of source data files and a Handler used
+ * for those files.
+ */
+public interface SourceData extends HasTerminology, HasLastModified, HasName {
+
+  /**
+   * Load status for a {@link SourceData}.
+   */
+  public enum Status {
+    /** The unknown. */
+    UNKNOWN,
+
+    /** The new. */
+    NEW,
+
+    /** The cancelled. */
+    CANCELLED,
+
+    /** The loading. */
+    LOADING,
+
+    /** The REMOVING. */
+    REMOVING,
+
+    /** The failed. */
+    LOADING_FAILED,
+
+    /** The loading complete. */
+    LOADING_COMPLETE,
+
+    /** The REMOVING failed. */
+    REMOVAL_FAILED,
+
+    /** The REMOVING complete. */
+    REMOVAL_COMPLETE
+
+  }
+
+  /**
+   * Sets the source data files.
+   *
+   * @param sourceDataFiles the source data files
+   */
+  public void setSourceDataFiles(List<SourceDataFile> sourceDataFiles);
+
+  /**
+   * Gets the source data files.
+   *
+   * @return the source data files
+   */
+  public List<SourceDataFile> getSourceDataFiles();
+
+  /**
+   * Sets the config file key for the Handler.
+   *
+   * @param Handler the Handler
+   */
+  public void setHandler(String Handler);
+
+  /**
+   * Gets the config file key for the Handler.
+   *
+   * @return the Handler
+   */
+  public String getHandler();
+
+  /**
+   * Returns the Handler status.
+   *
+   * @return the Handler status
+   */
+  public SourceData.Status getStatus();
+
+  /**
+   * Sets the Handler status.
+   *
+   * @param status the enumerated status
+   */
+  public void setStatus(SourceData.Status status);
+
+  /**
+   * Gets the status text.
+   *
+   * @return the status text
+   */
+  public String getStatusText();
+
+  /**
+   * Sets the status text.
+   *
+   * @param statusText the new status text
+   */
+  public void setStatusText(String statusText);
+
+  /**
+   * Returns the description.
+   *
+   * @return the description
+   */
+  /* see superclass */
+  public String getDescription();
+
+  /**
+   * Sets the description.
+   *
+   * @param description the new description
+   */
+  public void setDescription(String description);
+
+  /**
+   * Gets the release version.
+   *
+   * @return the release version
+   */
+  public String getReleaseVersion();
+
+  /**
+   * Sets the release version.
+   *
+   * @param releaseVersion the new release version
+   */
+  public void setReleaseVersion(String releaseVersion);
+
+}

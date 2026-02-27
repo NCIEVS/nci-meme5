@@ -1,0 +1,116 @@
+/**
+ * Copyright 2016 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.meta;
+
+import java.util.Date;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.TableGenerator;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+
+
+import com.wci.umls.server.helpers.HasLastModified;
+import com.wci.umls.server.model.meta.Abbreviation;
+
+/**
+ * Abstract implementation of {@link Abbreviation} for use with JPA.
+ */
+//@Audited
+@MappedSuperclass
+public abstract class AbstractHasLastModified implements HasLastModified {
+
+  /** The id. */
+  @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
+  @Id
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  private Long id;
+
+  /** the timestamp. */
+  @Column(nullable = false)
+  @Temporal(TemporalType.TIMESTAMP)
+  private Date timestamp = new Date();
+
+  /** The last modified. */
+  @Column(nullable = false)
+  @Temporal(TemporalType.TIMESTAMP)
+  private Date lastModified = new Date();
+
+  /** The last modified. */
+  @Column(nullable = false)
+  private String lastModifiedBy;
+
+  /**
+   * Instantiates an empty {@link AbstractHasLastModified}.
+   */
+  protected AbstractHasLastModified() {
+    // do nothing
+  }
+
+  /**
+   * Instantiates a {@link AbstractHasLastModified} from the specified
+   * parameters.
+   *
+   * @param object the object
+   */
+  protected AbstractHasLastModified(HasLastModified object) {
+    id = object.getId();
+    timestamp = object.getTimestamp();
+    lastModified = object.getLastModified();
+    lastModifiedBy = object.getLastModifiedBy();
+  }
+
+  /* see superclass */
+  @Override
+  public Long getId() {
+    return this.id;
+  }
+
+  /* see superclass */
+  @Override
+  public void setId(Long id) {
+    this.id = id;
+  }
+
+  /* see superclass */
+  @Override
+  public Date getTimestamp() {
+    return timestamp;
+  }
+
+  /* see superclass */
+  @Override
+  public void setTimestamp(Date timestamp) {
+    this.timestamp = timestamp;
+  }
+
+  /* see superclass */
+  @Override
+  public Date getLastModified() {
+    return lastModified;
+  }
+
+  /* see superclass */
+  @Override
+  public void setLastModified(Date lastModified) {
+    this.lastModified = lastModified;
+  }
+
+  /* see superclass */
+  @Override
+  public String getLastModifiedBy() {
+    return lastModifiedBy;
+  }
+
+  /* see superclass */
+  @Override
+  public void setLastModifiedBy(String lastModifiedBy) {
+    this.lastModifiedBy = lastModifiedBy;
+  }
+
+}

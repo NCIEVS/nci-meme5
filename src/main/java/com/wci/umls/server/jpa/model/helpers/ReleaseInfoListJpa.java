@@ -1,0 +1,37 @@
+/**
+ * Copyright 2016 West Coast Informatics, LLC
+ */
+package com.wci.umls.server.jpa.model.helpers;
+
+import java.util.List;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+
+import com.wci.umls.server.model.algo.ReleaseInfo;
+import com.wci.umls.server.helpers.AbstractResultList;
+import com.wci.umls.server.helpers.ReleaseInfoList;
+import com.wci.umls.server.jpa.model.ReleaseInfoJpa;
+
+/**
+ * JAXB enabled implementation of {@link ReleaseInfoList}.
+ */
+@XmlRootElement(name = "releaseInfoList")
+public class ReleaseInfoListJpa extends AbstractResultList<ReleaseInfo>
+    implements ReleaseInfoList {
+
+  /* see superclass */
+  @Override
+  @XmlElement(type = ReleaseInfoJpa.class, name = "releaseInfos")
+  public List<ReleaseInfo> getObjects() {
+    return super.getObjectsTransient();
+  }
+
+  /* see superclass */
+  @Override
+  public String toString() {
+    return "ReleaseInfoListJpa [releaseInfos=" + getObjects() + ", getCount()="
+        + size() + "]";
+  }
+
+}
