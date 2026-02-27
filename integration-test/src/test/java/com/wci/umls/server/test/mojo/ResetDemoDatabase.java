@@ -108,9 +108,6 @@ public class ResetDemoDatabase {
   @BeforeClass
   public static void setupClass() throws Exception {
     config = ConfigUtility.getConfigProperties();
-    if (ConfigUtility.isServerActive()) {
-      server = "true";
-    }
     mavenHome = findMavenHome();
     if (mavenHome == null) {
       throw new Exception("Could not find Maven home. Set M2_HOME or MAVEN_HOME environment variable.");

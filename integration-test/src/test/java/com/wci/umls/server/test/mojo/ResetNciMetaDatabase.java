@@ -110,9 +110,6 @@ public class ResetNciMetaDatabase {
   @BeforeClass
   public static void setupClass() throws Exception {
     config = ConfigUtility.getConfigProperties();
-    if (ConfigUtility.isServerActive()) {
-      server = "true";
-    }
     mavenHome = findMavenHome();
     if (mavenHome == null) {
       throw new Exception("Could not find Maven home. Set M2_HOME or MAVEN_HOME environment variable.");
@@ -164,7 +161,12 @@ public class ResetNciMetaDatabase {
     invoker.setMavenHome(mavenHome);
     result = invoker.execute(request);
     if (result.getExitCode() != 0) {
-      throw result.getExecutionException();
+      final Exception ex = result.getExecutionException();
+      if (ex != null) {
+        throw ex;
+      }
+      throw new Exception(
+          "Maven invocation failed with exit code " + result.getExitCode());
     }
 
     // Build the deep_relationships tables
@@ -203,7 +205,12 @@ public class ResetNciMetaDatabase {
     invoker.setMavenHome(mavenHome);
     result = invoker.execute(request);
     if (result.getExitCode() != 0) {
-      throw result.getExecutionException();
+      final Exception ex = result.getExecutionException();
+      if (ex != null) {
+        throw ex;
+      }
+      throw new Exception(
+          "Maven invocation failed with exit code " + result.getExitCode());
     }
 
     // RRF Unpublished
