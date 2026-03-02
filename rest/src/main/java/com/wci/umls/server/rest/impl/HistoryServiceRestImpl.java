@@ -41,7 +41,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "/history")
 @SwaggerDefinition(info = @Info(description = "Operations to retrieve historical content for a terminology.", title = "History API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

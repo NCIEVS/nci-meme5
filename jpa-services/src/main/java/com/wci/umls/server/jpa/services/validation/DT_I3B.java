@@ -127,7 +127,7 @@ public class DT_I3B extends AbstractValidationCheck {
         ((ContentServiceJpa) contentService).getEntityManager()
             .createQuery("select a.from.id " + "from ConceptRelationshipJpa a "
                 + "where terminology = :terminology and version = :version"
-                + " and publishable = 1 and a.from.id in (:conceptIds)");
+                + " and publishable = true and a.from.id in (:conceptIds)");
     // Try to retrieve the single expected result If zero or more than one
     // result are returned, log error and set result to null
     try {

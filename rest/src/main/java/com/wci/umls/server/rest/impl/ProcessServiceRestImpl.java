@@ -85,7 +85,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "/process")
 @SwaggerDefinition(info = @Info(description = "Operations to interact with process and algorithm info.", title = "Process API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

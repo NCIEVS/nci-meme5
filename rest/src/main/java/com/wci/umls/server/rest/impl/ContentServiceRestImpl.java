@@ -139,7 +139,8 @@ import io.swagger.annotations.SwaggerDefinition;
  */
 @Path("/content")
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_HTML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_HTML,
+    MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

@@ -9,6 +9,8 @@ package com.wci.umls.server.test.rest.ncimeta;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.stream.Collectors;
+
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -30,7 +32,6 @@ import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 /**
  * Implementation of the "MetaEditing Service REST Edge Cases" Test Cases.
  */
-@Ignore
 public class MetaEditingServiceRestEdgeCasesTest
     extends MetaEditingServiceRestTest {
 
@@ -41,7 +42,7 @@ public class MetaEditingServiceRestEdgeCasesTest
   static Project project;
 
   /** The umls terminology. */
-  private String umlsTerminology = "MTH";
+  private String umlsTerminology = "NCIMTH";
 
   /** The umls version. */
   private String umlsVersion = "latest";
@@ -68,10 +69,18 @@ public class MetaEditingServiceRestEdgeCasesTest
     // ensure there is a concept associated with the project
     ProjectList projects = projectService.findProjects(null, null, authToken);
     assertTrue(projects.size() > 0);
-    project = projects.getObjects().get(0);
+
+    // Find the project with the expected terminology - don't rely on sort order
+    project = projects.getObjects().stream()
+        .filter(p -> umlsTerminology.equals(p.getTerminology()))
+        .findFirst().orElse(null);
 
     // verify terminology and branch are expected values
-    assertTrue(project.getTerminology().equals(umlsTerminology));
+    assertTrue("Expected project with terminology '" + umlsTerminology
+        + "' but found: " + projects.getObjects().stream()
+            .map(p -> p.getName() + "=" + p.getTerminology())
+            .collect(Collectors.joining(", ")),
+        project != null && project.getTerminology().equals(umlsTerminology));
     // assertTrue(project.getBranch().equals(Branch.ROOT));
 
     // Copy existing concept to avoid messing with actual database data.

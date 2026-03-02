@@ -251,8 +251,12 @@ public class SplitMolecularAction extends AbstractMolecularAction {
                 getPrecedenceList(getTerminology(), getVersion()))
             .get(0).getName());
 
-    // Add the concept and lookup the terminology id
-    setToConcept(new ConceptJpa(addConcept(getToConcept()), false));
+    // Add the concept and lookup the terminology id.
+    // Use the managed entity returned by addConcept() directly; wrapping it in
+    // new ConceptJpa(...) would produce a detached/transient copy that Hibernate
+    // rejects when it is later referenced as the "from" or "to" field of a
+    // persisted ConceptRelationshipJpa.
+    setToConcept(addConcept(getToConcept()));
     getToConcept().setTerminologyId(getToConcept().getId().toString());
     conceptsChanged.add(getToConcept());
 

@@ -1515,14 +1515,33 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       final String inverseAdditionalRelType =
           inverseAdditionalRelTypes.get(relationship.getAdditionalRelationshipType());
 
+      // When inverseAdditionalRelType is empty, omit it from the Lucene query.
+      // In Lucene 9 with @KeywordField, empty string "" IS indexed as a keyword
+      // term, so "NOT additionalRelationshipType:*" fails to match relationships
+      // where additionalRelationshipType="" (it only matches null/absent fields).
+      // Instead, query without the constraint and post-filter in Java for both
+      // null and empty-string cases.
       final RelationshipList relList =
           findRelationshipsForComponentHelper(null, null, null, Branch.ROOT,
               "fromId:" + relationship.getTo().getId() + " AND toId:"
                   + relationship.getFrom().getId() + " AND relationshipType:" + inverseRelType
                   + (ConfigUtility.isEmpty(inverseAdditionalRelType)
-                      ? " AND NOT additionalRelationshipType:[* TO *] "
+                      ? ""
                       : " AND additionalRelationshipType:" + inverseAdditionalRelType),
               false, null, relationship.getClass());
+
+      // Post-filter: keep only relationships with null/empty additionalRelationshipType
+      if (ConfigUtility.isEmpty(inverseAdditionalRelType)) {
+        final List<Relationship<? extends ComponentInfo, ? extends ComponentInfo>> filtered =
+            new ArrayList<>();
+        for (final Relationship<? extends ComponentInfo, ? extends ComponentInfo> r : relList
+            .getObjects()) {
+          if (ConfigUtility.isEmpty(r.getAdditionalRelationshipType())) {
+            filtered.add(r);
+          }
+        }
+        relList.setObjects(filtered);
+      }
 
       if (relList.size() == 0) {
         throw new Exception("Unexpected missing inverse relationship");

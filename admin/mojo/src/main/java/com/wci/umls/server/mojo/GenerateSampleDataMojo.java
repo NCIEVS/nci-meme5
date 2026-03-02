@@ -54,6 +54,7 @@ import com.wci.umls.server.jpa.content.ConceptRelationshipJpa;
 import com.wci.umls.server.jpa.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.helpers.PrecedenceListJpa;
 import com.wci.umls.server.jpa.helpers.TypeKeyValueJpa;
+import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.jpa.services.rest.IntegrationTestServiceRest;
@@ -446,21 +447,28 @@ public class GenerateSampleDataMojo extends AbstractLoaderMojo {
     contentService = new ContentServiceRestImpl();
     for (final SearchResult result : contentService.findConcepts(terminology,
         version, "atoms.terminology:NCI", pfs, authToken).getObjects()) {
-      contentService = new ContentServiceRestImpl();
-      final ConceptJpa concept = new ConceptJpa(
-          contentService.getConcept(result.getId(), projectId, authToken),
-          true);
-      concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-      // Make all NCI atoms needs review
-      for (final Atom atom : concept.getAtoms()) {
-        if (atom.getTerminology().equals("NCI")) {
-          atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-          testService = new IntegrationTestServiceRestImpl();
-          testService.updateAtom(new AtomJpa(atom), authToken);
+      // Use ContentServiceJpa directly so the JPA session stays open for the
+      // entire loop body. The copy constructor AND new AtomJpa(atom) both access
+      // lazy collections (inverseRelationships, conceptTerminologyIds, etc.)
+      // that require an open session.
+      final ContentServiceJpa jpaService1 = new ContentServiceJpa();
+      try {
+        final ConceptJpa concept =
+            new ConceptJpa(jpaService1.getConcept(result.getId()), true);
+        concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+        // Make all NCI atoms needs review
+        for (final Atom atom : concept.getAtoms()) {
+          if (atom.getTerminology().equals("NCI")) {
+            atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+            testService = new IntegrationTestServiceRestImpl();
+            testService.updateAtom(new AtomJpa(atom), authToken);
+          }
         }
+        testService = new IntegrationTestServiceRestImpl();
+        testService.updateConcept(concept, authToken);
+      } finally {
+        jpaService1.close();
       }
-      testService = new IntegrationTestServiceRestImpl();
-      testService.updateConcept(concept, authToken);
     }
 
     // SNOMEDCT_US
@@ -472,29 +480,35 @@ public class GenerateSampleDataMojo extends AbstractLoaderMojo {
     for (final SearchResult result : contentService.findConcepts(terminology,
         version, "atoms.terminology:SNOMEDCT_US", pfs, authToken)
         .getObjects()) {
-      contentService = new ContentServiceRestImpl();
-      final ConceptJpa concept = new ConceptJpa(
-          contentService.getConcept(result.getId(), projectId, authToken),
-          true);
+      // Use ContentServiceJpa directly so the JPA session stays open for the
+      // entire loop body. The copy constructor AND new AtomJpa(atom) both access
+      // lazy collections that require an open session.
+      final ContentServiceJpa jpaService2 = new ContentServiceJpa();
+      try {
+        final ConceptJpa concept =
+            new ConceptJpa(jpaService2.getConcept(result.getId()), true);
 
-      // skip if any concepts have NCI atoms
-      if (concept.getAtoms().stream().map(a -> a.getTerminology())
-          .filter(t -> t.equals("NCI")).collect(Collectors.toList())
-          .size() > 0) {
-        continue;
-      }
-      concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-
-      // Make all SNOMEDCT_US atoms needs review
-      for (final Atom atom : concept.getAtoms()) {
-        if (atom.getTerminology().equals("SNOMEDCT_US")) {
-          atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-          testService = new IntegrationTestServiceRestImpl();
-          testService.updateAtom(new AtomJpa(atom), authToken);
+        // skip if any concepts have NCI atoms
+        if (concept.getAtoms().stream().map(a -> a.getTerminology())
+            .filter(t -> t.equals("NCI")).collect(Collectors.toList())
+            .size() > 0) {
+          continue;
         }
+        concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+
+        // Make all SNOMEDCT_US atoms needs review
+        for (final Atom atom : concept.getAtoms()) {
+          if (atom.getTerminology().equals("SNOMEDCT_US")) {
+            atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+            testService = new IntegrationTestServiceRestImpl();
+            testService.updateAtom(new AtomJpa(atom), authToken);
+          }
+        }
+        testService = new IntegrationTestServiceRestImpl();
+        testService.updateConcept(concept, authToken);
+      } finally {
+        jpaService2.close();
       }
-      testService = new IntegrationTestServiceRestImpl();
-      testService.updateConcept(concept, authToken);
     }
 
     // leftovers
@@ -505,31 +519,37 @@ public class GenerateSampleDataMojo extends AbstractLoaderMojo {
     contentService = new ContentServiceRestImpl();
     for (final SearchResult result : contentService.findConcepts(terminology,
         version, "atoms.terminology:RXNORM", pfs, authToken).getObjects()) {
-      contentService = new ContentServiceRestImpl();
-      final ConceptJpa concept = new ConceptJpa(
-          contentService.getConcept(result.getId(), projectId, authToken),
-          true);
+      // Use ContentServiceJpa directly so the JPA session stays open for the
+      // entire loop body. The copy constructor AND new AtomJpa(atom) both access
+      // lazy collections that require an open session.
+      final ContentServiceJpa jpaService3 = new ContentServiceJpa();
+      try {
+        final ConceptJpa concept =
+            new ConceptJpa(jpaService3.getConcept(result.getId()), true);
 
-      // skip if any concepts have NCI atoms
-      if (concept.getAtoms().stream().map(a -> a.getTerminology())
-          .filter(t -> t.equals("NCI") || t.equals("SNOMEDCT_US"))
-          .collect(Collectors.toList()).size() > 0) {
-        continue;
-      }
-      concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-
-      // Make all SNOMEDCT_US atoms needs review
-      for (final Atom atom : concept.getAtoms()) {
-        if (!atom.getTerminology().equals("NCI")
-            && !atom.getTerminology().equals("SNOMEDCT_US")) {
-          atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-          testService = new IntegrationTestServiceRestImpl();
-          testService.updateAtom(new AtomJpa(atom), authToken);
+        // skip if any concepts have NCI atoms
+        if (concept.getAtoms().stream().map(a -> a.getTerminology())
+            .filter(t -> t.equals("NCI") || t.equals("SNOMEDCT_US"))
+            .collect(Collectors.toList()).size() > 0) {
+          continue;
         }
-      }
+        concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
 
-      testService = new IntegrationTestServiceRestImpl();
-      testService.updateConcept(concept, authToken);
+        // Make all SNOMEDCT_US atoms needs review
+        for (final Atom atom : concept.getAtoms()) {
+          if (!atom.getTerminology().equals("NCI")
+              && !atom.getTerminology().equals("SNOMEDCT_US")) {
+            atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+            testService = new IntegrationTestServiceRestImpl();
+            testService.updateAtom(new AtomJpa(atom), authToken);
+          }
+        }
+
+        testService = new IntegrationTestServiceRestImpl();
+        testService.updateConcept(concept, authToken);
+      } finally {
+        jpaService3.close();
+      }
     }
 
     // Mark some rels as status N

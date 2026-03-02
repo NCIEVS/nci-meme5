@@ -137,7 +137,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @SwaggerDefinition(info = @Info(description = "Operations supporting workflow",
     title = "Workflow API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

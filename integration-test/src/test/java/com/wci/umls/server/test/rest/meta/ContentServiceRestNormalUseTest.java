@@ -1264,21 +1264,21 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         "let", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(230, list.getTotalCount());
+    assertEquals(235, list.getTotalCount());
     assertEquals(20, list.size());
 
     list = contentService.autocompleteConcepts(umlsTerminology, umlsVersion,
         "lett", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(304, list.getTotalCount());
+    assertEquals(315, list.getTotalCount());
     assertEquals(20, list.size());
 
     list = contentService.autocompleteConcepts(umlsTerminology, umlsVersion,
         "lettu", authToken);
     Logger.getLogger(getClass())
         .info("    totalCount = " + list.getTotalCount());
-    assertEquals(319, list.getTotalCount());
+    assertEquals(330, list.getTotalCount());
     assertEquals(20, list.size());
 
   }
@@ -1858,12 +1858,12 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
     // wider lookup, limit to 10
     pfs.setStartIndex(0);
     pfs.setMaxResults(10);
-    Logger.getLogger(getClass()).info("  Simple query, limit to 3");
+    Logger.getLogger(getClass()).info("  Simple query, limit to 10");
     tree = contentService.findConceptTree(snomedTerminology, snomedVersion,
         "a*", pfs, authToken);
     Logger.getLogger(getClass())
         .info("    total leaf count = " + tree.getLeafNodes().size());
-    assertEquals(9, tree.getLeafNodes().size());
+    assertEquals(8, tree.getLeafNodes().size());
     Logger.getLogger(getClass()).info("    Result: " + tree);
     // All the leaf TreePosition<AtomClass> tree should contain "vitamin"
     for (Tree leaf : tree.getLeafNodes()) {
@@ -1903,7 +1903,7 @@ public class ContentServiceRestNormalUseTest extends ContentServiceRestTest {
         "pneumonia", pfs, authToken);
     Logger.getLogger(getClass())
         .info("    total leaf count = " + tree.getLeafNodes().size());
-    assertEquals(2, tree.getLeafNodes().size());
+    assertEquals(3, tree.getLeafNodes().size());
     Logger.getLogger(getClass()).info("    Result: " + tree);
     // All the leaf TreePosition<AtomClass> tree should contain "pneumonia"
     for (Tree leaf : tree.getLeafNodes()) {

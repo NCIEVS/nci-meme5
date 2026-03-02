@@ -30,7 +30,6 @@ import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 /**
  * Implementation of the "MetaEditing Service REST Normal Use" Test Cases.
  */
-@Ignore
 public class MetaEditingServiceRestDegenerateUseTest
     extends MetaEditingServiceRestTest {
 
@@ -41,7 +40,7 @@ public class MetaEditingServiceRestDegenerateUseTest
   private static Project project;
 
   /** The umls terminology. */
-  private String umlsTerminology = "MTH";
+  private String umlsTerminology = "NCIMTH";
 
   /** The umls version. */
   private String umlsVersion = "latest";
@@ -68,10 +67,14 @@ public class MetaEditingServiceRestDegenerateUseTest
     // ensure there is a concept associated with the project
     ProjectList projects = projectService.findProjects(null, null, authToken);
     assertTrue(projects.size() > 0);
-    project = projects.getObjects().get(0);
+
+    // Find the project with the expected terminology - don't rely on sort order
+    project = projects.getObjects().stream()
+        .filter(p -> umlsTerminology.equals(p.getTerminology()))
+        .findFirst().orElse(null);
 
     // verify terminology and branch are expected values
-    assertTrue(project.getTerminology().equals(umlsTerminology));
+    assertTrue(project != null && project.getTerminology().equals(umlsTerminology));
     // assertTrue(project.getBranch().equals(Branch.ROOT));
 
     // Copy existing concept to avoid messing with actual database data.
@@ -341,20 +344,27 @@ public class MetaEditingServiceRestDegenerateUseTest
     //
     Concept c2 = contentService.getConcept("C0000005", umlsTerminology,
         umlsVersion, project.getId(), authToken);
-    attribute = (AttributeJpa) c2.getAttributes().iterator().next();
 
-    try {
-      metaEditingService.addAttribute(project.getId(), c2.getId(), "activityId",
-          c2.getTimestamp().getTime(), attribute, false, authToken);
-      fail("Should throw an exception");
-    } catch (Exception e) {
-      // n/a
+    // Test add where already exists (only if the concept has concept-level
+    // attributes; SAMPLE_NCI has none at the CUI level)
+    if (!c2.getAttributes().isEmpty()) {
+      attribute = (AttributeJpa) c2.getAttributes().iterator().next();
+      try {
+        metaEditingService.addAttribute(project.getId(), c2.getId(),
+            "activityId", c2.getTimestamp().getTime(), attribute, false,
+            authToken);
+        fail("Should throw an exception");
+      } catch (Exception e) {
+        // n/a
+      }
     }
 
-    attribute.setName("this string must not match a attribute name");
+    // Test add with an invalid attribute name (always testable)
+    AttributeJpa badAttr = new AttributeJpa();
+    badAttr.setName("this string must not match a attribute name");
     try {
       metaEditingService.addAttribute(project.getId(), c2.getId(), "activityId",
-          c2.getTimestamp().getTime(), attribute, false, authToken);
+          c2.getTimestamp().getTime(), badAttr, false, authToken);
       fail("Should throw an exception");
     } catch (Exception e) {
       // n/a

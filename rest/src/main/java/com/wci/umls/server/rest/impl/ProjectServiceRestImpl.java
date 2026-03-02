@@ -69,7 +69,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "/project")
 @SwaggerDefinition(info = @Info(description = "Operations to interact with project info.", title = "Project API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
