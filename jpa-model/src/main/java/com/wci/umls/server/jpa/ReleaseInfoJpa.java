@@ -14,6 +14,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.TableGenerator;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.OneToMany;
@@ -43,8 +44,9 @@ import com.wci.umls.server.ReleaseProperty;
 public class ReleaseInfoJpa implements ReleaseInfo {
 
   /** The id. */
+  @TableGenerator(name = "EntityIdGenRelease", table = "table_generator_release", pkColumnValue = "Entity")
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenRelease")
   private Long id;
 
   /** The name. */

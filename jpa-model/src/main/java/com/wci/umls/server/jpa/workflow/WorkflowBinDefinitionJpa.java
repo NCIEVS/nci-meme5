@@ -137,6 +137,7 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
+  @GenericField(searchable = Searchable.YES)
   public Date getTimestamp() {
     return timestamp;
   }

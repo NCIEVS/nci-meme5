@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.TableGenerator;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -35,8 +36,9 @@ import com.wci.umls.server.helpers.LogEntry;
 public class LogEntryJpa implements LogEntry {
 
   /** The id. */
+  @TableGenerator(name = "EntityIdGenLog", table = "table_generator_log", pkColumnValue = "Entity")
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenLog")
   private Long id;
 
   /** The last modified. */
@@ -90,6 +92,7 @@ public class LogEntryJpa implements LogEntry {
   /** the timestamp. */
   @Column(nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
+  @GenericField(searchable = Searchable.YES)
   private Date timestamp = null;
 
   /**

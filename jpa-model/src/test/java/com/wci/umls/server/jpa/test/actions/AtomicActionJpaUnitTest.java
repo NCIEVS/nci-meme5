@@ -172,10 +172,13 @@ public class AtomicActionJpaUnitTest extends ModelUnitSupport {
     // Test non analyzed fields
     tester = new IndexedFieldTester(object);
     tester.include("idType");
+    tester.include("idTypeSort");
     tester.include("className");
     tester.include("objectId");
     tester.include("field");
+    tester.include("fieldSort");
     tester.include("oldValue");
+    tester.include("oldValueSort");
     tester.include("newValue");
     tester.include("molecularActionId");
 

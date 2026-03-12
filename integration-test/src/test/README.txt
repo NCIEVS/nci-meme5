@@ -32,4 +32,3 @@ ResetDemoDatabase  -> GenerateDemoData    adds projects for "SNOMEDCT", "SNOMEDC
 
 
 NOTE: for testing, there should be additional config.properties files, to ensure each test suite is pointing at the correct database
-   
