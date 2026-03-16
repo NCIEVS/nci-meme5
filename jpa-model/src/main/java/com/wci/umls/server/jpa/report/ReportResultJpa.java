@@ -10,15 +10,17 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.TableGenerator;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import com.wci.umls.server.jpa.content.AbstractHasLastModified;
-import com.wci.umls.server.jpa.helpers.UseExistingOrGeneratedId;
 import com.wci.umls.server.model.report.Report;
 import com.wci.umls.server.model.report.ReportResult;
 import com.wci.umls.server.model.report.ReportResultItem;
@@ -33,8 +35,9 @@ public class ReportResultJpa extends AbstractHasLastModified
     implements ReportResult {
 
   /** The id. */
+  @TableGenerator(name = "EntityIdGenReport", table = "table_generator_report", pkColumnValue = "Entity")
   @Id
-  @UseExistingOrGeneratedId
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenReport")
   private Long id;
 
   /** The report. */

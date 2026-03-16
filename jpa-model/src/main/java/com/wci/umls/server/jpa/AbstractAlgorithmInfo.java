@@ -49,9 +49,9 @@ public abstract class AbstractAlgorithmInfo<T extends ProcessInfo<?>>
     implements AlgorithmInfo<T> {
 
   /** The id. */
-  @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
+  @TableGenerator(name = "EntityIdGenProcess", table = "table_generator_process", pkColumnValue = "Entity")
   @Id
-  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenProcess")
   private Long id;
 
   /** The last modified. */

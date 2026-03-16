@@ -28,9 +28,9 @@ public class ReportResultItemJpa extends AbstractHasLastModified
     implements ReportResultItem {
 
   /** The id. */
-  @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
+  @TableGenerator(name = "EntityIdGenReport", table = "table_generator_report", pkColumnValue = "Entity")
   @Id
-  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenReport")
   private Long id;
 
   /** The item id. */
