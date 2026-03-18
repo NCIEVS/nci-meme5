@@ -252,21 +252,4 @@ public class HistoryClientRest implements HistoryServiceRest {
 
   }
 
-  /* see superclass */
-  @Override
-  public void startEditingCycle(String releaseVersion, String terminology,
-    String version, String authToken) throws Exception {
-    Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(
-        config.getProperty("base.url") + "/history/release/startEditingCycle/"
-            + releaseVersion + "/" + terminology + "/" + version);
-    Response response = target.request(MediaType.APPLICATION_XML)
-        .header("Authorization", authToken).post(Entity.text(""));
-
-    if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
-      // do nothing
-    } else {
-      throw new Exception("Unexpected status " + response.getStatus());
-    }
-  }
 }

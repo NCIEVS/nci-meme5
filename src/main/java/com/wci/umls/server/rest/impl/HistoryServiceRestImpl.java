@@ -20,7 +20,6 @@ import com.wci.umls.server.model.algo.ReleaseInfo;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ReleaseInfoList;
 import com.wci.umls.server.jpa.model.ReleaseInfoJpa;
-import com.wci.umls.server.jpa.algo.StartEditingCycleAlgorithm;
 import com.wci.umls.server.jpa.model.helpers.ReleaseInfoListJpa;
 import com.wci.umls.server.jpa.services.HistoryServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
@@ -290,37 +289,4 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
       securityService.close();
     }
   }
-
-  /* see superclass */
-  @Override
-  @POST
-  @Path("/release/startEditingCycle/{releaseVersion}/{terminology}/{version}")
-  @ApiOperation(value = "Start the editing cycle", notes = "Marks the start of the editing cycle for the specified release for the specified terminology/version")
-  public void startEditingCycle(
-    @ApiParam(value = "Release version, e.g. 20150131 or 2015AA", required = true) @PathParam("releaseVersion") String releaseVersion,
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathParam("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
-    throws Exception {
-    Logger.getLogger(getClass())
-        .info("RESTful call (History): /release/startEditingCycle/"
-            + releaseVersion + "/" + terminology + "/" + version);
-    // Perform operations
-    StartEditingCycleAlgorithm algorithm =
-        new StartEditingCycleAlgorithm(releaseVersion, terminology, version);
-    try {
-      authorizeApp(securityService, authToken, "start editing cycle",
-          UserRole.ADMINISTRATOR);
-      algorithm
-          .setLastModifiedBy(securityService.getUsernameForToken(authToken));
-      algorithm.compute();
-    } catch (Exception e) {
-      algorithm.compute();
-      handleException(e, "start editing cycle");
-    } finally {
-      algorithm.close();
-      securityService.close();
-    }
-  }
-
 }

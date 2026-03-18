@@ -1,0 +1,368 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'com.wcinformatics.umls.server'
+version = '1.5.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+// ── Version constants ──────────────────────────────────────────────────────────
+ext {
+    hibernateVersion       = '6.6.3.Final'
+    hibernateSearchVersion = '7.2.2.Final'
+    jerseyVersion          = '3.1.5'
+    luceneVersion          = '9.9.2'
+    jacksonVersion         = '2.16.1'
+}
+
+// ── Dependencies ───────────────────────────────────────────────────────────────
+dependencies {
+
+    // JPA / Hibernate
+    implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"
+    implementation "org.hibernate.orm:hibernate-envers:${hibernateVersion}"
+    implementation "org.hibernate.orm:hibernate-c3p0:${hibernateVersion}"
+    implementation "org.hibernate.search:hibernate-search-mapper-orm:${hibernateSearchVersion}"
+    implementation "org.hibernate.search:hibernate-search-backend-lucene:${hibernateSearchVersion}"
+    implementation 'org.jboss.logging:jboss-logging:3.6.0.Final'
+
+    // Lucene
+    implementation "org.apache.lucene:lucene-queryparser:${luceneVersion}"
+    implementation "org.apache.lucene:lucene-suggest:${luceneVersion}"
+
+    // MySQL
+    implementation 'mysql:mysql-connector-java:8.0.17'
+
+    // Logging
+    implementation 'org.slf4j:slf4j-log4j12:1.7.36'
+
+    // WebSocket
+    compileOnly        'jakarta.websocket:jakarta.websocket-api:2.1.0'
+    implementation     'jakarta.websocket:jakarta.websocket-client-api:2.1.0'
+
+    // Jersey
+    implementation "org.glassfish.jersey.core:jersey-client:${jerseyVersion}"
+    implementation "org.glassfish.jersey.core:jersey-common:${jerseyVersion}"
+    implementation "org.glassfish.jersey.containers:jersey-container-servlet:${jerseyVersion}"
+    implementation "org.glassfish.jersey.containers:jersey-container-servlet-core:${jerseyVersion}"
+    implementation "org.glassfish.jersey.media:jersey-media-multipart:${jerseyVersion}"
+    implementation "org.glassfish.jersey.media:jersey-media-json-jackson:${jerseyVersion}"
+    implementation "org.glassfish.jersey.media:jersey-media-jaxb:${jerseyVersion}"
+    implementation "org.glassfish.jersey.inject:jersey-hk2:${jerseyVersion}"
+
+    // Swagger
+    implementation 'io.swagger.core.v3:swagger-jaxrs2-jakarta:2.2.20'
+    implementation 'io.swagger:swagger-annotations:1.6.12'
+
+    // Jakarta EE APIs
+    compileOnly    'jakarta.servlet:jakarta.servlet-api:6.0.0'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api:3.1.0'
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
+    runtimeOnly    'org.glassfish.jaxb:jaxb-runtime:4.0.2'
+    implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+
+    // Jackson
+    implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jacksonVersion}"
+    implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:${jacksonVersion}"
+
+    // OWL API
+    implementation 'net.sourceforge.owlapi:owlapi-distribution:3.4.3'
+    implementation 'net.sourceforge.owlapi:owlapi-api:3.4.3'
+    implementation 'net.sourceforge.owlapi:owlapi-apibinding:3.4.3'
+    implementation 'net.sourceforge.owlapi:owlapi-impl:3.4.3'
+
+    // Miscellaneous utilities
+    implementation 'com.google.guava:guava:31.1-jre'
+    implementation 'org.reflections:reflections:0.9.10'
+
+    // Classifiers / Reasoners
+    implementation('au.csiro:snorocket-owlapi:2.7.2') {
+        exclude group: 'org.glassfish.jersey.media', module: 'jersey-media-moxy'
+        exclude group: 'org.eclipse.persistence', module: 'org.eclipse.persistence.moxy'
+    }
+    implementation 'com.hermit-reasoner:org.semanticweb.hermit:1.3.8.4'
+
+    // LVG
+    implementation 'gov.nih.nlm.nls.lvg:lvgdist:2020.0'
+
+    // Trove
+    implementation 'net.sf.trove4j:trove4j:3.0.3'
+
+    // Testing & Algorithms that use Assertions
+    implementation 'junit:junit:4.13.2'
+
+    // Byte-code enhancement
+    implementation 'cglib:cglib:3.3.0'
+
+    // Mail
+    implementation 'com.sun.mail:jakarta.mail:2.0.1'
+    implementation 'jakarta.activation:jakarta.activation-api:2.1.0'
+
+    // ZIP
+    implementation 'net.lingala.zip4j:zip4j:2.8.0'
+
+    // Commons
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'commons-io:commons-io:2.8.0'
+    implementation 'org.apache.commons:commons-vfs2:2.0'
+    implementation 'commons-codec:commons-codec:1.10'
+
+    // ANTLR (required by Hibernate Search 7.x)
+    implementation 'org.antlr:antlr4-runtime:4.13.0'
+}
+
+// ── WAR packaging ─────────────────────────────────────────────────────────────
+war {
+    archiveBaseName = 'ROOT'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Include filtered appConfig.js with property replacement
+    from('src/main/webapp') {
+        include 'app/appConfig.js'
+        filter { String line ->
+            line.replace('${project.version}', project.version.toString())
+        }
+    }
+    // Include the rest of webapp without filtering
+    from('src/main/webapp') {
+        exclude 'app/appConfig.js'
+    }
+
+    // Include label.prop (filtered) into WEB-INF/classes
+    webInf {
+        from('src/main/config') {
+            include 'label.prop'
+            filter { String line ->
+                line.replace('${run.config.label}', project.findProperty('run.config.label') ?: 'default')
+            }
+            into 'classes'
+        }
+    }
+}
+
+// ── Test resources ────────────────────────────────────────────────────────────
+sourceSets {
+    main {
+        // Ensure resources (like persistence.xml) and classes are in the same directory
+        // so that Hibernate can find entities when scanning from the persistence unit root.
+        output.resourcesDir = java.classesDirectory
+    }
+    test {
+        resources {
+            srcDirs = ['src/test/resources']
+        }
+    }
+}
+
+// ── Shared admin classpath helper ─────────────────────────────────────────────
+// Admin tasks run classes from the compiled main source set.
+// Pass system properties from Gradle project properties on the command line,
+// e.g.:  ./gradlew adminReindex -Pindexed.objects=ConceptJpa -Pserver=false
+// Also supports passing -Drun.config.<label>=<path> to override config file location
+def adminJvmArgs(Map<String, String> propNames) {
+    def args = propNames.collect { key, _ ->
+        def val = project.findProperty(key)
+        //
+        if (key == 'version' && val == project.version.toString()) {
+            null
+        } else {
+            val != null ? "-D${key}=${val}" : null
+        }
+    }.findAll { it != null }
+
+    // Also check for direct system properties passed via -D flags
+    // This allows passing -Drun.config.umls=/path/to/config.properties
+    def sysProps = System.getProperties()
+    sysProps.each { key, value ->
+        if (key.toString().startsWith('run.config.')) {
+            args.add("-D${key}=${value}")
+        }
+    }
+
+    return args
+}
+
+// ── Admin Tasks ───────────────────────────────────────────────────────────────
+
+// ── Database ──────────────────────────────────────────────────────────────────
+
+task adminCreateDb(type: JavaExec, group: 'Admin',
+        description: 'Create the database schema from JPA entities (mode=create).') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.UpdateDb'
+    jvmArgs = ['-Dmode=create'] + adminJvmArgs(['run.config.label': ''])
+}
+
+task adminUpdateDb(type: JavaExec, group: 'Admin',
+        description: 'Update the database schema from JPA entities (mode=update).') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.UpdateDb'
+    jvmArgs = ['-Dmode=update'] + adminJvmArgs(['run.config.label': ''])
+}
+
+task adminAdHoc(type: JavaExec, group: 'Admin',
+        description: 'Run the ad-hoc administrative task.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.AdHoc'
+    jvmArgs = adminJvmArgs(['run.config.label': ''])
+}
+
+// ── Lucene ────────────────────────────────────────────────────────────────────
+//   -Pindexed.objects=ConceptJpa   (optional, leave blank for all)
+//   -Pserver=false
+
+task adminReindex(type: JavaExec, group: 'Admin',
+        description: 'Rebuild Lucene indexes. Pass -Pindexed.objects=ClassName and -Pserver=false|true.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.LuceneReindex'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'indexed.objects': '', 'server': ''])
+}
+
+task adminReindexEcl(type: JavaExec, group: 'Admin',
+        description: 'Rebuild ECL (Expression Constraint Language) indexes. Pass -Pterminology, -Pversion, -Pserver.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.LuceneReindexEcl'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'server': ''])
+}
+
+// ── Loaders ───────────────────────────────────────────────────────────────────
+//   Pass Gradle project properties using -P flags on the command line.
+//   Example: ./gradlew adminLoadRrfSingle -Pterminology=SNOMEDCT_US -Pversion=latest -Pinput.dir=/data/rrf -Pserver=false
+
+task adminLoadRrfSingle(type: JavaExec, group: 'Admin',
+        description: 'Load a single RRF terminology. Params: -Pterminology -Pversion -Pprefix -Pinput.dir -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.RrfSingleLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadRrfMulti(type: JavaExec, group: 'Admin',
+        description: 'Load multiple RRF terminologies. Params: -Pprefix -Pinput.dir -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.RrfMultiLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'prefix': '', 'input.dir': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadRrfUmls(type: JavaExec, group: 'Admin',
+        description: 'Load UMLS RRF data. Params: -Pterminology -Pversion -Pprefix -Pinput.dir -Pedit.mode -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.RrfUmlsLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'edit.mode': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadRf2Full(type: JavaExec, group: 'Admin',
+        description: 'Load RF2 full release. Params: -Pterminology -Pversion -Pinput.dir -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.Rf2FullLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'input.dir': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadRf2Snapshot(type: JavaExec, group: 'Admin',
+        description: 'Load RF2 snapshot. Params: -Pterminology -Pversion -Pinput.dir -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.Rf2SnapshotLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'input.dir': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadRf2Delta(type: JavaExec, group: 'Admin',
+        description: 'Load RF2 delta. Params: -Pterminology -Pversion -Pinput.dir -Pserver') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.Rf2DeltaLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'input.dir': '', 'server': ''])
+}
+
+task adminLoadSimple(type: JavaExec, group: 'Admin',
+        description: 'Load a simple terminology. Params: -Pterminology -Pversion -Pinput.dir -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.SimpleLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'input.dir': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadClaml(type: JavaExec, group: 'Admin',
+        description: 'Load a ClaML terminology. Params: -Pterminology -Pversion -Pinput.file -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.ClamlLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'input.file': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadOwl(type: JavaExec, group: 'Admin',
+        description: 'Load an OWL terminology. Params: -Pterminology -Pversion -Pinput.file -Pserver -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.OwlLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'input.file': '', 'server': '', 'mode': ''])
+}
+
+// ── Post-load computations ────────────────────────────────────────────────────
+
+task adminTransitiveClosure(type: JavaExec, group: 'Admin',
+        description: 'Compute transitive closure. Params: -Pterminology -Pversion -Pserver') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.TransitiveClosureComputer'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'server': ''])
+}
+
+task adminTreePositions(type: JavaExec, group: 'Admin',
+        description: 'Compute tree positions. Params: -Pterminology -Pversion -Pserver') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.TreeposComputer'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'server': ''])
+}
+
+// ── Data generation ───────────────────────────────────────────────────────────
+
+task adminGenerateSampleData(type: JavaExec, group: 'Admin',
+        description: 'Generate sample data. Params: -Pmode -Pterminology -Pversion') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GenerateData'
+    jvmArgs = ['-Dtype=sample'] + adminJvmArgs(['run.config.label': '', 'mode': '', 'terminology': '', 'version': ''])
+}
+
+task adminGenerateNciMetaData(type: JavaExec, group: 'Admin',
+        description: 'Generate NCI Metathesaurus data. Params: -Pmode -Pterminology -Pversion -Pinput.dir') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GenerateData'
+    jvmArgs = ['-Dtype=nci'] + adminJvmArgs(['run.config.label': '', 'mode': '', 'terminology': '', 'version': '', 'input.dir': ''])
+}
+
+task adminGenerateDemoData(type: JavaExec, group: 'Admin',
+        description: 'Generate demo data. Params: -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GenerateData'
+    jvmArgs = ['-Dtype=demo'] + adminJvmArgs(['run.config.label': '', 'mode': ''])
+}
+
+// ── Removers ──────────────────────────────────────────────────────────────────
+
+task adminRemoveTerminology(type: JavaExec, group: 'Admin',
+        description: 'Remove a terminology from the database. Params: -Pterminology -Pversion -Pserver') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.TerminologyRemover'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'server': ''])
+}
+
+task adminRemoveSourceData(type: JavaExec, group: 'Admin',
+        description: 'Remove source data and terminology. Params: -Pterminology -Pversion -Pserver') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.SourceDataRemover'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'server': ''])
+}
+
+// ── Source data loader (RRF snapshot to source data object) ───────────────────
+
+task adminLoadRrfSourceData(type: JavaExec, group: 'Admin',
+        description: 'Load RRF files into a source data object. Params: -Pterminology -Pversion -Pprefix -Pinput.dir -Pmode') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.RrfSourceDataLoader'
+    jvmArgs = adminJvmArgs(['run.config.label': '', 'terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'mode': ''])
+}
