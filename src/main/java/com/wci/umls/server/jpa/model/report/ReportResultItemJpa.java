@@ -3,6 +3,7 @@
  */
 package com.wci.umls.server.jpa.model.report;
 
+import com.wci.umls.server.jpa.model.content.AbstractHasLastModified;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,7 +15,6 @@ import jakarta.persistence.TableGenerator;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import com.wci.umls.server.jpa.model.content.AbstractHasLastModified;
 import com.wci.umls.server.model.report.ReportResult;
 import com.wci.umls.server.model.report.ReportResultItem;
 
@@ -28,9 +28,9 @@ public class ReportResultItemJpa extends AbstractHasLastModified
     implements ReportResultItem {
 
   /** The id. */
-  @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
+  @TableGenerator(name = "EntityIdGenReport", table = "table_generator_report", pkColumnValue = "Entity")
   @Id
-  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenReport")
   private Long id;
 
   /** The item id. */

@@ -4899,7 +4899,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 				logInfo("[ApproveWorklistCluster] Loading concepts to be approved");
 
 
-			    final Long clusterId = new Long(integerParameter);
+			    final Long clusterId = Long.valueOf(integerParameter);
 			    final String worklistName = stringParameter;
 			    
 				// Find the specified worklist
@@ -5009,7 +5009,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 		 private void cleanupCorruptedProcessConfig() throws Exception {
 		    // 2022/01/06 remove corrupted process config and its steps
 		   
-		   final Long processConfigId = new Long(integerParameter);
+		   final Long processConfigId = Long.valueOf(integerParameter);
 
 		    ProcessService processService = new ProcessServiceJpa();
 		    processService.setLastModifiedBy("admin");

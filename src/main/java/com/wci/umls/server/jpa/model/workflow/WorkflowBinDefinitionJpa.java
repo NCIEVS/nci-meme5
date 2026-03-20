@@ -5,6 +5,7 @@ package com.wci.umls.server.jpa.model.workflow;
 
 import java.util.Date;
 
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -32,7 +33,6 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
-import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.model.workflow.WorkflowBinDefinition;
@@ -137,6 +137,7 @@ public class WorkflowBinDefinitionJpa implements WorkflowBinDefinition {
 
   /* see superclass */
   @Override
+  @GenericField(searchable = Searchable.YES)
   public Date getTimestamp() {
     return timestamp;
   }

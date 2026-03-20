@@ -26,10 +26,10 @@ public class ProcessServiceRestIT extends IntegrationUnitSupport {
 
   /** The service. */
   protected static ProcessClientRest processService;
-  
+
   /** The project service. */
   protected static ProjectClientRest projectService;
-  
+
   /** The content service. */
   protected static ContentClientRest contentService;
 
@@ -81,7 +81,7 @@ public class ProcessServiceRestIT extends IntegrationUnitSupport {
     }
     if (testPassword == null || testPassword.isEmpty()) {
       throw new Exception(
-          "Test prerequisite: viewer.password must be specified");
+              "Test prerequisite: viewer.password must be specified");
     }
     if (adminUser == null || adminUser.isEmpty()) {
       throw new Exception("Test prerequisite: admin.user must be specified");

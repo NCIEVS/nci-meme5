@@ -6,6 +6,18 @@ package com.wci.umls.server.rest.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.wci.umls.server.jpa.model.ProjectJpa;
+import com.wci.umls.server.jpa.model.UserJpa;
+import com.wci.umls.server.jpa.model.actions.AtomicActionListJpa;
+import com.wci.umls.server.jpa.model.actions.MolecularActionListJpa;
+import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
+import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
+import com.wci.umls.server.jpa.model.helpers.ProjectListJpa;
+import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
+import com.wci.umls.server.jpa.model.helpers.UserListJpa;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.User;
+import com.wci.umls.server.model.algo.UserRole;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -21,9 +33,6 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
 
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.User;
-import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.LocalException;
@@ -36,16 +45,7 @@ import com.wci.umls.server.helpers.StringList;
 import com.wci.umls.server.helpers.TypeKeyValue;
 import com.wci.umls.server.helpers.TypeKeyValueList;
 import com.wci.umls.server.helpers.UserList;
-import com.wci.umls.server.jpa.model.ProjectJpa;
-import com.wci.umls.server.jpa.model.UserJpa;
-import com.wci.umls.server.jpa.model.actions.AtomicActionListJpa;
-import com.wci.umls.server.jpa.model.actions.MolecularActionListJpa;
 import com.wci.umls.server.jpa.algo.maint.ReloadConfigPropertiesAlgorithm;
-import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
-import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
-import com.wci.umls.server.jpa.model.helpers.ProjectListJpa;
-import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
-import com.wci.umls.server.jpa.model.helpers.UserListJpa;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.ProjectServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
@@ -69,7 +69,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "/project")
 @SwaggerDefinition(info = @Info(description = "Operations to interact with project info.", title = "Project API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

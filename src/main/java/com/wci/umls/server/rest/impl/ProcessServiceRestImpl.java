@@ -16,6 +16,22 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
+import com.wci.umls.server.jpa.model.AlgorithmExecutionJpa;
+import com.wci.umls.server.jpa.model.ProcessConfigJpa;
+import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
+import com.wci.umls.server.jpa.model.content.AtomJpa;
+import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
+import com.wci.umls.server.jpa.model.helpers.ProcessConfigListJpa;
+import com.wci.umls.server.jpa.model.helpers.ProcessExecutionListJpa;
+import com.wci.umls.server.model.algo.AlgorithmConfig;
+import com.wci.umls.server.model.algo.AlgorithmExecution;
+import com.wci.umls.server.model.algo.AlgorithmParameter;
+import com.wci.umls.server.model.algo.ProcessConfig;
+import com.wci.umls.server.model.algo.ProcessExecution;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.UserRole;
+import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -35,14 +51,6 @@ import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
-import com.wci.umls.server.model.algo.AlgorithmConfig;
-import com.wci.umls.server.model.algo.AlgorithmExecution;
-import com.wci.umls.server.model.algo.AlgorithmParameter;
-import com.wci.umls.server.model.algo.ProcessConfig;
-import com.wci.umls.server.model.algo.ProcessExecution;
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.UserRole;
-import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.algo.Algorithm;
 import com.wci.umls.server.helpers.CancelException;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -54,14 +62,6 @@ import com.wci.umls.server.helpers.ProcessConfigList;
 import com.wci.umls.server.helpers.ProcessExecutionList;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
-import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
-import com.wci.umls.server.jpa.model.AlgorithmExecutionJpa;
-import com.wci.umls.server.jpa.model.ProcessConfigJpa;
-import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
-import com.wci.umls.server.jpa.model.content.AtomJpa;
-import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
-import com.wci.umls.server.jpa.model.helpers.ProcessConfigListJpa;
-import com.wci.umls.server.jpa.model.helpers.ProcessExecutionListJpa;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
@@ -85,7 +85,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "/process")
 @SwaggerDefinition(info = @Info(description = "Operations to interact with process and algorithm info.", title = "Process API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
@@ -799,24 +799,27 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
    * @return the process execution list
    * @throws Exception the exception
    */
-  @SuppressWarnings("static-method")
   public ProcessExecutionList findCurrentlyExecutingHelper(Long projectId,
     ProcessService processService) throws Exception {
-    final ProcessExecutionList processExecutions =
-        processService.findProcessExecutions(projectId,
-            "startDate:[* TO *] AND NOT failDate:[* TO *] AND NOT finishDate:[* TO *] AND NOT stopDate:[* TO *]",
-            null);
-
-    // Only keep process Executions if they in the currently
-    // executing processes progress map and have a progress of less than 100
-    for (final ProcessExecution processExecution : new ArrayList<ProcessExecution>(
-        processExecutions.getObjects())) {
-      if (!lookupPeProgressMap.containsKey(processExecution.getId())
-          || lookupPeProgressMap.get(processExecution.getId()) == 100) {
-        processExecutions.getObjects().remove(processExecution);
+    // Use lookupPeProgressMap as the authoritative source of running processes.
+    // Lucene [* TO *] range queries on numeric Date fields do not work in
+    // Lucene 9 (dates are indexed as longs, not text), so we drive the query
+    // from the progress map and do direct JPA lookups to verify state.
+    final ProcessExecutionList result = new ProcessExecutionListJpa();
+    for (final Map.Entry<Long, Integer> entry :
+        new HashMap<>(lookupPeProgressMap).entrySet()) {
+      if (entry.getValue() < 100) {
+        final ProcessExecution pe =
+            processService.getProcessExecution(entry.getKey());
+        if (pe != null && pe.getProject().getId().equals(projectId)
+            && pe.getStartDate() != null && pe.getFailDate() == null
+            && pe.getFinishDate() == null && pe.getStopDate() == null) {
+          result.getObjects().add(pe);
+        }
       }
     }
-    return processExecutions;
+    result.setTotalCount(result.getObjects().size());
+    return result;
   }
 
   /* see superclass */

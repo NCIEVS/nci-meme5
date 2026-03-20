@@ -20,6 +20,19 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
+import com.wci.umls.server.jpa.model.ValidationResultJpa;
+import com.wci.umls.server.jpa.model.actions.AtomicActionJpa;
+import com.wci.umls.server.jpa.model.actions.AtomicActionListJpa;
+import com.wci.umls.server.jpa.model.actions.MolecularActionJpa;
+import com.wci.umls.server.jpa.model.actions.MolecularActionListJpa;
+import com.wci.umls.server.jpa.model.content.ConceptJpa;
+import com.wci.umls.server.jpa.model.helpers.LogEntryJpa;
+import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
+import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
+import com.wci.umls.server.jpa.model.helpers.TypeKeyValueListJpa;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.User;
+import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
@@ -35,9 +48,6 @@ import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.apache.lucene.search.IndexSearcher;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.User;
-import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.algo.action.MolecularActionAlgorithm;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -50,17 +60,7 @@ import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.helpers.TypeKeyValue;
 import com.wci.umls.server.helpers.TypeKeyValueList;
-import com.wci.umls.server.jpa.model.ValidationResultJpa;
-import com.wci.umls.server.jpa.model.actions.AtomicActionJpa;
-import com.wci.umls.server.jpa.model.actions.AtomicActionListJpa;
-import com.wci.umls.server.jpa.model.actions.MolecularActionJpa;
-import com.wci.umls.server.jpa.model.actions.MolecularActionListJpa;
 import com.wci.umls.server.jpa.algo.action.AbstractMolecularAction;
-import com.wci.umls.server.jpa.model.content.ConceptJpa;
-import com.wci.umls.server.jpa.model.helpers.LogEntryJpa;
-import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
-import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
-import com.wci.umls.server.jpa.model.helpers.TypeKeyValueListJpa;
 import com.wci.umls.server.jpa.services.helper.IndexUtility;
 import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.AtomicActionList;
@@ -1009,6 +1009,11 @@ public abstract class RootServiceJpa implements RootService {
       // Get transaction and object
       tx = manager.getTransaction();
       T hasLastModified = manager.find(clazz, id);
+
+      // Entity not found - nothing to remove, treat as no-op
+      if (hasLastModified == null) {
+        return null;
+      }
 
       // set last modified fields (user, timestamp)
       if (isLastModifiedFlag()) {

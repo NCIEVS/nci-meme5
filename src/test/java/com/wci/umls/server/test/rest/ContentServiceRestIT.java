@@ -69,7 +69,7 @@ public class ContentServiceRestIT extends IntegrationUnitSupport {
     }
     if (testPassword == null || testPassword.isEmpty()) {
       throw new Exception(
-          "Test prerequisite: viewer.password must be specified");
+              "Test prerequisite: viewer.password must be specified");
     }
     if (adminUser == null || adminUser.isEmpty()) {
       throw new Exception("Test prerequisite: admin.user must be specified");

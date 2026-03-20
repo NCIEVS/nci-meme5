@@ -6,16 +6,23 @@ package com.wci.umls.server.jpa.model.report;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.wci.umls.server.jpa.model.ProjectJpa;
+import com.wci.umls.server.jpa.model.content.AbstractHasLastModified;
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
+import com.wci.umls.server.model.algo.Project;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.TableGenerator;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
@@ -30,13 +37,8 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
-import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
-import com.wci.umls.server.jpa.model.helpers.UseExistingOrGeneratedId;
 
-import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.helpers.QueryType;
-import com.wci.umls.server.jpa.model.ProjectJpa;
-import com.wci.umls.server.jpa.model.content.AbstractHasLastModified;
 import com.wci.umls.server.model.report.Report;
 import com.wci.umls.server.model.report.ReportResult;
 
@@ -50,8 +52,9 @@ import com.wci.umls.server.model.report.ReportResult;
 public class ReportJpa extends AbstractHasLastModified implements Report {
 
   /** The id. */
+  @TableGenerator(name = "EntityIdGenReport", table = "table_generator_report", pkColumnValue = "Entity")
   @Id
-  @UseExistingOrGeneratedId
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenReport")
   private Long id;
 
   /** The name. */

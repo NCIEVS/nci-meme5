@@ -73,7 +73,7 @@ public class MetadataServiceRestIT extends IntegrationUnitSupport {
     }
     if (testPassword == null || testPassword.isEmpty()) {
       throw new Exception(
-          "Test prerequisite: viewer.password must be specified");
+              "Test prerequisite: viewer.password must be specified");
     }
 
     // admin run.config.umls has viewer user
@@ -85,7 +85,7 @@ public class MetadataServiceRestIT extends IntegrationUnitSupport {
     }
     if (adminPassword == null || adminPassword.isEmpty()) {
       throw new Exception(
-          "admin prerequisite: admin.password must be specified");
+              "admin prerequisite: admin.password must be specified");
     }
 
   }

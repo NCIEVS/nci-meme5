@@ -9,25 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.Query;
-import jakarta.persistence.TypedQuery;
-
-import org.apache.log4j.Logger;
-
-import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PrecedenceList;
-import com.wci.umls.server.helpers.meta.AdditionalRelationshipTypeList;
-import com.wci.umls.server.helpers.meta.AttributeNameList;
-import com.wci.umls.server.helpers.meta.GeneralMetadataEntryList;
-import com.wci.umls.server.helpers.meta.LabelSetList;
-import com.wci.umls.server.helpers.meta.LanguageList;
-import com.wci.umls.server.helpers.meta.PropertyChainList;
-import com.wci.umls.server.helpers.meta.RelationshipTypeList;
-import com.wci.umls.server.helpers.meta.RootTerminologyList;
-import com.wci.umls.server.helpers.meta.SemanticTypeList;
-import com.wci.umls.server.helpers.meta.TermTypeList;
-import com.wci.umls.server.helpers.meta.TerminologyList;
 import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
 import com.wci.umls.server.jpa.model.helpers.meta.AdditionalRelationshipTypeListJpa;
 import com.wci.umls.server.jpa.model.helpers.meta.AttributeNameListJpa;
@@ -51,6 +32,25 @@ import com.wci.umls.server.jpa.model.meta.RootTerminologyJpa;
 import com.wci.umls.server.jpa.model.meta.SemanticTypeJpa;
 import com.wci.umls.server.jpa.model.meta.TermTypeJpa;
 import com.wci.umls.server.jpa.model.meta.TerminologyJpa;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
+import jakarta.persistence.TypedQuery;
+
+import org.apache.log4j.Logger;
+
+import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PrecedenceList;
+import com.wci.umls.server.helpers.meta.AdditionalRelationshipTypeList;
+import com.wci.umls.server.helpers.meta.AttributeNameList;
+import com.wci.umls.server.helpers.meta.GeneralMetadataEntryList;
+import com.wci.umls.server.helpers.meta.LabelSetList;
+import com.wci.umls.server.helpers.meta.LanguageList;
+import com.wci.umls.server.helpers.meta.PropertyChainList;
+import com.wci.umls.server.helpers.meta.RelationshipTypeList;
+import com.wci.umls.server.helpers.meta.RootTerminologyList;
+import com.wci.umls.server.helpers.meta.SemanticTypeList;
+import com.wci.umls.server.helpers.meta.TermTypeList;
+import com.wci.umls.server.helpers.meta.TerminologyList;
 import com.wci.umls.server.model.meta.Abbreviation;
 import com.wci.umls.server.model.meta.AdditionalRelationshipType;
 import com.wci.umls.server.model.meta.AttributeName;
@@ -225,18 +225,20 @@ public class MetadataServiceJpa extends ProjectServiceJpa
         + " where terminology = :terminology " + " and version = :version");
     query.setParameter("terminology", terminology);
     query.setParameter("version", version);
-    try {
-      final Long precedenceListId = (Long) query.getSingleResult();
-      final PrecedenceList precedenceList = getPrecedenceList(precedenceListId);
-      //Handle lazy init
-      precedenceList.getTermTypeRankMap().size();
-      precedenceList.getTerminologyRankMap().size();
-      precedenceList.getPrecedence().getName();
-      return precedenceList;
-      //return (PrecedenceList) query.getSingleResult();
-    } catch (NoResultException e) {
+    @SuppressWarnings("unchecked")
+    final List<Long> results = query.getResultList();
+    if (results.isEmpty()) {
       return null;
     }
+    // Use the first result — multiple copies may exist if project-specific
+    // copies were not cleaned up when projects were removed.
+    final Long precedenceListId = results.get(0);
+    final PrecedenceList precedenceList = getPrecedenceList(precedenceListId);
+    // Handle lazy init
+    precedenceList.getTermTypeRankMap().size();
+    precedenceList.getTerminologyRankMap().size();
+    precedenceList.getPrecedence().getName();
+    return precedenceList;
   }
 
   /* see superclass */

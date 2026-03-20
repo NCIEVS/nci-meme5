@@ -7,11 +7,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import com.wci.umls.server.jpa.helpers.ObjectToStringBridge;
 import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
 import com.wci.umls.server.jpa.model.AlgorithmExecutionJpa;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ProjectJpa;
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
+import com.wci.umls.server.model.algo.AlgorithmInfo;
+import com.wci.umls.server.model.algo.AlgorithmParameter;
+import com.wci.umls.server.model.algo.ProcessInfo;
+import com.wci.umls.server.model.algo.Project;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -34,11 +38,6 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDependency;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
-
-import com.wci.umls.server.AlgorithmInfo;
-import com.wci.umls.server.AlgorithmParameter;
-import com.wci.umls.server.ProcessInfo;
-import com.wci.umls.server.Project;
 
 /**
  * JPA and JAXB enabled implementation of {@link AlgorithmInfo}.

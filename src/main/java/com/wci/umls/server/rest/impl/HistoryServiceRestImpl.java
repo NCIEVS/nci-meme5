@@ -3,6 +3,10 @@
  */
 package com.wci.umls.server.rest.impl;
 
+import com.wci.umls.server.jpa.model.ReleaseInfoJpa;
+import com.wci.umls.server.jpa.model.helpers.ReleaseInfoListJpa;
+import com.wci.umls.server.model.algo.ReleaseInfo;
+import com.wci.umls.server.model.algo.UserRole;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -16,11 +20,7 @@ import jakarta.ws.rs.core.MediaType;
 
 import org.apache.log4j.Logger;
 
-import com.wci.umls.server.model.algo.ReleaseInfo;
-import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ReleaseInfoList;
-import com.wci.umls.server.jpa.model.ReleaseInfoJpa;
-import com.wci.umls.server.jpa.model.helpers.ReleaseInfoListJpa;
 import com.wci.umls.server.jpa.services.HistoryServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.HistoryServiceRest;
@@ -40,7 +40,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Api(value = "/history")
 @SwaggerDefinition(info = @Info(description = "Operations to retrieve historical content for a terminology.", title = "History API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

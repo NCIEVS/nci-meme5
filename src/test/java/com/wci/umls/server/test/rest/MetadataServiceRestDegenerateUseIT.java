@@ -30,7 +30,7 @@ public class MetadataServiceRestDegenerateUseIT extends
 
     // authentication
     authToken =
-        securityService.authenticate(testUser, testPassword).getAuthToken();
+            securityService.authenticate(testUser, testPassword).getAuthToken();
   }
 
   /**
@@ -76,7 +76,7 @@ public class MetadataServiceRestDegenerateUseIT extends
     // test bad terminology
     try {
       metadataService.getAllMetadata("InvalidTerminology", "InvalidVersion",
-          authToken);
+              authToken);
       fail("Getting metadata for non-existent terminology with invalid version did not throw expected exception");
     } catch (Exception e) {
       // do nothing

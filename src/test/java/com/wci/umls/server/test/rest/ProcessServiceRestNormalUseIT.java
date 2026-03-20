@@ -74,7 +74,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // authentication
     authToken =
-        securityService.authenticate(adminUser, adminPassword).getAuthToken();
+            securityService.authenticate(adminUser, adminPassword).getAuthToken();
 
     // ensure there is a concept associated with the project
     ProjectList projects = projectService.findProjects(null, null, authToken);
@@ -99,9 +99,9 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfigJpa.setVersion(umlsVersion);
     processConfigJpa.setType("MAINTAINENCE");
     processConfigJpa = (ProcessConfigJpa) processService
-        .addProcessConfig(project.getId(), processConfigJpa, authToken);
+            .addProcessConfig(project.getId(), processConfigJpa, authToken);
     processConfig = processService.getProcessConfig(project.getId(),
-        processConfigJpa.getId(), authToken);
+            processConfigJpa.getId(), authToken);
   }
 
   /**
@@ -124,7 +124,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig1.setVersion(umlsVersion);
     processConfig1.setType("MAINTAINENCE");
     ProcessConfigJpa addedProcessConfig1 = (ProcessConfigJpa) processService
-        .addProcessConfig(project.getId(), processConfig1, authToken);
+            .addProcessConfig(project.getId(), processConfig1, authToken);
 
     // TEST: retrieve the processConfig and verify it is equal
     assertEquals(processConfig1, addedProcessConfig1);
@@ -133,9 +133,9 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     Logger.getLogger(getClass()).info("  Update processConfig");
     addedProcessConfig1.setName("Sample 2 " + new Date().getTime());
     processService.updateProcessConfig(project.getId(), addedProcessConfig1,
-        authToken);
+            authToken);
     ProcessConfig updatedProcessConfig1 = processService.getProcessConfig(
-        project.getId(), addedProcessConfig1.getId(), authToken);
+            project.getId(), addedProcessConfig1.getId(), authToken);
 
     // TEST: retrieve the processConfig and verify it is equal
     assertEquals(addedProcessConfig1, updatedProcessConfig1);
@@ -150,12 +150,12 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig2.setVersion(umlsVersion);
     processConfig2.setType("MAINTAINENCE");
     ProcessConfigJpa addedProcessConfig2 = (ProcessConfigJpa) processService
-        .addProcessConfig(project.getId(), processConfig2, authToken);
+            .addProcessConfig(project.getId(), processConfig2, authToken);
 
     // Get the processConfigs
     Logger.getLogger(getClass()).info("  Get the processConfigs");
     ProcessConfigList processConfigList = processService
-        .findProcessConfigs(project.getId(), null, null, authToken);
+            .findProcessConfigs(project.getId(), null, null, authToken);
     assertNotNull(processConfigList);
     int processConfigCount = processConfigList.size();
     assertTrue(processConfigList.contains(updatedProcessConfig1));
@@ -164,26 +164,26 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     // Remove the processConfig
     Logger.getLogger(getClass()).info("  Remove processConfig");
     processService.removeProcessConfig(project.getId(),
-        updatedProcessConfig1.getId(), true, authToken);
+            updatedProcessConfig1.getId(), true, authToken);
     processConfigList = processService.findProcessConfigs(project.getId(), null,
-        null, authToken);
+            null, authToken);
     assertEquals(processConfigCount - 1, processConfigList.size());
 
     // TEST: verify that it is removed (call should return null)
     assertNull(processService.getProcessConfig(project.getId(),
-        updatedProcessConfig1.getId(), authToken));
+            updatedProcessConfig1.getId(), authToken));
 
     // remove second processConfig
     Logger.getLogger(getClass()).info("  Remove second processConfig");
     processService.removeProcessConfig(project.getId(),
-        addedProcessConfig2.getId(), true, authToken);
+            addedProcessConfig2.getId(), true, authToken);
     processConfigList = processService.findProcessConfigs(project.getId(), null,
-        null, authToken);
+            null, authToken);
     assertEquals(processConfigCount - 2, processConfigList.size());
 
     // TEST: verify that it is removed (call should return null)
     assertNull(processService.getProcessConfig(project.getId(),
-        addedProcessConfig2.getId(), authToken));
+            addedProcessConfig2.getId(), authToken));
 
   }
 
@@ -208,8 +208,8 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig1.setProcess(processConfig);
     algorithmConfig1.setAlgorithmKey("WAIT");
     AlgorithmConfigJpa addedAlgorithmConfig1 =
-        (AlgorithmConfigJpa) processService.addAlgorithmConfig(project.getId(),
-            processConfig.getId(), algorithmConfig1, authToken);
+            (AlgorithmConfigJpa) processService.addAlgorithmConfig(project.getId(),
+                    processConfig.getId(), algorithmConfig1, authToken);
 
     // TEST: retrieve the algorithmConfig and verify it is equal
     assertEquals(algorithmConfig1, addedAlgorithmConfig1);
@@ -218,9 +218,9 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     Logger.getLogger(getClass()).info("  Update algorithmConfig");
     addedAlgorithmConfig1.setName("Sample 2 " + new Date().getTime());
     processService.updateAlgorithmConfig(project.getId(), processConfig.getId(),
-        addedAlgorithmConfig1, authToken);
+            addedAlgorithmConfig1, authToken);
     AlgorithmConfig updatedAlgorithmConfig1 = processService.getAlgorithmConfig(
-        project.getId(), addedAlgorithmConfig1.getId(), authToken);
+            project.getId(), addedAlgorithmConfig1.getId(), authToken);
 
     // TEST: retrieve the processConfig and verify it is equal
     assertEquals(addedAlgorithmConfig1, updatedAlgorithmConfig1);
@@ -234,32 +234,32 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig2.setProcess(processConfig);
     algorithmConfig2.setAlgorithmKey("WAIT");
     AlgorithmConfigJpa addedAlgorithmConfig2 =
-        (AlgorithmConfigJpa) processService.addAlgorithmConfig(project.getId(),
-            processConfig.getId(), algorithmConfig2, authToken);
+            (AlgorithmConfigJpa) processService.addAlgorithmConfig(project.getId(),
+                    processConfig.getId(), algorithmConfig2, authToken);
 
     // Confirm the processConfig contains both algorithmConfigs
     ProcessConfig pc = processService.getProcessConfig(project.getId(),
-        algorithmConfig2.getProcess().getId(), authToken);
+            algorithmConfig2.getProcess().getId(), authToken);
     assertTrue(pc.getSteps().contains(addedAlgorithmConfig1));
     assertTrue(pc.getSteps().contains(addedAlgorithmConfig2));
 
     // Remove the algorithmConfig
     Logger.getLogger(getClass()).info("  Remove algorithmConfig");
     processService.removeAlgorithmConfig(project.getId(),
-        updatedAlgorithmConfig1.getId(), authToken);
+            updatedAlgorithmConfig1.getId(), authToken);
 
     // TEST: verify that it is removed (call should return null)
     assertNull(processService.getAlgorithmConfig(project.getId(),
-        updatedAlgorithmConfig1.getId(), authToken));
+            updatedAlgorithmConfig1.getId(), authToken));
 
     // remove second algorithmConfig
     Logger.getLogger(getClass()).info("  Remove second algorithmConfig");
     processService.removeAlgorithmConfig(project.getId(),
-        addedAlgorithmConfig2.getId(), authToken);
+            addedAlgorithmConfig2.getId(), authToken);
 
     // TEST: verify that it is removed (call should return null)
     assertNull(processService.getAlgorithmConfig(project.getId(),
-        addedAlgorithmConfig2.getId(), authToken));
+            addedAlgorithmConfig2.getId(), authToken));
 
   }
 
@@ -274,21 +274,21 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Get the insertion Algorithms
     KeyValuePairList insertionAlgorithms = processService
-        .getAlgorithmsForType(project.getId(), "insertion", authToken);
+            .getAlgorithmsForType(project.getId(), "insertion", authToken);
 
     // TEST: make sure insertion Algorithms were returned
     assertNotNull(insertionAlgorithms);
 
     // Get the maintenance Algorithms
     KeyValuePairList maintenanceAlgorithms = processService
-        .getAlgorithmsForType(project.getId(), "maintenance", authToken);
+            .getAlgorithmsForType(project.getId(), "maintenance", authToken);
 
     // TEST: make sure maintenance Algorithms were returned
     assertNotNull(maintenanceAlgorithms);
 
     // Get the release Algorithms
     KeyValuePairList releaseAlgorithms = processService
-        .getAlgorithmsForType(project.getId(), "release", authToken);
+            .getAlgorithmsForType(project.getId(), "release", authToken);
 
     // TEST: make sure release Algorithms were returned
     assertNotNull(releaseAlgorithms);
@@ -306,20 +306,20 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Get the pre-defined test process
     ProcessConfig processConfig =
-        processService.findProcessConfigs(project.getId(),
-            "name:\"Test Process\"", null, authToken).getObjects().get(0);
+            processService.findProcessConfigs(project.getId(),
+                    "name:\"Test Process\"", null, authToken).getObjects().get(0);
     assertNotNull(processConfig);
 
     // Execute the process
     Long processExecutionId = processService.prepareAndExecuteProcess(
-        project.getId(), processConfig.getId(), true, authToken);
+            project.getId(), processConfig.getId(), true, authToken);
 
     // Wait a couple seconds until it gets set up and going
     Thread.sleep(2000);
 
     // Make sure the processExecution was created
     ProcessExecution processExecution = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
     assertNotNull(processExecution);
     assertNotNull(processExecution.getStartDate());
     assertNull(processExecution.getFailDate());
@@ -327,7 +327,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Make sure the process is showing up as a currentlyExecutingProcesses
     ProcessExecutionList runningProcessExecutions = processService
-        .findCurrentlyExecutingProcesses(project.getId(), authToken);
+            .findCurrentlyExecutingProcesses(project.getId(), authToken);
 
     Boolean processFound = false;
     for (ProcessExecution pe : runningProcessExecutions.getObjects()) {
@@ -343,7 +343,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Test to make sure the process completed successfully
     processExecution = processService.getProcessExecution(project.getId(),
-        processExecutionId, authToken);
+            processExecutionId, authToken);
     assertNull(processExecution.getFailDate());
     assertNotNull(processExecution.getFinishDate());
 
@@ -375,7 +375,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig.setTimestamp(new Date());
     processConfig.setType("MAINTAINENCE");
     processConfig = processService.addProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig, authToken);
+            (ProcessConfigJpa) processConfig, authToken);
 
     // Create and add one WAIT algorithm
     algorithmConfig = new AlgorithmConfigJpa();
@@ -389,7 +389,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Create and set required algorithm parameters
     List<AlgorithmParameter> algoParameters =
-        new ArrayList<AlgorithmParameter>();
+            new ArrayList<AlgorithmParameter>();
     AlgorithmParameter algoParameter = new AlgorithmParameterJpa();
     algoParameter.setFieldName("num");
     algoParameter.setValue("5");
@@ -397,7 +397,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setParameters(algoParameters);
 
     algorithmConfig = processService.addAlgorithmConfig(project.getId(),
-        processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig, authToken);
+            processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig, authToken);
 
     processConfig.getSteps().add(algorithmConfig);
 
@@ -413,28 +413,28 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Set required algorithm parameters (use same as above)
     algorithmConfig2
-        .setParameters(new ArrayList<AlgorithmParameter>(algoParameters));
+            .setParameters(new ArrayList<AlgorithmParameter>(algoParameters));
 
     algorithmConfig2 = processService.addAlgorithmConfig(project.getId(),
-        processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig2,
-        authToken);
+            processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig2,
+            authToken);
 
     processConfig.getSteps().add(algorithmConfig2);
 
     // Update the process to lock the steps updates
     processService.updateProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig, authToken);
+            (ProcessConfigJpa) processConfig, authToken);
 
     // Execute the process in the background
     Long processExecutionId = processService.prepareAndExecuteProcess(
-        project.getId(), processConfig.getId(), true, authToken);
+            project.getId(), processConfig.getId(), true, authToken);
 
     // Wait a few seconds until it gets set up and going
     Thread.sleep(3000);
 
     // Make sure the processExecution was created
     ProcessExecution processExecution = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
     assertNotNull(processExecution);
     assertNotNull(processExecution.getStartDate());
     assertNull(processExecution.getFailDate());
@@ -442,7 +442,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Make sure the process is showing up as a currentlyExecutingProcesses
     ProcessExecutionList runningProcessExecutions = processService
-        .findCurrentlyExecutingProcesses(project.getId(), authToken);
+            .findCurrentlyExecutingProcesses(project.getId(), authToken);
 
     Boolean processFound = false;
     for (ProcessExecution pe : runningProcessExecutions.getObjects()) {
@@ -460,25 +460,25 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     // Start another process while this one is going in the background
     // Get the pre-defined test process
     ProcessConfig preDefinedProcessConfig =
-        processService.findProcessConfigs(project.getId(),
-            "name:\"Test Process\"", null, authToken).getObjects().get(0);
+            processService.findProcessConfigs(project.getId(),
+                    "name:\"Test Process\"", null, authToken).getObjects().get(0);
     assertNotNull(processConfig);
 
     // Execute the process
     Long processExecutionId2 = processService.prepareAndExecuteProcess(
-        project.getId(), preDefinedProcessConfig.getId(), true, authToken);
+            project.getId(), preDefinedProcessConfig.getId(), true, authToken);
 
     // Wait a few more seconds, to build the suspense
     Thread.sleep(3000);
 
     // Ensure that both running processes show up as executing
     ProcessExecutionList executingProcesses = processService
-        .findCurrentlyExecutingProcesses(project.getId(), authToken);
+            .findCurrentlyExecutingProcesses(project.getId(), authToken);
 
     ProcessExecution processExecution1 = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
     ProcessExecution processExecution2 = processService
-        .getProcessExecution(project.getId(), processExecutionId2, authToken);
+            .getProcessExecution(project.getId(), processExecutionId2, authToken);
 
     assertTrue(executingProcesses.contains(processExecution1));
     assertTrue(executingProcesses.contains(processExecution2));
@@ -509,7 +509,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig2.setTimestamp(new Date());
     processConfig2.setType("MAINTAINENCE");
     processConfig2 = processService.addProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig2, authToken);
+            (ProcessConfigJpa) processConfig2, authToken);
 
     // Create and add one WAIT algorithm
     algorithmConfig = new AlgorithmConfigJpa();
@@ -523,7 +523,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Create and set required algorithm parameters
     List<AlgorithmParameter> algoParameters =
-        new ArrayList<AlgorithmParameter>();
+            new ArrayList<AlgorithmParameter>();
     AlgorithmParameter algoParameter = new AlgorithmParameterJpa();
     algoParameter.setFieldName("num");
     algoParameter.setValue("5");
@@ -531,8 +531,8 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setParameters(algoParameters);
 
     algorithmConfig = processService.addAlgorithmConfig(project.getId(),
-        processConfig2.getId(), (AlgorithmConfigJpa) algorithmConfig,
-        authToken);
+            processConfig2.getId(), (AlgorithmConfigJpa) algorithmConfig,
+            authToken);
 
     processConfig2.getSteps().add(algorithmConfig);
 
@@ -548,28 +548,28 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Set required algorithm parameters (use same as above)
     algorithmConfig2
-        .setParameters(new ArrayList<AlgorithmParameter>(algoParameters));
+            .setParameters(new ArrayList<AlgorithmParameter>(algoParameters));
 
     algorithmConfig2 = processService.addAlgorithmConfig(project.getId(),
-        processConfig2.getId(), (AlgorithmConfigJpa) algorithmConfig2,
-        authToken);
+            processConfig2.getId(), (AlgorithmConfigJpa) algorithmConfig2,
+            authToken);
 
     processConfig2.getSteps().add(algorithmConfig2);
 
     // Update the process to lock the steps updates
     processService.updateProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig2, authToken);
+            (ProcessConfigJpa) processConfig2, authToken);
 
     // Execute the process in the background
     Long processExecutionId = processService.prepareAndExecuteProcess(
-        project.getId(), processConfig2.getId(), true, authToken);
+            project.getId(), processConfig2.getId(), true, authToken);
 
     // Wait a few seconds until it gets set up and going
     Thread.sleep(3000);
 
     // Make sure the processExecution was created
     ProcessExecution processExecution = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
     assertNotNull(processExecution);
     assertNotNull(processExecution.getStartDate());
     assertNull(processExecution.getFailDate());
@@ -577,7 +577,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Make sure the process is showing up as a currentlyExecutingProcesses
     ProcessExecutionList runningProcessExecutions = processService
-        .findCurrentlyExecutingProcesses(project.getId(), authToken);
+            .findCurrentlyExecutingProcesses(project.getId(), authToken);
 
     Boolean processFound = false;
     for (ProcessExecution pe : runningProcessExecutions.getObjects()) {
@@ -598,7 +598,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Cancel the execution
     processService.cancelProcess(project.getId(), processExecutionId,
-        authToken);
+            authToken);
 
     // Give the machine a second to let the cancellation process
     Thread.sleep(1000);
@@ -606,7 +606,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     // Confirm execution is canceled (canceled executions will have failDate and
     // finishDate populated
     processExecution = processService.getProcessExecution(project.getId(),
-        processExecutionId, authToken);
+            processExecutionId, authToken);
     assertNotNull(processExecution.getFailDate());
     assertNotNull(processExecution.getFinishDate());
 
@@ -624,11 +624,11 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Restart the execution, but not in the background
     processService.restartProcess(project.getId(), processExecutionId, false,
-        authToken);
+            authToken);
 
     // Test to make sure the process completed successfully
     processExecution = processService.getProcessExecution(project.getId(),
-        processExecutionId, authToken);
+            processExecutionId, authToken);
     assertNull(processExecution.getFailDate());
     assertNotNull(processExecution.getFinishDate());
 
@@ -651,20 +651,20 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Get the pre-defined test process
     ProcessConfig processConfig =
-        processService.findProcessConfigs(project.getId(),
-            "name:\"Test Process\"", null, authToken).getObjects().get(0);
+            processService.findProcessConfigs(project.getId(),
+                    "name:\"Test Process\"", null, authToken).getObjects().get(0);
     assertNotNull(processConfig);
 
     // Execute the process
     Long processExecutionId = processService.prepareAndExecuteProcess(
-        project.getId(), processConfig.getId(), true, authToken);
+            project.getId(), processConfig.getId(), true, authToken);
 
     // Wait a couple seconds until it gets set up and going
     Thread.sleep(2000);
 
     // Make sure the processExecution was created
     ProcessExecution processExecution = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
     assertNotNull(processExecution);
     assertNotNull(processExecution.getStartDate());
     assertNull(processExecution.getFailDate());
@@ -672,7 +672,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Check the process progress
     Integer processProgress = processService.getProcessProgress(project.getId(),
-        processExecutionId, authToken);
+            processExecutionId, authToken);
     assertNotNull(processProgress);
     assertTrue(processProgress >= 0 && processProgress <= 100);
 
@@ -682,21 +682,21 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Check the algorithm progress
     Integer algorithmProgress = processService
-        .getAlgorithmProgress(project.getId(), algorithmExecutionId, authToken);
+            .getAlgorithmProgress(project.getId(), algorithmExecutionId, authToken);
 
     // Wait a couple seconds
     Thread.sleep(2000);
 
     // Recheck the process progress, and ensure it is farther along than before
     Integer processProgress2 = processService
-        .getProcessProgress(project.getId(), processExecutionId, authToken);
+            .getProcessProgress(project.getId(), processExecutionId, authToken);
     assertNotNull(processProgress2);
     assertTrue(processProgress2 > processProgress);
 
     // Recheck the algorithm progress, and ensure it is farther along than
     // before
     Integer algorithmProgress2 = processService
-        .getAlgorithmProgress(project.getId(), algorithmExecutionId, authToken);
+            .getAlgorithmProgress(project.getId(), algorithmExecutionId, authToken);
     assertNotNull(algorithmProgress2);
     assertTrue(algorithmProgress2 > algorithmProgress);
 
@@ -706,12 +706,12 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     // Make sure that the process and algorithm executions progress have been
     // set to full completion
     Integer processProgress3 = processService
-        .getProcessProgress(project.getId(), processExecutionId, authToken);
+            .getProcessProgress(project.getId(), processExecutionId, authToken);
     assertNotNull(processProgress3);
     assertTrue(processProgress3.equals(100));
 
     Integer algorithmProgress3 = processService
-        .getAlgorithmProgress(project.getId(), algorithmExecutionId, authToken);
+            .getAlgorithmProgress(project.getId(), algorithmExecutionId, authToken);
     assertNotNull(algorithmProgress3);
     assertTrue(algorithmProgress3.equals(100));
 
@@ -738,7 +738,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig.setTimestamp(new Date());
     processConfig.setType("MAINTAINENCE");
     processConfig = processService.addProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig, authToken);
+            (ProcessConfigJpa) processConfig, authToken);
 
     // Create and add one FAILONCE algorithm
     algorithmConfig = new AlgorithmConfigJpa();
@@ -751,19 +751,19 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setTimestamp(new Date());
     algorithmConfig.setParameters(new ArrayList<AlgorithmParameter>());
     algorithmConfig = processService.addAlgorithmConfig(project.getId(),
-        processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig, authToken);
+            processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig, authToken);
 
     processConfig.getSteps().add(algorithmConfig);
 
     // Update the process to lock the steps
     processService.updateProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig, authToken);
+            (ProcessConfigJpa) processConfig, authToken);
 
     // Execute the process (this should fail)
     Long processExecutionId = null;
     try {
       processExecutionId = processService.prepareAndExecuteProcess(
-          project.getId(), processConfig.getId(), false, authToken);
+              project.getId(), processConfig.getId(), false, authToken);
       fail("Execute should fail the first time it's run");
     } catch (Exception e) {
       // n/a
@@ -776,15 +776,15 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     pfs.setSortField("lastModified");
     pfs.setAscending(false);
     ProcessExecution processExecution = processService
-        .findProcessExecutions(project.getId(),
-            "name:\"FailOnce Test Process\"", pfs, authToken)
-        .getObjects().get(0);
+            .findProcessExecutions(project.getId(),
+                    "name:\"FailOnce Test Process\"", pfs, authToken)
+            .getObjects().get(0);
 
     processExecutionId = processExecution.getId();
 
     // Ensure the process execution and algorithm execution were set to Fail
     processExecution = processService.getProcessExecution(project.getId(),
-        processExecutionId, authToken);
+            processExecutionId, authToken);
     assertNotNull(processExecution.getFailDate());
     assertNull(processExecution.getFinishDate());
 
@@ -794,11 +794,11 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Restart the process (this should succeed)
     processService.restartProcess(project.getId(), processExecutionId, false,
-        authToken);
+            authToken);
 
     // Ensure the process execution and algorithm execution ran successfully
     processExecution = processService.getProcessExecution(project.getId(),
-        processExecutionId, authToken);
+            processExecutionId, authToken);
     assertNull(processExecution.getFailDate());
     assertNotNull(processExecution.getFinishDate());
 
@@ -830,7 +830,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig.setTimestamp(new Date());
     processConfig.setType("MAINTAINENCE");
     processConfig = processService.addProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig, authToken);
+            (ProcessConfigJpa) processConfig, authToken);
 
     // Create and add one WAIT algorithm
     algorithmConfig = new AlgorithmConfigJpa();
@@ -844,7 +844,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Create and set required algorithm parameters
     List<AlgorithmParameter> algoParameters =
-        new ArrayList<AlgorithmParameter>();
+            new ArrayList<AlgorithmParameter>();
     AlgorithmParameter algoParameter = new AlgorithmParameterJpa();
     algoParameter.setFieldName("num");
     algoParameter.setValue("5");
@@ -852,7 +852,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setParameters(algoParameters);
 
     algorithmConfig = processService.addAlgorithmConfig(project.getId(),
-        processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig, authToken);
+            processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig, authToken);
 
     processConfig.getSteps().add(algorithmConfig);
 
@@ -868,54 +868,54 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Set required algorithm parameters (use same as above)
     algorithmConfig2
-        .setParameters(new ArrayList<AlgorithmParameter>(algoParameters));
+            .setParameters(new ArrayList<AlgorithmParameter>(algoParameters));
 
     algorithmConfig2 = processService.addAlgorithmConfig(project.getId(),
-        processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig2,
-        authToken);
+            processConfig.getId(), (AlgorithmConfigJpa) algorithmConfig2,
+            authToken);
 
     processConfig.getSteps().add(algorithmConfig2);
 
     // Update the process to lock the steps updates
     processService.updateProcessConfig(project.getId(),
-        (ProcessConfigJpa) processConfig, authToken);
+            (ProcessConfigJpa) processConfig, authToken);
 
     // Execute the process (not in background)
     Long processExecutionId = processService.prepareAndExecuteProcess(
-        project.getId(), processConfig.getId(), false, authToken);
+            project.getId(), processConfig.getId(), false, authToken);
 
     // Get the process execution
     ProcessExecution processExecution = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
 
     // Test to make sure the process created log entries for both algorithms
     String processExecutionLog = processService.getProcessLog(project.getId(),
-        processExecutionId, null, authToken);
+            processExecutionId, null, authToken);
     assertNotNull(processExecutionLog);
     // Flatten the log into a single line, so we can use regular expressions
     // against it.
     String processExecutionLogFlat = processExecutionLog.replace("\n", " ");
     assertTrue(processExecutionLogFlat
-        .matches(".*" + processExecution.getLastModifiedBy() + " Starting .*"
-            + processExecution.getLastModifiedBy() + " Starting .*"));
+            .matches(".*" + processExecution.getLastModifiedBy() + " Starting .*"
+                    + processExecution.getLastModifiedBy() + " Starting .*"));
 
     // Make sure all of the process' algorithms created log entries for just
     // their own algorithm
     for (AlgorithmExecution ae : processExecution.getSteps()) {
       String algorithmExecutionLog = processService
-          .getAlgorithmLog(project.getId(), ae.getId(), null, authToken);
+              .getAlgorithmLog(project.getId(), ae.getId(), null, authToken);
       assertNotNull(algorithmExecutionLog);
       // Flatten the log into a single line, so we can use regular expressions
       // against it.
       String algorithmExecutionLogFlat =
-          algorithmExecutionLog.replace("\n", " ");
+              algorithmExecutionLog.replace("\n", " ");
       // Make sure it doesn't contain BOTH algorithm's log lines
       assertFalse(
-          algorithmExecutionLogFlat.matches(".*" + ae.getLastModifiedBy()
-              + " Starting .*" + ae.getLastModifiedBy() + " Starting .*"));
+              algorithmExecutionLogFlat.matches(".*" + ae.getLastModifiedBy()
+                      + " Starting .*" + ae.getLastModifiedBy() + " Starting .*"));
       // Make sure it DOES contain its own log lines
       assertTrue(algorithmExecutionLogFlat
-          .matches(".*" + ae.getLastModifiedBy() + " Starting .*"));
+              .matches(".*" + ae.getLastModifiedBy() + " Starting .*"));
     }
 
   }
@@ -932,19 +932,19 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     // Teardown any objects created during testing
     if (algorithmConfig != null) {
       processService.removeAlgorithmConfig(project.getId(),
-          algorithmConfig.getId(), authToken);
+              algorithmConfig.getId(), authToken);
     }
     if (algorithmConfig2 != null) {
       processService.removeAlgorithmConfig(project.getId(),
-          algorithmConfig2.getId(), authToken);
+              algorithmConfig2.getId(), authToken);
     }
     if (processConfig != null) {
       processService.removeProcessConfig(project.getId(), processConfig.getId(),
-          true, authToken);
+              true, authToken);
     }
     if (processConfig2 != null && processConfig2.getId() != null) {
       processService.removeProcessConfig(project.getId(),
-          processConfig2.getId(), true, authToken);
+              processConfig2.getId(), true, authToken);
     }
     // logout
     securityService.logout(authToken);
@@ -961,26 +961,26 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Get the pre-defined test process
     ProcessConfig processConfig =
-        processService.findProcessConfigs(project.getId(),
-            "name:\"Test Process\"", null, authToken).getObjects().get(0);
+            processService.findProcessConfigs(project.getId(),
+                    "name:\"Test Process\"", null, authToken).getObjects().get(0);
     assertNotNull(processConfig);
 
     // Execute the process
     Long processExecutionId = processService.prepareAndExecuteProcess(
-        project.getId(), processConfig.getId(), false, authToken);
+            project.getId(), processConfig.getId(), false, authToken);
 
     // Make sure the processExecution was created
     ProcessExecution processExecution = processService
-        .getProcessExecution(project.getId(), processExecutionId, authToken);
+            .getProcessExecution(project.getId(), processExecutionId, authToken);
     assertNotNull(processExecution);
 
     // Remove the processExecution, and its algorithm Executions
     processService.removeProcessExecution(project.getId(), processExecutionId,
-        true, authToken);
+            true, authToken);
 
     // Confirm removal
     assertNull(processService.getProcessExecution(project.getId(),
-        processExecutionId, authToken));
+            processExecutionId, authToken));
 
   }
 

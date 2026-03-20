@@ -990,7 +990,7 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
               // otherwise, make a new id
               else {
                 relationship
-                    .setTerminologyId(new Integer(relIdCounter++).toString());
+                    .setTerminologyId(Integer.valueOf(relIdCounter++).toString());
               }
 
               relationship.setTerminology(getTerminology());

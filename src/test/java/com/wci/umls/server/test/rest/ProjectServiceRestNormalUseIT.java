@@ -38,7 +38,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
 
     // authentication
     authToken =
-        securityService.authenticate(adminUser, adminPassword).getAuthToken();
+            securityService.authenticate(adminUser, adminPassword).getAuthToken();
   }
 
   /**
@@ -59,9 +59,11 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     project.setDescription("Sample");
     project.setName("Sample " + new Date().getTime());
     project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
     project.setWorkflowPath("DEFAULT");
     ProjectJpa project2 =
-        (ProjectJpa) projectService.addProject(project, authToken);
+            (ProjectJpa) projectService.addProject(project, authToken);
 
     // TEST: retrieve the project and verify it is equal
     Assert.assertEquals(project, project2);
@@ -71,7 +73,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     project2.setName("Sample 2 " + new Date().getTime());
     projectService.updateProject(project2, authToken);
     Project project3 =
-        projectService.getProject(project2.getId(), authToken);
+            projectService.getProject(project2.getId(), authToken);
 
     // TEST: retrieve the project and verify it is equal
     Assert.assertEquals(project2, project3);
@@ -102,6 +104,8 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     project.setDescription("Sample");
     project.setName("Sample " + new Date().getTime());
     project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
     project.setWorkflowPath("DEFAULT");
     ProjectJpa project2 = new ProjectJpa(project);
     project = (ProjectJpa) projectService.addProject(project, authToken);
@@ -111,6 +115,8 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     project2.setName("Sample 2 " + new Date().getTime());
     project2.setDescription("Sample 2");
     project2.setTerminology("MTH");
+    project2.setVersion("latest");
+    project2.setLanguage("ENG");
     project2.setWorkflowPath("DEFAULT");
     project2 = (ProjectJpa) projectService.addProject(project2, authToken);
 

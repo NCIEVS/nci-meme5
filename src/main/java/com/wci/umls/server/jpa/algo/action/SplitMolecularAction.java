@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -19,6 +18,7 @@ import com.wci.umls.server.jpa.model.content.AtomJpa;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.jpa.model.content.ConceptRelationshipJpa;
 import com.wci.umls.server.jpa.model.content.SemanticTypeComponentJpa;
+import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.ConceptRelationship;
@@ -251,8 +251,12 @@ public class SplitMolecularAction extends AbstractMolecularAction {
                 getPrecedenceList(getTerminology(), getVersion()))
             .get(0).getName());
 
-    // Add the concept and lookup the terminology id
-    setToConcept(new ConceptJpa(addConcept(getToConcept()), false));
+    // Add the concept and lookup the terminology id.
+    // Use the managed entity returned by addConcept() directly; wrapping it in
+    // new ConceptJpa(...) would produce a detached/transient copy that Hibernate
+    // rejects when it is later referenced as the "from" or "to" field of a
+    // persisted ConceptRelationshipJpa.
+    setToConcept(addConcept(getToConcept()));
     getToConcept().setTerminologyId(getToConcept().getId().toString());
     conceptsChanged.add(getToConcept());
 

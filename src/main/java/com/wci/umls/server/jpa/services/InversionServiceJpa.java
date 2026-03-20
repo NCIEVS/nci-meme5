@@ -154,7 +154,7 @@ public class InversionServiceJpa extends HistoryServiceJpa
     try {
       // create a new SourceIdRange with the previous max id incremented by one
       SourceIdRangeJpa sourceIdRange = new SourceIdRangeJpa();
-      Long beginSourceId = new Long(beginId);
+      Long beginSourceId = Long.valueOf(beginId);
       
       // if begin id not indicated (not SNOMED)
       if (beginSourceId == 0L) {

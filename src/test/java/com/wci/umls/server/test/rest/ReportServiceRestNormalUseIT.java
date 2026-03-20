@@ -45,7 +45,7 @@ public class ReportServiceRestNormalUseIT extends ReportServiceRestIT {
 
     // authentication (admin for editing permissions)
     authToken =
-        securityService.authenticate(adminUser, adminPassword).getAuthToken();
+            securityService.authenticate(adminUser, adminPassword).getAuthToken();
 
     // ensure there is a concept associated with the project
     ProjectList projects = projectService.findProjects(null, null, authToken);
@@ -68,9 +68,9 @@ public class ReportServiceRestNormalUseIT extends ReportServiceRestIT {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
     Logger.getLogger(getClass())
-        .info("TEST - Get concept report" + project + ", " + authToken);
+            .info("TEST - Get concept report" + project + ", " + authToken);
     Concept concept = contentService.getConcept("C0002499", umlsTerminology,
-        umlsVersion, project.getId(), authToken);
+            umlsVersion, project.getId(), authToken);
     String report = reportService.getConceptReport(project.getId(), concept.getId(), authToken);
     assertTrue(report.contains(concept.getTerminologyId()));
   }

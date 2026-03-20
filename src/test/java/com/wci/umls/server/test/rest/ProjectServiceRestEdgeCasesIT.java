@@ -41,9 +41,9 @@ public class ProjectServiceRestEdgeCasesIT extends ProjectServiceRestIT {
 
     // authentication
     viewerAuthToken =
-        securityService.authenticate(testUser, testPassword).getAuthToken();
+            securityService.authenticate(testUser, testPassword).getAuthToken();
     adminAuthToken =
-        securityService.authenticate(adminUser, adminPassword).getAuthToken();
+            securityService.authenticate(adminUser, adminPassword).getAuthToken();
 
   }
 
@@ -67,7 +67,7 @@ public class ProjectServiceRestEdgeCasesIT extends ProjectServiceRestIT {
      */
     projectService.updateProject(project, adminAuthToken);
     ProjectJpa returnedProject =
-        (ProjectJpa) projectService.getProject(project.getId(), adminAuthToken);
+            (ProjectJpa) projectService.getProject(project.getId(), adminAuthToken);
     Assert.assertEquals(returnedProject, project);
 
     // Here, add new project from scratch
@@ -78,6 +78,8 @@ public class ProjectServiceRestEdgeCasesIT extends ProjectServiceRestIT {
     project2.setDescription("Sample " + new Date().getTime());
     project2.setName("Sample");
     project2.setTerminology("MTH");
+    project2.setVersion("latest");
+    project2.setLanguage("ENG");
     project2.setWorkflowPath("DEFAULT");
 
     project2 = (ProjectJpa) projectService.addProject(project2, adminAuthToken);

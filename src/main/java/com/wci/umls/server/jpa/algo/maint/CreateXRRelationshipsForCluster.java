@@ -90,7 +90,7 @@ public class CreateXRRelationshipsForCluster
 
     int relationshipsCreated = 0;
 
-    final Long clusterId = new Long(clusterNumber);
+    final Long clusterId = Long.valueOf(clusterNumber);
 
     try {
 

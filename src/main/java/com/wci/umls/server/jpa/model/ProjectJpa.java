@@ -10,6 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.wci.umls.server.jpa.model.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
+import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
+import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
+import com.wci.umls.server.jpa.model.helpers.UserMapUserNameBridge;
+import com.wci.umls.server.jpa.model.helpers.UserRoleBridge;
+import com.wci.umls.server.jpa.model.helpers.UserRoleMapAdapter;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.User;
+import com.wci.umls.server.model.algo.UserRole;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -46,19 +57,9 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.User;
-import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.TypeKeyValue;
-import com.wci.umls.server.jpa.model.helpers.MapKeyValueToCsvBridge;
-import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
-import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
-import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
-import com.wci.umls.server.jpa.model.helpers.UserMapUserNameBridge;
-import com.wci.umls.server.jpa.model.helpers.UserRoleBridge;
-import com.wci.umls.server.jpa.model.helpers.UserRoleMapAdapter;
 
 /**
  * JPA and JAXB enabled implementation of {@link Project}.
@@ -185,7 +186,8 @@ public class ProjectJpa implements Project {
   private List<TypeKeyValue> validationData = null;
 
   /** The prec list. */
-  @OneToOne(targetEntity = PrecedenceListJpa.class, optional = true)
+  @OneToOne(targetEntity = PrecedenceListJpa.class, optional = true,
+      cascade = CascadeType.REMOVE)
   private PrecedenceList precedenceList;
 
   /** The semantic type category map. */
@@ -608,6 +610,9 @@ public class ProjectJpa implements Project {
   /* see superclass */
   @Override
   public List<String> getNewAtomTermgroups() {
+    if (newAtomTermgroups == null) {
+      newAtomTermgroups = new ArrayList<>();
+    }
     return this.newAtomTermgroups;
   }
 

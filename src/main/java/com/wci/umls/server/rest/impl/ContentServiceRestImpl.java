@@ -7,66 +7,14 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
-
-import org.apache.log4j.Logger;
-
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.UserPreferences;
-import com.wci.umls.server.model.algo.UserRole;
-import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.ComponentInfo;
-import com.wci.umls.server.helpers.KeyValuePair;
-import com.wci.umls.server.helpers.LocalException;
-import com.wci.umls.server.helpers.Note;
-import com.wci.umls.server.helpers.NoteList;
-import com.wci.umls.server.helpers.PfsParameter;
-import com.wci.umls.server.helpers.SearchResult;
-import com.wci.umls.server.helpers.SearchResultList;
-import com.wci.umls.server.helpers.StringList;
-import com.wci.umls.server.helpers.content.CodeList;
-import com.wci.umls.server.helpers.content.ConceptList;
-import com.wci.umls.server.helpers.content.DescriptorList;
-import com.wci.umls.server.helpers.content.MapSetList;
-import com.wci.umls.server.helpers.content.MappingList;
-import com.wci.umls.server.helpers.content.RelationshipList;
-import com.wci.umls.server.helpers.content.SubsetList;
-import com.wci.umls.server.helpers.content.SubsetMemberList;
-import com.wci.umls.server.helpers.content.Tree;
-import com.wci.umls.server.helpers.content.TreeList;
-import com.wci.umls.server.helpers.content.TreePositionList;
-import com.wci.umls.server.helpers.meta.TerminologyList;
 import com.wci.umls.server.jpa.model.ComponentInfoJpa;
-import com.wci.umls.server.jpa.algo.ClamlLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.EclConceptIndexingAlgorithm;
-import com.wci.umls.server.jpa.algo.LabelSetMarkedParentAlgorithm;
-import com.wci.umls.server.jpa.algo.LuceneReindexAlgorithm;
-import com.wci.umls.server.jpa.algo.OwlLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.RemoveTerminologyAlgorithm;
-import com.wci.umls.server.jpa.algo.Rf2DeltaLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.Rf2FullLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.Rf2SnapshotLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.RrfLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.SimpleLoaderAlgorithm;
-import com.wci.umls.server.jpa.algo.TransitiveClosureAlgorithm;
-import com.wci.umls.server.jpa.algo.TreePositionAlgorithm;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
 import com.wci.umls.server.jpa.model.content.AtomNoteJpa;
 import com.wci.umls.server.jpa.model.content.AtomTreePositionJpa;
@@ -97,9 +45,63 @@ import com.wci.umls.server.jpa.model.helpers.content.SubsetMemberListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreeJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreeListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreePositionListJpa;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.UserPreferences;
+import com.wci.umls.server.model.algo.UserRole;
+import com.wci.umls.server.model.algo.ValidationResult;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+
+import org.apache.log4j.Logger;
+
+import com.wci.umls.server.helpers.Branch;
+import com.wci.umls.server.helpers.ComponentInfo;
+import com.wci.umls.server.helpers.KeyValuePair;
+import com.wci.umls.server.helpers.LocalException;
+import com.wci.umls.server.helpers.Note;
+import com.wci.umls.server.helpers.NoteList;
+import com.wci.umls.server.helpers.PfsParameter;
+import com.wci.umls.server.helpers.SearchResult;
+import com.wci.umls.server.helpers.SearchResultList;
+import com.wci.umls.server.helpers.StringList;
+import com.wci.umls.server.helpers.content.CodeList;
+import com.wci.umls.server.helpers.content.ConceptList;
+import com.wci.umls.server.helpers.content.DescriptorList;
+import com.wci.umls.server.helpers.content.MapSetList;
+import com.wci.umls.server.helpers.content.MappingList;
+import com.wci.umls.server.helpers.content.RelationshipList;
+import com.wci.umls.server.helpers.content.SubsetList;
+import com.wci.umls.server.helpers.content.SubsetMemberList;
+import com.wci.umls.server.helpers.content.Tree;
+import com.wci.umls.server.helpers.content.TreeList;
+import com.wci.umls.server.helpers.content.TreePositionList;
+import com.wci.umls.server.helpers.meta.TerminologyList;
+import com.wci.umls.server.jpa.algo.ClamlLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.EclConceptIndexingAlgorithm;
+import com.wci.umls.server.jpa.algo.LabelSetMarkedParentAlgorithm;
+import com.wci.umls.server.jpa.algo.LuceneReindexAlgorithm;
+import com.wci.umls.server.jpa.algo.OwlLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.RemoveTerminologyAlgorithm;
+import com.wci.umls.server.jpa.algo.Rf2DeltaLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.Rf2FullLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.Rf2SnapshotLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.RrfLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.SimpleLoaderAlgorithm;
+import com.wci.umls.server.jpa.algo.TransitiveClosureAlgorithm;
+import com.wci.umls.server.jpa.algo.TreePositionAlgorithm;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.handlers.EclExpressionHandler;
+import com.wci.umls.server.jpa.services.helper.ReportsAtomComparator;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomClass;
@@ -137,7 +139,8 @@ import io.swagger.annotations.SwaggerDefinition;
  */
 @Path("/content")
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_HTML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_HTML,
+    MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

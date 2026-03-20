@@ -9,13 +9,13 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
+import com.wci.umls.server.jpa.model.ValidationResultJpa;
+import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.persistence.NoResultException;
 
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Sets;
-import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomRelationship;
@@ -127,7 +127,7 @@ public class DT_I3B extends AbstractValidationCheck {
         ((ContentServiceJpa) contentService).getEntityManager()
             .createQuery("select a.from.id " + "from ConceptRelationshipJpa a "
                 + "where terminology = :terminology and version = :version"
-                + " and publishable = 1 and a.from.id in (:conceptIds)");
+                + " and publishable = true and a.from.id in (:conceptIds)");
     // Try to retrieve the single expected result If zero or more than one
     // result are returned, log error and set result to null
     try {

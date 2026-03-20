@@ -17,58 +17,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.metamodel.EntityType;
-
-import org.apache.log4j.Logger;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.queryparser.classic.QueryParserBase;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.BoostQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.hibernate.search.backend.lucene.LuceneExtension;
-import org.hibernate.search.backend.lucene.index.LuceneIndexManager;
-import org.hibernate.search.engine.search.predicate.SearchPredicate;
-import org.hibernate.search.mapper.orm.Search;
-import org.hibernate.search.mapper.orm.mapping.SearchMapping;
-import org.hibernate.search.mapper.orm.scope.SearchScope;
-import org.hibernate.search.mapper.orm.session.SearchSession;
-
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.ComponentInfo;
-import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.HasId;
-import com.wci.umls.server.helpers.Note;
-import com.wci.umls.server.helpers.NoteList;
-import com.wci.umls.server.helpers.PfsParameter;
-import com.wci.umls.server.helpers.PrecedenceList;
-import com.wci.umls.server.helpers.QueryType;
-import com.wci.umls.server.helpers.SearchResult;
-import com.wci.umls.server.helpers.SearchResultList;
-import com.wci.umls.server.helpers.StringList;
-import com.wci.umls.server.helpers.content.AtomList;
-import com.wci.umls.server.helpers.content.AttributeList;
-import com.wci.umls.server.helpers.content.CodeList;
-import com.wci.umls.server.helpers.content.ConceptList;
-import com.wci.umls.server.helpers.content.DefinitionList;
-import com.wci.umls.server.helpers.content.DescriptorList;
-import com.wci.umls.server.helpers.content.GeneralConceptAxiomList;
-import com.wci.umls.server.helpers.content.LexicalClassList;
-import com.wci.umls.server.helpers.content.MapSetList;
-import com.wci.umls.server.helpers.content.MappingList;
-import com.wci.umls.server.helpers.content.RelationshipList;
-import com.wci.umls.server.helpers.content.StringClassList;
-import com.wci.umls.server.helpers.content.SubsetList;
-import com.wci.umls.server.helpers.content.SubsetMemberList;
-import com.wci.umls.server.helpers.content.Tree;
-import com.wci.umls.server.helpers.content.TreePositionList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.model.actions.AtomicActionJpa;
 import com.wci.umls.server.jpa.model.content.AbstractAtomClass;
@@ -106,7 +54,6 @@ import com.wci.umls.server.jpa.model.content.SemanticTypeComponentJpa;
 import com.wci.umls.server.jpa.model.content.StringClassJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.SearchResultJpa;
-import com.wci.umls.server.jpa.model.helpers.SearchResultListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.AtomListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.AttributeListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.CodeListJpa;
@@ -119,18 +66,72 @@ import com.wci.umls.server.jpa.model.helpers.content.MapSetListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.MappingListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.NoteListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.RelationshipListJpa;
+import com.wci.umls.server.jpa.model.helpers.content.SearchResultListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.StringClassListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.SubsetListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.SubsetMemberListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreeJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreePositionListJpa;
 import com.wci.umls.server.jpa.model.meta.AbstractAbbreviation;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.ValidationResult;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.metamodel.EntityType;
+
+import org.apache.log4j.Logger;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.QueryParserBase;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.hibernate.search.backend.lucene.LuceneExtension;
+import org.hibernate.search.backend.lucene.index.LuceneIndexManager;
+import org.hibernate.search.engine.search.predicate.SearchPredicate;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.mapping.SearchMapping;
+import org.hibernate.search.mapper.orm.scope.SearchScope;
+import org.hibernate.search.mapper.orm.session.SearchSession;
+
+import com.wci.umls.server.helpers.Branch;
+import com.wci.umls.server.helpers.ComponentInfo;
+import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.HasId;
+import com.wci.umls.server.helpers.Note;
+import com.wci.umls.server.helpers.NoteList;
+import com.wci.umls.server.helpers.PfsParameter;
+import com.wci.umls.server.helpers.PrecedenceList;
+import com.wci.umls.server.helpers.QueryType;
+import com.wci.umls.server.helpers.SearchResult;
+import com.wci.umls.server.helpers.SearchResultList;
+import com.wci.umls.server.helpers.StringList;
+import com.wci.umls.server.helpers.content.AtomList;
+import com.wci.umls.server.helpers.content.AttributeList;
+import com.wci.umls.server.helpers.content.CodeList;
+import com.wci.umls.server.helpers.content.ConceptList;
+import com.wci.umls.server.helpers.content.DefinitionList;
+import com.wci.umls.server.helpers.content.DescriptorList;
+import com.wci.umls.server.helpers.content.GeneralConceptAxiomList;
+import com.wci.umls.server.helpers.content.LexicalClassList;
+import com.wci.umls.server.helpers.content.MapSetList;
+import com.wci.umls.server.helpers.content.MappingList;
+import com.wci.umls.server.helpers.content.RelationshipList;
+import com.wci.umls.server.helpers.content.StringClassList;
+import com.wci.umls.server.helpers.content.SubsetList;
+import com.wci.umls.server.helpers.content.SubsetMemberList;
+import com.wci.umls.server.helpers.content.Tree;
+import com.wci.umls.server.helpers.content.TreePositionList;
 import com.wci.umls.server.jpa.services.handlers.EclExpressionHandler;
 import com.wci.umls.server.jpa.services.helper.IndexUtility;
 import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomClass;
+import com.wci.umls.server.model.content.AtomRelationship;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Code;
 import com.wci.umls.server.model.content.Component;
@@ -1514,14 +1515,33 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       final String inverseAdditionalRelType =
           inverseAdditionalRelTypes.get(relationship.getAdditionalRelationshipType());
 
+      // When inverseAdditionalRelType is empty, omit it from the Lucene query.
+      // In Lucene 9 with @KeywordField, empty string "" IS indexed as a keyword
+      // term, so "NOT additionalRelationshipType:*" fails to match relationships
+      // where additionalRelationshipType="" (it only matches null/absent fields).
+      // Instead, query without the constraint and post-filter in Java for both
+      // null and empty-string cases.
       final RelationshipList relList =
           findRelationshipsForComponentHelper(null, null, null, Branch.ROOT,
               "fromId:" + relationship.getTo().getId() + " AND toId:"
                   + relationship.getFrom().getId() + " AND relationshipType:" + inverseRelType
                   + (ConfigUtility.isEmpty(inverseAdditionalRelType)
-                      ? " AND NOT additionalRelationshipType:[* TO *] "
+                      ? ""
                       : " AND additionalRelationshipType:" + inverseAdditionalRelType),
               false, null, relationship.getClass());
+
+      // Post-filter: keep only relationships with null/empty additionalRelationshipType
+      if (ConfigUtility.isEmpty(inverseAdditionalRelType)) {
+        final List<Relationship<? extends ComponentInfo, ? extends ComponentInfo>> filtered =
+            new ArrayList<>();
+        for (final Relationship<? extends ComponentInfo, ? extends ComponentInfo> r : relList
+            .getObjects()) {
+          if (ConfigUtility.isEmpty(r.getAdditionalRelationshipType())) {
+            filtered.add(r);
+          }
+        }
+        relList.setObjects(filtered);
+      }
 
       if (relList.size() == 0) {
         throw new Exception("Unexpected missing inverse relationship");

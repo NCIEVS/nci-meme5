@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.wci.umls.server.jpa.model.helpers.CollectionToCsvBridge;
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -24,9 +26,9 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.Hibernate;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
+import org.hibernate.envers.Audited;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.mapper.pojo.automaticindexing.ReindexOnUpdate;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
@@ -40,8 +42,6 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDe
 
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.helpers.SearchResult;
-import com.wci.umls.server.jpa.model.helpers.CollectionToCsvBridge;
-import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.ComponentHistory;
@@ -188,38 +188,17 @@ public class ConceptJpa extends AbstractAtomClass implements Concept {
     labels = new ArrayList<>(concept.getLabels());
 
     if (collectionCopy) {
-      // Only copy collections that are initialized to avoid LazyInitializationException
-      if (Hibernate.isInitialized(concept.getDefinitions())) {
-        definitions = new ArrayList<>(concept.getDefinitions());
-      }
-      if (Hibernate.isInitialized(concept.getRelationships())) {
-        relationships = new ArrayList<>(concept.getRelationships());
-      }
-      if (Hibernate.isInitialized(concept.getInverseRelationships())) {
-        inverseRelationships = new ArrayList<>(concept.getInverseRelationships());
-      }
-      if (Hibernate.isInitialized(concept.getSemanticTypes())) {
-        semanticTypes = new ArrayList<>(concept.getSemanticTypes());
-      }
-      if (Hibernate.isInitialized(concept.getMembers())) {
-        members = new ArrayList<>(concept.getMembers());
-      }
-      if (Hibernate.isInitialized(concept.getComponentHistory())) {
-        componentHistories = new ArrayList<>(concept.getComponentHistory());
-      }
-      if (Hibernate.isInitialized(concept.getTreePositions())) {
-        treePositions = new ArrayList<>(concept.getTreePositions());
-      }
-      if (Hibernate.isInitialized(concept.getNotes())) {
-        notes = new ArrayList<>(concept.getNotes());
-      }
-      if (Hibernate.isInitialized(concept.getAtoms())) {
-        atoms = new ArrayList<>(concept.getAtoms());
-      }
-      if (Hibernate.isInitialized(concept.getAttributes())) {
-        for (final Attribute attribute : concept.getAttributes()) {
-          getAttributes().add(new AttributeJpa(attribute));
-        }
+      definitions = new ArrayList<>(concept.getDefinitions());
+      relationships = new ArrayList<>(concept.getRelationships());
+      inverseRelationships = new ArrayList<>(concept.getInverseRelationships());
+      semanticTypes = new ArrayList<>(concept.getSemanticTypes());
+      members = new ArrayList<>(concept.getMembers());
+      componentHistories = new ArrayList<>(concept.getComponentHistory());
+      treePositions = new ArrayList<>(concept.getTreePositions());
+      notes = new ArrayList<>(concept.getNotes());
+      atoms = new ArrayList<>(concept.getAtoms());
+      for (final Attribute attribute : concept.getAttributes()) {
+        getAttributes().add(new AttributeJpa(attribute));
       }
     }
   }

@@ -27,6 +27,36 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
+import com.wci.umls.server.jpa.model.ComponentInfoJpa;
+import com.wci.umls.server.jpa.model.ProcessConfigJpa;
+import com.wci.umls.server.jpa.model.ValidationResultJpa;
+import com.wci.umls.server.jpa.model.actions.ChangeEventJpa;
+import com.wci.umls.server.jpa.model.helpers.ChecklistListJpa;
+import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
+import com.wci.umls.server.jpa.model.helpers.SearchResultJpa;
+import com.wci.umls.server.jpa.model.helpers.TrackingRecordListJpa;
+import com.wci.umls.server.jpa.model.helpers.WorkflowBinListJpa;
+import com.wci.umls.server.jpa.model.helpers.WorkflowConfigListJpa;
+import com.wci.umls.server.jpa.model.helpers.WorkflowEpochListJpa;
+import com.wci.umls.server.jpa.model.helpers.WorklistListJpa;
+import com.wci.umls.server.jpa.model.helpers.content.SearchResultListJpa;
+import com.wci.umls.server.jpa.model.workflow.ChecklistJpa;
+import com.wci.umls.server.jpa.model.workflow.ChecklistNoteJpa;
+import com.wci.umls.server.jpa.model.workflow.ClusterTypeStatsJpa;
+import com.wci.umls.server.jpa.model.workflow.TrackingRecordJpa;
+import com.wci.umls.server.jpa.model.workflow.WorkflowBinDefinitionJpa;
+import com.wci.umls.server.jpa.model.workflow.WorkflowBinJpa;
+import com.wci.umls.server.jpa.model.workflow.WorkflowConfigJpa;
+import com.wci.umls.server.jpa.model.workflow.WorkflowEpochJpa;
+import com.wci.umls.server.jpa.model.workflow.WorklistJpa;
+import com.wci.umls.server.jpa.model.workflow.WorklistNoteJpa;
+import com.wci.umls.server.model.algo.AlgorithmConfig;
+import com.wci.umls.server.model.algo.ProcessConfig;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.User;
+import com.wci.umls.server.model.algo.UserRole;
+import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -46,12 +76,6 @@ import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
-import com.wci.umls.server.model.algo.AlgorithmConfig;
-import com.wci.umls.server.model.algo.ProcessConfig;
-import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.model.algo.User;
-import com.wci.umls.server.model.algo.UserRole;
-import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ChecklistList;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -71,38 +95,14 @@ import com.wci.umls.server.helpers.WorkflowBinList;
 import com.wci.umls.server.helpers.WorkflowConfigList;
 import com.wci.umls.server.helpers.WorkflowEpochList;
 import com.wci.umls.server.helpers.WorklistList;
-import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
-import com.wci.umls.server.jpa.model.ComponentInfoJpa;
-import com.wci.umls.server.jpa.model.ProcessConfigJpa;
-import com.wci.umls.server.jpa.model.ValidationResultJpa;
-import com.wci.umls.server.jpa.model.actions.ChangeEventJpa;
 import com.wci.umls.server.jpa.algo.insert.RepartitionAlgorithm;
 import com.wci.umls.server.jpa.algo.maint.MatrixInitializerAlgorithm;
 import com.wci.umls.server.jpa.algo.maint.StampingAlgorithm;
-import com.wci.umls.server.jpa.model.helpers.ChecklistListJpa;
-import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
-import com.wci.umls.server.jpa.model.helpers.SearchResultJpa;
-import com.wci.umls.server.jpa.model.helpers.SearchResultListJpa;
-import com.wci.umls.server.jpa.model.helpers.TrackingRecordListJpa;
-import com.wci.umls.server.jpa.model.helpers.WorkflowBinListJpa;
-import com.wci.umls.server.jpa.model.helpers.WorkflowConfigListJpa;
-import com.wci.umls.server.jpa.model.helpers.WorkflowEpochListJpa;
-import com.wci.umls.server.jpa.model.helpers.WorklistListJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
 import com.wci.umls.server.jpa.services.ReportServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.WorkflowServiceJpa;
 import com.wci.umls.server.jpa.services.rest.WorkflowServiceRest;
-import com.wci.umls.server.jpa.model.workflow.ChecklistJpa;
-import com.wci.umls.server.jpa.model.workflow.ChecklistNoteJpa;
-import com.wci.umls.server.jpa.model.workflow.ClusterTypeStatsJpa;
-import com.wci.umls.server.jpa.model.workflow.TrackingRecordJpa;
-import com.wci.umls.server.jpa.model.workflow.WorkflowBinDefinitionJpa;
-import com.wci.umls.server.jpa.model.workflow.WorkflowBinJpa;
-import com.wci.umls.server.jpa.model.workflow.WorkflowConfigJpa;
-import com.wci.umls.server.jpa.model.workflow.WorkflowEpochJpa;
-import com.wci.umls.server.jpa.model.workflow.WorklistJpa;
-import com.wci.umls.server.jpa.model.workflow.WorklistNoteJpa;
 import com.wci.umls.server.model.actions.ChangeEvent;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.actions.MolecularActionList;
@@ -137,7 +137,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @SwaggerDefinition(info = @Info(description = "Operations supporting workflow",
     title = "Workflow API", version = "1.0.1"))
 @Consumes({
-    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
+    MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML

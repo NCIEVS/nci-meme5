@@ -644,6 +644,7 @@ public class IndexUtility {
             .searchAnalyzer());
     queryParser.setAllowLeadingWildcard(true);
 
+
     // construct the query
     String finalQuery = (pfsQuery.toString().startsWith(" AND "))
         ? pfsQuery.toString().substring(5) : pfsQuery.toString();

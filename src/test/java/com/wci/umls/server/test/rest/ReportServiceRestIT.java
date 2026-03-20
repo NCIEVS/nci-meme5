@@ -34,7 +34,7 @@ public class ReportServiceRestIT extends IntegrationUnitSupport {
 
   /** The report service */
   protected static ReportClientRest reportService;
-  
+
   /**  The integration service. */
   protected static IntegrationTestClientRest integrationTestService;
 
@@ -84,7 +84,7 @@ public class ReportServiceRestIT extends IntegrationUnitSupport {
     }
     if (testPassword == null || testPassword.isEmpty()) {
       throw new Exception(
-          "Test prerequisite: viewer.password must be specified");
+              "Test prerequisite: viewer.password must be specified");
     }
     if (adminUser == null || adminUser.isEmpty()) {
       throw new Exception("Test prerequisite: admin.user must be specified");

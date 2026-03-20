@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+import com.wci.umls.server.jpa.model.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -26,7 +29,6 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
-import org.hibernate.Hibernate;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.search.engine.backend.types.Searchable;
@@ -46,8 +48,6 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyVa
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.Note;
-import com.wci.umls.server.jpa.model.helpers.MapKeyValueToCsvBridge;
-import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomRelationship;
 import com.wci.umls.server.model.content.AtomSubsetMember;
@@ -253,26 +253,13 @@ public class AtomJpa extends AbstractComponent implements Atom {
     rxcui = atom.getRxcui();
 
     if (collectionCopy) {
-      // Only copy collections that are initialized to avoid LazyInitializationException
-      if (Hibernate.isInitialized(atom.getDefinitions())) {
-        definitions = new ArrayList<>(atom.getDefinitions());
-      }
-      if (Hibernate.isInitialized(atom.getRelationships())) {
-        relationships = new ArrayList<>(atom.getRelationships());
-      }
-      if (Hibernate.isInitialized(atom.getTreePositions())) {
-        treePositions = new ArrayList<>(atom.getTreePositions());
-      }
-      if (Hibernate.isInitialized(atom.getMembers())) {
-        members = new ArrayList<>(atom.getMembers());
-      }
-      if (Hibernate.isInitialized(atom.getComponentHistory())) {
-        componentHistories = new ArrayList<>(atom.getComponentHistory());
-      }
-      if (Hibernate.isInitialized(atom.getAttributes())) {
-        for (final Attribute attribute : atom.getAttributes()) {
-          getAttributes().add(new AttributeJpa(attribute));
-        }
+      definitions = new ArrayList<>(atom.getDefinitions());
+      relationships = new ArrayList<>(atom.getRelationships());
+      treePositions = new ArrayList<>(atom.getTreePositions());
+      members = new ArrayList<>(atom.getMembers());
+      componentHistories = new ArrayList<>(atom.getComponentHistory());
+      for (final Attribute attribute : atom.getAttributes()) {
+        getAttributes().add(new AttributeJpa(attribute));
       }
     }
   }

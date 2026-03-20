@@ -627,7 +627,7 @@ public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
         .getObjects()) {
       // The tracking record should have at least one concept too
       assertTrue(r.getConcepts().size() > 0);
-      assertEquals(new Long(++i), r.getClusterId());
+      assertEquals(Long.valueOf(++i), r.getClusterId());
     }
 
     //

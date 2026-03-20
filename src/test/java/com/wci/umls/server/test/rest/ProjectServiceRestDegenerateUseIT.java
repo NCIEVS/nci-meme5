@@ -39,9 +39,9 @@ public class ProjectServiceRestDegenerateUseIT extends ProjectServiceRestIT {
 
     // authentication
     viewerAuthToken =
-        securityService.authenticate(testUser, testPassword).getAuthToken();
+            securityService.authenticate(testUser, testPassword).getAuthToken();
     adminAuthToken =
-        securityService.authenticate(adminUser, adminPassword).getAuthToken();
+            securityService.authenticate(adminUser, adminPassword).getAuthToken();
 
   }
 

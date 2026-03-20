@@ -120,7 +120,7 @@ public class LexicalClassAssignmentAlgorithm extends AbstractAlgorithm {
       for (final Long atomId : atomIds) {
         final Atom atom = getAtom(atomId);
         final String rank = new String(prefHandler.getRank(atom, list));
-        Long id = new Long(atom.getId());
+        Long id = Long.valueOf(atom.getId());
         atomRankMap.put(id, rank);
         logAndCommit(++ct, RootService.logCt, RootService.commitCt);
       }

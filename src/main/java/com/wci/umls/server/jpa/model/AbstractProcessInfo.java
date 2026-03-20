@@ -6,6 +6,9 @@ package com.wci.umls.server.jpa.model;
 import java.util.Date;
 
 import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
+import com.wci.umls.server.model.algo.AlgorithmInfo;
+import com.wci.umls.server.model.algo.ProcessInfo;
+import com.wci.umls.server.model.algo.Project;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,6 +21,7 @@ import jakarta.persistence.TemporalType;
 import jakarta.xml.bind.annotation.XmlSeeAlso;
 import jakarta.xml.bind.annotation.XmlTransient;
 
+import org.hibernate.envers.Audited;
 import org.hibernate.search.engine.backend.types.Searchable;
 import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
@@ -27,10 +31,6 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexingDe
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
-
-import com.wci.umls.server.model.algo.AlgorithmInfo;
-import com.wci.umls.server.model.algo.ProcessInfo;
-import com.wci.umls.server.model.algo.Project;
 
 /**
  * JPA and JAXB enabled implementation of {@link ProcessInfo}.
@@ -45,9 +45,9 @@ public abstract class AbstractProcessInfo<T extends AlgorithmInfo<?>>
     implements ProcessInfo<T> {
 
   /** The id. */
-  @TableGenerator(name = "EntityIdGen", table = "table_generator", pkColumnValue = "Entity")
+  @TableGenerator(name = "EntityIdGenProcess", table = "table_generator_process", pkColumnValue = "Entity")
   @Id
-  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGen")
+  @GeneratedValue(strategy = GenerationType.TABLE, generator = "EntityIdGenProcess")
   private Long id;
 
   /** The last modified. */

@@ -41,9 +41,9 @@ public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
 
     // authentication
     viewerAuthToken =
-        securityService.authenticate(testUser, testPassword).getAuthToken();
+            securityService.authenticate(testUser, testPassword).getAuthToken();
     adminAuthToken =
-        securityService.authenticate(adminUser, adminPassword).getAuthToken();
+            securityService.authenticate(adminUser, adminPassword).getAuthToken();
 
   }
 
@@ -64,6 +64,8 @@ public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
     project.setDescription("Sample " + new Date().getTime());
     project.setName("Sample");
     project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
     project.setWorkflowPath("DEFAULT");
 
     try {
@@ -85,7 +87,7 @@ public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
     // Attempt to remove an existing project with viewer authorization level
     // first add the project with valid admin authentication
     ProjectJpa project2 =
-        (ProjectJpa) projectService.addProject(project, adminAuthToken);
+            (ProjectJpa) projectService.addProject(project, adminAuthToken);
     try {
       projectService.removeProject(project2.getId(), viewerAuthToken);
       fail("Attempt to remove a project with viewer authorization level passed.");

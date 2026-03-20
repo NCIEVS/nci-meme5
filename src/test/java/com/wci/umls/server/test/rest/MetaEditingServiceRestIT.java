@@ -28,16 +28,16 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
 
   /** The security service. */
   protected static SecurityClientRest securityService;
-  
+
   /** the project service */
   protected static ProjectClientRest projectService;
-  
+
   /** The meta editing service */
   protected static MetaEditingClientRest metaEditingService;
 
   /**  The test service. */
   protected static IntegrationTestClientRest testService;
-  
+
   /** The properties. */
   protected static Properties properties;
 
@@ -84,7 +84,7 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
     }
     if (testPassword == null || testPassword.isEmpty()) {
       throw new Exception(
-          "Test prerequisite: viewer.password must be specified");
+              "Test prerequisite: viewer.password must be specified");
     }
     if (adminUser == null || adminUser.isEmpty()) {
       throw new Exception("Test prerequisite: admin.user must be specified");
@@ -92,7 +92,7 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
     if (adminPassword == null || adminPassword.isEmpty()) {
       throw new Exception("Test prerequisite: admin.password must be specified");
     }
-    
+
 
   }
 
@@ -109,7 +109,7 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
      */
 
   }
-  
+
   /**
    * Teardown.
    *

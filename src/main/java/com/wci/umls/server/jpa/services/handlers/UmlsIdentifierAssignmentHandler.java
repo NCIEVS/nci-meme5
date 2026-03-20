@@ -222,7 +222,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
         query.setParameter("terminology", concept.getTerminology());
         query.setParameter("version", concept.getVersion());
         query.setParameter("prefix", prefixMap.get("CUI") + "%");
-        final Long conceptId2 = new Long(query.getSingleResult().toString()
+        final Long conceptId2 = Long.valueOf(query.getSingleResult().toString()
             .substring(prefixMap.get("CUI").length()));
 
         conceptId = conceptId2 != null ? conceptId2 : conceptId;

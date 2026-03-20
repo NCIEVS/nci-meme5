@@ -3,6 +3,7 @@
  */
 package com.wci.umls.server.jpa.model.actions;
 
+import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,6 +20,7 @@ import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 
 import org.hibernate.search.engine.backend.types.Searchable;
+import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.bridge.mapping.annotation.ValueBridgeRef;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
@@ -27,7 +29,6 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.KeywordFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
-import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.meta.IdType;
@@ -59,6 +60,7 @@ public class AtomicActionJpa implements AtomicAction {
   /** The old value. */
   @Column(nullable = true)
   @KeywordField(searchable = Searchable.YES)
+  @KeywordField(name = "oldValueSort", sortable = Sortable.YES)
   private String oldValue;
 
   /** The new value. */
@@ -69,12 +71,14 @@ public class AtomicActionJpa implements AtomicAction {
   /** The field. */
   @Column(nullable = false)
   @KeywordField(searchable = Searchable.YES)
+  @KeywordField(name = "fieldSort", sortable = Sortable.YES)
   private String field;
 
   /** The type. */
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   @GenericField(searchable = Searchable.YES, valueBridge = @ValueBridgeRef(type = ObjectToStringBridge.class))
+  @KeywordField(name = "idTypeSort", sortable = Sortable.YES)
   private IdType idType;
 
   /** The class name. */
