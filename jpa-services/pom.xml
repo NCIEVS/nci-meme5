@@ -129,6 +129,21 @@
       <groupId>com.hermit-reasoner</groupId>
       <artifactId>org.semanticweb.hermit</artifactId>
       <!-- <groupId>au.csiro</groupId> <artifactId>snorocket-owlapi</artifactId> -->
+      <exclusions>
+        <!-- axiom-api pulls in old javax.activation geronimo specs which conflict with jakarta.activation -->
+        <exclusion>
+          <groupId>org.apache.ws.commons.axiom</groupId>
+          <artifactId>axiom-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.geronimo.specs</groupId>
+          <artifactId>geronimo-activation_1.1_spec</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.geronimo.specs</groupId>
+          <artifactId>geronimo-javamail_1.4_spec</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- ANTLR Expression Parser -->
