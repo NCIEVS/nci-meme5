@@ -111,11 +111,13 @@ public class ProdMidCleanupAlgorithmTest extends IntegrationUnitSupport {
     //
     final Terminology currentSnomedTerminology =
         contentService.getTerminologyLatestVersion("SNOMEDCT_US");
+
     final Terminology terminology =
         new TerminologyJpa(currentSnomedTerminology);
     terminology.setId(null);
     terminology.setVersion("Really Old");
     terminology.setCurrent(false);
+    terminology.setCitation(null);
     addedTerminology = contentService.addTerminology(terminology);
 
     final Concept concept =

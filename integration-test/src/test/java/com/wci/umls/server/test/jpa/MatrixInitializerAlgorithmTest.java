@@ -92,8 +92,10 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
     // C0000005 is PUBLISHED, and all components are PUBLISHED as well.
     concept = contentService.getConcept("C0000005", "MTH", "latest", null);
 
-    // C0029744 is PUBLISHED, but contains a DEMOTION relationship.
-    concept2 = contentService.getConcept("C0029744", "MTH", "latest", null);
+    // C0030073 has a DEMOTION atom relationship. In the sample DB it is
+    // already NEEDS_REVIEW (MatrixInit has run before), so we set it back to
+    // PUBLISHED here to simulate the pre-MatrixInit inconsistent state.
+    concept2 = contentService.getConcept("C0030073", "MTH", "latest", null);
 
     OUTER: for (final Atom atom : concept2.getAtoms()) {
       for (final AtomRelationship rel : atom.getRelationships()) {
@@ -102,6 +104,32 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
           break OUTER;
         }
       }
+    }
+
+    // Restore concept2 to PUBLISHED so MatrixInit has something to correct.
+    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
+      final UpdateConceptMolecularAction setupAction =
+          new UpdateConceptMolecularAction();
+      try {
+        setupAction.setProject(algo.getProject());
+        setupAction.setConceptId(concept2.getId());
+        setupAction.setConceptId2(null);
+        setupAction.setLastModifiedBy("admin");
+        setupAction.setLastModified(concept2.getLastModified().getTime());
+        setupAction.setOverrideWarnings(true);
+        setupAction.setTransactionPerOperation(false);
+        setupAction.setMolecularActionFlag(true);
+        setupAction.setChangeStatusFlag(false);
+        setupAction.setWorkflowStatus(WorkflowStatus.PUBLISHED);
+        setupAction.setPublishable(concept2.isPublishable());
+        setupAction.performMolecularAction(setupAction, "admin", true, false);
+      } catch (Exception e) {
+        // n/a
+      } finally {
+        setupAction.close();
+      }
+      contentService = new ContentServiceJpa();
+      concept2 = contentService.getConcept(concept2.getId());
     }
   }
 
@@ -210,21 +238,22 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
       algo.close();
     }
 
-    // Check to make sure the concept's status was set to
-    // READY_FOR_PUBLICATION
+    // Check to make sure the concept's status was set to READY_FOR_PUBLICATION
+    // (MatrixInit promotes NEEDS_REVIEW → READY_FOR_PUBLICATION when all atoms
+    // are published and there are no validation failures or DEMOTION rels).
     contentService = new ContentServiceJpa();
     concept = contentService.getConcept(conceptId);
     assertEquals(WorkflowStatus.READY_FOR_PUBLICATION,
         concept.getWorkflowStatus());
-    // Ensure that the concept's workflow status is PUBLISHED
-    assertEquals(WorkflowStatus.PUBLISHED, concept.getWorkflowStatus());
 
-    // Verify that a molecular action was created for the update
+    // Verify that a molecular action was created for the update.
+    // Filter by workId to avoid picking up the setup action created earlier.
     PfsParameterJpa pfs = new PfsParameterJpa();
     pfs.setSortField("lastModified");
     pfs.setAscending(false);
     MolecularActionList list = contentService
-        .findMolecularActions(concept.getId(), "MTH", "latest", null, pfs);
+        .findMolecularActions(concept.getId(), "MTH", "latest",
+            "workId:" + algo.getWorkId(), pfs);
     assertTrue(list.size() > 0);
     MolecularAction ma = list.getObjects().get(0);
     assertNotNull(ma);
@@ -256,12 +285,13 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
     concept2 = contentService.getConcept(conceptId2);
     assertEquals(WorkflowStatus.NEEDS_REVIEW, concept2.getWorkflowStatus());
 
-    // Verify that a molecular action was created for the update
+    // Verify that a molecular action was created for the update.
+    // Filter by workId to avoid picking up the setup action created earlier.
     pfs = new PfsParameterJpa();
     pfs.setSortField("lastModified");
     pfs.setAscending(false);
     list = contentService.findMolecularActions(concept2.getId(), "MTH",
-        "latest", null, pfs);
+        "latest", "workId:" + algo.getWorkId(), pfs);
     assertTrue(list.size() > 0);
     MolecularAction ma2 = list.getObjects().get(0);
     assertNotNull(ma2);
@@ -398,7 +428,8 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
     contentService = new ContentServiceJpa();
     concept = contentService.getConcept(concept.getId());
 
-    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
+    // concept2 (C0030073) originally was NEEDS_REVIEW — restore it.
+    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.NEEDS_REVIEW)) {
       final UpdateConceptMolecularAction action2 =
           new UpdateConceptMolecularAction();
       try {
@@ -414,7 +445,7 @@ public class MatrixInitializerAlgorithmTest extends IntegrationUnitSupport {
         action2.setMolecularActionFlag(true);
         action2.setChangeStatusFlag(false);
 
-        action2.setWorkflowStatus(WorkflowStatus.PUBLISHED);
+        action2.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
 
         // Perform the action
         final ValidationResult validationResult =

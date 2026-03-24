@@ -260,6 +260,8 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
             action.setTransactionPerOperation(false);
             action.setMolecularActionFlag(true);
             action.setChangeStatusFlag(true);
+            action.setActivityId(getActivityId());
+            action.setWorkId(getWorkId());
 
             if (publishable != null) {
               action.setPublishable(publishable);

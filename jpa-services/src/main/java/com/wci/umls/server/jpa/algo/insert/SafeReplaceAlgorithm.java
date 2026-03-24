@@ -142,12 +142,12 @@ public class SafeReplaceAlgorithm extends AbstractMergeAlgorithm {
         + "AND a1.publishable=true "
         + "AND a2.terminology=:terminology AND a2.version=:version "
         + "AND a2.publishable=true "
-        + (stringClassId ? "AND a1.stringClassId = a2.stringClassId " : "")
-        + (lexicalClassId ? "AND a1.lexicalClassId = a2.lexicalClassId " : "")
-        + (conceptId ? "AND a1.conceptId = a2.conceptId " : "")
-        + (codeId ? "AND a1.codeId = a2.codeId " : "")
-        + (descriptorId ? "AND a1.descriptorId = a2.descriptorId " : "")
-        + (termType ? "AND a1.termType = a2.termType " : "");
+        + (Boolean.TRUE.equals(stringClassId) ? "AND a1.stringClassId = a2.stringClassId " : "")
+        + (Boolean.TRUE.equals(lexicalClassId) ? "AND a1.lexicalClassId = a2.lexicalClassId " : "")
+        + (Boolean.TRUE.equals(conceptId) ? "AND a1.conceptId = a2.conceptId " : "")
+        + (Boolean.TRUE.equals(codeId) ? "AND a1.codeId = a2.codeId " : "")
+        + (Boolean.TRUE.equals(descriptorId) ? "AND a1.descriptorId = a2.descriptorId " : "")
+        + (Boolean.TRUE.equals(termType) ? "AND a1.termType = a2.termType " : "");
 
     // If terminology is not set, run the query for ALL terminologies referenced
     // in sources.src, and add all results to atomIdPairArray
