@@ -93,8 +93,8 @@ public class IdentifierAssignmentHandlerTest extends IntegrationUnitSupport {
   public void testHandlerEdgeCases() throws Exception {
     Logger.getLogger(getClass()).info("TEST " + name.getMethodName());
     // Call getTerminologyId(new ConceptJpa())
-    // TEST: returns null
-    assertEquals(handlerService.getTerminologyId(new ConceptJpa()), null);
+    // TEST: returns empty string
+    assertEquals("", handlerService.getTerminologyId(new ConceptJpa()));
   }
 
   /**

@@ -53,7 +53,7 @@ public class ConfigUtilityTest extends IntegrationUnitSupport {
 
     Logger.getLogger(getClass()).info("  exec echo $ABC with ABC=DEF");
     out = ConfigUtility.exec(new String[] {
-        "echo $ABC"
+        "sh", "-c", "echo $ABC"
     }, new String[] {
         "ABC=DEF"
     }, false, ".", null, false);
