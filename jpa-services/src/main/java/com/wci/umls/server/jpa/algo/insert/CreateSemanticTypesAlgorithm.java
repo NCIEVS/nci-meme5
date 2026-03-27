@@ -298,7 +298,7 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			// now find stys via sdui for the missing ones.
 			// do it in two stages: first assign stys for LLT/OL and then for mth atoms.
 			count = 0;
-			for (String said : saidsNeedStys.keySet()) {
+			for (String said : new ArrayList<>(saidsNeedStys.keySet())) {
 				String[] parts = saidsNeedStys.get(said).split("\\|");
 				tty = parts[0];
 				sdui = parts[1];
@@ -321,7 +321,7 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 
 			// now assign stys for mth atoms via sdui
 			count = 0;
-			for (String said : saidsNeedStys.keySet()) {
+			for (String said : new ArrayList<>(saidsNeedStys.keySet())) {
 				String[] parts = saidsNeedStys.get(said).split("\\|");
 				tty = parts[0];
 				sdui = parts[1];
