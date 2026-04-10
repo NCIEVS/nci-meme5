@@ -92,8 +92,10 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
     // C0000005 is PUBLISHED, and all components are PUBLISHED as well.
     concept = contentService.getConcept("C0000005", "MTH", "latest", null);
 
-    // C0029744 is PUBLISHED, but contains a DEMOTION relationship.
-    concept2 = contentService.getConcept("C0029744", "MTH", "latest", null);
+    // C0030073 has a DEMOTION atom relationship. In the sample DB it is
+    // already NEEDS_REVIEW (MatrixInit has run before), so we set it back to
+    // PUBLISHED here to simulate the pre-MatrixInit inconsistent state.
+    concept2 = contentService.getConcept("C0030073", "MTH", "latest", null);
 
     OUTER: for (final Atom atom : concept2.getAtoms()) {
       for (final AtomRelationship rel : atom.getRelationships()) {
@@ -102,6 +104,32 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
           break OUTER;
         }
       }
+    }
+
+    // Restore concept2 to PUBLISHED so MatrixInit has something to correct.
+    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
+      final UpdateConceptMolecularAction setupAction =
+          new UpdateConceptMolecularAction();
+      try {
+        setupAction.setProject(algo.getProject());
+        setupAction.setConceptId(concept2.getId());
+        setupAction.setConceptId2(null);
+        setupAction.setLastModifiedBy("admin");
+        setupAction.setLastModified(concept2.getLastModified().getTime());
+        setupAction.setOverrideWarnings(true);
+        setupAction.setTransactionPerOperation(false);
+        setupAction.setMolecularActionFlag(true);
+        setupAction.setChangeStatusFlag(false);
+        setupAction.setWorkflowStatus(WorkflowStatus.PUBLISHED);
+        setupAction.setPublishable(concept2.isPublishable());
+        setupAction.performMolecularAction(setupAction, "admin", true, false);
+      } catch (Exception e) {
+        // n/a
+      } finally {
+        setupAction.close();
+      }
+      contentService = new ContentServiceJpa();
+      concept2 = contentService.getConcept(concept2.getId());
     }
   }
 

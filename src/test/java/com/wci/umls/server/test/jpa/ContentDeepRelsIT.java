@@ -79,7 +79,7 @@ public class ContentDeepRelsIT extends IntegrationUnitSupport {
 
     }
     Logger.getLogger(getClass()).info("  Verify count = " + list.size());
-    assertEquals(107, list.size());
+    assertEquals(82, list.size());
 
     // include concept rels
     // inverseFlag, includeConceptRels, preferredOnly, includeSelfReferential

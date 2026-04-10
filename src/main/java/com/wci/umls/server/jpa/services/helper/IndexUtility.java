@@ -615,6 +615,25 @@ public class IndexUtility {
   @SuppressWarnings("resource")
   public static FullTextQueryResult applyPfsToLuceneQuery(final Class<?> clazz, final String query,
     final PfsParameter pfs, final EntityManager manager) throws Exception {
+    return applyPfsToLuceneQuery(clazz, query, pfs, manager, false);
+  }
+
+  /**
+   * Apply pfs to lucene query - ID-only projection variant. Uses f.id() instead
+   * of f.entity() so no entity is loaded from the database. The result[1] in
+   * each Object[] is the Long ID rather than the entity object.
+   *
+   * @param clazz the clazz
+   * @param query the query
+   * @param pfs the pfs
+   * @param manager the manager
+   * @param idsOnly when true, project only ids (no DB entity load)
+   * @return the full text query result
+   * @throws Exception the exception
+   */
+  @SuppressWarnings("resource")
+  public static FullTextQueryResult applyPfsToLuceneQuery(final Class<?> clazz, final String query,
+    final PfsParameter pfs, final EntityManager manager, final boolean idsOnly) throws Exception {
 
     final SearchSession searchSession = Search.session(manager);
     final SearchMapping mapping = Search.mapping(manager.getEntityManagerFactory());
@@ -753,16 +772,29 @@ public class IndexUtility {
       }
     }
 
-    // Build and execute query with entity + score projection
-    final SearchQuery<?> searchQuery = searchSession.search(scope)
-        .select(f -> f.composite().from(f.entity(), f.score()).asList())
-        .where(predicate)
-        .sort(f -> f.composite(sortBuilder -> {
-          for (final SearchSort sortField : sortFields) {
-            sortBuilder.add(sortField);
-          }
-        }))
-        .toQuery();
+    // Build and execute query — project IDs only (no DB load) or full entities
+    final SearchQuery<?> searchQuery;
+    if (idsOnly) {
+      searchQuery = searchSession.search(scope)
+          .select(f -> f.composite().from(f.id(Long.class), f.score()).asList())
+          .where(predicate)
+          .sort(f -> f.composite(sortBuilder -> {
+            for (final SearchSort sortField : sortFields) {
+              sortBuilder.add(sortField);
+            }
+          }))
+          .toQuery();
+    } else {
+      searchQuery = searchSession.search(scope)
+          .select(f -> f.composite().from(f.entity(), f.score()).asList())
+          .where(predicate)
+          .sort(f -> f.composite(sortBuilder -> {
+            for (final SearchSort sortField : sortFields) {
+              sortBuilder.add(sortField);
+            }
+          }))
+          .toQuery();
+    }
 
     SearchResult<?> result;
     // if start index and max results are set, set paging
@@ -772,14 +804,14 @@ public class IndexUtility {
       result = searchQuery.fetch(0, 500000);
     }
 
-    // Convert SearchResult hits to [score, entity] Object[] arrays
+    // When idsOnly=true, result[1] is a Long id; otherwise it is the entity.
     final List<Object[]> resultList = new ArrayList<>();
     for (final Object hit : result.hits()) {
       final List<?> composite = (List<?>) hit;
-      final Object entity = composite.get(0);
+      final Object entityOrId = composite.get(0);
       final Float score = (Float) composite.get(1);
       resultList.add(new Object[] {
-          score, entity
+          score, entityOrId
       });
     }
 

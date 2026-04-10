@@ -85,17 +85,18 @@ public class DefaultSearchHandler extends AbstractConfigurable
     String branch, String query, String literalField, Class<?> clazz,
     PfsParameter pfs, int[] totalCt, EntityManager manager) throws Exception {
 
+    // Use idsOnly=true: projects f.id(Long.class) instead of f.entity() so no
+    // entity is loaded from the database — critical for performance with large indexes.
     final IndexUtility.FullTextQueryResult fullTextQueryResult =
         helper(terminology, version, branch, query, literalField, clazz, pfs,
-            manager);
+            manager, true);
     totalCt[0] = fullTextQueryResult.getResultSize();
 
-    // Extract IDs from entity results
+    // result[1] is already a Long id (not the entity) when idsOnly=true
     final List<Long> ids = new ArrayList<>();
     final List<Object[]> results = fullTextQueryResult.getResultList();
     for (final Object[] result : results) {
-      Long l = ((HasId) result[1]).getId();
-      ids.add(l);
+      ids.add((Long) result[1]);
     }
 
     return ids;
@@ -118,6 +119,15 @@ public class DefaultSearchHandler extends AbstractConfigurable
   public IndexUtility.FullTextQueryResult helper(String terminology,
     String version, String branch, String query, String literalField,
     Class<?> clazz, PfsParameter pfs, EntityManager manager) throws Exception {
+    return helper(terminology, version, branch, query, literalField, clazz, pfs, manager, false);
+  }
+
+  /**
+   * Helper - with idsOnly flag to skip entity loading from DB.
+   */
+  public IndexUtility.FullTextQueryResult helper(String terminology,
+    String version, String branch, String query, String literalField,
+    Class<?> clazz, PfsParameter pfs, EntityManager manager, boolean idsOnly) throws Exception {
     // Default Search Handler algorithm
     // If empty query or ":" detected, perform query as written
     // If no results, perform tokenized/quoted search
@@ -180,13 +190,13 @@ public class DefaultSearchHandler extends AbstractConfigurable
     IndexUtility.FullTextQueryResult fullTextQueryResult = null;
     try {
       fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
-          finalQuery.toString(), pfs, manager);
+          finalQuery.toString(), pfs, manager, idsOnly);
     } catch (ParseException | IllegalArgumentException e) {
       e.printStackTrace();
       // If there's a parse exception, try the literal query
       Logger.getLogger(getClass()).debug("PE query = " + finalQuery);
       fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
-          escapedQuery + terminologyClause, pfs, manager);
+          escapedQuery + terminologyClause, pfs, manager, idsOnly);
     }
 
     return fullTextQueryResult;

@@ -125,9 +125,9 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
     //
     // Prepare the test and check prerequisites
     //
-    // Due to MySQL rounding to the second, we must also round our comparison
-    // startDate.
-    Date startDate = DateUtils.round(new Date(), Calendar.SECOND);
+    // Due to MySQL truncating to the second, we must also truncate our comparison
+    // startDate (using truncate, not round, to avoid rounding up past the stored value).
+    Date startDate = DateUtils.truncate(new Date(), Calendar.SECOND);
 
     // Update the WorkflowStatus of the concept from READY_FOR_PUBLICATION to
     // NEEDS_REVIEW
@@ -148,6 +148,8 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
       action.setChangeStatusFlag(true);
 
       action.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+      // Preserve original publishable value to avoid spurious atomic action
+      action.setPublishable(concept.isPublishable());
 
       // Perform the action
       validationResult = action.performMolecularAction(action, "admin", true, false);

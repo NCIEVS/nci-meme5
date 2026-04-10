@@ -112,7 +112,17 @@ public class QueryActionAlgorithmIT extends IntegrationUnitSupport {
     preInsertionalgo.setProject(processExecution.getProject());
     preInsertionalgo.setTerminology("NCI");
     preInsertionalgo.setVersion("2016_05E");
-    preInsertionalgo.compute();
+    preInsertionalgo.setTransactionPerOperation(false);
+    preInsertionalgo.beginTransaction();
+    try {
+      preInsertionalgo.compute();
+      preInsertionalgo.commit();
+    } catch (Exception e) {
+      preInsertionalgo.rollback();
+      throw e;
+    } finally {
+      preInsertionalgo.close();
+    }
 
     // Create and configure the algorithm
     algo = new QueryActionAlgorithm();
@@ -136,12 +146,10 @@ public class QueryActionAlgorithmIT extends IntegrationUnitSupport {
   public void testQueryAction() throws Exception {
     Logger.getLogger(getClass()).info("TEST " + name.getMethodName());
 
-    // Create a new SemanticTypeComponent and attach it to concept 1, so the
-    // resolver can identify and remove it.
-    conceptId = 1L;
-
-    // Create semantic type component
-    Concept concept = contentService.getConcept(conceptId);
+    // Create a new SemanticTypeComponent and attach it to a stable concept,
+    // so the resolver can identify and remove it.
+    Concept concept = contentService.getConcept("C0000039", "MTH", "latest", null);
+    conceptId = concept.getId();
 
     SemanticTypeComponent sty = new SemanticTypeComponentJpa();
     sty.setTerminologyId("");
