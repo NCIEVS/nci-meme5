@@ -20,6 +20,8 @@ local.properties
 .classpath
 .settings/
 .loadpath
+.idea
+.smarttomcat
 
 # External tool builders
 .externalToolBuilders/
@@ -218,3 +220,5 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+rest/term-server-rest.iml
+*.iml
