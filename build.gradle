@@ -156,6 +156,13 @@ war {
     }
 }
 
+// ── Exploded WAR for SmartTomcat deployment ───────────────────────────────────
+tasks.register('explodeWar', Copy) {
+    dependsOn war
+    from zipTree(war.archiveFile)
+    into layout.buildDirectory.dir('exploded')
+}
+
 // ── Test resources ────────────────────────────────────────────────────────────
 sourceSets {
     main {

@@ -11,6 +11,21 @@
     <listener-class>com.wci.umls.server.rest.impl.SessionFactoryShutdownListener</listener-class>
   </listener>
 
+  <!-- Explicit Jersey servlet (auto-discovery via @ApplicationPath is unreliable with external docBase) -->
+  <servlet>
+    <servlet-name>jersey</servlet-name>
+    <servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
+    <init-param>
+      <param-name>jakarta.ws.rs.Application</param-name>
+      <param-value>com.wci.umls.server.rest.impl.TermServerApplication</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>jersey</servlet-name>
+    <url-pattern>/*</url-pattern>
+  </servlet-mapping>
+
   <!-- Redirect swagger ui pages to swagger UI -->
   <servlet-mapping>
     <servlet-name>default</servlet-name>
