@@ -126,8 +126,8 @@ public class MGV_H1IT extends IntegrationUnitSupport {
     // Check whether the action violates the validation check
     final ValidationResult validationResult = checkActionPreconditions(action);
 
-    // Verify that it returned a validation error
-    assertFalse(validationResult.isValid());
+    // Verify that it returned a validation warning (MGV_H1 uses warnings)
+    assertFalse(validationResult.getWarnings().isEmpty());
 
     //
     // Test non-violation of MGV_H1
@@ -152,8 +152,8 @@ public class MGV_H1IT extends IntegrationUnitSupport {
     final ValidationResult validationResult2 =
         checkActionPreconditions(action2);
 
-    // Verify that returned no validation errors
-    assertTrue(validationResult2.isValid());
+    // Verify that returned no validation warnings
+    assertTrue(validationResult2.getWarnings().isEmpty());
 
     //
     // Test non-violation of MGV_H1
@@ -178,8 +178,8 @@ public class MGV_H1IT extends IntegrationUnitSupport {
     final ValidationResult validationResult3 =
         checkActionPreconditions(action3);
 
-    // Verify that returned no validation errors
-    assertTrue(validationResult3.isValid());
+    // Verify that returned no validation warnings
+    assertTrue(validationResult3.getWarnings().isEmpty());
 
   }
 

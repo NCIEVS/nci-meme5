@@ -87,18 +87,21 @@ public class DT_I3BIT extends IntegrationUnitSupport {
     project.setValidationChecks(new ArrayList<>(Arrays.asList("DT_I3B")));
 
     // Get three concepts, two with DEMOTION relationships,
-    // and one without any DEMOTION relationships
+    // and one without any DEMOTION relationships.
+    // C0040247 has a DEMOTION atomRel to an atom in C0145617 but no
+    // ConceptRelationship to C0145617 (violation case).
     conceptDemotionsNoCorresponding =
-        contentService.getConcept("C0029744", "MTH", "latest", Branch.ROOT);
+        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
     conceptDemotionsWithCorresponding =
-        contentService.getConcept("C0032460", "MTH", "latest", Branch.ROOT);
+        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
     conceptNoDemotions =
         contentService.getConcept("C0004611", "MTH", "latest", Branch.ROOT);
 
     // Add matching conceptRelationships to the DEMOTION relationship for
-    // conceptDemotionsWithRels
-    Concept matchingConcept = contentService.getConcept("C0035629", "MTH", "latest", Branch.ROOT);
-        ConceptRelationship matchingRel = 
+    // conceptDemotionsWithCorresponding. C0145617 is the target of C0040247's
+    // DEMOTION atomRel, so adding a ConceptRel to it satisfies DT_I3B.
+    Concept matchingConcept = contentService.getConcept("C0145617", "MTH", "latest", Branch.ROOT);
+        ConceptRelationship matchingRel =
             new ConceptRelationshipJpa();
         matchingRel.setFrom(conceptDemotionsWithCorresponding);
         matchingRel.setTo(matchingConcept);
@@ -122,39 +125,59 @@ public class DT_I3BIT extends IntegrationUnitSupport {
     // Concept contains Demotion relationships, but no corresponding
     // ConceptRelationship
     //
-
-    // Check whether the action violates the validation check
-    final ValidationResult validationResult = contentService
-        .validateConcept(project.getValidationChecks(), conceptDemotionsNoCorresponding);
-
-    // Verify that it returned a validation error
-    assertFalse(validationResult.isValid());
+    // Reload concept within a transaction so Hibernate 6 can lazily initialize
+    // atom.getRelationships() (2nd-level lazy collection).
+    {
+      ContentServiceJpa txService = new ContentServiceJpa();
+      txService.setTransactionPerOperation(false);
+      txService.beginTransaction();
+      Concept fresh = txService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
+      final ValidationResult validationResult =
+          txService.validateConcept(project.getValidationChecks(), fresh);
+      txService.rollback();
+      txService.close();
+      assertFalse(validationResult.isValid());
+    }
 
     //
     // Test non-violation of DT_I3B
     // Concept contains Demotion relationships, and corresponding
     // ConceptRelationships
     //
-
-    // Check whether the action violates the validation check
-    final ValidationResult validationResult2 = contentService
-        .validateConcept(project.getValidationChecks(), conceptDemotionsWithCorresponding);
-
-    // Verify that it returned a validation error
-    assertTrue(validationResult2.isValid());
+    {
+      ContentServiceJpa txService = new ContentServiceJpa();
+      txService.setTransactionPerOperation(false);
+      txService.beginTransaction();
+      Concept fresh = txService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
+      Concept matchingConcept = txService.getConcept("C0145617", "MTH", "latest", Branch.ROOT);
+      ConceptRelationship matchingRel = new ConceptRelationshipJpa();
+      matchingRel.setFrom(fresh);
+      matchingRel.setTo(matchingConcept);
+      matchingRel.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+      matchingRel.setPublishable(true);
+      fresh.getRelationships().add(matchingRel);
+      final ValidationResult validationResult2 =
+          txService.validateConcept(project.getValidationChecks(), fresh);
+      txService.rollback();
+      txService.close();
+      assertTrue(validationResult2.isValid());
+    }
 
     //
     // Test non-violation of DT_I3B
     // Concept contains no Demotion relationships
     //
-
-    // Check whether the action violates the validation check
-    final ValidationResult validationResult3 =
-        contentService.validateConcept(project.getValidationChecks(), conceptNoDemotions);
-
-    // Verify that it returned a validation error
-    assertTrue(validationResult3.isValid());
-
+    {
+      ContentServiceJpa txService = new ContentServiceJpa();
+      txService.setTransactionPerOperation(false);
+      txService.beginTransaction();
+      Concept fresh = txService.getConcept("C0004611", "MTH", "latest", Branch.ROOT);
+      final ValidationResult validationResult3 =
+          txService.validateConcept(project.getValidationChecks(), fresh);
+      txService.rollback();
+      txService.close();
+      assertTrue(validationResult3.isValid());
+    }
   }
 
   /**

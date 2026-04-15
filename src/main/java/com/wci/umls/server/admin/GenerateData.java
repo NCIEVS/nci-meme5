@@ -1131,7 +1131,7 @@ public class GenerateData extends AbstractLoader {
         MetadataServiceRest metadataService = new MetadataServiceRestImpl();
         PrecedenceListJpa list =
                 new PrecedenceListJpa(metadataService.getDefaultPrecedenceList(
-                        project1.getTerminology(), "latest", authToken));
+                        project1.getTerminology(), version, authToken));
         list.setId(null);
         list.setTerminology("");
         list.setVersion("");
@@ -1291,21 +1291,27 @@ public class GenerateData extends AbstractLoader {
         contentService = new ContentServiceRestImpl();
         for (final SearchResult result : contentService.findConcepts(terminology,
                 version, "atoms.terminology:NCI", pfs, authToken).getObjects()) {
-            contentService = new ContentServiceRestImpl();
-            final ConceptJpa concept = new ConceptJpa(
-                    contentService.getConcept(result.getId(), projectId, authToken),
-                    true);
-            concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-            // Make all NCI atoms needs review
-            for (final Atom atom : concept.getAtoms()) {
-                if (atom.getTerminology().equals("NCI")) {
-                    atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-                    testService = new IntegrationTestServiceRestImpl();
-                    testService.updateAtom(new AtomJpa(atom), authToken);
+            // Use ContentServiceJpa so the session stays open for the entire
+            // iteration — H6 lazy collections (inverseRelationships, conceptTerminologyIds)
+            // must be accessible when ConceptJpa/AtomJpa copy constructors run.
+            ContentServiceJpa jpaService = new ContentServiceJpa();
+            try {
+                final ConceptJpa concept =
+                        new ConceptJpa(jpaService.getConcept(result.getId()), true);
+                concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+                // Make all NCI atoms needs review
+                for (final Atom atom : concept.getAtoms()) {
+                    if (atom.getTerminology().equals("NCI")) {
+                        atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+                        testService = new IntegrationTestServiceRestImpl();
+                        testService.updateAtom(new AtomJpa(atom), authToken);
+                    }
                 }
+                testService = new IntegrationTestServiceRestImpl();
+                testService.updateConcept(concept, authToken);
+            } finally {
+                jpaService.close();
             }
-            testService = new IntegrationTestServiceRestImpl();
-            testService.updateConcept(concept, authToken);
         }
 
         // SNOMEDCT_US
@@ -1317,29 +1323,30 @@ public class GenerateData extends AbstractLoader {
         for (final SearchResult result : contentService.findConcepts(terminology,
                         version, "atoms.terminology:SNOMEDCT_US", pfs, authToken)
                 .getObjects()) {
-            contentService = new ContentServiceRestImpl();
-            final ConceptJpa concept = new ConceptJpa(
-                    contentService.getConcept(result.getId(), projectId, authToken),
-                    true);
-
-            // skip if any concepts have NCI atoms
-            if (concept.getAtoms().stream().map(a -> a.getTerminology())
-                    .filter(t -> t.equals("NCI")).collect(Collectors.toList())
-                    .size() > 0) {
-                continue;
-            }
-            concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-
-            // Make all SNOMEDCT_US atoms needs review
-            for (final Atom atom : concept.getAtoms()) {
-                if (atom.getTerminology().equals("SNOMEDCT_US")) {
-                    atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-                    testService = new IntegrationTestServiceRestImpl();
-                    testService.updateAtom(new AtomJpa(atom), authToken);
+            ContentServiceJpa jpaService = new ContentServiceJpa();
+            try {
+                final ConceptJpa concept =
+                        new ConceptJpa(jpaService.getConcept(result.getId()), true);
+                // skip if any concepts have NCI atoms
+                if (concept.getAtoms().stream().map(a -> a.getTerminology())
+                        .filter(t -> t.equals("NCI")).collect(Collectors.toList())
+                        .size() > 0) {
+                    continue;
                 }
+                concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+                // Make all SNOMEDCT_US atoms needs review
+                for (final Atom atom : concept.getAtoms()) {
+                    if (atom.getTerminology().equals("SNOMEDCT_US")) {
+                        atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+                        testService = new IntegrationTestServiceRestImpl();
+                        testService.updateAtom(new AtomJpa(atom), authToken);
+                    }
+                }
+                testService = new IntegrationTestServiceRestImpl();
+                testService.updateConcept(concept, authToken);
+            } finally {
+                jpaService.close();
             }
-            testService = new IntegrationTestServiceRestImpl();
-            testService.updateConcept(concept, authToken);
         }
 
         // leftovers
@@ -1350,31 +1357,31 @@ public class GenerateData extends AbstractLoader {
         contentService = new ContentServiceRestImpl();
         for (final SearchResult result : contentService.findConcepts(terminology,
                 version, "atoms.terminology:RXNORM", pfs, authToken).getObjects()) {
-            contentService = new ContentServiceRestImpl();
-            final ConceptJpa concept = new ConceptJpa(
-                    contentService.getConcept(result.getId(), projectId, authToken),
-                    true);
-
-            // skip if any concepts have NCI atoms
-            if (concept.getAtoms().stream().map(a -> a.getTerminology())
-                    .filter(t -> t.equals("NCI") || t.equals("SNOMEDCT_US"))
-                    .collect(Collectors.toList()).size() > 0) {
-                continue;
-            }
-            concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-
-            // Make all SNOMEDCT_US atoms needs review
-            for (final Atom atom : concept.getAtoms()) {
-                if (!atom.getTerminology().equals("NCI")
-                        && !atom.getTerminology().equals("SNOMEDCT_US")) {
-                    atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-                    testService = new IntegrationTestServiceRestImpl();
-                    testService.updateAtom(new AtomJpa(atom), authToken);
+            ContentServiceJpa jpaService = new ContentServiceJpa();
+            try {
+                final ConceptJpa concept =
+                        new ConceptJpa(jpaService.getConcept(result.getId()), true);
+                // skip if any concepts have NCI atoms
+                if (concept.getAtoms().stream().map(a -> a.getTerminology())
+                        .filter(t -> t.equals("NCI") || t.equals("SNOMEDCT_US"))
+                        .collect(Collectors.toList()).size() > 0) {
+                    continue;
                 }
+                concept.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+                // Make all RXNORM atoms needs review
+                for (final Atom atom : concept.getAtoms()) {
+                    if (!atom.getTerminology().equals("NCI")
+                            && !atom.getTerminology().equals("SNOMEDCT_US")) {
+                        atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+                        testService = new IntegrationTestServiceRestImpl();
+                        testService.updateAtom(new AtomJpa(atom), authToken);
+                    }
+                }
+                testService = new IntegrationTestServiceRestImpl();
+                testService.updateConcept(concept, authToken);
+            } finally {
+                jpaService.close();
             }
-
-            testService = new IntegrationTestServiceRestImpl();
-            testService.updateConcept(concept, authToken);
         }
 
         // Mark some rels as status N
@@ -1386,14 +1393,17 @@ public class GenerateData extends AbstractLoader {
         for (final SearchResult result : contentService
                 .findConcepts(terminology, version, null, pfs, authToken)
                 .getObjects()) {
-            contentService = new ContentServiceRestImpl();
-            final Concept concept =
-                    contentService.getConcept(result.getId(), projectId, authToken);
-            if (concept.getRelationships().size() > 0) {
-                final ConceptRelationshipJpa rel =
-                        (ConceptRelationshipJpa) concept.getRelationships().get(0);
-                testService = new IntegrationTestServiceRestImpl();
-                testService.updateRelationship(rel, authToken);
+            ContentServiceJpa jpaService = new ContentServiceJpa();
+            try {
+                final Concept concept = jpaService.getConcept(result.getId());
+                if (concept.getRelationships().size() > 0) {
+                    final ConceptRelationshipJpa rel =
+                            (ConceptRelationshipJpa) concept.getRelationships().get(0);
+                    testService = new IntegrationTestServiceRestImpl();
+                    testService.updateRelationship(rel, authToken);
+                }
+            } finally {
+                jpaService.close();
             }
         }
 

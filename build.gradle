@@ -5,6 +5,8 @@ plugins {
 
 group = 'com.wcinformatics.umls.server'
 version = '1.5.1-SNAPSHOT'
+// Saved separately so adminJvmArgs can suppress the artifact version even when -Pversion overrides project.version
+ext.artifactVersion = '1.5.1-SNAPSHOT'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -177,6 +179,31 @@ sourceSets {
     }
 }
 
+// ── Integration tests (*IT.java) ──────────────────────────────────────────────
+// Run with:  ./gradlew integrationTest -Drun.config.umls=/path/to/config.properties
+// Optionally filter:  --tests "com.wci.umls.server.test.jpa.*"
+//                     --tests "com.wci.umls.server.test.rest.*"  (requires running server)
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests (*IT.java).'
+    group = 'verification'
+
+    // Include only *IT classes; exclude the plain *Test classes run by :test
+    include '**/*IT.class'
+
+    // Forward run.config.* system properties so ConfigUtility can find the config file
+    System.getProperties().each { key, value ->
+        if (key.toString().startsWith('run.config.')) {
+            systemProperty key.toString(), value.toString()
+        }
+    }
+
+    // Allow individual test selection via -Dtest.single=ClassName
+    def singleTest = System.getProperty('test.single')
+    if (singleTest) {
+        include "**/${singleTest}.class"
+    }
+}
+
 // ── Shared admin classpath helper ─────────────────────────────────────────────
 // Admin tasks run classes from the compiled main source set.
 // Pass system properties from Gradle project properties on the command line,
@@ -186,19 +213,31 @@ def adminJvmArgs(Map<String, String> propNames) {
     def args = propNames.collect { key, _ ->
         def val = project.findProperty(key)
         //
-        if (key == 'version' && val == project.version.toString()) {
+        if (key == 'version' && val == ext.artifactVersion) {
             null
         } else {
             val != null ? "-D${key}=${val}" : null
         }
     }.findAll { it != null }
 
-    // Also check for direct system properties passed via -D flags
+    // Also check for direct system properties passed via -D flags.
     // This allows passing -Drun.config.umls=/path/to/config.properties
+    // and also -Dversion=2016AA to bypass the Gradle 'version' property collision.
     def sysProps = System.getProperties()
     sysProps.each { key, value ->
         if (key.toString().startsWith('run.config.')) {
             args.add("-D${key}=${value}")
+        }
+    }
+
+    // Forward any propName keys provided as -D system properties that aren't
+    // already covered by the -P project-property path above.
+    propNames.keySet().each { propKey ->
+        if (!args.any { it.toString().startsWith("-D${propKey}=") }) {
+            def sysPropVal = System.getProperty(propKey)
+            if (sysPropVal != null) {
+                args.add("-D${propKey}=${sysPropVal}")
+            }
         }
     }
 

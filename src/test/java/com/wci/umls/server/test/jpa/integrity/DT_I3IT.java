@@ -76,9 +76,10 @@ public class DT_I3IT extends IntegrationUnitSupport {
     // will run.
     project.setValidationChecks(new ArrayList<>(Arrays.asList("DT_I3")));
 
-    // Get two concepts, on with DEMOTION relationships, and one without
+    // Get two concepts, one with DEMOTION relationships, and one without.
+    // C0040247 has DEMOTION atomRels in SAMPLE_UMLS; C0004611 does not.
     conceptDemotions =
-        contentService.getConcept("C0032460", "MTH", "latest", Branch.ROOT);
+        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
     conceptNoDemotions =
         contentService.getConcept("C0004611", "MTH", "latest", Branch.ROOT);
 
@@ -97,13 +98,21 @@ public class DT_I3IT extends IntegrationUnitSupport {
     // Test violation of DT_I3
     // Concept contains Demotion relationships
     //
+    // Reload concept within a transaction so Hibernate 6 can lazily initialize
+    // atom.getRelationships() (2nd-level lazy collection).
+    {
+      ContentServiceJpa txService = new ContentServiceJpa();
+      txService.setTransactionPerOperation(false);
+      txService.beginTransaction();
+      Concept fresh = txService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
+      final ValidationResult validationResult =
+          txService.validateConcept(project.getValidationChecks(), fresh);
+      txService.rollback();
+      txService.close();
 
-    // Check whether the action violates the validation check
-    final ValidationResult validationResult =
-        contentService.validateConcept(project.getValidationChecks(), conceptDemotions);
-
-    // Verify that it returned a validation error
-    assertFalse(validationResult.isValid());
+      // Verify that it returned a validation error
+      assertFalse(validationResult.isValid());
+    }
 
     //
     // Test non-violation of DT_I3
@@ -114,7 +123,7 @@ public class DT_I3IT extends IntegrationUnitSupport {
     final ValidationResult validationResult2 =
         contentService.validateConcept(project.getValidationChecks(), conceptNoDemotions);
 
-    // Verify that it returned a validation error
+    // Verify that it returned no validation errors
     assertTrue(validationResult2.isValid());
 
   }

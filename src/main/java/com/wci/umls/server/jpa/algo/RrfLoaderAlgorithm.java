@@ -334,6 +334,12 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     if (getReleaseVersion() == null) {
       setReleaseVersion(getVersion());
     }
+    // If no version was specified by the caller, default to "latest".
+    // The releaseVersion (from release.dat) is used for metadata only;
+    // the stored entity version should be "latest" to match query conventions.
+    if (getVersion() == null) {
+      setVersion("latest");
+    }
     releaseVersionDate = ConfigUtility.DATE_FORMAT
         .parse(getReleaseVersion().substring(0, 4) + "0101");
     Logger.getLogger(getClass())

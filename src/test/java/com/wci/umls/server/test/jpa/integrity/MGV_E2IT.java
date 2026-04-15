@@ -80,11 +80,14 @@ public class MGV_E2IT extends IntegrationUnitSupport {
     project = new ProjectJpa(projects.getObjects().get(0));
 
     // Get two concepts connected by a project-terminology concept relationship,
-    // and one that is not
+    // and one that is not.
+    // C0364349 has a publishable MTH ConceptRelationship to C0000039 (type RO).
+    // conceptRelated1 = source (getConcept2()) must have a ConceptRel to
+    // conceptRelated2 = target (getConcept()) per MGV_E2.
     conceptRelated1 =
-        contentService.getConcept("C0000052", project.getTerminology(), "latest", Branch.ROOT);
+        contentService.getConcept("C0364349", project.getTerminology(), "latest", Branch.ROOT);
     conceptRelated2 =
-        contentService.getConcept("C1415001", project.getTerminology(), "latest", Branch.ROOT);
+        contentService.getConcept("C0000039", project.getTerminology(), "latest", Branch.ROOT);
     conceptUnrelated =
         contentService.getConcept("C0000005", project.getTerminology(), "latest", Branch.ROOT);
 
