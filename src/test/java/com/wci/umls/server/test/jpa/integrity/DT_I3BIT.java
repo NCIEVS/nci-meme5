@@ -88,8 +88,8 @@ public class DT_I3BIT extends IntegrationUnitSupport {
 
     // Get three concepts, two with DEMOTION relationships,
     // and one without any DEMOTION relationships.
-    // C0040247 has a DEMOTION atomRel to an atom in C0145617 but no
-    // ConceptRelationship to C0145617 (violation case).
+    // C0040247 has a DEMOTION atomRel to an atom in C0118168 but no
+    // ConceptRelationship to C0118168 (violation case).
     conceptDemotionsNoCorresponding =
         contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
     conceptDemotionsWithCorresponding =
@@ -98,9 +98,9 @@ public class DT_I3BIT extends IntegrationUnitSupport {
         contentService.getConcept("C0004611", "MTH", "latest", Branch.ROOT);
 
     // Add matching conceptRelationships to the DEMOTION relationship for
-    // conceptDemotionsWithCorresponding. C0145617 is the target of C0040247's
+    // conceptDemotionsWithCorresponding. C0118168 is the target of C0040247's
     // DEMOTION atomRel, so adding a ConceptRel to it satisfies DT_I3B.
-    Concept matchingConcept = contentService.getConcept("C0145617", "MTH", "latest", Branch.ROOT);
+    Concept matchingConcept = contentService.getConcept("C0118168", "MTH", "latest", Branch.ROOT);
         ConceptRelationship matchingRel =
             new ConceptRelationshipJpa();
         matchingRel.setFrom(conceptDemotionsWithCorresponding);
@@ -149,7 +149,7 @@ public class DT_I3BIT extends IntegrationUnitSupport {
       txService.setTransactionPerOperation(false);
       txService.beginTransaction();
       Concept fresh = txService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
-      Concept matchingConcept = txService.getConcept("C0145617", "MTH", "latest", Branch.ROOT);
+      Concept matchingConcept = txService.getConcept("C0118168", "MTH", "latest", Branch.ROOT);
       ConceptRelationship matchingRel = new ConceptRelationshipJpa();
       matchingRel.setFrom(fresh);
       matchingRel.setTo(matchingConcept);

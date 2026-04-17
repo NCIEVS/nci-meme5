@@ -150,6 +150,7 @@ public class GenerateData extends AbstractLoader {
         tool.version = System.getProperty("version", "latest");
         tool.inputDir = System.getProperty("input.dir");
         tool.run();
+        System.exit(0);
     }
 
     @Override
@@ -1587,6 +1588,7 @@ public class GenerateData extends AbstractLoader {
                     "    non chem = " + (bin.getTrackingRecords().size() - chemRecords));
 
             if (bin.isEditable()) {
+              try {
                 pfs = new PfsParameterJpa();
                 pfs.setStartIndex(0);
                 pfs.setMaxResults(5);
@@ -1656,6 +1658,10 @@ public class GenerateData extends AbstractLoader {
                         + workflowService.findTrackingRecordsForChecklist(projectId,
                         checklist.getId(), pfs, authToken).getTotalCount());
 
+              } catch (Exception e) {
+                LOGGER.warn("  WARNING: could not create worklists/checklists for bin "
+                    + bin.getName() + ": " + e.getMessage());
+              }
             }
         }
 

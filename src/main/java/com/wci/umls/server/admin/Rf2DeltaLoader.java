@@ -73,5 +73,6 @@ public class Rf2DeltaLoader {
       ContentClientRest client = new ContentClientRest(properties);
       client.loadTerminologyRf2Delta(terminology, inputDir, authToken);
     }
+    System.exit(0);
   }
 }

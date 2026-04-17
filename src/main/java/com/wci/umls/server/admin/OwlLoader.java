@@ -85,5 +85,6 @@ public class OwlLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new OwlLoader().run();
+    System.exit(0);
   }
 }

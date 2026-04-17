@@ -71,5 +71,6 @@ public class TreeposComputer {
       ContentClientRest client = new ContentClientRest(properties);
       client.computeTreePositions(terminology, version, authToken);
     }
+    System.exit(0);
   }
 }

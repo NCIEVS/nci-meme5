@@ -82,5 +82,6 @@ public class Rf2FullLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new Rf2FullLoader().run();
+    System.exit(0);
   }
 }

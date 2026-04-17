@@ -75,5 +75,6 @@ public class LuceneReindex {
       ContentClientRest client = new ContentClientRest(properties);
       client.luceneReindex(indexedObjects, authToken);
     }
+    System.exit(0);
   }
 }

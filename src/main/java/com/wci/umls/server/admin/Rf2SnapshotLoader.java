@@ -83,5 +83,6 @@ public class Rf2SnapshotLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new Rf2SnapshotLoader().run();
+    System.exit(0);
   }
 }

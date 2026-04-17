@@ -49,5 +49,6 @@ public class UpdateDb {
     // Trigger a JPA event to apply DDL
     new MetadataServiceJpa().close();
     LOG.info("done ...");
+    System.exit(0);
   }
 }

@@ -48,10 +48,23 @@ public class ProjectJpaIT extends IntegrationUnitSupport {
 
   /**
    * Setup.
+   * @throws Exception the exception
    */
   @Before
-  public void setup() {
-    // n/a
+  public void setup() throws Exception {
+    // Remove any stale "Test Project" rows left by a previous failed run.
+    ProjectService projectService = new ProjectServiceJpa();
+    try {
+      projectService.setLastModifiedBy("admin");
+      for (Project p : projectService.getProjects().getObjects()) {
+        if ("Test Project".equals(p.getName())
+            && "Test Project Description".equals(p.getDescription())) {
+          projectService.removeProject(p.getId());
+        }
+      }
+    } finally {
+      projectService.close();
+    }
   }
 
   /**
@@ -72,7 +85,7 @@ public class ProjectJpaIT extends IntegrationUnitSupport {
 
       // Add Project
       User adminUser = securityService.getUser("admin");
-      User guestUser = securityService.getUser("guest");
+      User guestUser = securityService.getUser("reviewer1");
 
       Project project = new ProjectJpa();
       project.setName("Test Project");

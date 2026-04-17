@@ -71,5 +71,6 @@ public class TransitiveClosureComputer {
       ContentClientRest client = new ContentClientRest(properties);
       client.computeTransitiveClosure(terminology, version, authToken);
     }
+    System.exit(0);
   }
 }

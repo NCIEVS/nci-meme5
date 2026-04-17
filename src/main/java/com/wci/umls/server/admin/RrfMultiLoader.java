@@ -82,5 +82,6 @@ public class RrfMultiLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new RrfMultiLoader().run();
+    System.exit(0);
   }
 }

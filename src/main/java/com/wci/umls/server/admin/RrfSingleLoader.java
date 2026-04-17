@@ -87,5 +87,6 @@ public class RrfSingleLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new RrfSingleLoader().run();
+    System.exit(0);
   }
 }

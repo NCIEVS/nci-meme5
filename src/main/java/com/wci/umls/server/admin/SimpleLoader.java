@@ -82,5 +82,6 @@ public class SimpleLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new SimpleLoader().run();
+    System.exit(0);
   }
 }

@@ -74,5 +74,6 @@ public class LuceneReindexEcl {
       ContentClientRest client = new ContentClientRest(properties);
       client.computeExpressionIndexes(terminology, version, authToken);
     }
+    System.exit(0);
   }
 }

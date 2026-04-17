@@ -100,5 +100,6 @@ public class TerminologyRemover {
     }
     service.close();
     LOG.info("done ...");
+    System.exit(0);
   }
 }

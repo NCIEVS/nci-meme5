@@ -85,5 +85,6 @@ public class ClamlLoader extends AbstractLoader {
   /** Main entry point. */
   public static void main(String[] args) throws Exception {
     new ClamlLoader().run();
+    System.exit(0);
   }
 }
