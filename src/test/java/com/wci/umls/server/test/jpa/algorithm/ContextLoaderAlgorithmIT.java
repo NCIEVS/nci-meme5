@@ -100,15 +100,23 @@ public class ContextLoaderAlgorithmIT extends IntegrationUnitSupport {
     processExecution.setInputPath(
         processExecution.getInputPath() + "/temp");
 
+    // Create a minimal sources.src required by ContextLoader's compute() to
+    // identify referenced terminologies. Fields: [0]=versioned_source [4]=terminology.
+    File sourcesFile = new File(tempSrcDir, "sources.src");
+    PrintWriter sourcesOut = new PrintWriter(new FileWriter(sourcesFile));
+    sourcesOut.println(
+        "NCI_2016_11D|NCI_2016_10E|0|NCI_2016_11D|NCI|2016_11D|NCI|National Cancer Institute Thesaurus||||||||||||||||||UTF-8||");
+    sourcesOut.close();
+
     // Create and populate a contexts.src document in the /temp
     // temporary subfolder
     outputFile = new File(tempSrcDir, "contexts.src");
 
     PrintWriter out = new PrintWriter(new FileWriter(outputFile));
     out.println(
-        "362168904|PAR|isa|362174335|NCI_2016_05E|NCI_2016_05E||31926003.362204588.362250568.362175233.362174339.362174335|00|||C37447|SOURCE_CUI|NCI_2016_05E|C1971|SOURCE_CUI|NCI_2016_05E|");
+        "362168904|PAR|isa|362174335|NCI_2016_11D|NCI_2016_11D||31926003.362204588.362250568.362175233.362174339.362174335|00|||C37447|SOURCE_CUI|NCI_2016_11D|C1971|SOURCE_CUI|NCI_2016_11D|");
     out.println(
-        "362199564|PAR|isa|362199578|NCI_2016_05E|NCI_2016_05E||31926003.362214991.362254908.362254885.362207285.362246398.362199581.362199578|00|||C25948|SOURCE_CUI|NCI_2016_05E|C16484|SOURCE_CUI|NCI_2016_05E|");
+        "362199564|PAR|isa|362199578|NCI_2016_11D|NCI_2016_11D||31926003.362214991.362254908.362254885.362207285.362246398.362199581.362199578|00|||C25948|SOURCE_CUI|NCI_2016_11D|C16484|SOURCE_CUI|NCI_2016_11D|");
 
     out.close();
 

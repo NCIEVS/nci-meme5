@@ -161,14 +161,18 @@ public class RelationshipLoaderAlgorithm
       for (final RelationshipType rel : getRelationshipTypes(
           getProject().getTerminology(), getProject().getVersion())
               .getObjects()) {
-        relTypeMap.put(rel.getAbbreviation(),
-            rel.getInverse().getAbbreviation());
+        if (rel.getInverse() != null) {
+          relTypeMap.put(rel.getAbbreviation(),
+              rel.getInverse().getAbbreviation());
+        }
       }
       for (final AdditionalRelationshipType rel : getAdditionalRelationshipTypes(
           getProject().getTerminology(), getProject().getVersion())
               .getObjects()) {
-        relTypeMap.put(rel.getAbbreviation(),
-            rel.getInverse().getAbbreviation());
+        if (rel.getInverse() != null) {
+          relTypeMap.put(rel.getAbbreviation(),
+              rel.getInverse().getAbbreviation());
+        }
       }
       relTypeMap.put("", "");
 
@@ -711,11 +715,13 @@ public class RelationshipLoaderAlgorithm
     }
 
     // Calculate inverseRel and inverseAdditionalRel types, to use in the
-    // RUI handler and the inverse relationship creation
+    // RUI handler and the inverse relationship creation.
+    // Fall back to "" when no inverse mapping is found (e.g. RELA type that
+    // has no declared inverse in the metadata).
     final String inverseRelType =
-        relTypeMap.get(newRelationship.getRelationshipType());
+        relTypeMap.getOrDefault(newRelationship.getRelationshipType(), "");
     final String inverseAdditionalRelType =
-        relTypeMap.get(newRelationship.getAdditionalRelationshipType());
+        relTypeMap.getOrDefault(newRelationship.getAdditionalRelationshipType(), "");
 
     // Create the inverse relationship
     final Relationship newInverseRelationship =

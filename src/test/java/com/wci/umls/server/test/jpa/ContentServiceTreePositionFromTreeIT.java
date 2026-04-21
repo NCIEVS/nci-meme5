@@ -61,8 +61,8 @@ public class ContentServiceTreePositionFromTreeIT
     Logger.getLogger(getClass()).info("TEST " + name.getMethodName());
 
     // Start by obtaining tree positions for a concept
-    TreePositionList list = service.findTreePositions("10944007", "SNOMEDCT_US",
-        "2016_03_01", Branch.ROOT, null, ConceptTreePositionJpa.class,
+    TreePositionList list = service.findTreePositions("123946008", "SNOMEDCT_US",
+        "2015_09_01", Branch.ROOT, null, ConceptTreePositionJpa.class,
         new PfsParameterJpa());
 
     TreePosition<? extends ComponentHasAttributesAndName> treepos =

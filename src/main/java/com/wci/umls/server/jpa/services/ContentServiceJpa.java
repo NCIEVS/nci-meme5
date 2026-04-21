@@ -89,6 +89,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.hibernate.Hibernate;
 import org.hibernate.search.backend.lucene.LuceneExtension;
 import org.hibernate.search.backend.lucene.index.LuceneIndexManager;
 import org.hibernate.search.engine.search.predicate.SearchPredicate;
@@ -3112,6 +3113,31 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     if (isMolecularActionFlag()) {
       final MolecularAction molecularAction = getMolecularAction();
 
+      // In Hibernate 6, manager.find() returns the same managed instance when the
+      // entity is already in the session — making oldComponent == newComponent and
+      // defeating the old-vs-new comparison that generates atomic actions.
+      // Pre-initialize all @OneToMany collections and @ElementCollection+@Column fields
+      // while the entity is still managed (session open), then detach so that
+      // getComponent() loads a fresh DB snapshot for old-vs-new comparison.
+      if (manager.contains(newComponent)) {
+        // Force-initialize every @OneToMany collection that will be compared, so
+        // that after detach the collections are still accessible (wasInitialized=true).
+        for (final Method m : IndexUtility.getAllCollectionGetMethods(newComponent.getClass())) {
+          final Object col = m.invoke(newComponent, new Object[] {});
+          if (col instanceof Collection) {
+            Hibernate.initialize(col);
+          }
+        }
+        // Force-initialize @ElementCollection+@Column fields (e.g. conceptTerminologyIds)
+        for (final Method m : IndexUtility.getAllColumnGetMethods(newComponent.getClass())) {
+          final Object val = m.invoke(newComponent, new Object[] {});
+          if (val != null) {
+            Hibernate.initialize(val);
+          }
+        }
+        manager.detach(newComponent);
+      }
+
       final T oldComponent = getComponent(newComponent.getId(), (Class<T>) newComponent.getClass());
 
       // Create an atomic action when old value is different from new value.
@@ -3125,6 +3151,13 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         // Obtain previous and current values
         final Object oldObject = m.invoke(oldComponent, new Object[] {});
         final Object newObject = m.invoke(newComponent, new Object[] {});
+
+        // Skip fields whose value on newComponent is an uninitialized lazy proxy
+        // (can happen for @ElementCollection+@Column fields when newComponent was
+        // already detached before entering updateComponent, e.g. on a second update call).
+        if (!Hibernate.isInitialized(newObject)) {
+          continue;
+        }
 
         // Obtain string values
         final String oldValue =
@@ -3154,19 +3187,20 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       final List<Method> oneToManyMethods =
           IndexUtility.getAllCollectionGetMethods(oldComponent.getClass());
 
-      // Iterate through @OneToMan methods
+      // Iterate through @OneToMany methods
       for (final Method m : oneToManyMethods) {
 
+        final Object newCollectionRaw = m.invoke(newComponent, new Object[] {});
+
         // Obtain the old/new identifier lists
+        final List<?> newList = new ArrayList<>((Collection<?>) newCollectionRaw);
+        final Set<Long> newIds =
+            (newList.stream().map(x -> ((HasId) x).getId()).collect(Collectors.toSet()));
+
         final List<?> oldList =
             new ArrayList<>((Collection<?>) m.invoke(oldComponent, new Object[] {}));
         final Set<Long> oldIds =
             (oldList.stream().map(x -> ((HasId) x).getId()).collect(Collectors.toSet()));
-
-        final List<?> newList =
-            new ArrayList<>((Collection<?>) m.invoke(newComponent, new Object[] {}));
-        final Set<Long> newIds =
-            (newList.stream().map(x -> ((HasId) x).getId()).collect(Collectors.toSet()));
 
         // Get the collection class name
         String collectionClassName = null;

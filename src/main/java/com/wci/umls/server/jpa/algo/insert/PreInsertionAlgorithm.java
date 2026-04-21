@@ -218,7 +218,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from AtomJpa a ");
       final Long atomId2 = (Long) query.getSingleResult();
-      atomId = atomId2 != null ? atomId2 : atomId;
+      atomId = atomId2 != null ? atomId2 : 0L;
     } catch (NoResultException e) {
       atomId = 0L;
     }
@@ -235,7 +235,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from AtomIdentityJpa a ");
       final Long AUI2 = (Long) query.getSingleResult();
-      AUI = AUI2 != null ? AUI2 : AUI;
+      AUI = AUI2 != null ? AUI2 : 0L;
     } catch (NoResultException e) {
       AUI = 0L;
     }
@@ -251,7 +251,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       final jakarta.persistence.Query query = manager
           .createQuery("select max(a.id) from SemanticTypeComponentJpa a ");
       final Long styId2 = (Long) query.getSingleResult();
-      styId = styId2 != null ? styId2 : styId;
+      styId = styId2 != null ? styId2 : 0L;
     } catch (NoResultException e) {
       styId = 0L;
     }
@@ -266,7 +266,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from MapSetJpa a ");
       final Long mapSetId2 = (Long) query.getSingleResult();
-      mapSetId = mapSetId2 != null ? mapSetId2 : mapSetId;
+      mapSetId = mapSetId2 != null ? mapSetId2 : 0L;
     } catch (NoResultException e) {
       mapSetId = 0L;
     }
@@ -281,7 +281,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       final jakarta.persistence.Query query =
           manager.createQuery("select max(a.id) from AtomSubsetJpa a ");
       final Long atomSubsetId2 = (Long) query.getSingleResult();
-      atomSubsetId = atomSubsetId2 != null ? atomSubsetId2 : atomSubsetId;
+      atomSubsetId = atomSubsetId2 != null ? atomSubsetId2 : 0L;
     } catch (NoResultException e) {
       atomSubsetId = 0L;
     }

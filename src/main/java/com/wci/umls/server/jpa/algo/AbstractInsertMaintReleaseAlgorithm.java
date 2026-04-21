@@ -1546,7 +1546,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       for (final Long id : list) {
         final Relationship<?, ?> relationship = getRelationship(id,
             (Class<? extends Relationship<? extends ComponentInfo, ? extends ComponentInfo>>) Class
-                .forName("com.wci.umls.server.jpa.content." + relPrefix
+                .forName("com.wci.umls.server.jpa.model.content." + relPrefix
                     + "RelationshipJpa"));
         relationship.getAlternateTerminologyIds()
             .remove(getProject().getTerminology() + "-SRC");

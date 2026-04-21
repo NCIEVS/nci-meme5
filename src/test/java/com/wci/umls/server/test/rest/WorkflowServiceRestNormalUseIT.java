@@ -101,6 +101,8 @@ public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
     project.setName("Test Project " + new Date().getTime());
     project.setPublic(true);
     project.setTerminology(umlsTerminology);
+    project.setVersion(umlsVersion);
+    project.setLanguage("ENG");
     project.setWorkflowPath(ConfigUtility.DEFAULT);
     // Configure valid categories
     final List<String> validCategories = new ArrayList<>();

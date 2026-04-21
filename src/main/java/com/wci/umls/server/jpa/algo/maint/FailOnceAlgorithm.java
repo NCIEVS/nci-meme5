@@ -21,11 +21,11 @@ import com.wci.umls.server.model.algo.ValidationResult;
 public class FailOnceAlgorithm extends AbstractAlgorithm {
 
   /**
-   * Tracks process execution IDs that have already failed once.
+   * Tracks activity IDs that have already failed once.
    * A given execution fails on first run and succeeds on restart.
-   * Keyed by ProcessExecution ID so state resets naturally per execution.
+   * Keyed by activityId (UUID set in constructor) so state resets per instance.
    */
-  private static final Set<Long> alreadyFailed = new HashSet<>();
+  private static final Set<String> alreadyFailed = new HashSet<>();
 
   /**
    * Instantiates an empty {@link FailOnceAlgorithm}.
@@ -54,8 +54,8 @@ public class FailOnceAlgorithm extends AbstractAlgorithm {
   public void compute() throws Exception {
     logInfo("Starting " + getName());
 
-    // If this process execution has not failed yet, fail it now.
-    final Long executionId = getProcess().getId();
+    // If this activity has not failed yet, fail it now.
+    final String executionId = getActivityId();
     if (!alreadyFailed.contains(executionId)) {
       alreadyFailed.add(executionId);
       throw new Exception("FAILONCE first run failed.");

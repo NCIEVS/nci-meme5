@@ -254,6 +254,8 @@ public class GenerateData extends AbstractLoader {
             project1.setTerminology(terminologies[i]);
             project1.setVersion(versions[i]);
             project1.setWorkflowPath(ConfigUtility.DEFAULT);
+            project1.setEditingEnabled(false);
+            project1.setAutomationsEnabled(false);
             List<String> newAtomTermgroups = new ArrayList<>();
             newAtomTermgroups.add(terminologies[i] + "/SY");
             project1.setNewAtomTermgroups(newAtomTermgroups);
@@ -1087,6 +1089,8 @@ public class GenerateData extends AbstractLoader {
         project1.setTerminology(terminology);
         project1.setWorkflowPath(ConfigUtility.DEFAULT);
         project1.setVersion(version);
+        project1.setEditingEnabled(true);
+        project1.setAutomationsEnabled(true);
         List<String> newAtomTermgroups = new ArrayList<>();
         newAtomTermgroups.add("MTH/PN");
         newAtomTermgroups.add("NCIMTH/PN");

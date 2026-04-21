@@ -79,7 +79,7 @@ public class ContentDeepRelsIT extends IntegrationUnitSupport {
 
     }
     Logger.getLogger(getClass()).info("  Verify count = " + list.size());
-    assertEquals(82, list.size());
+    assertEquals(437, list.size());
 
     // include concept rels
     // inverseFlag, includeConceptRels, preferredOnly, includeSelfReferential
@@ -98,7 +98,7 @@ public class ContentDeepRelsIT extends IntegrationUnitSupport {
 
     }
     Logger.getLogger(getClass()).info("  Verify count = " + list.size());
-    assertEquals(112, list.size());
+    assertEquals(442, list.size());
 
     // include self-referential
     // inverseFlag, includeConceptRels, preferredOnly, includeSelfReferential
@@ -117,7 +117,7 @@ public class ContentDeepRelsIT extends IntegrationUnitSupport {
 
     }
     Logger.getLogger(getClass()).info("  Verify count = " + list.size());
-    assertEquals(123, list.size());
+    assertEquals(453, list.size());
 
     // include pref only
     Logger.getLogger(getClass())
@@ -135,7 +135,7 @@ public class ContentDeepRelsIT extends IntegrationUnitSupport {
 
     }
     Logger.getLogger(getClass()).info("  Verify count = " + list.size());
-    assertEquals(64, list.size());
+    assertEquals(90, list.size());
 
     Logger.getLogger(getClass()).info(
         "  Test basic findDeepRelationshipsForConcept call with pfs page size and sort order");

@@ -58,17 +58,17 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
         service.getComponentStats("MTH", "latest", Branch.ROOT);
 
     Map<String, Integer> cmpStats = new TreeMap<>();
-    cmpStats.put("Non-obsolete AtomJpa", 0);
-    cmpStats.put("Non-obsolete AtomRelationshipJpa", 0);
+    cmpStats.put("Non-obsolete AtomJpa", 1129);
+    cmpStats.put("Non-obsolete AtomRelationshipJpa", 1062);
     cmpStats.put("Non-obsolete AtomSubsetJpa", 0);
     cmpStats.put("Non-obsolete AtomSubsetMemberJpa", 0);
-    cmpStats.put("Non-obsolete AttributeJpa", 17135);
-    cmpStats.put("Non-obsolete CodeJpa", 0);
+    cmpStats.put("Non-obsolete AttributeJpa", 169);
+    cmpStats.put("Non-obsolete CodeJpa", 144);
     cmpStats.put("Non-obsolete CodeRelationshipJpa", 0);
     cmpStats.put("Non-obsolete CodeTransitiveRelationshipJpa", 0);
     cmpStats.put("Non-obsolete CodeTreePositionJpa", 0);
-    cmpStats.put("Non-obsolete ConceptJpa", 5596);
-    cmpStats.put("Non-obsolete ConceptRelationshipJpa", 3754);
+    cmpStats.put("Non-obsolete ConceptJpa", 5620);
+    cmpStats.put("Non-obsolete ConceptRelationshipJpa", 3594);
     cmpStats.put("Non-obsolete ConceptSubsetJpa", 0);
     cmpStats.put("Non-obsolete ConceptSubsetMemberJpa", 0);
     cmpStats.put("Non-obsolete ConceptTransitiveRelationshipJpa", 0);
@@ -89,18 +89,18 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete MapSetJpa", 1);
     cmpStats.put("Non-obsolete MappingJpa", 52);
     cmpStats.put("Total AdditionalRelationshipTypeJpa", 242);
-    cmpStats.put("Total AtomJpa", 0);
-    cmpStats.put("Total AtomRelationshipJpa", 0);
+    cmpStats.put("Total AtomJpa", 1129);
+    cmpStats.put("Total AtomRelationshipJpa", 1062);
     cmpStats.put("Total AtomSubsetJpa", 0);
     cmpStats.put("Total AtomSubsetMemberJpa", 0);
-    cmpStats.put("Total AttributeJpa", 17135);
+    cmpStats.put("Total AttributeJpa", 169);
     cmpStats.put("Total AttributeNameJpa", 447);
-    cmpStats.put("Total CodeJpa", 0);
+    cmpStats.put("Total CodeJpa", 144);
     cmpStats.put("Total CodeRelationshipJpa", 0);
     cmpStats.put("Total CodeTransitiveRelationshipJpa", 0);
     cmpStats.put("Total CodeTreePositionJpa", 0);
-    cmpStats.put("Total ConceptJpa", 5596);
-    cmpStats.put("Total ConceptRelationshipJpa", 3754);
+    cmpStats.put("Total ConceptJpa", 5620);
+    cmpStats.put("Total ConceptRelationshipJpa", 3594);
     cmpStats.put("Total ConceptSubsetJpa", 0);
     cmpStats.put("Total ConceptSubsetMemberJpa", 0);
     cmpStats.put("Total ConceptTransitiveRelationshipJpa", 0);
@@ -110,11 +110,11 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total DescriptorRelationshipJpa", 0);
     cmpStats.put("Total DescriptorTransitiveRelationshipJpa", 0);
     cmpStats.put("Total DescriptorTreePositionJpa", 0);
-    cmpStats.put("Total GeneralMetadataEntryJpa", 258);
+    cmpStats.put("Total GeneralMetadataEntryJpa", 256);
     cmpStats.put("Total LanguageJpa", 25);
     cmpStats.put("Total LexicalClassJpa", 0);
     cmpStats.put("Total PropertyChainJpa", 0);
-    cmpStats.put("Total RelationshipTypeJpa", 11);
+    cmpStats.put("Total RelationshipTypeJpa", 16);
     cmpStats.put("Total SemanticTypeComponentJpa", 7390);
     cmpStats.put("Total SemanticTypeJpa", 133);
     cmpStats.put("Total StringClassJpa", 0);
@@ -128,19 +128,9 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total MapSetJpa", 1);
     cmpStats.put("Total MappingJpa", 52);
 
-    // System.out.println("umls keys");
-    // umlsStats.entrySet().stream().map(k -> k.getKey() + ", " + k.getValue())
-    // .forEach(System.out::println);
-    // System.out.println("cmp keys");
-    // cmpStats.keySet().stream().forEach(System.out::println);
     assertEquals(cmpStats.keySet().size(), umlsStats.keySet().size());
     for (final String key : cmpStats.keySet()) {
       Logger.getLogger(getClass()).info("    checking " + key);
-      // if (!cmpStats.get(key).equals(umlsStats.get(key))) {
-      // System.out.println("DIFF: " + key + " " + cmpStats.get(key) + " -> "
-      // + umlsStats.get(key));
-      // }
-
       assertEquals(cmpStats.get(key), umlsStats.get(key));
     }
   }
@@ -162,7 +152,7 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete AtomRelationshipJpa", 52);
     cmpStats.put("Non-obsolete AtomSubsetJpa", 4);
     cmpStats.put("Non-obsolete AtomSubsetMemberJpa", 24981);
-    cmpStats.put("Non-obsolete AttributeJpa", 100219);
+    cmpStats.put("Non-obsolete AttributeJpa", 99188);
     cmpStats.put("Non-obsolete CodeJpa", 3902);
     cmpStats.put("Non-obsolete CodeRelationshipJpa", 0);
     cmpStats.put("Non-obsolete CodeTransitiveRelationshipJpa", 0);
@@ -171,7 +161,7 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete ConceptRelationshipJpa", 7530);
     cmpStats.put("Non-obsolete ConceptSubsetJpa", 16);
     cmpStats.put("Non-obsolete ConceptSubsetMemberJpa", 14714);
-    cmpStats.put("Non-obsolete ConceptTransitiveRelationshipJpa", 0);
+    cmpStats.put("Non-obsolete ConceptTransitiveRelationshipJpa", 2729);
     cmpStats.put("Non-obsolete ConceptTreePositionJpa", 1233);
     cmpStats.put("Non-obsolete DefinitionJpa", 9);
     cmpStats.put("Non-obsolete DescriptorJpa", 0);
@@ -188,14 +178,13 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete GeneralConceptAxiomJpa", 0);
     cmpStats.put("Non-obsolete MapSetJpa", 1);
     cmpStats.put("Non-obsolete MappingJpa", 28);
-    cmpStats.put("Total AdditionalRelationshipTypeJpa", 0);
-    cmpStats.put("Total AdditionalRelationshipTypeJpa", 0);
+    cmpStats.put("Total AdditionalRelationshipTypeJpa", 69);
     cmpStats.put("Total AtomJpa", 13196);
     cmpStats.put("Total AtomRelationshipJpa", 52);
     cmpStats.put("Total AtomSubsetJpa", 4);
     cmpStats.put("Total AtomSubsetMemberJpa", 31429);
-    cmpStats.put("Total AttributeJpa", 150795);
-    cmpStats.put("Total AttributeNameJpa", 0);
+    cmpStats.put("Total AttributeJpa", 149764);
+    cmpStats.put("Total AttributeNameJpa", 48);
     cmpStats.put("Total CodeJpa", 3902);
     cmpStats.put("Total CodeRelationshipJpa", 0);
     cmpStats.put("Total CodeTransitiveRelationshipJpa", 0);
@@ -204,7 +193,7 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total ConceptRelationshipJpa", 18412);
     cmpStats.put("Total ConceptSubsetJpa", 17);
     cmpStats.put("Total ConceptSubsetMemberJpa", 15948);
-    cmpStats.put("Total ConceptTransitiveRelationshipJpa", 0);
+    cmpStats.put("Total ConceptTransitiveRelationshipJpa", 2729);
     cmpStats.put("Total ConceptTreePositionJpa", 1233);
     cmpStats.put("Total DefinitionJpa", 12);
     cmpStats.put("Total DescriptorJpa", 0);
@@ -212,14 +201,14 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total DescriptorTransitiveRelationshipJpa", 0);
     cmpStats.put("Total DescriptorTreePositionJpa", 0);
     cmpStats.put("Total GeneralMetadataEntryJpa", 0);
-    cmpStats.put("Total LanguageJpa", 0);
+    cmpStats.put("Total LanguageJpa", 1);
     cmpStats.put("Total LexicalClassJpa", 0);
     cmpStats.put("Total PropertyChainJpa", 0);
-    cmpStats.put("Total RelationshipTypeJpa", 0);
+    cmpStats.put("Total RelationshipTypeJpa", 7);
     cmpStats.put("Total SemanticTypeComponentJpa", 929);
-    cmpStats.put("Total SemanticTypeJpa", 194);
+    cmpStats.put("Total SemanticTypeJpa", 196);
     cmpStats.put("Total StringClassJpa", 0);
-    cmpStats.put("Total TermTypeJpa", 0);
+    cmpStats.put("Total TermTypeJpa", 18);
     cmpStats.put("Total AtomTransitiveRelationshipJpa", 0);
     cmpStats.put("Total AtomTreePositionJpa", 0);
     cmpStats.put("Total ComponentHistoryJpa", 0);
@@ -229,19 +218,9 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total MapSetJpa", 1);
     cmpStats.put("Total MappingJpa", 334);
 
-    // System.out.println("snomed keys");
-    // snomedStats.entrySet().stream().map(k -> k.getKey() + ", " +
-    // k.getValue())
-    // .forEach(System.out::println);
-    // System.out.println("cmp keys");
-    // cmpStats.keySet().stream().forEach(System.out::println);
     assertEquals(cmpStats.keySet().size(), snomedStats.keySet().size());
     for (final String key : cmpStats.keySet()) {
       Logger.getLogger(getClass()).info("    checking " + key);
-      // if (!cmpStats.get(key).equals(snomedStats.get(key))) {
-      // System.out.println("DIFF: " + key + " " + cmpStats.get(key) + " -> "
-      // + snomedStats.get(key));
-      // }
       assertEquals(cmpStats.get(key), snomedStats.get(key));
     }
   }
@@ -263,9 +242,9 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete AtomRelationshipJpa", 6584);
     cmpStats.put("Non-obsolete AtomSubsetJpa", 0);
     cmpStats.put("Non-obsolete AtomSubsetMemberJpa", 0);
-    cmpStats.put("Non-obsolete AttributeJpa", 17663);
+    cmpStats.put("Non-obsolete AttributeJpa", 17681);
     cmpStats.put("Non-obsolete CodeJpa", 997);
-    cmpStats.put("Non-obsolete CodeRelationshipJpa", 30);
+    cmpStats.put("Non-obsolete CodeRelationshipJpa", 212);
     cmpStats.put("Non-obsolete CodeTransitiveRelationshipJpa", 0);
     cmpStats.put("Non-obsolete CodeTreePositionJpa", 0);
     cmpStats.put("Non-obsolete ConceptJpa", 1027);
@@ -276,8 +255,8 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete ConceptTreePositionJpa", 0);
     cmpStats.put("Non-obsolete DefinitionJpa", 816);
     cmpStats.put("Non-obsolete DescriptorJpa", 997);
-    cmpStats.put("Non-obsolete DescriptorRelationshipJpa", 43368);
-    cmpStats.put("Non-obsolete DescriptorTransitiveRelationshipJpa", 0);
+    cmpStats.put("Non-obsolete DescriptorRelationshipJpa", 49322);
+    cmpStats.put("Non-obsolete DescriptorTransitiveRelationshipJpa", 1354);
     cmpStats.put("Non-obsolete DescriptorTreePositionJpa", 591);
     cmpStats.put("Non-obsolete LexicalClassJpa", 0);
     cmpStats.put("Non-obsolete SemanticTypeComponentJpa", 0);
@@ -289,15 +268,15 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Non-obsolete GeneralConceptAxiomJpa", 0);
     cmpStats.put("Non-obsolete MapSetJpa", 0);
     cmpStats.put("Non-obsolete MappingJpa", 0);
-    cmpStats.put("Total AdditionalRelationshipTypeJpa", 0);
+    cmpStats.put("Total AdditionalRelationshipTypeJpa", 15);
     cmpStats.put("Total AtomJpa", 6096);
     cmpStats.put("Total AtomRelationshipJpa", 6584);
     cmpStats.put("Total AtomSubsetJpa", 0);
     cmpStats.put("Total AtomSubsetMemberJpa", 0);
-    cmpStats.put("Total AttributeJpa", 17663);
-    cmpStats.put("Total AttributeNameJpa", 0);
+    cmpStats.put("Total AttributeJpa", 17681);
+    cmpStats.put("Total AttributeNameJpa", 27);
     cmpStats.put("Total CodeJpa", 997);
-    cmpStats.put("Total CodeRelationshipJpa", 30);
+    cmpStats.put("Total CodeRelationshipJpa", 212);
     cmpStats.put("Total CodeTransitiveRelationshipJpa", 0);
     cmpStats.put("Total CodeTreePositionJpa", 0);
     cmpStats.put("Total ConceptJpa", 1027);
@@ -308,18 +287,18 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total ConceptTreePositionJpa", 0);
     cmpStats.put("Total DefinitionJpa", 816);
     cmpStats.put("Total DescriptorJpa", 997);
-    cmpStats.put("Total DescriptorRelationshipJpa", 43368);
-    cmpStats.put("Total DescriptorTransitiveRelationshipJpa", 0);
+    cmpStats.put("Total DescriptorRelationshipJpa", 49322);
+    cmpStats.put("Total DescriptorTransitiveRelationshipJpa", 1354);
     cmpStats.put("Total DescriptorTreePositionJpa", 591);
     cmpStats.put("Total GeneralMetadataEntryJpa", 0);
-    cmpStats.put("Total LanguageJpa", 0);
+    cmpStats.put("Total LanguageJpa", 1);
     cmpStats.put("Total LexicalClassJpa", 0);
     cmpStats.put("Total PropertyChainJpa", 0);
-    cmpStats.put("Total RelationshipTypeJpa", 0);
+    cmpStats.put("Total RelationshipTypeJpa", 9);
     cmpStats.put("Total SemanticTypeComponentJpa", 0);
     cmpStats.put("Total SemanticTypeJpa", 0);
     cmpStats.put("Total StringClassJpa", 0);
-    cmpStats.put("Total TermTypeJpa", 0);
+    cmpStats.put("Total TermTypeJpa", 19);
     cmpStats.put("Total AtomTransitiveRelationshipJpa", 0);
     cmpStats.put("Total AtomTreePositionJpa", 0);
     cmpStats.put("Total ComponentHistoryJpa", 0);

@@ -106,33 +106,33 @@ public class AtomLoaderAlgorithmIT extends IntegrationUnitSupport {
 
     final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
     out.println(
-        "362166237|SRC|SRC/VPT|V-NCI_2016_05E|N|Y|N|National Cancer Institute Thesaurus, 2016_05E|N||||ENG|1|");
+        "362166237|SRC|SRC/VPT|V-NCI_2016_11D|N|Y|N|National Cancer Institute Thesaurus, 2016_11D|N||||ENG|1|");
     out.println(
-        "362166238|SRC|SRC/VAB|V-NCI_2016_05E|N|Y|N|NCI_2016_05E|N||||ENG|2|");
+        "362166238|SRC|SRC/VAB|V-NCI_2016_11D|N|Y|N|NCI_2016_11D|N||||ENG|2|");
     out.println(
-        "362166292|NCI_2016_05E|NCI_2016_05E/PT|C28776|R|Y|N|(H115D)VHL35 Peptide|N||C28776||ENG|362166292|");
+        "362166292|NCI_2016_11D|NCI_2016_11D/PT|C28776|R|Y|N|(H115D)VHL35 Peptide|N||C28776||ENG|362166292|");
     out.println(
-        "362166293|NCI_2016_05E|NCI_2016_05E/PT|C88126|R|Y|N|1+ Score, WHO|N||C88126||ENG|362166293|");
+        "362166293|NCI_2016_11D|NCI_2016_11D/PT|C88126|R|Y|N|1+ Score, WHO|N||C88126||ENG|362166293|");
     out.println(
-        "362211855|NCI_2016_05E|NCI_2016_05E/PT|C93028|R|Y|N|Flank|N||C93028||ENG|362211855|");
+        "362211855|NCI_2016_11D|NCI_2016_11D/PT|C93028|R|Y|N|Flank|N||C93028||ENG|362211855|");
     out.println(
-        "362262317|NCI_2016_05E|NCI_2016_05E/PT|C98033|R|Y|N|Sancycline|N||C98033||ENG|362262317|");
+        "362262317|NCI_2016_11D|NCI_2016_11D/PT|C98033|R|Y|N|Sancycline|N||C98033||ENG|362262317|");
     out.println(
-        "362209840|NCI_2016_05E|NCI_2016_05E/PT|C63923|R|Y|N|FDA Established Names and Unique Ingredient Identifier Codes Terminology|N||C63923||ENG|362209840|");
+        "362209840|NCI_2016_11D|NCI_2016_11D/PT|C63923|R|Y|N|FDA Established Names and Unique Ingredient Identifier Codes Terminology|N||C63923||ENG|362209840|");
     out.println(
-        "362199578|NCI_2016_05E|NCI_2016_05E/PT|C16484|R|Y|N|Cytochrome P450|N||C16484||ENG|362199578|");
+        "362199578|NCI_2016_11D|NCI_2016_11D/PT|C16484|R|Y|N|Cytochrome P450|N||C16484||ENG|362199578|");
     out.println(
-        "362199564|NCI_2016_05E|NCI_2016_05E/PT|C25948|R|Y|N|Cytochrome P450 2C19|N||C25948||ENG|362199564|");
+        "362199564|NCI_2016_11D|NCI_2016_11D/PT|C25948|R|Y|N|Cytochrome P450 2C19|N||C25948||ENG|362199564|");
     out.println(
-        "362168904|NCI_2016_05E|NCI_2016_05E/PT|C37447|R|Y|N|ABT-510|N||C37447||ENG|362168904|");
+        "362168904|NCI_2016_11D|NCI_2016_11D/PT|C37447|R|Y|N|ABT-510|N||C37447||ENG|362168904|");
     out.println(
-        "362174335|NCI_2016_05E|NCI_2016_05E/PT|C1971|R|Y|N|Angiogenesis Activator Inhibitor|N||C1971||ENG|362174335|");
+        "362174335|NCI_2016_11D|NCI_2016_11D/PT|C1971|R|Y|N|Angiogenesis Activator Inhibitor|N||C1971||ENG|362174335|");
     out.println(
-        "362502242|NCI_2016_05E|NCI_2016_05E/SY|C118465|R|Y|N|T2/FLAIR|N||C118465||ENG|362502242|");
+        "362502242|NCI_2016_11D|NCI_2016_11D/SY|C118465|R|Y|N|T2/FLAIR|N||C118465||ENG|362502242|");
     out.println(
-        "362249700|NCI_2016_05E|NCI_2016_05E/PT|C48571|R|Y|N|Percent Volume per Volume|N||C48571||ENG|362249700|");
+        "362249700|NCI_2016_11D|NCI_2016_11D/PT|C48571|R|Y|N|Percent Volume per Volume|N||C48571||ENG|362249700|");
     out.println(
-        "362281363|ICH_2016_05E|ICH_2016_05E/AB|0215|R|Y|N|% (V/V)|N||C48571||ENG|362281363|");
+        "362281363|ICH_2016_11D|ICH_2016_11D/AB|0215|R|Y|N|% (V/V)|N||C48571||ENG|362281363|");
     out.close();
 
     // Create and configure the algorithm
@@ -182,28 +182,28 @@ public class AtomLoaderAlgorithmIT extends IntegrationUnitSupport {
       SearchResultList list = contentService.findConceptSearchResults(
           processExecution.getTerminology(), processExecution.getVersion(),
           Branch.ROOT,
-          "atoms.nameSort:\"National Cancer Institute Thesaurus, 2016_05E\"",
+          "atoms.nameSort:\"National Cancer Institute Thesaurus, 2016_11D\"",
           null);
       assertEquals(1, list.size());
 
       list = contentService.findConceptSearchResults(
           processExecution.getTerminology(), processExecution.getVersion(),
-          Branch.ROOT, "atoms.nameSort:\"NCI_2016_05E\"", null);
+          Branch.ROOT, "atoms.nameSort:\"NCI_2016_11D\"", null);
       assertEquals(1, list.size());
 
-      list = contentService.findConceptSearchResults("NCI", "2016_05E",
+      list = contentService.findConceptSearchResults("NCI", "2016_11D",
           Branch.ROOT, "atoms.nameSort:\"(H115D)VHL35 Peptide\"", null);
       assertEquals(1, list.size());
 
-      list = contentService.findConceptSearchResults("NCI", "2016_05E",
+      list = contentService.findConceptSearchResults("NCI", "2016_11D",
           Branch.ROOT, "atoms.nameSort:\"1+ Score, WHO\"", null);
       assertEquals(1, list.size());
 
-      list = contentService.findConceptSearchResults("NCI", "2016_05E",
+      list = contentService.findConceptSearchResults("NCI", "2016_11D",
           Branch.ROOT, "atoms.nameSort:\"Flank\"", null);
       assertEquals(1, list.size());
 
-      list = contentService.findConceptSearchResults("NCI", "2016_05E",
+      list = contentService.findConceptSearchResults("NCI", "2016_11D",
           Branch.ROOT, "atoms.nameSort:\"Sancycline\"", null);
       assertEquals(1, list.size());
 

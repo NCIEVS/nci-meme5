@@ -57,6 +57,17 @@ public class MetadataLoaderAlgorithmIT extends IntegrationUnitSupport {
 
     processService = new ProcessServiceJpa();
 
+    // Clear inverse_id values so MetadataLoader can assign them from scratch.
+    // The RRF loader (used to set up the DB) already populates inverse_ids;
+    // MetadataLoader must be able to re-assign them without hitting the unique
+    // key constraint on inverse_id.
+    processService.setTransactionPerOperation(false);
+    processService.beginTransaction();
+    processService.getEntityManager()
+        .createNativeQuery("UPDATE additional_relationship_types SET inverse_id = NULL")
+        .executeUpdate();
+    processService.commit();
+
     // load the project (should be only one)
     ProjectList projects = processService.getProjects();
     assertTrue(projects.size() > 0);
@@ -145,7 +156,15 @@ public class MetadataLoaderAlgorithmIT extends IntegrationUnitSupport {
    */
   @After
   public void teardown() throws Exception {
-    // do nothing
+    // MetadataLoader sets inverse_id on additional_relationship_types but has
+    // no undo path. Clear inverse_ids so the test can be re-run on the same DB.
+    processService.setTransactionPerOperation(false);
+    processService.beginTransaction();
+    processService.getEntityManager()
+        .createNativeQuery("UPDATE additional_relationship_types SET inverse_id = NULL")
+        .executeUpdate();
+    processService.commit();
+    processService.close();
   }
 
   /**

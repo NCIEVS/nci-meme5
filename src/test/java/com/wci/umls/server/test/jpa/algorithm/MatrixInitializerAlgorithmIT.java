@@ -73,6 +73,8 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
   @Before
   public void setup() throws Exception {
     contentService = new ContentServiceJpa();
+    contentService.setTransactionPerOperation(false);
+    contentService.beginTransaction();
 
     algo = new MatrixInitializerAlgorithm();
 
@@ -92,10 +94,10 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
     // C0000005 is PUBLISHED, and all components are PUBLISHED as well.
     concept = contentService.getConcept("C0000005", "MTH", "latest", null);
 
-    // C0030073 has a DEMOTION atom relationship. In the sample DB it is
-    // already NEEDS_REVIEW (MatrixInit has run before), so we set it back to
-    // PUBLISHED here to simulate the pre-MatrixInit inconsistent state.
-    concept2 = contentService.getConcept("C0030073", "MTH", "latest", null);
+    // C0030576 has a DEMOTION atom relationship and publishable=true. In the
+    // sample DB it is already NEEDS_REVIEW (MatrixInit has run before), so we
+    // set it back to PUBLISHED here to simulate the pre-MatrixInit state.
+    concept2 = contentService.getConcept("C0030576", "MTH", "latest", null);
 
     OUTER: for (final Atom atom : concept2.getAtoms()) {
       for (final AtomRelationship rel : atom.getRelationships()) {
@@ -105,9 +107,16 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
         }
       }
     }
+    contentService.commit();
+    contentService.close();
+    contentService = new ContentServiceJpa();
 
-    // Restore concept2 to PUBLISHED so MatrixInit has something to correct.
-    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
+    // Restore concept2 to PUBLISHED+publishable=true so MatrixInit has exactly
+    // one thing to correct (workflowStatus only, not publishable). Run whenever
+    // workflowStatus != PUBLISHED OR publishable != true, so the state is
+    // deterministic regardless of prior test runs.
+    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)
+        || !concept2.isPublishable()) {
       final UpdateConceptMolecularAction setupAction =
           new UpdateConceptMolecularAction();
       try {
@@ -121,7 +130,7 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
         setupAction.setMolecularActionFlag(true);
         setupAction.setChangeStatusFlag(false);
         setupAction.setWorkflowStatus(WorkflowStatus.PUBLISHED);
-        setupAction.setPublishable(concept2.isPublishable());
+        setupAction.setPublishable(true);
         setupAction.performMolecularAction(setupAction, "admin", true, false);
       } catch (Exception e) {
         // n/a
@@ -244,8 +253,6 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
     concept = contentService.getConcept(conceptId);
     assertEquals(WorkflowStatus.READY_FOR_PUBLICATION,
         concept.getWorkflowStatus());
-    // Ensure that the concept's workflow status is PUBLISHED
-    assertEquals(WorkflowStatus.PUBLISHED, concept.getWorkflowStatus());
 
     // Verify that a molecular action was created for the update
     PfsParameterJpa pfs = new PfsParameterJpa();
