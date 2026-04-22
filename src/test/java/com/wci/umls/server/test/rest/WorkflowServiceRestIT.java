@@ -21,7 +21,7 @@ import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 /**
  * Integration test for REST content service.
  */
-public class WorkflowServiceRestIT extends IntegrationUnitSupport {
+public abstract class WorkflowServiceRestIT extends IntegrationUnitSupport {
 
   /** The service. */
   protected static ContentClientRest contentService;

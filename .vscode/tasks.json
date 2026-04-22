@@ -6,7 +6,9 @@
       "type": "shell",
       "command": "${workspaceFolder}/gradlew",
       "args": [
-        "explodeWar"
+        "clean",
+        "explodeWar",
+        "-Prun.config.label=umls"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -20,7 +22,7 @@
       "command": "sh",
       "args": [
         "-c",
-        "rm -rf /Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/webapps/umls-server-rest && ln -s ${workspaceFolder}/build/exploded /Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/webapps/umls-server-rest"
+        "rm -rf /opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest /opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest.war && ln -s ${workspaceFolder}/build/exploded /opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest"
       ],
       "dependsOn": "gradle: explodeWar",
       "problemMatcher": []
@@ -30,19 +32,23 @@
       "type": "shell",
       "command": "sh",
       "args": [
-        "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/bin/catalina.sh",
+        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
         "jpda",
         "run"
       ],
       "options": {
-        "cwd": "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8",
+        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
         "env": {
           "CATALINA_OPTS": "-Drun.config.umls=${input:umlsConfigFile}",
-          "JPDA_ADDRESS": "8000",
+          "JPDA_ADDRESS": "8001",
           "JPDA_TRANSPORT": "dt_socket"
         }
       },
-      "dependsOn": "tomcat: deploy exploded as /umls-server-rest",
+      "dependsOn": [
+        "tomcat: stop",
+        "tomcat: deploy exploded as /umls-server-rest"
+      ],
+      "dependsOrder": "sequence",
       "isBackground": true,
       "problemMatcher": [
         {
@@ -64,19 +70,23 @@
       "type": "shell",
       "command": "sh",
       "args": [
-        "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/bin/catalina.sh",
+        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
         "jpda",
         "run"
       ],
       "options": {
-        "cwd": "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8",
+        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
         "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=/Users/shapirod2/Config/meme-jdk17/config/config.ncimeta.properties",
-          "JPDA_ADDRESS": "8000",
+          "CATALINA_OPTS": "-Drun.config.umls=/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.ncimeta.properties",
+          "JPDA_ADDRESS": "8001",
           "JPDA_TRANSPORT": "dt_socket"
         }
       },
-      "dependsOn": "tomcat: deploy exploded as /umls-server-rest",
+      "dependsOn": [
+        "tomcat: stop",
+        "tomcat: deploy exploded as /umls-server-rest"
+      ],
+      "dependsOrder": "sequence",
       "isBackground": true,
       "problemMatcher": [
         {
@@ -98,19 +108,23 @@
       "type": "shell",
       "command": "sh",
       "args": [
-        "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/bin/catalina.sh",
+        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
         "jpda",
         "run"
       ],
       "options": {
-        "cwd": "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8",
+        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
         "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=/Users/shapirod2/Config/meme-jdk17/config/config.sample.properties",
-          "JPDA_ADDRESS": "8000",
+          "CATALINA_OPTS": "-Drun.config.umls=/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.sample.properties",
+          "JPDA_ADDRESS": "8001",
           "JPDA_TRANSPORT": "dt_socket"
         }
       },
-      "dependsOn": "tomcat: deploy exploded as /umls-server-rest",
+      "dependsOn": [
+        "tomcat: stop",
+        "tomcat: deploy exploded as /umls-server-rest"
+      ],
+      "dependsOrder": "sequence",
       "isBackground": true,
       "problemMatcher": [
         {
@@ -132,19 +146,23 @@
       "type": "shell",
       "command": "sh",
       "args": [
-        "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/bin/catalina.sh",
+        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
         "jpda",
         "run"
       ],
       "options": {
-        "cwd": "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8",
+        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
         "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=/Users/shapirod2/Config/meme-jdk17/config/config.migration.properties",
-          "JPDA_ADDRESS": "8000",
+          "CATALINA_OPTS": "-Drun.config.umls=/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.migration.properties",
+          "JPDA_ADDRESS": "8001",
           "JPDA_TRANSPORT": "dt_socket"
         }
       },
-      "dependsOn": "tomcat: deploy exploded as /umls-server-rest",
+      "dependsOn": [
+        "tomcat: stop",
+        "tomcat: deploy exploded as /umls-server-rest"
+      ],
+      "dependsOrder": "sequence",
       "isBackground": true,
       "problemMatcher": [
         {
@@ -166,11 +184,11 @@
       "type": "shell",
       "command": "sh",
       "args": [
-        "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8/bin/catalina.sh",
-        "stop"
+        "-c",
+        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh stop || true"
       ],
       "options": {
-        "cwd": "/Users/shapirod2/Code/workspace-terminology-service-jdk17/apache-tomcat-10.1.8"
+        "cwd": "/opt/homebrew/opt/tomcat@10/libexec"
       },
       "problemMatcher": []
     }
@@ -180,7 +198,7 @@
       "id": "umlsConfigFile",
       "type": "promptString",
       "description": "Path to the run.config.umls properties file",
-      "default": "/Users/shapirod2/Config/meme-jdk17/config/config.ncimeta.properties"
+      "default": "/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.ncimeta.properties"
     }
   ]
 }

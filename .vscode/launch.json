@@ -6,7 +6,7 @@
       "name": "Attach to Tomcat 10 (prompt for config)",
       "request": "attach",
       "hostName": "localhost",
-      "port": 8000,
+      "port": 8001,
       "preLaunchTask": "tomcat: run (debug)",
       "postDebugTask": "tomcat: stop"
     },
@@ -15,7 +15,7 @@
       "name": "Attach to Tomcat 10 (ncimeta)",
       "request": "attach",
       "hostName": "localhost",
-      "port": 8000,
+      "port": 8001,
       "preLaunchTask": "tomcat: run (debug) ncimeta",
       "postDebugTask": "tomcat: stop"
     },
@@ -24,7 +24,7 @@
       "name": "Attach to Tomcat 10 (sample)",
       "request": "attach",
       "hostName": "localhost",
-      "port": 8000,
+      "port": 8001,
       "preLaunchTask": "tomcat: run (debug) sample",
       "postDebugTask": "tomcat: stop"
     },
@@ -33,7 +33,7 @@
       "name": "Attach to Tomcat 10 (migration)",
       "request": "attach",
       "hostName": "localhost",
-      "port": 8000,
+      "port": 8001,
       "preLaunchTask": "tomcat: run (debug) migration",
       "postDebugTask": "tomcat: stop"
     }
