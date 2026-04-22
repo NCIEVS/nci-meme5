@@ -20,10 +20,14 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ProjectList;
+import com.wci.umls.server.jpa.algo.action.AddDemotionMolecularAction;
 import com.wci.umls.server.jpa.model.ProjectJpa;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.validation.DT_I3;
+import com.wci.umls.server.model.content.Atom;
+import com.wci.umls.server.model.content.AtomRelationship;
 import com.wci.umls.server.model.content.Concept;
+import com.wci.umls.server.model.workflow.WorkflowStatus;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
@@ -82,7 +86,54 @@ public class DT_I3IT extends IntegrationUnitSupport {
         contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
     conceptNoDemotions =
         contentService.getConcept("C0004611", "MTH", "latest", Branch.ROOT);
+    ensureDemotionRelationship(conceptDemotions,
+        contentService.getConcept("C0118168", "MTH", "latest", Branch.ROOT));
 
+  }
+
+  /**
+   * Ensure the supplied concept has at least one DEMOTION atom relationship.
+   *
+   * @param fromConcept the source concept
+   * @param toConcept the target concept
+   * @throws Exception the exception
+   */
+  private void ensureDemotionRelationship(Concept fromConcept, Concept toConcept)
+    throws Exception {
+    for (final Atom atom : fromConcept.getAtoms()) {
+      for (final AtomRelationship atomRel : atom.getRelationships()) {
+        if (atomRel.getWorkflowStatus().equals(WorkflowStatus.DEMOTION)) {
+          return;
+        }
+      }
+    }
+
+    final AddDemotionMolecularAction action = new AddDemotionMolecularAction();
+    try {
+      action.setProject(project);
+      action.setConceptId(fromConcept.getId());
+      action.setConceptId2(toConcept.getId());
+      action.setLastModifiedBy("admin");
+      action.setLastModified(fromConcept.getLastModified().getTime());
+      action.setOverrideWarnings(false);
+      action.setTransactionPerOperation(false);
+      action.setMolecularActionFlag(true);
+      action.setChangeStatusFlag(true);
+      action.setTerminology("MTH");
+      action.setVersion("latest");
+      action.setAtomId(fromConcept.getAtoms().get(0).getId());
+      action.setAtomId2(toConcept.getAtoms().get(0).getId());
+      final ValidationResult validationResult =
+          action.performMolecularAction(action, "admin", true, false);
+      assertTrue(validationResult.getErrors().isEmpty());
+    } finally {
+      action.close();
+    }
+
+    contentService.close();
+    contentService = new ContentServiceJpa();
+    conceptDemotions =
+        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
   }
 
   /**

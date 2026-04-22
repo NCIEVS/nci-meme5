@@ -7,10 +7,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.util.Date;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
+import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -20,6 +22,7 @@ import org.junit.Test;
 import com.wci.umls.server.model.algo.ProcessExecution;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
 import com.wci.umls.server.jpa.algo.insert.PreInsertionAlgorithm;
@@ -60,6 +63,9 @@ public class SemanticTypeResolverAlgorithmIT extends IntegrationUnitSupport {
   /** The sty id. */
   Long styId;
 
+  /** Temporary input directory for this test. */
+  private File testDirectory;
+
   /**
    * Setup class.
    */
@@ -99,6 +105,15 @@ public class SemanticTypeResolverAlgorithmIT extends IntegrationUnitSupport {
     processExecution.setStartDate(new Date());
     processExecution.setType("Insertion");
     processExecution.setInputPath("terminologies/NCI_INSERT/src");
+
+    // Match the other NCI_INSERT tests by creating a temp subdirectory under
+    // the standard fixture path and pointing this process at that temp folder.
+    final File tempSrcDir = new File(
+        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+            + processExecution.getInputPath() + "/temp");
+    FileUtils.mkdir(tempSrcDir.toString());
+    testDirectory = tempSrcDir;
+    processExecution.setInputPath(processExecution.getInputPath() + "/temp");
 
     // Persist the execution (teardown will remove it later)
     processExecution = processService.addProcessExecution(processExecution);
@@ -267,6 +282,10 @@ public class SemanticTypeResolverAlgorithmIT extends IntegrationUnitSupport {
       concept.getSemanticTypes().remove(sty);
       contentService.updateConcept(concept);
       contentService.removeSemanticTypeComponent(styId);
+    }
+
+    if (testDirectory != null && testDirectory.exists()) {
+      FileUtils.deleteDirectory(testDirectory);
     }
 
     processService.close();

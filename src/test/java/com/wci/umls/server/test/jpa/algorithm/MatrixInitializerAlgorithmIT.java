@@ -22,7 +22,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.wci.umls.server.helpers.SearchResultList;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.jpa.algo.action.AddDemotionMolecularAction;
 import com.wci.umls.server.jpa.algo.action.UpdateConceptMolecularAction;
 import com.wci.umls.server.jpa.algo.maint.MatrixInitializerAlgorithm;
 import com.wci.umls.server.jpa.model.content.AtomRelationshipJpa;
@@ -91,8 +93,21 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
     algo.setTransactionPerOperation(false);
     algo.beginTransaction();
 
-    // C0000005 is PUBLISHED, and all components are PUBLISHED as well.
-    concept = contentService.getConcept("C0000005", "MTH", "latest", null);
+    // Pick a concept that currently satisfies MatrixInitializer's
+    // "make reviewed" query instead of assuming a hard-coded fixture still
+    // does. This keeps the test stable as the sample DB evolves.
+    final PfsParameterJpa conceptPfs = new PfsParameterJpa();
+    conceptPfs.setStartIndex(0);
+    conceptPfs.setMaxResults(1);
+    final SearchResultList conceptCandidates = contentService
+        .findConceptSearchResults("MTH", "latest", null,
+            "workflowStatus:PUBLISHED AND publishable:true "
+                + "AND NOT atoms.workflowStatus:NEEDS_REVIEW "
+                + "AND NOT atoms.workflowStatus:DEMOTION "
+                + "AND NOT semanticTypes.workflowStatus:NEEDS_REVIEW",
+            conceptPfs);
+    assertTrue(conceptCandidates.size() > 0);
+    concept = contentService.getConcept(conceptCandidates.getObjects().get(0).getId());
 
     // C0030576 has a DEMOTION atom relationship and publishable=true. In the
     // sample DB it is already NEEDS_REVIEW (MatrixInit has run before), so we
@@ -110,6 +125,52 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
     contentService.commit();
     contentService.close();
     contentService = new ContentServiceJpa();
+
+    if (relationship == null) {
+      final ContentServiceJpa txService = new ContentServiceJpa();
+      txService.setTransactionPerOperation(false);
+      txService.beginTransaction();
+      final Concept attachedConcept = txService.getConcept(concept.getId());
+      final Concept attachedConcept2 = txService.getConcept(concept2.getId());
+      final Long conceptAtomId = attachedConcept.getAtoms().get(0).getId();
+      final Long concept2AtomId = attachedConcept2.getAtoms().get(0).getId();
+      txService.rollback();
+      txService.close();
+      final AddDemotionMolecularAction addDemotionAction =
+          new AddDemotionMolecularAction();
+      try {
+        addDemotionAction.setProject(algo.getProject());
+        addDemotionAction.setConceptId(concept2.getId());
+        addDemotionAction.setConceptId2(concept.getId());
+        addDemotionAction.setLastModifiedBy("admin");
+        addDemotionAction.setLastModified(concept2.getLastModified().getTime());
+        addDemotionAction.setOverrideWarnings(false);
+        addDemotionAction.setTransactionPerOperation(false);
+        addDemotionAction.setMolecularActionFlag(true);
+        addDemotionAction.setChangeStatusFlag(true);
+        addDemotionAction.setTerminology("MTH");
+        addDemotionAction.setVersion("latest");
+        addDemotionAction.setAtomId(concept2AtomId);
+        addDemotionAction.setAtomId2(conceptAtomId);
+        final ValidationResult validationResult = addDemotionAction
+            .performMolecularAction(addDemotionAction, "admin", true, false);
+        assertTrue(validationResult.getErrors().isEmpty());
+      } finally {
+        addDemotionAction.close();
+      }
+
+      contentService = new ContentServiceJpa();
+      concept2 = contentService.getConcept(concept2.getId());
+      OUTER: for (final Atom atom : concept2.getAtoms()) {
+        for (final AtomRelationship rel : atom.getRelationships()) {
+          if (rel.getWorkflowStatus().equals(WorkflowStatus.DEMOTION)) {
+            relationship = rel;
+            break OUTER;
+          }
+        }
+      }
+      assertNotNull(relationship);
+    }
 
     // Restore concept2 to PUBLISHED+publishable=true so MatrixInit has exactly
     // one thing to correct (workflowStatus only, not publishable). Run whenever
