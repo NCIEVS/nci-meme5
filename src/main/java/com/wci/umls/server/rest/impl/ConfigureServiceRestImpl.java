@@ -5,7 +5,6 @@ package com.wci.umls.server.rest.impl;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.InputStream;
 import java.io.Writer;
 import java.util.Collections;
 import java.util.Comparator;
@@ -29,6 +28,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
+import com.wci.umls.server.helpers.SpringConfigPropertiesLoader;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.SourceDataServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ConfigureServiceRest;
@@ -89,6 +89,53 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   }
 
   /**
+   * Loads the Spring-style starting configuration.
+   *
+   * @return the properties
+   * @throws Exception the exception
+   */
+  Properties getSpringStartingConfiguration() throws Exception {
+    return SpringConfigPropertiesLoader.load();
+  }
+
+  /**
+   * Loads the starting configuration template for the configure flow.
+   *
+   * @return the starting properties
+   * @throws Exception the exception
+   */
+  Properties getStartingConfiguration() throws Exception {
+    final Properties springProperties = getSpringStartingConfiguration();
+    if (springProperties != null) {
+      Logger.getLogger(getClass()).info(
+          "Loaded starting configuration from application.properties bridge");
+      return springProperties;
+    }
+    throw new Exception(
+        "Could not load starting configuration from application.properties resources");
+  }
+
+  /**
+   * Initializes the configured database after config has been written.
+   *
+   * @throws Exception the exception
+   */
+  void initializeConfiguredDatabase() throws Exception {
+    MetadataService metadataService = null;
+    ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto",
+        "create");
+    try {
+      metadataService = new MetadataServiceJpa();
+    } finally {
+      if (metadataService != null) {
+        metadataService.close();
+      }
+      ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto",
+          "update");
+    }
+  }
+
+  /**
    * Checks if application is configured.
    *
    * @return the release history
@@ -129,14 +176,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
 
     // NOTE: Configure calls do not require authorization
 
-    try (final InputStream in =
-        ConfigureServiceRestImpl.class.getResourceAsStream("/config.properties.start")) {
-
-      // get the starting configuration
-
-      if (in == null) {
-        throw new Exception("Could not open starting configuration file");
-      }
+    try {
 
       // construct name and check that the file does not already exist
       String configFileName = ConfigUtility.getLocalConfigFile();
@@ -146,8 +186,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       }
 
       // get the starting properties
-      final Properties properties = new Properties();
-      properties.load(in);
+      final Properties properties = getStartingConfiguration();
 
       // directly replace parameters by key
       for (final String key : parameters.keySet()) {
@@ -240,18 +279,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       //
       // Create the database
       //
-      MetadataService metadataService = null;
-      ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto", "create");
-      try {
-        metadataService = new MetadataServiceJpa();
-      } catch (Exception e) {
-        throw e;
-      } finally {
-        if (metadataService != null) {
-          metadataService.close();
-        }
-        ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto", "update");
-      }
+      initializeConfiguredDatabase();
 
     } catch (Exception e) {
       handleException(e, "checking if application is configured");

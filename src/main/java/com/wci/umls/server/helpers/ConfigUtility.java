@@ -137,6 +137,14 @@ public class ConfigUtility {
   /** The config. */
   public static Properties config = null;
 
+  /** Enables migration-only legacy run.config.* file loading. */
+  private static final String LEGACY_RUN_CONFIG_ENABLED =
+      "config.legacy.runConfig.enabled";
+
+  /** Environment equivalent for legacy run.config.* file loading. */
+  private static final String LEGACY_RUN_CONFIG_ENABLED_ENV =
+      "CONFIG_LEGACY_RUN_CONFIG_ENABLED";
+
   /** The transformer for DOM -> XML. */
   private static Transformer transformer;
 
@@ -223,13 +231,25 @@ public class ConfigUtility {
     String label = "umls";
     Properties labelProp = new Properties();
 
+    // First prefer an explicit runtime override. This avoids requiring a
+    // build-time filtered label.prop in the WAR.
+    String runtimeLabel = System.getProperty("run.config.label");
+    if (isEmpty(runtimeLabel)) {
+      runtimeLabel = System.getenv("RUN_CONFIG_LABEL");
+    }
+    if (!isEmpty(runtimeLabel)) {
+      Logger.getLogger(ConfigUtility.class.getName())
+          .info("  run.config.label runtime override = " + runtimeLabel);
+      return runtimeLabel;
+    }
+
     // If no resource is available, go with the default
     // ONLY setups that explicitly intend to override the setting
     // cause it to be something other than the default.
     InputStream input = ConfigUtility.class.getResourceAsStream("/label.prop");
     if (input != null) {
       labelProp.load(input);
-      // If a run.config.label override can be found, use it
+      // If a packaged legacy run.config.label override can be found, use it
       String candidateLabel = labelProp.getProperty("run.config.label");
       // If the default, uninterpolated value is used, stick again with the
       // default
@@ -280,42 +300,103 @@ public class ConfigUtility {
 
       String label = getConfigLabel();
 
-      // Now get the properties from the corresponding setting
-      // This is a complicated mechanism to support multiple simultaneous
-      // installations within the same container (e.g. tomcat).
-      // Default setups do not require this.
-      String configFileName = System.getProperty("run.config." + label);
-      if (configFileName != null) {
+      config = SpringConfigPropertiesLoader.load();
+      if (config != null) {
         Logger.getLogger(ConfigUtility.class.getName())
-            .info("  run.config." + label + " = " + configFileName);
-        config = new Properties();
-        FileReader in = new FileReader(new File(configFileName));
-        config.load(in);
-        in.close();
+            .info("Loaded application.properties configuration bridge");
+        logIgnoredLegacyRunConfig(label);
       } else {
-        InputStream is =
-            ConfigUtility.class.getResourceAsStream("/config.properties");
-        Logger.getLogger(ConfigUtility.class.getName())
-            .info("Cannot find run.config." + label
-                + ", looking for config.properties in the classpath");
-        if (is != null) {
-          config = new Properties();
-          config.load(is);
-        }
+        String configFileName = getLegacyRunConfigFile(label);
+        if (configFileName != null) {
+          Logger.getLogger(ConfigUtility.class.getName())
+              .info("  run.config." + label + " = " + configFileName);
+          loadLegacyConfigFile(configFileName);
+        } else {
+          InputStream is =
+              ConfigUtility.class.getResourceAsStream("/config.properties");
+          Logger.getLogger(ConfigUtility.class.getName())
+              .info("Cannot find Spring application.properties bridge"
+                  + ", looking for config.properties in the classpath");
+          if (is != null) {
+            config = new Properties();
+            config.load(is);
+          }
 
-        // retrieve locally stored config file from user configuration (if
-        // available)
-        else if (new File(getLocalConfigFile()).exists()) {
-          config = new Properties();
-          FileReader in = new FileReader(new File(getLocalConfigFile()));
-          config.load(in);
-          in.close();
+          // retrieve locally stored config file from user configuration (if
+          // available)
+          else if (new File(getLocalConfigFile()).exists()) {
+            config = new Properties();
+            FileReader in = new FileReader(new File(getLocalConfigFile()));
+            config.load(in);
+            in.close();
+          }
         }
       }
 
       Logger.getLogger(ConfigUtility.class).debug("  properties = " + config);
     }
     return config;
+  }
+
+  /**
+   * Indicates whether migration-only run.config.* fallback is enabled.
+   *
+   * @return true if legacy run.config file loading is explicitly enabled
+   */
+  static boolean isLegacyRunConfigEnabled() {
+    String enabled = System.getProperty(LEGACY_RUN_CONFIG_ENABLED);
+    if (isEmpty(enabled)) {
+      enabled = System.getenv(LEGACY_RUN_CONFIG_ENABLED_ENV);
+    }
+    return "true".equalsIgnoreCase(enabled);
+  }
+
+  /**
+   * Returns the legacy run.config file for the label if fallback is enabled.
+   *
+   * @param label the config label
+   * @return the legacy config file, or null
+   */
+  private static String getLegacyRunConfigFile(String label) {
+    final String configFileName = System.getProperty("run.config." + label);
+    if (isEmpty(configFileName)) {
+      return null;
+    }
+    if (!isLegacyRunConfigEnabled()) {
+      logIgnoredLegacyRunConfig(label);
+      return null;
+    }
+    return configFileName;
+  }
+
+  /**
+   * Logs ignored run.config.* settings once configuration has a primary source.
+   *
+   * @param label the config label
+   */
+  private static void logIgnoredLegacyRunConfig(String label) {
+    final String configFileName = System.getProperty("run.config." + label);
+    if (!isEmpty(configFileName)) {
+      Logger.getLogger(ConfigUtility.class.getName())
+          .info("Ignoring run.config." + label + " because Spring-style"
+              + " application properties are primary. Set "
+              + LEGACY_RUN_CONFIG_ENABLED + "=true only for migration-only"
+              + " fallback when application.properties is unavailable.");
+    }
+  }
+
+  /**
+   * Loads a legacy config.properties file.
+   *
+   * @param configFileName the legacy config file path
+   * @throws Exception the exception
+   */
+  private static void loadLegacyConfigFile(String configFileName)
+    throws Exception {
+    config = new Properties();
+    FileReader in = new FileReader(new File(configFileName));
+    config.load(in);
+    in.close();
   }
 
   /**
@@ -365,19 +446,31 @@ public class ConfigUtility {
   public static Map<String, String> getHomeDirs() throws Exception {
     final Map<String, String> map = new HashMap<>();
 
-    final String label = getConfigLabel();
-    String configFile = System.getProperty("run.config." + label);
-    if (configFile == null) {
+    final Properties properties = getConfigProperties();
+    final String appDir =
+        properties == null ? null : properties.getProperty("app.dir");
+
+    final String dir;
+    if (!isEmpty(appDir)) {
+      dir = FilenameUtils.separatorsToUnix(appDir);
+    } else {
+      final String label = getConfigLabel();
+      String configFile = getLegacyRunConfigFile(label);
       java.net.URL url = ConfigUtility.class.getResource("/config.properties");
       if (url != null) {
         configFile = url.getPath();
       } else if (new File(getLocalConfigFile()).exists()) {
         configFile = getLocalConfigFile();
       }
-    }
 
-    // The "configFile" is presumed to be in the $home/config directory.
-    final String dir = FilenameUtils.separatorsToUnix(new File(configFile).getParentFile().getParent());
+      if (configFile != null) {
+        // The "configFile" is presumed to be in the $home/config directory.
+        dir = FilenameUtils
+            .separatorsToUnix(new File(configFile).getParentFile().getParent());
+      } else {
+        throw new Exception("Unable to determine home directories from configuration");
+      }
+    }
     
     for (final String f : new String[] {
         "bin", "config", "data", "lvg"

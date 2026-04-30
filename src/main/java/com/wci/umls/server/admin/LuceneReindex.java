@@ -18,6 +18,14 @@ import com.wci.umls.server.services.SecurityService;
  *
  * <p>Usage:
  * <pre>
+ *   source config/local/setenv.sh
+ *   # Normal direct admin mode; Tomcat should be stopped.
+ *   ./gradlew adminReindex -Pindexed.objects=ProjectJpa -Pserver=false
+ *
+ *   # Leave indexed.objects blank to rebuild all Lucene indexes.
+ *   ./gradlew adminReindex -Pserver=false
+ *
+ *   # Legacy migration fallback:
  *   ./gradlew adminReindex -Pindexed.objects=ConceptJpa -Pserver=false -Drun.config.umls=/path/to/config.properties
  *   # or directly: java -Dindexed.objects=ConceptJpa -Dserver=false -Drun.config.umls=/path/to/config.properties -cp ... \
  *   #              com.wci.umls.server.admin.LuceneReindex

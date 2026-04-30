@@ -1,59 +1,47 @@
-TOMCAT SETUP (as tomcata)
-* su - tomcata (password)
-* TOMCAT_HOME = /local/content/tomcat/meme-8080
-* APACHE_HOME = /local/content/apache
-* edit /local/content/tomcat/meme-8080/bin/setenv.sh
-** add -Drun.config.umls=/local/content/MEME/MEME5/ncim/config/config.properties
-** add -Xms4G -Xmx15G
-* webapps directory
-** /local/content/tomcat/meme-8080/webapps
-* Make the meme indexes directory writeable by all
-chmod 777 
+NCI-META RESOURCE NOTES
 
-SETUP
+This directory is no longer a packaged `config.properties` deployment source.
+Runtime settings now come from:
 
-# Create a "mysqldev" alias in .cshrc for connecting to the database
+- `src/main/resources/application.properties`
+- `src/main/resources/application-*.properties`
+- environment variables supplied by Tomcat, Gradle, or a shell setup script
 
-mkdir /local/content/MEME/MEME5/ncim
-cd /local/content/MEME/MEME5/ncim
-mkdir config data
-git clone https://github.com/NCIEVS/nci-meme5.git code
+The remaining files in this directory are retained for narrower operational
+purposes:
 
-cd /local/content/MEME/MEME5/ncim/code
-git pull
-mvn -Dconfig.artifactId=term-server-config-prod-nci-meta clean install
+- `images/**` and `app/page/general/**` are used as deploy-specific web
+  resource overlays by the Gradle `prepareWebapp` task.
+- `migrate-table-generators.sql` and `validate-table-generators.sql` are
+  operational database migration/validation helpers.
+- `META/MRCOLS.RRF` and `META/MRFILES.RRF` support NCI-META metadata workflows.
+- `bin/**` and `crontab.txt` are historical/operational scripts that still need
+  separate owner review before removal or modernization.
 
-# unpack sample data
-cd /local/content/MEME/MEME5/ncim/data
-wget https://wci1.s3.amazonaws.com/TermServer/SAMPLE_NCI.zip
-unzip SAMPLE_NCI.zip
+The old Maven assembly descriptor for creating a `term-server-config-prod-nci-meta`
+zip has been removed. Do not add a new `config.properties` here; add new runtime
+configuration to the Spring-style property files instead.
 
-cd /local/content/MEME/MEME5/ncim/code
-unzip config/target/term*zip -d /local/content/MEME/MEME5/ncim/data
+TOMCAT DEPLOYMENT NOTES
 
-# unpack config and scripts
-cd /local/content/MEME/MEME5/ncim
-unzip /local/content/MEME/MEME5/ncim/code/config/prod-nci-meta/target/term*.zip -d config
-ln -s config/bin
-cp config/config.properties config/config-load.properties
-# edit config.properties, the -load version uses DEFAULT security
-# set the NLM license key
+Set production environment variables in Tomcat's `setenv.sh`, including the DB,
+path, mail, and deploy values consumed by `application-prod.properties`.
 
-RESTORE DEV (use default dir)
+Typical examples:
 
-cd /local/content/MEME/MEME5/ncim/code/integration-test
-mvn install -Preset-meta -Drun.config.umls=/local/content/MEME/MEME5/ncim/config/config.properties \
-  -DskipTests=false -Dmaven.home=/h1/meme/apache-maven-3.3.9
+- `SPRING_PROFILES_ACTIVE=prod`
+- `APP_DIR`
+- `DATA_DIR`
+- `INDEX_DIR`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `BASE_URL`
+- `DEPLOY_*`
+- `MAIL_*`
+- `SECURITY_*`
 
-REDEPLOY INSTRUCTIONS
-
-cd /local/content/MEME/MEME5/ncim/code
-git pull
-mvn clean install -Drun.config.label=ncim -Dconfig.artifactId=term-server-config-prod-nci-meta 
-chmod -R 777 /local/content/MEME/MEME5/ncim/data/indexes/
-
-As tomcata:
-/bin/rm -rf /local/content/tomcat/meme-8080/work/Catalina/localhost/ncim-server-rest
-/bin/rm -rf /local/content/tomcat/meme-8080/webapps/ncim-server-rest
-/bin/rm -rf /local/content/tomcat/meme-8080/webapps/ncim-server-rest.war
-/bin/cp -f /local/content/MEME/MEME5/ncim/code/rest/target/umls-server-rest*war /local/content/tomcat/meme-8080/webapps/ncim-server-rest.war
+Build and deploy the WAR from the Gradle build output. The web overlay from this
+directory is applied during `./gradlew war` and `./gradlew explodeWar`.

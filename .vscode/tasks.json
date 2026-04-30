@@ -4,11 +4,10 @@
     {
       "label": "gradle: explodeWar",
       "type": "shell",
-      "command": "${workspaceFolder}/gradlew",
+      "command": "bash",
       "args": [
-        "clean",
-        "explodeWar",
-        "-Prun.config.label=umls"
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && \"${workspaceFolder}/gradlew\" clean explodeWar"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -19,10 +18,10 @@
     {
       "label": "tomcat: deploy exploded as /umls-server-rest",
       "type": "shell",
-      "command": "sh",
+      "command": "bash",
       "args": [
-        "-c",
-        "rm -rf /opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest /opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest.war && ln -s ${workspaceFolder}/build/exploded /opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest"
+        "-lc",
+        "rm -rf \"/opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest\" \"/opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest.war\" && ln -s \"${workspaceFolder}/build/exploded\" \"/opt/homebrew/opt/tomcat@10/libexec/webapps/umls-server-rest\""
       ],
       "dependsOn": "gradle: explodeWar",
       "problemMatcher": []
@@ -30,134 +29,11 @@
     {
       "label": "tomcat: run (debug)",
       "type": "shell",
-      "command": "sh",
+      "command": "bash",
       "args": [
-        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
-        "jpda",
-        "run"
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && export JPDA_ADDRESS=8001 JPDA_TRANSPORT=dt_socket && cd \"/opt/homebrew/opt/tomcat@10/libexec\" && bin/catalina.sh jpda run"
       ],
-      "options": {
-        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
-        "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=${input:umlsConfigFile}",
-          "JPDA_ADDRESS": "8001",
-          "JPDA_TRANSPORT": "dt_socket"
-        }
-      },
-      "dependsOn": [
-        "tomcat: stop",
-        "tomcat: deploy exploded as /umls-server-rest"
-      ],
-      "dependsOrder": "sequence",
-      "isBackground": true,
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": ".*"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".*Using CATALINA_BASE:.*",
-            "endsPattern": ".*Server startup in .* milliseconds.*"
-          }
-        }
-      ]
-    },
-    {
-      "label": "tomcat: run (debug) ncimeta",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
-        "jpda",
-        "run"
-      ],
-      "options": {
-        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
-        "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.ncimeta.properties",
-          "JPDA_ADDRESS": "8001",
-          "JPDA_TRANSPORT": "dt_socket"
-        }
-      },
-      "dependsOn": [
-        "tomcat: stop",
-        "tomcat: deploy exploded as /umls-server-rest"
-      ],
-      "dependsOrder": "sequence",
-      "isBackground": true,
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": ".*"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".*Using CATALINA_BASE:.*",
-            "endsPattern": ".*Server startup in .* milliseconds.*"
-          }
-        }
-      ]
-    },
-    {
-      "label": "tomcat: run (debug) sample",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
-        "jpda",
-        "run"
-      ],
-      "options": {
-        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
-        "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.sample.properties",
-          "JPDA_ADDRESS": "8001",
-          "JPDA_TRANSPORT": "dt_socket"
-        }
-      },
-      "dependsOn": [
-        "tomcat: stop",
-        "tomcat: deploy exploded as /umls-server-rest"
-      ],
-      "dependsOrder": "sequence",
-      "isBackground": true,
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": ".*"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".*Using CATALINA_BASE:.*",
-            "endsPattern": ".*Server startup in .* milliseconds.*"
-          }
-        }
-      ]
-    },
-    {
-      "label": "tomcat: run (debug) migration",
-      "type": "shell",
-      "command": "sh",
-      "args": [
-        "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh",
-        "jpda",
-        "run"
-      ],
-      "options": {
-        "cwd": "/opt/homebrew/opt/tomcat@10/libexec",
-        "env": {
-          "CATALINA_OPTS": "-Drun.config.umls=/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.migration.properties",
-          "JPDA_ADDRESS": "8001",
-          "JPDA_TRANSPORT": "dt_socket"
-        }
-      },
       "dependsOn": [
         "tomcat: stop",
         "tomcat: deploy exploded as /umls-server-rest"
@@ -182,23 +58,28 @@
     {
       "label": "tomcat: stop",
       "type": "shell",
-      "command": "sh",
+      "command": "bash",
       "args": [
-        "-c",
+        "-lc",
         "/opt/homebrew/opt/tomcat@10/libexec/bin/catalina.sh stop || true"
       ],
       "options": {
         "cwd": "/opt/homebrew/opt/tomcat@10/libexec"
       },
       "problemMatcher": []
-    }
-  ],
-  "inputs": [
+    },
     {
-      "id": "umlsConfigFile",
-      "type": "promptString",
-      "description": "Path to the run.config.umls properties file",
-      "default": "/Users/deborahshapiro/Code/workspace-meme/meme-jdk17/config/config.ncimeta.properties"
+      "label": "admin: reindex ProjectJpa (server down)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && \"${workspaceFolder}/gradlew\" adminReindex -Pindexed.objects=ProjectJpa -Pserver=false"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

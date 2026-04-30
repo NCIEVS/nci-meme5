@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# Copy or source alongside config/local/setenv.sh when you want to override
+# the local defaults with machine- or dataset-specific values.
+#
+# Typical usage:
+#   source config/local/setenv.sh
+#   source config/local/setenv.sh.example
+
+# Profile
+export SPRING_PROFILES_ACTIVE=local
+export CONFIG_LEGACY_RUN_CONFIG_ENABLED=false
+
+# Paths
+export APP_DIR="$HOME/Code/workspace-meme/meme-jdk17"
+export DATA_DIR="$APP_DIR/data"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export LVG_DIR="$DATA_DIR/lvg2020"
+export SOURCE_DATA_DIR="$DATA_DIR"
+
+# Database
+export DB_HOST=127.0.0.1
+export DB_PORT=3306
+export DB_NAME=ncimdb
+export DB_USER=root
+export DB_PASSWORD=
+
+# Web
+export SERVER_PORT=8080
+export SERVER_CONTEXT_PATH=/umls-server-rest
+export BASE_URL="http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}"
+export DEPLOY_SIMPLEEDIT_ENABLED=false
+export DEPLOY_TRACKING_CODE="<!-- sample tracking code -->"
+export DEPLOY_COOKIE_CODE=
+
+# Search assets
+export ATOMCLASS_ACRONYMS_FILE="$DATA_DIR/acronyms.txt"
+export ATOMCLASS_SPELLING_FILE="$DATA_DIR/spelling.txt"
+export ATOMCLASS_SPELLING_INDEX="$INDEX_DIR/spelling"
+
+# Optional mail/security overrides
+# export MAIL_TO=
+# export SECURITY_USERS_ADMIN=author,admin
