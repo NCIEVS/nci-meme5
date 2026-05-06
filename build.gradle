@@ -129,6 +129,7 @@ dependencies {
     implementation 'commons-io:commons-io:2.8.0'
     implementation 'org.apache.commons:commons-vfs2:2.0'
     implementation 'commons-codec:commons-codec:1.10'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
 
     // Spring core property/environment support for Boot-style config files
     implementation "org.springframework:spring-core:${springVersion}"
