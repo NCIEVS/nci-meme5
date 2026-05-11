@@ -1,0 +1,59 @@
+{
+  "id": 8476203,
+  "lastModified": 1506417108000,
+  "lastModifiedBy": "BAC",
+  "timestamp": 1488560826000,
+  "type": "QUALITY_ASSURANCE_2",
+  "mutuallyExclusive": false,
+  "adminConfig": false,
+  "queryStyle": "CLUSTER",
+  "lastPartitionTime": 0,
+  "projectId": 39751,
+  "workflowBinDefinitions": [
+    {
+      "id": 8476127,
+      "lastModified": 1701826334000,
+      "lastModifiedBy": "DSS",
+      "timestamp": 1488820215000,
+      "name": "true_orphan",
+      "description": "Concepts with no releasable relationships to any other concept",
+      "query": "SELECT c.id conceptId  FROM concepts c  WHERE c.terminology = :terminology  AND c.publishable=TRUE  AND c.id NOT IN      (SELECT from_concepts_id FROM deep_concept_relationships  UNION DISTINCT  SELECT to_concepts_id FROM deep_concept_relationships      )",
+      "queryType": "SQL",
+      "editable": true,
+      "enabled": true,
+      "required": false,
+      "workflowConfigId": 8476203,
+      "autofix": ""
+    },
+    {
+      "id": 8476128,
+      "lastModified": 1712189898000,
+      "lastModifiedBy": "DSS",
+      "timestamp": 1488819922000,
+      "name": "pn_no_ambig",
+      "description": "Concept has MTH/PN atom but no ambiguous string",
+      "query": "SELECT DISTINCT c.id conceptId FROM concepts c JOIN concepts_atoms ca ON c.id = ca.concepts_id JOIN atoms a ON ca.atoms_id = a.id WHERE c.terminology = 'NCIMTH' AND a.publishable = true AND a.terminology IN ('NCIMTH', 'MTH') AND a.termType = 'PN' AND NOT EXISTS ( SELECT 1 FROM ambig_concepts ac WHERE ac.conceptId1 = c.id )",
+      "queryType": "SQL",
+      "editable": true,
+      "enabled": true,
+      "required": false,
+      "workflowConfigId": 8476203,
+      "autofix": ""
+    },
+    {
+      "id": 8476129,
+      "lastModified": 1668152698000,
+      "lastModifiedBy": "NCIMTH_latest",
+      "timestamp": 1506417108000,
+      "name": "rxnorm_merge",
+      "description": "RXCUI Merges",
+      "query": "select distinct c.id conceptId  from concepts c, concepts_atoms ca, atoms a where c.terminology = :terminology   and c.id = ca.concepts_id and ca.atoms_id = a.id and a.publishable = true   and a.terminology='RXNORM' group by c.id having count(distinct a.conceptId)>1",
+      "queryType": "SQL",
+      "editable": true,
+      "enabled": true,
+      "required": false,
+      "workflowConfigId": 8476203,
+      "autofix": ""
+    }
+  ]
+}
