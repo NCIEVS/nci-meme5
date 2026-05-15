@@ -79,6 +79,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.wci.umls.server.helpers.ChecklistList;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.LogEntry;
@@ -2929,7 +2930,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
       // requested the build
       if (sendEmail) {
         final User user = securityService.getUser(userName);
-        final Properties config = ConfigUtility.getConfigProperties();
+        final Properties config = PropertyUtility.getProperties();
         String from;
         if (config.containsKey("mail.smtp.from")) {
           from = config.getProperty("mail.smtp.from");

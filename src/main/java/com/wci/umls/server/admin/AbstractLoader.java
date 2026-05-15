@@ -5,6 +5,8 @@ package com.wci.umls.server.admin;
 
 import java.util.logging.Logger;
 
+import com.wci.umls.server.helpers.PropertyUtility;
+
 /**
  * Base class for admin tools that load source data.
  * Provides a utility method for recreating the database.
@@ -35,7 +37,7 @@ public abstract class AbstractLoader {
   public void createDb(boolean serverRunning) throws Exception {
 
     final java.util.Properties properties =
-        com.wci.umls.server.helpers.ConfigUtility.getConfigProperties();
+        PropertyUtility.getProperties();
 
     LOG.info("Recreate database");
     properties.setProperty("hibernate.hbm2ddl.auto", "create");

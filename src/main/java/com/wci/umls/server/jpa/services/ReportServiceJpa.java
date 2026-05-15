@@ -22,6 +22,7 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.HasTerminology;
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.helpers.PfsParameter;
@@ -923,7 +924,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
       // add hyperlink to the target concept id
       String baseUrl = "";
       try {
-        baseUrl = ConfigUtility.getConfigProperties()
+        baseUrl = PropertyUtility.getProperties()
             .getProperty("base.url");
       } catch (Exception e) {
         e.printStackTrace();

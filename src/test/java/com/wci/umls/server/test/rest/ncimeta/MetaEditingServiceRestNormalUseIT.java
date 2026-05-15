@@ -33,6 +33,7 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.content.RelationshipList;
 import com.wci.umls.server.jpa.model.ProjectJpa;
@@ -3416,28 +3417,28 @@ public class MetaEditingServiceRestNormalUseIT
     if (concept != null && contentService.getConcept(concept.getId(),
             project.getId(), authToken) != null) {
       IntegrationTestClientRest testService =
-              new IntegrationTestClientRest(ConfigUtility.getConfigProperties());
+              new IntegrationTestClientRest(PropertyUtility.getProperties());
       testService.removeConcept(concept.getId(), true, authToken);
     }
 
     if (concept2 != null && contentService.getConcept(concept2.getId(),
             project.getId(), authToken) != null) {
       testService =
-              new IntegrationTestClientRest(ConfigUtility.getConfigProperties());
+              new IntegrationTestClientRest(PropertyUtility.getProperties());
       testService.removeConcept(concept2.getId(), true, authToken);
     }
 
     if (concept3 != null && contentService.getConcept(concept3.getId(),
             project.getId(), authToken) != null) {
       testService =
-              new IntegrationTestClientRest(ConfigUtility.getConfigProperties());
+              new IntegrationTestClientRest(PropertyUtility.getProperties());
       testService.removeConcept(concept3.getId(), true, authToken);
     }
 
     if (concept4 != null && contentService.getConcept(concept4.getId(),
             project.getId(), authToken) != null) {
       testService =
-              new IntegrationTestClientRest(ConfigUtility.getConfigProperties());
+              new IntegrationTestClientRest(PropertyUtility.getProperties());
       testService.removeConcept(concept4.getId(), true, authToken);
     }
 

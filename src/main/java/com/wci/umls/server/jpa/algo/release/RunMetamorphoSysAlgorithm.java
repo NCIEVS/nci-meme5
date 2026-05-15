@@ -20,6 +20,7 @@ import org.codehaus.plexus.util.FileUtils;
 
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 
@@ -159,9 +160,9 @@ public class RunMetamorphoSysAlgorithm
     // Run "make_config.csh"
     logInfo("  Build MMSYS config files from data");
     commitClearBegin();
-    final String binDir = ConfigUtility.getHomeDirs().get("bin");
+    final String binDir = PropertyUtility.getHomeDirs().get("bin");
     // Assumes "lvg" dir exists at same level as "config"
-    final String lvgDir = ConfigUtility.getHomeDirs().get("lvg");
+    final String lvgDir = PropertyUtility.getHomeDirs().get("lvg");
     String[] env = new String[] {};
     if (new File(lvgDir).exists()) {
       env = new String[] {

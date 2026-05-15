@@ -24,6 +24,7 @@ import java.util.UUID;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
@@ -76,7 +77,7 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
     // Go through all the files needed by insertion and check for presence
     // Check the input directories
     srcFullPath =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
             + getProcess().getInputPath();
 
     final Path realPath = Paths.get(srcFullPath).toRealPath();

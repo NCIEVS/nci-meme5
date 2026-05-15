@@ -12,6 +12,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.client.ProcessClientRest;
 import com.wci.umls.server.rest.client.ProjectClientRest;
@@ -60,7 +61,7 @@ public class ProcessServiceRestIT extends IntegrationUnitSupport {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = ConfigUtility.getConfigProperties();
+    properties = PropertyUtility.getProperties();
 
     // instantiate required services
     processService = new ProcessClientRest(properties);

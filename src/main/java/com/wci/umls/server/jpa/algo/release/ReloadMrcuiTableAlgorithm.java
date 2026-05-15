@@ -18,6 +18,7 @@ import org.hibernate.Session;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -80,9 +81,9 @@ public class ReloadMrcuiTableAlgorithm
     try {
       Class.forName("com.mysql.cj.jdbc.Driver");
       java.sql.Connection connection =
-          DriverManager.getConnection(ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.jdbc.url"),
-              ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.jdbc.user"),
-              ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.jdbc.password"));
+          DriverManager.getConnection(PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.url"),
+              PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.user"),
+              PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.password"));
       connection.getMetaData();
       connection.setAutoCommit(false);
       String sql="insert IGNORE into  ncimdb.mrcui values (?, ?, ?, ?, ?, ?, ?) ";

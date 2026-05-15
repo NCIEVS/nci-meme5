@@ -7,6 +7,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
@@ -43,7 +44,7 @@ public class SimpleLoader extends AbstractLoader {
     LOG.info("  Expect server   : " + server);
     LOG.info("  Mode            : " + mode);
 
-    final Properties properties = ConfigUtility.getConfigProperties();
+    final Properties properties = PropertyUtility.getProperties();
 
     if ("create".equals(mode)) {
       createDb(ConfigUtility.isServerActive());

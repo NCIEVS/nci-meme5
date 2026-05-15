@@ -29,6 +29,7 @@ import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.helpers.StringList;
@@ -1106,7 +1107,7 @@ public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
   private Map<String, String> getSemanticTypeCategoryMap() throws Exception {
     final Map<String, String> map = new HashMap<>();
     final MetadataServiceRest service =
-        new MetadataClientRest(ConfigUtility.getConfigProperties());
+        new MetadataClientRest(PropertyUtility.getProperties());
     final SemanticTypeList styList =
         service.getSemanticTypes(umlsTerminology, umlsVersion, authToken);
 

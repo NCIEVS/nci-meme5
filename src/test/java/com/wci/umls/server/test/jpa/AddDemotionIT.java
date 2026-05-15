@@ -27,6 +27,7 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.algo.action.AddDemotionMolecularAction;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
@@ -87,7 +88,7 @@ public class AddDemotionIT extends IntegrationUnitSupport {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = ConfigUtility.getConfigProperties();
+    properties = PropertyUtility.getProperties();
 
     // instantiate services
     contentService = new ContentServiceJpa();

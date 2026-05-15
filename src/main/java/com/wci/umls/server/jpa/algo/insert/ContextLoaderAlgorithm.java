@@ -19,6 +19,7 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.meta.TerminologyList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -85,7 +86,7 @@ public class ContextLoaderAlgorithm
     // Check the input directories
 
     String srcFullPath =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + getProcess().getInputPath();
 
     setSrcDirFile(new File(srcFullPath));

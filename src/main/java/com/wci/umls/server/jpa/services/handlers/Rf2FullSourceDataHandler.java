@@ -12,6 +12,7 @@ import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.Rf2FullLoaderAlgorithm;
@@ -84,7 +85,7 @@ public class Rf2FullSourceDataHandler extends AbstractSourceDataHandler {
 
     // find directory path based on upload directory and id
     String inputDir =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + sourceData.getId().toString();
 
     if (!new File(inputDir).isDirectory()) {

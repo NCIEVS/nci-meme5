@@ -25,6 +25,7 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.algo.Algorithm;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.LogEntry;
@@ -78,7 +79,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
   private static void init() {
 
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
         // Add handlers to map
@@ -94,7 +95,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     }
 
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "insertion.algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -109,7 +110,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     }
     
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "inversion.algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -124,7 +125,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     }
 
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "maintenance.algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -139,7 +140,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     }
 
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "release.algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -153,7 +154,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     }
 
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "report.algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -167,7 +168,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     }
     
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "autofix.algorithm.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -752,7 +753,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
 
     // Check the input directories
     String logFullPath =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + processExecution.getLogPath();
 
     // If input directory is completely empty, don't throw an error (some

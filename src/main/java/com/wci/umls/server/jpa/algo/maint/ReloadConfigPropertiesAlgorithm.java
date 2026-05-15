@@ -8,7 +8,7 @@ import java.util.Properties;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
@@ -39,7 +39,7 @@ public class ReloadConfigPropertiesAlgorithm extends AbstractAlgorithm {
   public void compute() throws Exception {
     logInfo("Starting " + getName());
     // Clear existing properties
-    ConfigUtility.clearConfigProperties();
+    PropertyUtility.clearProperties();
 
     // Handle security service (different type hierarchy)
     new SecurityServiceJpa().refreshCaches();

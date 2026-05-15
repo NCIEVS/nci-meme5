@@ -26,6 +26,7 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.content.RelationshipList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -64,7 +65,7 @@ public class CreateDeepAncestorBequeathalAlgorithm extends AbstractInsertMaintRe
     // Check the input directories
 
     final String srcFullPath =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + getProcess().getInputPath();
 
     setSrcDirFile(new File(srcFullPath));

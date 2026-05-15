@@ -8,6 +8,7 @@ import java.util.Properties;
 import com.wci.umls.server.algo.TerminologyLoaderAlgorithm;
 import com.wci.umls.server.helpers.CancelException;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
  * Abstract support for loader algorithms.
@@ -142,7 +143,7 @@ public abstract class AbstractTerminologyLoaderAlgorithm
   @Override
   public String getConfigurableValue(String terminology, String key)
     throws Exception {
-    Properties p = ConfigUtility.getConfigProperties();
+    Properties p = PropertyUtility.getProperties();
     String fullKey = getClass().getName() + "." + terminology + "." + key;
     if (p.containsKey(fullKey)) {
       return p.getProperty(fullKey);

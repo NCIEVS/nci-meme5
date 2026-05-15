@@ -12,6 +12,7 @@ import java.util.UUID;
 import com.wci.umls.server.model.algo.ReleaseInfo;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 
@@ -91,7 +92,7 @@ public class ValidateReleaseAlgorithm
 
     final ReleaseInfo previousRelease =
         getPreviousReleaseInfo(getProcess().getTerminology());
-    final String binDir = ConfigUtility.getHomeDirs().get("bin");
+    final String binDir = PropertyUtility.getHomeDirs().get("bin");
     final String cmd = binDir + "/qa_checks.csh";
     final String meta = pathRelease.getPath() + "/META";
     final String prevMeta = config.getProperty("source.data.dir") + "/mr/"

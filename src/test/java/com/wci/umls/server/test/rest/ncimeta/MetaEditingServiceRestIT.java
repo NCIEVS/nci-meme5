@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 import com.wci.umls.server.rest.client.MetaEditingClientRest;
@@ -62,7 +63,7 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = ConfigUtility.getConfigProperties();
+    properties = PropertyUtility.getProperties();
 
     // instantiate required services
     metaEditingService = new MetaEditingClientRest(properties);

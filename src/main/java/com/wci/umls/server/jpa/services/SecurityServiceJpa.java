@@ -17,6 +17,7 @@ import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.UserPreferences;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.UserList;
@@ -57,7 +58,7 @@ public class SecurityServiceJpa extends RootServiceJpa
   private static void init() {
     try {
       if (config == null) {
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       }
       timeout = Integer.valueOf(config.getProperty("security.timeout"));
       String handlerName = config.getProperty("security.handler");

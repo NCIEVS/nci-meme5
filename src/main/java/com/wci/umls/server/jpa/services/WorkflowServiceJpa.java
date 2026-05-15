@@ -29,6 +29,7 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ChecklistList;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.helpers.PfsParameter;
@@ -102,7 +103,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
   private static void init() {
     try {
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       final String key = "workflow.action.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
         if (handlerName.isEmpty())

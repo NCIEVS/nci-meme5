@@ -42,6 +42,7 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.QueryStyle;
@@ -165,7 +166,7 @@ public class GenerateData extends AbstractLoader {
                 System.out.println("  inputDir = " + inputDir);
             }
 
-            final Properties properties = ConfigUtility.getConfigProperties();
+            final Properties properties = PropertyUtility.getProperties();
 
             // Rebuild the database if mode is "create"
             if (mode != null && (mode.equals("create") || mode.equals("rebuild"))) {
@@ -2631,7 +2632,7 @@ public class GenerateData extends AbstractLoader {
         algoProperties = new HashMap<String, String>();
         algoProperties.put("mergeSet", "NCI-SY");
         // Use all checks
-        final Properties properties = ConfigUtility.getConfigProperties();
+        final Properties properties = PropertyUtility.getProperties();
         String allChecks = properties.getProperty("validation.service.handler")
                 .replaceAll(",", ";");
         algoProperties.put("checkNames", allChecks);
@@ -3115,7 +3116,7 @@ public class GenerateData extends AbstractLoader {
                         + "(select tty.abbreviation from TermTypeJpa tty where terminology = "
                         + ":projectTerminology and normExclude = true)");
         // Use all checks
-        final Properties properties = ConfigUtility.getConfigProperties();
+        final Properties properties = PropertyUtility.getProperties();
         String allChecks = properties.getProperty("validation.service.handler")
                 .replaceAll(",", ";");
         algoProperties.put("checkNames", allChecks);
@@ -3515,7 +3516,7 @@ public class GenerateData extends AbstractLoader {
                         + "and a1.stringClassId = a2.stringClassId "
                         + "and a1.termType = a2.termType");
         // Use all checks
-        final Properties properties = ConfigUtility.getConfigProperties();
+        final Properties properties = PropertyUtility.getProperties();
         String allChecks = properties.getProperty("validation.service.handler")
                 .replaceAll(",", ";");
         algoProperties.put("checkNames", allChecks);
@@ -4009,7 +4010,7 @@ public class GenerateData extends AbstractLoader {
                         + "(select tty.abbreviation from TermTypeJpa tty where terminology = "
                         + ":projectTerminology and normExclude = true)");
         // Use all checks
-        final Properties properties = ConfigUtility.getConfigProperties();
+        final Properties properties = PropertyUtility.getProperties();
         String allChecks = properties.getProperty("validation.service.handler")
                 .replaceAll(",", ";");
         algoProperties.put("checkNames", allChecks);

@@ -51,6 +51,7 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 import com.wci.umls.server.algo.action.MolecularActionAlgorithm;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.HasLastModified;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;
@@ -124,7 +125,7 @@ public abstract class RootServiceJpa implements RootService {
         .info("Setting root service entity manager factory.");
     Properties config = null;
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       // TODO: this fixes a bug.
       PersistenceProvider provider = new HibernatePersistenceProvider();
       factory = provider.createEntityManagerFactory("TermServiceDS", config);
@@ -136,7 +137,7 @@ public abstract class RootServiceJpa implements RootService {
     searchHandlerNames = new HashSet<>();
     try {
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       final String key = "search.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
         if (handlerName.isEmpty())
@@ -157,7 +158,7 @@ public abstract class RootServiceJpa implements RootService {
     validationHandlersMap = new HashMap<>();
     try {
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       final String key = "validation.service.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
         if (handlerName.isEmpty())
@@ -197,7 +198,7 @@ public abstract class RootServiceJpa implements RootService {
     if (!factory.isOpen()) {
       Logger.getLogger(getClass())
           .info("Setting root service entity manager factory.");
-      final Properties config = ConfigUtility.getConfigProperties();
+      final Properties config = PropertyUtility.getProperties();
       factory = Persistence.createEntityManagerFactory("TermServiceDS", config);
     }
 
@@ -222,7 +223,7 @@ public abstract class RootServiceJpa implements RootService {
     if (!factory.isOpen()) {
       Logger.getLogger(getClass())
           .info("Setting root service entity manager factory.");
-      final Properties config = ConfigUtility.getConfigProperties();
+      final Properties config = PropertyUtility.getProperties();
       factory = Persistence.createEntityManagerFactory("TermServiceDS", config);
     }
   }
@@ -1523,7 +1524,7 @@ public abstract class RootServiceJpa implements RootService {
       // ever be able to override, add those back to errors, and remove from
       // warnings
       final String unoverridableCheckString =
-          ConfigUtility.getConfigProperties()
+          PropertyUtility.getProperties()
               .getProperty("validation.service.handler.unoverridableChecks");
       if (unoverridableCheckString != null) {
         final List<String> unoverridableCheckList =

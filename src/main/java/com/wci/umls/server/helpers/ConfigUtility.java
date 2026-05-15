@@ -135,15 +135,8 @@ public class ConfigUtility {
       "[ \\t\\-\\(\\{\\[\\)\\}\\]_!@#%&\\*\\\\:;\\\"',\\.\\?\\/~\\+=\\|<>$`^]";
 
   /** The config. */
+  @Deprecated
   public static Properties config = null;
-
-  /** Enables migration-only legacy run.config.* file loading. */
-  private static final String LEGACY_RUN_CONFIG_ENABLED =
-      "config.legacy.runConfig.enabled";
-
-  /** Environment equivalent for legacy run.config.* file loading. */
-  private static final String LEGACY_RUN_CONFIG_ENABLED_ENV =
-      "CONFIG_LEGACY_RUN_CONFIG_ENABLED";
 
   /** The transformer for DOM -> XML. */
   private static Transformer transformer;
@@ -175,7 +168,7 @@ public class ConfigUtility {
    */
   public static boolean isServerActive() throws Exception {
     if (config == null)
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
 
     try {
       // Attempt to logout to verify service is up (this works like a "ping").
@@ -204,7 +197,7 @@ public class ConfigUtility {
 
     try {
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
 
       return "true".equals(config.getProperty("analysis.mode").toString());
     } catch (Throwable e) {
@@ -216,7 +209,9 @@ public class ConfigUtility {
    * Reset config properties. Needed for testing so we can reset the state of
    * config.properties and reload it.
    */
+  @Deprecated
   public static void resetConfigProperties() {
+    PropertyUtility.resetProperties();
     config = null;
   }
 
@@ -226,46 +221,9 @@ public class ConfigUtility {
    * @return the label
    * @throws Exception the exception
    */
+  @Deprecated
   public static String getConfigLabel() throws Exception {
-    // Need to determine the label (default "umls")
-    String label = "umls";
-    Properties labelProp = new Properties();
-
-    // First prefer an explicit runtime override. This avoids requiring a
-    // build-time filtered label.prop in the WAR.
-    String runtimeLabel = System.getProperty("run.config.label");
-    if (isEmpty(runtimeLabel)) {
-      runtimeLabel = System.getenv("RUN_CONFIG_LABEL");
-    }
-    if (!isEmpty(runtimeLabel)) {
-      Logger.getLogger(ConfigUtility.class.getName())
-          .info("  run.config.label runtime override = " + runtimeLabel);
-      return runtimeLabel;
-    }
-
-    // If no resource is available, go with the default
-    // ONLY setups that explicitly intend to override the setting
-    // cause it to be something other than the default.
-    InputStream input = ConfigUtility.class.getResourceAsStream("/label.prop");
-    if (input != null) {
-      labelProp.load(input);
-      // If a packaged legacy run.config.label override can be found, use it
-      String candidateLabel = labelProp.getProperty("run.config.label");
-      // If the default, uninterpolated value is used, stick again with the
-      // default
-      if (candidateLabel != null
-          && !candidateLabel.equals("${run.config.label}")) {
-        label = candidateLabel;
-      }
-    } else {
-      Logger.getLogger(ConfigUtility.class.getName())
-          .info("  label.prop resource cannot be found, using default");
-
-    }
-    Logger.getLogger(ConfigUtility.class.getName())
-        .info("  run.config.label = " + label);
-
-    return label;
+    return PropertyUtility.getConfigLabel();
   }
 
   /**
@@ -274,8 +232,9 @@ public class ConfigUtility {
    * @return the local config file
    * @throws Exception the exception
    */
+  @Deprecated
   public static String getLocalConfigFile() throws Exception {
-    return getLocalConfigFolder() + "config.properties";
+    return PropertyUtility.getLocalConfigFile();
   }
 
   /**
@@ -284,9 +243,9 @@ public class ConfigUtility {
    * @return the local config folder
    * @throws Exception the exception
    */
+  @Deprecated
   public static String getLocalConfigFolder() throws Exception {
-    return System.getProperty("user.home") + "/.term-server/" + getConfigLabel()
-        + "/";
+    return PropertyUtility.getLocalConfigFolder();
   }
 
   /**
@@ -295,108 +254,10 @@ public class ConfigUtility {
    *
    * @throws Exception the exception
    */
+  @Deprecated
   public static Properties getConfigProperties() throws Exception {
-    if (isNull(config)) {
-
-      String label = getConfigLabel();
-
-      config = SpringConfigPropertiesLoader.load();
-      if (config != null) {
-        Logger.getLogger(ConfigUtility.class.getName())
-            .info("Loaded application.properties configuration bridge");
-        logIgnoredLegacyRunConfig(label);
-      } else {
-        String configFileName = getLegacyRunConfigFile(label);
-        if (configFileName != null) {
-          Logger.getLogger(ConfigUtility.class.getName())
-              .info("  run.config." + label + " = " + configFileName);
-          loadLegacyConfigFile(configFileName);
-        } else {
-          InputStream is =
-              ConfigUtility.class.getResourceAsStream("/config.properties");
-          Logger.getLogger(ConfigUtility.class.getName())
-              .info("Cannot find Spring application.properties bridge"
-                  + ", looking for config.properties in the classpath");
-          if (is != null) {
-            config = new Properties();
-            config.load(is);
-          }
-
-          // retrieve locally stored config file from user configuration (if
-          // available)
-          else if (new File(getLocalConfigFile()).exists()) {
-            config = new Properties();
-            FileReader in = new FileReader(new File(getLocalConfigFile()));
-            config.load(in);
-            in.close();
-          }
-        }
-      }
-
-      Logger.getLogger(ConfigUtility.class).debug("  properties = " + config);
-    }
+    config = PropertyUtility.getProperties();
     return config;
-  }
-
-  /**
-   * Indicates whether migration-only run.config.* fallback is enabled.
-   *
-   * @return true if legacy run.config file loading is explicitly enabled
-   */
-  static boolean isLegacyRunConfigEnabled() {
-    String enabled = System.getProperty(LEGACY_RUN_CONFIG_ENABLED);
-    if (isEmpty(enabled)) {
-      enabled = System.getenv(LEGACY_RUN_CONFIG_ENABLED_ENV);
-    }
-    return "true".equalsIgnoreCase(enabled);
-  }
-
-  /**
-   * Returns the legacy run.config file for the label if fallback is enabled.
-   *
-   * @param label the config label
-   * @return the legacy config file, or null
-   */
-  private static String getLegacyRunConfigFile(String label) {
-    final String configFileName = System.getProperty("run.config." + label);
-    if (isEmpty(configFileName)) {
-      return null;
-    }
-    if (!isLegacyRunConfigEnabled()) {
-      logIgnoredLegacyRunConfig(label);
-      return null;
-    }
-    return configFileName;
-  }
-
-  /**
-   * Logs ignored run.config.* settings once configuration has a primary source.
-   *
-   * @param label the config label
-   */
-  private static void logIgnoredLegacyRunConfig(String label) {
-    final String configFileName = System.getProperty("run.config." + label);
-    if (!isEmpty(configFileName)) {
-      Logger.getLogger(ConfigUtility.class.getName())
-          .info("Ignoring run.config." + label + " because Spring-style"
-              + " application properties are primary. Set "
-              + LEGACY_RUN_CONFIG_ENABLED + "=true only for migration-only"
-              + " fallback when application.properties is unavailable.");
-    }
-  }
-
-  /**
-   * Loads a legacy config.properties file.
-   *
-   * @param configFileName the legacy config file path
-   * @throws Exception the exception
-   */
-  private static void loadLegacyConfigFile(String configFileName)
-    throws Exception {
-    config = new Properties();
-    FileReader in = new FileReader(new File(configFileName));
-    config.load(in);
-    in.close();
   }
 
   /**
@@ -404,7 +265,9 @@ public class ConfigUtility {
    *
    * @throws Exception the exception
    */
+  @Deprecated
   public static void clearConfigProperties() throws Exception {
+    PropertyUtility.clearProperties();
     config = null;
   }
 
@@ -414,27 +277,9 @@ public class ConfigUtility {
    * @return the ui config properties
    * @throws Exception the exception
    */
+  @Deprecated
   public static Properties getUiConfigProperties() throws Exception {
-    final Properties config = getConfigProperties();
-    // use "deploy.*" and "site.*" and "base.url" properties
-    final Properties p = new Properties();
-    for (final Object prop : config.keySet()) {
-      final String str = prop.toString();
-
-      if (str.startsWith("deploy.") || str.equals("base.url")) {
-        p.put(prop, config.getProperty(prop.toString()));
-      }
-
-      if (str.startsWith("security") && str.contains("url")) {
-        p.put(prop, config.getProperty(prop.toString()));
-      }
-
-      if (str.contains("enabled")) {
-        p.put(prop, config.getProperty(prop.toString()));
-      }
-    }
-    return p;
-
+    return PropertyUtility.getUiProperties();
   }
 
   /**
@@ -443,42 +288,9 @@ public class ConfigUtility {
    * @return the home dirs
    * @throws Exception the exception
    */
+  @Deprecated
   public static Map<String, String> getHomeDirs() throws Exception {
-    final Map<String, String> map = new HashMap<>();
-
-    final Properties properties = getConfigProperties();
-    final String appDir =
-        properties == null ? null : properties.getProperty("app.dir");
-
-    final String dir;
-    if (!isEmpty(appDir)) {
-      dir = FilenameUtils.separatorsToUnix(appDir);
-    } else {
-      final String label = getConfigLabel();
-      String configFile = getLegacyRunConfigFile(label);
-      java.net.URL url = ConfigUtility.class.getResource("/config.properties");
-      if (url != null) {
-        configFile = url.getPath();
-      } else if (new File(getLocalConfigFile()).exists()) {
-        configFile = getLocalConfigFile();
-      }
-
-      if (configFile != null) {
-        // The "configFile" is presumed to be in the $home/config directory.
-        dir = FilenameUtils
-            .separatorsToUnix(new File(configFile).getParentFile().getParent());
-      } else {
-        throw new Exception("Unable to determine home directories from configuration");
-      }
-    }
-    
-    for (final String f : new String[] {
-        "bin", "config", "data", "lvg"
-    }) {
-      map.put(f, dir + "/" + f);
-    }
-
-    return map;
+    return PropertyUtility.getHomeDirs();
   }
 
   /**
@@ -535,6 +347,7 @@ public class ConfigUtility {
     // Instantiate the handler
     // property = "metadata.service.handler" (e.g)
     // handlerName = "SNOMED" (e.g.)
+    final Properties config = getConfigProperties();
     String classKey = property + "." + handlerName + ".class";
     if (config.getProperty(classKey) == null) {
       throw new Exception("Unexpected null classkey " + classKey);
@@ -911,6 +724,7 @@ public class ConfigUtility {
       return;
     }
     Session session = null;
+    final Properties config = getConfigProperties();
     if ("true".equals(config.get("mail.smtp.auth"))) {
       Authenticator auth = new SMTPAuthenticator();
       session = Session.getInstance(details, auth);
@@ -953,6 +767,7 @@ public class ConfigUtility {
       return;
     }
     Session session = null;
+    final Properties config = getConfigProperties();
     if ("true".equals(config.get("mail.smtp.auth"))) {
       Authenticator auth = new SMTPAuthenticator();
       session = Session.getInstance(details, auth);
@@ -1014,7 +829,7 @@ public class ConfigUtility {
     public PasswordAuthentication getPasswordAuthentication() {
       Properties config = null;
       try {
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       } catch (Exception e) {
         // do nothing
       }
@@ -1274,8 +1089,8 @@ public class ConfigUtility {
    * @throws Exception the exception
    */
   public static String getUploadDir() throws Exception {
-    if (ConfigUtility.getConfigProperties().containsKey("source.data.dir")) {
-      return ConfigUtility.getConfigProperties().getProperty("source.data.dir");
+    if (PropertyUtility.getProperties().containsKey("source.data.dir")) {
+      return PropertyUtility.getProperties().getProperty("source.data.dir");
     }
     throw new Exception(
         "Unknown upload dir, source.data.dir not set in config file");
@@ -1543,13 +1358,13 @@ public class ConfigUtility {
     String[] cmdarray = cmdarrayIn;
     if (fixFlag && System.getProperty("os.name").toLowerCase().contains("win")) {
       // Change the command to be based around cygwin
-      if (ConfigUtility.getConfigProperties()
+      if (PropertyUtility.getProperties()
           .getProperty("cygwin.bin") == null) {
         throw new Exception("Exec on windows requires cygwin to be installed '"
             + "and specified by cygwin.bin in config.properties");
       }
       final String tcsh =
-          ConfigUtility.getConfigProperties().getProperty("cygwin.bin")
+          PropertyUtility.getProperties().getProperty("cygwin.bin")
               + "/tcsh.exe";
 
       // Fix anything that looks like a directory to use forward slashes

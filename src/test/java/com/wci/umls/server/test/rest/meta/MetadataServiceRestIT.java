@@ -12,6 +12,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.rest.client.MetadataClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
@@ -52,7 +53,7 @@ public class MetadataServiceRestIT extends IntegrationUnitSupport {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = ConfigUtility.getConfigProperties();
+    properties = PropertyUtility.getProperties();
 
     // instantiate required services
     metadataService = new MetadataClientRest(properties);

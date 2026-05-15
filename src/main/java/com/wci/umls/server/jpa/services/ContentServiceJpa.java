@@ -101,6 +101,7 @@ import org.hibernate.search.mapper.orm.session.SearchSession;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.HasId;
 import com.wci.umls.server.helpers.Note;
 import com.wci.umls.server.helpers.NoteList;
@@ -197,13 +198,13 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
    */
   private static void init() {
     try {
-      if (ConfigUtility.getConfigProperties().containsKey("jakarta.persistence.query.timeout")) {
+      if (PropertyUtility.getProperties().containsKey("jakarta.persistence.query.timeout")) {
         queryTimeout = Integer.parseInt(
-            ConfigUtility.getConfigProperties().getProperty("jakarta.persistence.query.timeout"));
+            PropertyUtility.getProperties().getProperty("jakarta.persistence.query.timeout"));
       }
 
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       final String key = "identifier.assignment.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
         if (handlerName.isEmpty())
@@ -226,7 +227,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     pnHandlerMap = new HashMap<>();
 
     try {
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "compute.preferred.name.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
 
@@ -247,7 +248,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
 
     try {
 
-      config = ConfigUtility.getConfigProperties();
+      config = PropertyUtility.getProperties();
       final String key = "normalized.string.handler";
       final String handlerName = config.getProperty(key);
 

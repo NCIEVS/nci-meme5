@@ -21,6 +21,7 @@ import org.reflections.Reflections;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import org.reflections.util.ConfigurationBuilder;
@@ -89,7 +90,7 @@ public class LuceneReindexAlgorithm extends AbstractAlgorithm {
     // set of objects to be re-indexed
     final Set<String> objectsToReindex = new HashSet<>();
     final Map<String, Class<?>> reindexMap = new HashMap<>();
-    final String indexProp = ConfigUtility.getConfigProperties().getProperty("index.packages");
+    final String indexProp = PropertyUtility.getProperties().getProperty("index.packages");
     final String[] packages = indexProp != null ? indexProp.split(";") : new String[] {
         "com.wci.umls.server"
     };
