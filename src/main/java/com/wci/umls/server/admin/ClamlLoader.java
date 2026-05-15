@@ -7,6 +7,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.rest.client.ContentClientRest;
@@ -44,7 +45,7 @@ public class ClamlLoader extends AbstractLoader {
     LOG.info("  Expect server: " + server);
     LOG.info("  Mode         : " + mode);
 
-    final Properties properties = ConfigUtility.getConfigProperties();
+    final Properties properties = PropertyUtility.getProperties();
     final boolean serverRunning = ConfigUtility.isServerActive();
 
     LOG.info("Server status detected:  " + (!serverRunning ? "DOWN" : "UP"));

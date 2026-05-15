@@ -23,6 +23,7 @@ import com.wci.umls.server.model.algo.ProcessExecution;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
 import com.wci.umls.server.jpa.algo.insert.PreInsertionAlgorithm;
@@ -109,7 +110,7 @@ public class SemanticTypeResolverAlgorithmIT extends IntegrationUnitSupport {
     // Match the other NCI_INSERT tests by creating a temp subdirectory under
     // the standard fixture path and pointing this process at that temp folder.
     final File tempSrcDir = new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
             + processExecution.getInputPath() + "/temp");
     FileUtils.mkdir(tempSrcDir.toString());
     testDirectory = tempSrcDir;

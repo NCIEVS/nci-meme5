@@ -24,6 +24,7 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.SearchResultList;
 import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
@@ -93,7 +94,7 @@ public class AtomLoaderAlgorithmIT extends IntegrationUnitSupport {
 
     // Create the /temp subdirectory
     final File tempSrcDir = new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
             + processExecution.getInputPath() + "/temp");
     FileUtils.mkdir(tempSrcDir.toString());
 
@@ -225,7 +226,7 @@ public class AtomLoaderAlgorithmIT extends IntegrationUnitSupport {
     FileUtils.forceDelete(outputFile);
 
     File testDirectory = new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
             + processExecution.getInputPath());
 
     FileUtils.deleteDirectory(testDirectory);

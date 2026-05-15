@@ -8,6 +8,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.apache.log4j.Logger;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
@@ -20,6 +21,8 @@ import jakarta.annotation.PreDestroy;
  * Periodic keep-alive task for metadata database connections.
  */
 @Component
+@ConditionalOnProperty(name = "termserver.admin.task",
+    havingValue = "false", matchIfMissing = true)
 public class TermServerKeepAlive {
 
   /** The timer. */

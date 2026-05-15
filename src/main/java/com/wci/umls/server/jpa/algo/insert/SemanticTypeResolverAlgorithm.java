@@ -19,6 +19,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -75,7 +76,7 @@ public class SemanticTypeResolverAlgorithm
 
     // Check the input directories
     String srcFullPath =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + getProcess().getInputPath();
 
     setSrcDirFile(new File(srcFullPath));

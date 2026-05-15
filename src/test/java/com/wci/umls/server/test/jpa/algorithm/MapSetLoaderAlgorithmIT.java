@@ -30,6 +30,7 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.content.MapSetList;
 import com.wci.umls.server.helpers.content.MappingList;
@@ -112,7 +113,7 @@ public class MapSetLoaderAlgorithmIT extends IntegrationUnitSupport {
 
     // Create the /temp subdirectory
     final File tempSrcDir = new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
             + processExecution.getInputPath() + "/temp");
     FileUtils.mkdir(tempSrcDir.toString());
 
@@ -317,7 +318,7 @@ public class MapSetLoaderAlgorithmIT extends IntegrationUnitSupport {
     FileUtils.forceDelete(attributesOutputFile);
 
     File testDirectory = new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + "/"  + processExecution.getInputPath());
 
     FileUtils.deleteDirectory(testDirectory);

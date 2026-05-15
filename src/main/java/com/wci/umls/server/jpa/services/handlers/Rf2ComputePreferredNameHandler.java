@@ -9,6 +9,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.model.content.Atom;
@@ -42,7 +43,7 @@ public class Rf2ComputePreferredNameHandler
 
   @Override
   public void setProperties(Properties p) throws Exception {
-    Properties config = ConfigUtility.getConfigProperties();
+    Properties config = PropertyUtility.getProperties();
     // Use defaults if not otherwise supplied
     String prop = config.getProperty("defaultPreferredNames.typeId");
     if (prop != null) {

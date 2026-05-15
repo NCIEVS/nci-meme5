@@ -29,6 +29,7 @@ import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.SourceDataFile;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.LogEntry;
@@ -161,7 +162,7 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
 
       // get the base destination folder (by source data id)
       String destinationFolder =
-          ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+          PropertyUtility.getProperties().getProperty("source.data.dir")
               + File.separator + sourceDataId.toString();
 
       final List<File> files = new ArrayList<>();
@@ -467,7 +468,7 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
 
       // delete the source data files
       String sdDir =
-          ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+          PropertyUtility.getProperties().getProperty("source.data.dir")
               + File.separator + id.toString();
 
       ConfigUtility.deleteDirectory(new File(sdDir));

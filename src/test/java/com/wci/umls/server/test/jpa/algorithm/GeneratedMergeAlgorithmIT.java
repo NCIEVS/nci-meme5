@@ -19,6 +19,7 @@ import com.wci.umls.server.model.algo.ProcessExecution;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
@@ -83,7 +84,7 @@ public class GeneratedMergeAlgorithmIT extends IntegrationUnitSupport {
   public void setup() throws Exception {
 
     // instantiate properties
-    final Properties properties = ConfigUtility.getConfigProperties();
+    final Properties properties = PropertyUtility.getProperties();
 
     // instantiate required services
     processServiceRest = new ProcessClientRest(properties);

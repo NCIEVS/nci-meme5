@@ -26,9 +26,8 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.log4j.Logger;
 
 import com.wci.umls.server.model.algo.SourceData;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
-import com.wci.umls.server.helpers.SpringConfigPropertiesLoader;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.SourceDataServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ConfigureServiceRest;
@@ -107,7 +106,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
    * @throws Exception the exception
    */
   Properties getSpringStartingConfiguration() throws Exception {
-    return SpringConfigPropertiesLoader.load();
+    return PropertyUtility.loadApplicationProperties();
   }
 
   /**
@@ -134,16 +133,14 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
    */
   void initializeConfiguredDatabase() throws Exception {
     MetadataService metadataService = null;
-    ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto",
-        "create");
+    PropertyUtility.setProperty("hibernate.hbm2ddl.auto", "create");
     try {
       metadataService = new MetadataServiceJpa();
     } finally {
       if (metadataService != null) {
         metadataService.close();
       }
-      ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto",
-          "update");
+      PropertyUtility.setProperty("hibernate.hbm2ddl.auto", "update");
     }
   }
 
@@ -164,9 +161,9 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
     Logger.getLogger(getClass()).info("RESTful call (Configure): /configure/configured");
 
     try {
-      String configFileName = ConfigUtility.getLocalConfigFile();
+      String configFileName = PropertyUtility.getLocalConfigFile();
       boolean configured =
-          ConfigUtility.getConfigProperties() != null || (new File(configFileName).exists());
+          PropertyUtility.getProperties() != null || (new File(configFileName).exists());
       return configured;
 
     } catch (Exception e) {
@@ -193,7 +190,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
     try {
 
       // construct name and check that the file does not already exist
-      String configFileName = ConfigUtility.getLocalConfigFile();
+      String configFileName = PropertyUtility.getLocalConfigFile();
 
       if (new File(configFileName).exists()) {
         throw new LocalException("System is already configured from file: " + configFileName);
@@ -245,12 +242,12 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
        * ); }
        */
       // create the local application folder
-      File localFolder = new File(ConfigUtility.getLocalConfigFolder());
+      File localFolder = new File(PropertyUtility.getLocalConfigFolder());
       if (!localFolder.exists()) {
         localFolder.mkdir();
       } else if (!localFolder.isDirectory()) {
         throw new LocalException(
-            "Could not create local directory " + ConfigUtility.getLocalConfigFolder());
+            "Could not create local directory " + PropertyUtility.getLocalConfigFolder());
       }
 
       // prerequisite: application directory exists
@@ -274,8 +271,8 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       }
 
       // reset the config properties and test retrieval
-      System.setProperty("run.config." + ConfigUtility.getConfigLabel(), configFileName);
-      if (ConfigUtility.getConfigProperties() == null) {
+      System.setProperty("run.config." + PropertyUtility.getConfigLabel(), configFileName);
+      if (PropertyUtility.getProperties() == null) {
         throw new LocalException("Failed to retrieve newly written properties");
       }
 
@@ -360,7 +357,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       // Recreate the database
       //
       MetadataService metadataService = null;
-      ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto", "create");
+      PropertyUtility.setProperty("hibernate.hbm2ddl.auto", "create");
       try {
         metadataService = new MetadataServiceJpa();
 
@@ -375,7 +372,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
         }
 
         // return mode to update
-        ConfigUtility.getConfigProperties().setProperty("hibernate.hbm2ddl.auto", "update");
+        PropertyUtility.setProperty("hibernate.hbm2ddl.auto", "update");
 
       }
 
@@ -403,7 +400,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
     Logger.getLogger(getClass()).info("RESTful call (Configure): /configure/properties");
     try {
       Map<String, String> map = new HashMap<>();
-      for (final Map.Entry<Object, Object> o : ConfigUtility.getUiConfigProperties().entrySet()) {
+      for (final Map.Entry<Object, Object> o : PropertyUtility.getUiProperties().entrySet()) {
         map.put(o.getKey().toString(), o.getValue().toString());
       }
       return map;

@@ -18,6 +18,7 @@ import org.junit.Test;
 
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.content.AttributeJpa;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
@@ -383,7 +384,7 @@ public class MetaEditingServiceRestDegenerateUseIT
 
     // Copy existing concept to avoid messing with actual database data.
     IntegrationTestClientRest testService =
-            new IntegrationTestClientRest(ConfigUtility.getConfigProperties());
+            new IntegrationTestClientRest(PropertyUtility.getProperties());
     testService.removeConcept(concept.getId(), true, authToken);
     // logout
     securityService.logout(authToken);

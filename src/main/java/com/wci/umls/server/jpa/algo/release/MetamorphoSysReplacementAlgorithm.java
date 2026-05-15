@@ -29,6 +29,7 @@ import org.codehaus.plexus.util.FileUtils;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -42,7 +43,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
   /** The email. */
   private String email;
   
-  private String dataDir = ConfigUtility.getConfigProperties().getProperty("source.data.dir") + File.separator + "ncim" + File.separator + "config" + File.separator + "META";
+  private String dataDir =
+      PropertyUtility.getProperties().getProperty("source.data.dir")
+          + File.separator + "ncim" + File.separator + "config"
+          + File.separator + "META";
   
   private File outputPath = null;
   
@@ -61,7 +65,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
     // Check the process input path
     final String path =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + getProcess().getInputPath();
 
     final File pathAsFile = new File(path);
@@ -86,7 +90,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
     logInfo("  outputPath: " + outputPath.getAbsolutePath());
     logInfo("  dataDir: " + dataDir);
     this.getProject();
-    ConfigUtility.getLocalConfigFolder();
+    PropertyUtility.getLocalConfigFolder();
     
     updateMrsab();
     updateMrcols();
@@ -267,7 +271,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       
       
       public void updateMrcols() throws Exception {
-    	  String dataDir = ConfigUtility.getConfigProperties().getProperty("source.data.dir") + File.separator + "ncim" + File.separator + "config" + File.separator + "META";
+          String dataDir =
+              PropertyUtility.getProperties().getProperty("source.data.dir")
+                  + File.separator + "ncim" + File.separator + "config"
+                  + File.separator + "META";
           String mrcolsFile = "MRCOLS.RRF";
           
           // delete MRCOLS.RRF if it exists
@@ -640,7 +647,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
     final AlgorithmParameter email = new AlgorithmParameterJpa(
         "Notification emails", "email", "Email addresses for notification",
         "e.g. a@b.com", 4000, AlgorithmParameter.Type.TEXT,
-        ConfigUtility.getConfigProperties().getProperty("mail.smtp.to"));
+        PropertyUtility.getProperties().getProperty("mail.smtp.to"));
     params.add(email);
     return params;
   }

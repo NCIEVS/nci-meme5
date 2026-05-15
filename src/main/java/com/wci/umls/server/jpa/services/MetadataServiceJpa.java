@@ -39,6 +39,7 @@ import jakarta.persistence.TypedQuery;
 import org.apache.log4j.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.meta.AdditionalRelationshipTypeList;
 import com.wci.umls.server.helpers.meta.AttributeNameList;
@@ -87,7 +88,7 @@ public class MetadataServiceJpa extends ProjectServiceJpa
     graphResolverMap = new HashMap<>();
     try {
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
+        config = PropertyUtility.getProperties();
       final String key = "graph.resolution.handler";
       for (final String handlerName : config.getProperty(key).split(",")) {
         if (handlerName.isEmpty())

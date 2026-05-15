@@ -18,6 +18,7 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -115,7 +116,7 @@ public class RelationshipLoaderAlgorithm
     // Check the input directories
 
     String srcFullPath =
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + getProcess().getInputPath();
 
     setSrcDirFile(new File(srcFullPath));

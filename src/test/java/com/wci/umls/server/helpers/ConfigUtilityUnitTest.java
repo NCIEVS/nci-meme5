@@ -13,6 +13,8 @@ import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Test;
+import org.springframework.core.env.PropertiesPropertySource;
+import org.springframework.core.env.StandardEnvironment;
 
 /**
  * Unit tests for configuration loading.
@@ -31,7 +33,7 @@ public class ConfigUtilityUnitTest {
     System.clearProperty("spring.profiles.active");
     System.clearProperty("run.config.umls");
     System.clearProperty("run.config.label");
-    ConfigUtility.resetConfigProperties();
+    PropertyUtility.resetProperties();
   }
 
   /**
@@ -42,7 +44,7 @@ public class ConfigUtilityUnitTest {
   @Test
   public void testRuntimeConfigLabelOverride() throws Exception {
     System.setProperty("run.config.label", "ncim");
-    assertEquals("ncim", ConfigUtility.getConfigLabel());
+    assertEquals("ncim", PropertyUtility.getConfigLabel());
   }
 
   /**
@@ -55,7 +57,7 @@ public class ConfigUtilityUnitTest {
     System.setProperty("app.dir", "/tmp/nm278-config-test");
     System.setProperty("spring.profiles.active", "local");
 
-    final Properties properties = SpringConfigPropertiesLoader.load();
+    final Properties properties = PropertyUtility.loadApplicationProperties();
     assertNotNull(properties);
     assertEquals("/tmp/nm278-config-test", properties.getProperty("app.dir"));
     assertEquals("/tmp/nm278-config-test/data",
@@ -63,6 +65,27 @@ public class ConfigUtilityUnitTest {
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
     assertEquals("local", properties.getProperty("spring.profiles.active"));
+  }
+
+  /**
+   * Verifies Spring environment property sources are flattened into Properties.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testSpringEnvironmentProperties() throws Exception {
+    final StandardEnvironment environment = new StandardEnvironment();
+    final Properties sourceProperties = new Properties();
+    sourceProperties.setProperty("nm302.test.value", "${app.dir}/data");
+    environment.getPropertySources().addFirst(
+        new PropertiesPropertySource("nm302Test", sourceProperties));
+    System.setProperty("app.dir", "/tmp/nm302-env-test");
+
+    final Properties properties =
+        PropertyUtility.loadEnvironmentProperties(environment);
+
+    assertEquals("/tmp/nm302-env-test/data",
+        properties.getProperty("nm302.test.value"));
   }
 
   /**
@@ -81,7 +104,7 @@ public class ConfigUtilityUnitTest {
     System.setProperty("config.legacy.runConfig.enabled", "true");
     System.setProperty("run.config.umls", tempFile.getAbsolutePath());
 
-    final Properties properties = ConfigUtility.getConfigProperties();
+    final Properties properties = PropertyUtility.getProperties();
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
     assertEquals("/tmp/nm278-config-test", properties.getProperty("app.dir"));
@@ -97,7 +120,7 @@ public class ConfigUtilityUnitTest {
     System.setProperty("app.dir", "/tmp/nm278-home");
     System.setProperty("spring.profiles.active", "local");
 
-    final Map<String, String> homeDirs = ConfigUtility.getHomeDirs();
+    final Map<String, String> homeDirs = PropertyUtility.getHomeDirs();
     assertEquals("/tmp/nm278-home/bin", homeDirs.get("bin"));
     assertEquals("/tmp/nm278-home/config", homeDirs.get("config"));
     assertEquals("/tmp/nm278-home/data", homeDirs.get("data"));

@@ -7,6 +7,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 
 /**
@@ -42,7 +43,7 @@ public class UpdateDb {
           "System property 'mode' must be 'create' or 'update', got: " + mode);
     }
 
-    Properties config = ConfigUtility.getConfigProperties();
+    Properties config = PropertyUtility.getProperties();
     config.setProperty("hibernate.hbm2ddl.auto", mode);
     config.setProperty("hibernate.listeners.envers.autoRegister", "true");
 

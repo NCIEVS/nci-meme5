@@ -46,6 +46,7 @@ import org.reflections.Reflections;
 import org.reflections.util.ConfigurationBuilder;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PfsParameter;
 
@@ -122,7 +123,7 @@ public class IndexUtility {
   static {
     try {
       final Map<String, Class<?>> reindexMap = new HashMap<>();
-      final String indexProp = ConfigUtility.getConfigProperties().getProperty("index.packages");
+      final String indexProp = PropertyUtility.getProperties().getProperty("index.packages");
       final String[] packages = indexProp != null ? indexProp.split(";") : new String[] {
           "com.wci.umls.server"
       };
@@ -671,7 +672,7 @@ public class IndexUtility {
     finalQuery = finalQuery.replaceAll("(\\w+):\\[\\* TO \\*\\]", "$1:*");
 
     // ONLY log this if in dev mode
-    if ("DEV".equals(ConfigUtility.getConfigProperties().getProperty("deploy.mode"))) {
+    if ("DEV".equals(PropertyUtility.getProperties().getProperty("deploy.mode"))) {
       Logger.getLogger(IndexUtility.class).info("  query = " + finalQuery + ", " + pfs);
     }
 

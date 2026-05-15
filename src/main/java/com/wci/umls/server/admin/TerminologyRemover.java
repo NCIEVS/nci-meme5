@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import com.wci.umls.server.model.algo.ReleaseInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.jpa.services.rest.HistoryServiceRest;
@@ -47,7 +48,7 @@ public class TerminologyRemover {
     LOG.info("  terminology = " + terminology);
     LOG.info("  version = " + version);
 
-    final Properties properties = ConfigUtility.getConfigProperties();
+    final Properties properties = PropertyUtility.getProperties();
     final boolean serverRunning = ConfigUtility.isServerActive();
 
     LOG.info("Server status detected:  " + (!serverRunning ? "DOWN" : "UP"));

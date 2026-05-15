@@ -22,6 +22,7 @@ import com.wci.umls.server.model.algo.ProcessExecution;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
 import com.wci.umls.server.jpa.algo.insert.SemanticTypeLoaderAlgorithm;
@@ -90,7 +91,7 @@ public class SemanticTypeLoaderAlgorithmIT extends IntegrationUnitSupport {
 
     // Create the /temp subdirectory
     final File tempSrcDir = new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir") + "/"
+        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
             + processExecution.getInputPath() + "/temp");
     FileUtils.mkdir(tempSrcDir.toString());
 
@@ -171,7 +172,7 @@ public class SemanticTypeLoaderAlgorithmIT extends IntegrationUnitSupport {
     FileUtils.forceDelete(outputFile);
 
     FileUtils.deleteDirectory(new File(
-        ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+        PropertyUtility.getProperties().getProperty("source.data.dir")
             + File.separator + processExecution.getInputPath()));
 
     processService.close();

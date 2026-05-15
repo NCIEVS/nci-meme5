@@ -16,7 +16,7 @@ import java.util.Properties;
 import org.junit.After;
 import org.junit.Test;
 
-import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
  * Unit tests for configure bootstrap behavior.
@@ -34,7 +34,7 @@ public class ConfigureServiceRestImplUnitTest {
     System.clearProperty("user.home");
     System.clearProperty("run.config.umls");
     System.clearProperty("run.config.label");
-    ConfigUtility.resetConfigProperties();
+    PropertyUtility.resetProperties();
   }
 
   /**
@@ -101,7 +101,7 @@ public class ConfigureServiceRestImplUnitTest {
     System.setProperty("user.home", tempHome.getAbsolutePath());
     System.setProperty("spring.profiles.active", "local");
     System.setProperty("app.dir", appDir.getAbsolutePath());
-    ConfigUtility.resetConfigProperties();
+    PropertyUtility.resetProperties();
 
     final ConfigureServiceRestImpl service = new ConfigureServiceRestImpl() {
       @Override
@@ -122,7 +122,7 @@ public class ConfigureServiceRestImplUnitTest {
 
     service.configure(parameters);
 
-    final File configFile = new File(ConfigUtility.getLocalConfigFile());
+    final File configFile = new File(PropertyUtility.getLocalConfigFile());
     assertTrue(configFile.exists());
     assertFalse(configFile.length() == 0L);
 

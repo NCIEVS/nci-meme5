@@ -36,6 +36,7 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ChecklistList;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PfsParameter;
@@ -164,7 +165,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       throw new Exception("Ad Hoc algorithms requires a project to be set");
     }
 
-    final String srcFullPath = ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+    final String srcFullPath = PropertyUtility.getProperties().getProperty("source.data.dir")
         + File.separator + getProcess().getInputPath();
 
     setSrcDirFile(new File(srcFullPath));

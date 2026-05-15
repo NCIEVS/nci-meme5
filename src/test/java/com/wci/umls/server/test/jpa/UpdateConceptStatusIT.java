@@ -24,6 +24,7 @@ import org.junit.Test;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.algo.action.UpdateConceptMolecularAction;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
@@ -71,7 +72,7 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = ConfigUtility.getConfigProperties();
+    properties = PropertyUtility.getProperties();
 
     // instantiate services
     contentService = new ContentServiceJpa();

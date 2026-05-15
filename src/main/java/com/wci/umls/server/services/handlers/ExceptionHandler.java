@@ -16,6 +16,7 @@ import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.log4j.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 
 /**
@@ -62,7 +63,7 @@ public class ExceptionHandler {
     }
 
     try {
-      final Properties config = ConfigUtility.getConfigProperties();
+      final Properties config = PropertyUtility.getProperties();
       final String subject = "Terminology Server Error Report";
       String from = null;
       if (config.containsKey("mail.smtp.from")) {

@@ -14,6 +14,7 @@ import org.hibernate.event.spi.EventType;
 import org.hibernate.service.spi.SessionFactoryServiceRegistry;
 
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
  * Provides integration for Envers into Hibernate, which mainly means
@@ -30,7 +31,7 @@ public class TermServerEnversIntegrator  extends EnversIntegrator {
 
     // Avoid custom behavior is autoregister is true
     try {
-      if (!"true".equals(ConfigUtility.getConfigProperties()
+      if (!"true".equals(PropertyUtility.getProperties()
           .getProperty("hibernate.listeners.envers.autoRegister"))) {
 
         super.integrate(metadata, sessionFactory, serviceRegistry);

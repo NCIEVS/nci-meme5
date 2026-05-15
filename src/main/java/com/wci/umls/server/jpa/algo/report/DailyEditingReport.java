@@ -16,6 +16,7 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractReportAlgorithm;
 import com.wci.umls.server.model.actions.MolecularAction;
@@ -163,7 +164,7 @@ public class DailyEditingReport extends AbstractReportAlgorithm {
       report.append("<html><body><pre>").append("\n");
       report.append("EMS v3 Daily Editing Report for " + yesterday)
           .append("\n");
-      report.append("Database : " + ConfigUtility.getConfigProperties()
+      report.append("Database : " + PropertyUtility.getProperties()
           .getProperty("jakarta.persistence.jdbc.url").replaceAll("\\?.*", ""))
           .append("\n");
       report.append("Time now: " + new Date(start)).append("\n");

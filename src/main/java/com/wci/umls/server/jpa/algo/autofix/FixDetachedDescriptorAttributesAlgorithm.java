@@ -25,6 +25,7 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 import com.wci.umls.server.model.content.Attribute;
@@ -63,7 +64,7 @@ public class FixDetachedDescriptorAttributesAlgorithm extends AbstractInsertMain
       throw new Exception("Autofix algorithms requires a project to be set");
     }
 
-    final String srcFullPath = ConfigUtility.getConfigProperties().getProperty("source.data.dir")
+    final String srcFullPath = PropertyUtility.getProperties().getProperty("source.data.dir")
         + File.separator + getProcess().getInputPath();
 
     setSrcDirFile(new File(srcFullPath));

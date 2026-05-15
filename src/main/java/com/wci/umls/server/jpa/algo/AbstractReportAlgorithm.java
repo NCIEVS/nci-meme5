@@ -8,6 +8,7 @@ import java.util.Properties;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 
 /**
@@ -50,7 +51,7 @@ public abstract class AbstractReportAlgorithm extends AbstractAlgorithm {
     final AlgorithmParameter configEmail = new AlgorithmParameterJpa(
         "Notification emails", "email", "Email addresses for notification",
         "e.g. a@b.com", 4000, AlgorithmParameter.Type.TEXT,
-        ConfigUtility.getConfigProperties().getProperty("mail.smtp.to"));
+        PropertyUtility.getProperties().getProperty("mail.smtp.to"));
     params.add(configEmail);
     return params;
   }

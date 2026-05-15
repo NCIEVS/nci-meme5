@@ -16,6 +16,7 @@ import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.SourceDataFile;
 import com.wci.umls.server.algo.Algorithm;
 import com.wci.umls.server.helpers.ConfigUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.PfsParameter;
@@ -41,14 +42,14 @@ public class SourceDataServiceJpa extends RootServiceJpa
 
     sourceDataHandlers = new HashMap<>();
     try {
-      Properties config = ConfigUtility.getConfigProperties();
+      Properties config = PropertyUtility.getProperties();
       if (config == null)
-        config = ConfigUtility.getConfigProperties();
-      final String handlerNames = ConfigUtility.getConfigProperties()
+        config = PropertyUtility.getProperties();
+      final String handlerNames = PropertyUtility.getProperties()
           .getProperty("source.data.handler");
 
       for (final String handlerName : handlerNames.split(",")) {
-        final String handlerClassName = ConfigUtility.getConfigProperties()
+        final String handlerClassName = PropertyUtility.getProperties()
             .getProperty("source.data.handler." + handlerName + ".class");
         if (handlerClassName == null) {
           throw new Exception("Source data handler " + handlerName
