@@ -9,14 +9,12 @@ import java.util.logging.Logger;
 import com.wci.umls.server.model.algo.ReleaseInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.jpa.services.rest.HistoryServiceRest;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.client.HistoryClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
 import com.wci.umls.server.rest.impl.HistoryServiceRestImpl;
-import com.wci.umls.server.services.SecurityService;
 
 /**
  * Admin tool which removes a terminology and its release info from the database.
@@ -62,10 +60,8 @@ public class TerminologyRemover {
           "Admin tool expects server to be running, but server is down");
     }
 
-    SecurityService service = new SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
 
     if (!serverRunning) {
       LOG.info("Running directly");
@@ -99,7 +95,6 @@ public class TerminologyRemover {
         }
       }
     }
-    service.close();
     LOG.info("done ...");
     System.exit(0);
   }

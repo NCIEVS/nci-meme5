@@ -8,10 +8,8 @@ import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
-import com.wci.umls.server.services.SecurityService;
 
 /**
  * Admin tool which loads a simple (tab-delimited) terminology into a database.
@@ -45,17 +43,6 @@ public class SimpleLoader extends AbstractLoader {
     LOG.info("  Mode            : " + mode);
 
     final Properties properties = PropertyUtility.getProperties();
-
-    if ("create".equals(mode)) {
-      createDb(ConfigUtility.isServerActive());
-    }
-
-    SecurityService service = new SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
-    service.close();
-
     final boolean serverRunning = ConfigUtility.isServerActive();
     LOG.info("Server status detected:  " + (!serverRunning ? "DOWN" : "UP"));
 
@@ -67,6 +54,13 @@ public class SimpleLoader extends AbstractLoader {
       throw new IllegalStateException(
           "Admin tool expects server to be running, but server is down");
     }
+
+    if ("create".equals(mode)) {
+      createDb(serverRunning);
+    }
+
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
 
     if (!serverRunning) {
       LOG.info("Running directly");

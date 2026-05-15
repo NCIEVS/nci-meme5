@@ -62,12 +62,8 @@ public abstract class AbstractLoader {
     projectService.openFactory();
 
     // Re-authenticate and reindex
-    com.wci.umls.server.services.SecurityService service =
-        new com.wci.umls.server.jpa.services.SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
-    service.close();
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
 
     if (serverRunning) {
       com.wci.umls.server.rest.client.ContentClientRest client =
