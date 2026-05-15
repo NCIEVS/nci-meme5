@@ -1,7 +1,39 @@
+// Top level configuration
+buildscript {
+    ext {
+        springBootVersion = '3.5.14'
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://repo.spring.io/release" }
+        maven { url "https://repo.spring.io/milestone" }
+        maven { url "https://repo.spring.io/snapshot" }
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
+    }
+}
+
 plugins {
     id 'java'
     id 'war'
 }
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://repo.spring.io/milestone" }
+    maven { url "https://repo.spring.io/snapshot" }
+    maven { url "https://plugins.gradle.org/m2/" }
+}
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'org.springframework.boot'
 
 group = 'com.wcinformatics.umls.server'
 version = '1.5.1-SNAPSHOT'
@@ -17,23 +49,28 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
-repositories {
-    mavenLocal()
-    mavenCentral()
+configurations.all {
+    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    exclude group: 'commons-logging', module: 'commons-logging'
+}
+
+springBoot {
+    mainClass = 'com.wci.umls.Application'
 }
 
 // ── Version constants ──────────────────────────────────────────────────────────
 ext {
     hibernateVersion       = '6.6.3.Final'
     hibernateSearchVersion = '7.2.2.Final'
-    jerseyVersion          = '3.1.5'
+    jerseyVersion          = '3.1.11'
     luceneVersion          = '9.9.2'
     jacksonVersion         = '2.16.1'
-    springVersion          = '6.1.8'
 }
 
 // ── Dependencies ───────────────────────────────────────────────────────────────
 dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-jersey'
 
     // JPA / Hibernate
     implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"
@@ -52,6 +89,7 @@ dependencies {
 
     // Logging
     implementation 'org.slf4j:slf4j-log4j12:1.7.36'
+    implementation 'org.apache.logging.log4j:log4j-to-slf4j'
 
     // WebSocket
     compileOnly        'jakarta.websocket:jakarta.websocket-api:2.1.0'
@@ -131,9 +169,6 @@ dependencies {
     implementation 'commons-codec:commons-codec:1.10'
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
 
-    // Spring core property/environment support for Boot-style config files
-    implementation "org.springframework:spring-core:${springVersion}"
-
     // ANTLR (required by Hibernate Search 7.x)
     implementation 'org.antlr:antlr4-runtime:4.13.0'
 }
@@ -178,6 +213,23 @@ war {
     // Legacy label.prop packaging is no longer required for the normal local
     // or profile-based startup path. ConfigUtility now prefers runtime
     // run.config.label / RUN_CONFIG_LABEL overrides if a legacy label is needed.
+}
+
+bootJar {
+    enabled = false
+}
+
+bootWar {
+    archiveBaseName = 'ROOT'
+    archiveClassifier = 'webapp'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn prepareWebapp
+    webAppDirectory = generatedWebappDir
+}
+
+bootRun {
+    dependsOn prepareWebapp
+    systemProperty 'spring.web.resources.static-locations', generatedWebappDir.toURI().toString()
 }
 
 // ── Exploded WAR for SmartTomcat deployment ───────────────────────────────────
