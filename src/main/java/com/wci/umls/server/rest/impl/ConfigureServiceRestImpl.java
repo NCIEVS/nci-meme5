@@ -272,6 +272,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
 
       // reset the config properties and test retrieval
       System.setProperty("run.config." + PropertyUtility.getConfigLabel(), configFileName);
+      PropertyUtility.setProperties(properties);
       if (PropertyUtility.getProperties() == null) {
         throw new LocalException("Failed to retrieve newly written properties");
       }

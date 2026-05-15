@@ -8,11 +8,9 @@ import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
-import com.wci.umls.server.services.SecurityService;
 
 /**
  * Admin tool which loads an OWL terminology into a database.
@@ -63,10 +61,8 @@ public class OwlLoader extends AbstractLoader {
       createDb(serverRunning);
     }
 
-    SecurityService service = new SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
 
     if (!serverRunning) {
       LOG.info("Running directly");
@@ -79,7 +75,6 @@ public class OwlLoader extends AbstractLoader {
       contentService.loadTerminologyOwl(terminology, version, inputFile,
           authToken);
     }
-    service.close();
     LOG.info("done ...");
   }
 

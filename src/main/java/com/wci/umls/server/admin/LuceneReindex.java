@@ -8,11 +8,8 @@ import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.rest.client.ContentClientRest;
-import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
-import com.wci.umls.server.services.SecurityService;
 
 /**
  * Admin tool which rebuilds Lucene indexes based on hibernate-search
@@ -69,20 +66,14 @@ public class LuceneReindex {
           "Admin tool expects server to be running, but server is down");
     }
 
-    final String authToken;
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
     if (!serverRunning) {
       LOG.info("Running directly");
-      SecurityService service = new SecurityServiceJpa();
-      authToken = service.authenticate(properties.getProperty("admin.user"),
-          properties.getProperty("admin.password")).getAuthToken();
-      service.close();
       ContentServiceRestImpl contentService = new ContentServiceRestImpl();
       contentService.luceneReindex(indexedObjects, authToken);
     } else {
       LOG.info("Running against server");
-      SecurityClientRest securityClient = new SecurityClientRest(properties);
-      authToken = securityClient.authenticate(properties.getProperty("admin.user"),
-          properties.getProperty("admin.password")).getAuthToken();
       ContentClientRest client = new ContentClientRest(properties);
       client.luceneReindex(indexedObjects, authToken);
     }

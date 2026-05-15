@@ -9,10 +9,8 @@ import java.util.logging.Logger;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.algo.RrfLoaderAlgorithm;
-import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
-import com.wci.umls.server.services.SecurityService;
 
 /**
  * Admin tool which loads multiple RRF terminologies (no full Metathesaurus).
@@ -59,11 +57,8 @@ public class RrfMultiLoader extends AbstractLoader {
       createDb(serverRunning);
     }
 
-    SecurityService service = new SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
-    service.close();
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
 
     if (!serverRunning) {
       LOG.info("Running directly");

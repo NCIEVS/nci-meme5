@@ -344,7 +344,7 @@ public class ConfigUtility {
     // Instantiate the handler
     // property = "metadata.service.handler" (e.g)
     // handlerName = "SNOMED" (e.g.)
-    final Properties config = getConfigProperties();
+    final Properties config = PropertyUtility.getProperties();
     String classKey = property + "." + handlerName + ".class";
     if (config.getProperty(classKey) == null) {
       throw new Exception("Unexpected null classkey " + classKey);
@@ -721,7 +721,7 @@ public class ConfigUtility {
       return;
     }
     Session session = null;
-    final Properties config = getConfigProperties();
+    final Properties config = PropertyUtility.getProperties();
     if ("true".equals(config.get("mail.smtp.auth"))) {
       Authenticator auth = new SMTPAuthenticator();
       session = Session.getInstance(details, auth);
@@ -764,7 +764,7 @@ public class ConfigUtility {
       return;
     }
     Session session = null;
-    final Properties config = getConfigProperties();
+    final Properties config = PropertyUtility.getProperties();
     if ("true".equals(config.get("mail.smtp.auth"))) {
       Authenticator auth = new SMTPAuthenticator();
       session = Session.getInstance(details, auth);
@@ -984,8 +984,7 @@ public class ConfigUtility {
    * @throws Exception the exception
    */
   public static String getBaseIndexDirectory() throws Exception {
-    return getConfigProperties()
-        .getProperty("hibernate.search.backend.directory.root");
+    return PropertyUtility.getProperty("hibernate.search.backend.directory.root");
   }
 
   /**
@@ -1051,12 +1050,12 @@ public class ConfigUtility {
    */
   public static int getLuceneMaxClauseCount()
     throws NumberFormatException, Exception {
-    if (!getConfigProperties()
-        .containsKey("org.apache.lucene.search.BooleanQuery.maxClauseCount")) {
+    final String maxClauseCount =
+        PropertyUtility.getProperty("org.apache.lucene.search.BooleanQuery.maxClauseCount");
+    if (maxClauseCount == null) {
       return 100000;
     }
-    return Integer.valueOf(
-        getConfigProperties().getProperty("org.apache.lucene.search.BooleanQuery.maxClauseCount"));
+    return Integer.valueOf(maxClauseCount);
   }
 
   /**

@@ -8,10 +8,8 @@ import java.util.logging.Logger;
 
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
-import com.wci.umls.server.services.SecurityService;
 
 /**
  * Admin tool which rebuilds ECL (Expression Constraint Language) indexes.
@@ -59,12 +57,8 @@ public class LuceneReindexEcl {
           "Admin tool expects server to be running, but server is down");
     }
 
-    // Authenticate
-    SecurityService service = new SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
-    service.close();
+    final String authToken =
+        AdminUtility.authenticateAdmin(properties, serverRunning);
 
     if (!serverRunning) {
       LOG.info("Running directly");

@@ -137,5 +137,9 @@ public class ConfigureServiceRestImplUnitTest {
         writtenProperties.getProperty("source.data.dir"));
     assertEquals("jdbc:mysql://127.0.0.1:3306/testdb",
         writtenProperties.getProperty("jakarta.persistence.jdbc.url"));
+    assertEquals("jdbc:mysql://127.0.0.1:3306/testdb",
+        PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.url"));
+    assertEquals("testuser", PropertyUtility.getProperties()
+        .getProperty("jakarta.persistence.jdbc.user"));
   }
 }

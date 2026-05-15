@@ -210,8 +210,8 @@ public class SecurityServiceJpa extends RootServiceJpa
     } else {
 
       // handle guest user unless
-      if (authToken.equals("guest") && "false".equals(ConfigUtility
-          .getConfigProperties().getProperty("deploy.login.enabled"))) {
+      if (authToken.equals("guest") && "false"
+          .equals(PropertyUtility.getProperty("deploy.login.enabled"))) {
         return "guest";
       }
 
@@ -229,8 +229,8 @@ public class SecurityServiceJpa extends RootServiceJpa
           "Attempt to access a service without an AuthToken, the user is likely not logged in.");
     }
     // Handle "guest" user
-    if (authToken.equals("guest") && "true".equals(ConfigUtility
-        .getConfigProperties().getProperty("security.guest.disabled"))) {
+    if (authToken.equals("guest") && "true"
+        .equals(PropertyUtility.getProperty("security.guest.disabled"))) {
       return UserRole.VIEWER;
     }
 
