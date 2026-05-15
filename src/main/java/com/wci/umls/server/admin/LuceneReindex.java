@@ -10,6 +10,7 @@ import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.rest.client.ContentClientRest;
+import com.wci.umls.server.rest.client.SecurityClientRest;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
 import com.wci.umls.server.services.SecurityService;
 
@@ -68,19 +69,20 @@ public class LuceneReindex {
           "Admin tool expects server to be running, but server is down");
     }
 
-    // Authenticate
-    SecurityService service = new SecurityServiceJpa();
-    String authToken =
-        service.authenticate(properties.getProperty("admin.user"),
-            properties.getProperty("admin.password")).getAuthToken();
-    service.close();
-
+    final String authToken;
     if (!serverRunning) {
       LOG.info("Running directly");
+      SecurityService service = new SecurityServiceJpa();
+      authToken = service.authenticate(properties.getProperty("admin.user"),
+          properties.getProperty("admin.password")).getAuthToken();
+      service.close();
       ContentServiceRestImpl contentService = new ContentServiceRestImpl();
       contentService.luceneReindex(indexedObjects, authToken);
     } else {
       LOG.info("Running against server");
+      SecurityClientRest securityClient = new SecurityClientRest(properties);
+      authToken = securityClient.authenticate(properties.getProperty("admin.user"),
+          properties.getProperty("admin.password")).getAuthToken();
       ContentClientRest client = new ContentClientRest(properties);
       client.luceneReindex(indexedObjects, authToken);
     }

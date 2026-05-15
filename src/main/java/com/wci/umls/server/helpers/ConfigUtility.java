@@ -167,14 +167,13 @@ public class ConfigUtility {
    * @throws Exception the exception
    */
   public static boolean isServerActive() throws Exception {
-    if (config == null)
-      config = PropertyUtility.getProperties();
+    final Properties properties = PropertyUtility.getProperties();
 
     try {
       // Attempt to logout to verify service is up (this works like a "ping").
       Client client = ClientBuilder.newClient();
       WebTarget target = client
-          .target(config.getProperty("base.url") + "/security/logout/dummy");
+          .target(properties.getProperty("base.url") + "/security/logout/dummy");
 
       Response response = target.request(MediaType.APPLICATION_JSON).get();
       if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -196,10 +195,8 @@ public class ConfigUtility {
   public static boolean isAnalysisMode() throws Exception {
 
     try {
-      if (config == null)
-        config = PropertyUtility.getProperties();
-
-      return "true".equals(config.getProperty("analysis.mode").toString());
+      final Properties properties = PropertyUtility.getProperties();
+      return "true".equals(properties.getProperty("analysis.mode"));
     } catch (Throwable e) {
       return false;
     }

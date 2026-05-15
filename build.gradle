@@ -337,21 +337,24 @@ def adminJvmArgs(Map<String, String> propNames) {
 task adminCreateDb(type: JavaExec, group: 'Admin',
         description: 'Create the database schema from JPA entities (mode=create).') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.UpdateDb'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['createDb']
     jvmArgs = ['-Dmode=create'] + adminJvmArgs([:])
 }
 
 task adminUpdateDb(type: JavaExec, group: 'Admin',
         description: 'Update the database schema from JPA entities (mode=update).') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.UpdateDb'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['updateDb']
     jvmArgs = ['-Dmode=update'] + adminJvmArgs([:])
 }
 
 task adminAdHoc(type: JavaExec, group: 'Admin',
         description: 'Run the ad-hoc administrative task.') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.AdHoc'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['adHoc']
     jvmArgs = adminJvmArgs([:])
 }
 
@@ -364,14 +367,16 @@ task adminAdHoc(type: JavaExec, group: 'Admin',
 task adminReindex(type: JavaExec, group: 'Admin',
         description: 'Rebuild Lucene indexes directly. Normal usage: -Pindexed.objects=ClassName -Pserver=false with Tomcat stopped.') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.LuceneReindex'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['reindex']
     jvmArgs = adminJvmArgs(['indexed.objects': '', 'server': ''])
 }
 
 task adminReindexEcl(type: JavaExec, group: 'Admin',
         description: 'Rebuild ECL (Expression Constraint Language) indexes. Pass -Pterminology, -Pversion, -Pserver.') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.LuceneReindexEcl'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['reindexEcl']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'server': ''])
 }
 
@@ -382,63 +387,72 @@ task adminReindexEcl(type: JavaExec, group: 'Admin',
 task adminLoadRrfSingle(type: JavaExec, group: 'Admin',
         description: 'Load a single RRF terminology. Params: -Pterminology -Pversion -Pprefix -Pinput.dir -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.RrfSingleLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfSingle']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadRrfMulti(type: JavaExec, group: 'Admin',
         description: 'Load multiple RRF terminologies. Params: -Pprefix -Pinput.dir -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.RrfMultiLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfMulti']
     jvmArgs = adminJvmArgs(['prefix': '', 'input.dir': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadRrfUmls(type: JavaExec, group: 'Admin',
         description: 'Load UMLS RRF data. Params: -Pterminology -Pversion -Pprefix -Pinput.dir -Pedit.mode -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.RrfUmlsLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfUmls']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'edit.mode': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadRf2Full(type: JavaExec, group: 'Admin',
         description: 'Load RF2 full release. Params: -Pterminology -Pversion -Pinput.dir -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.Rf2FullLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRf2Full']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'input.dir': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadRf2Snapshot(type: JavaExec, group: 'Admin',
         description: 'Load RF2 snapshot. Params: -Pterminology -Pversion -Pinput.dir -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.Rf2SnapshotLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRf2Snapshot']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'input.dir': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadRf2Delta(type: JavaExec, group: 'Admin',
         description: 'Load RF2 delta. Params: -Pterminology -Pversion -Pinput.dir -Pserver') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.Rf2DeltaLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRf2Delta']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'input.dir': '', 'server': ''])
 }
 
 task adminLoadSimple(type: JavaExec, group: 'Admin',
         description: 'Load a simple terminology. Params: -Pterminology -Pversion -Pinput.dir -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.SimpleLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadSimple']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'input.dir': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadClaml(type: JavaExec, group: 'Admin',
         description: 'Load a ClaML terminology. Params: -Pterminology -Pversion -Pinput.file -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.ClamlLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadClaml']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'input.file': '', 'server': '', 'mode': ''])
 }
 
 task adminLoadOwl(type: JavaExec, group: 'Admin',
         description: 'Load an OWL terminology. Params: -Pterminology -Pversion -Pinput.file -Pserver -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.OwlLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadOwl']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'input.file': '', 'server': '', 'mode': ''])
 }
 
@@ -447,14 +461,16 @@ task adminLoadOwl(type: JavaExec, group: 'Admin',
 task adminTransitiveClosure(type: JavaExec, group: 'Admin',
         description: 'Compute transitive closure. Params: -Pterminology -Pversion -Pserver') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.TransitiveClosureComputer'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['transitiveClosure']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'server': ''])
 }
 
 task adminTreePositions(type: JavaExec, group: 'Admin',
         description: 'Compute tree positions. Params: -Pterminology -Pversion -Pserver') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.TreeposComputer'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['treePositions']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'server': ''])
 }
 
@@ -463,21 +479,24 @@ task adminTreePositions(type: JavaExec, group: 'Admin',
 task adminGenerateSampleData(type: JavaExec, group: 'Admin',
         description: 'Generate sample data. Params: -Pmode -Pterminology -Pversion') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.GenerateData'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['generateData']
     jvmArgs = ['-Dtype=sample'] + adminJvmArgs(['mode': '', 'terminology': '', 'version': ''])
 }
 
 task adminGenerateNciMetaData(type: JavaExec, group: 'Admin',
         description: 'Generate NCI Metathesaurus data. Params: -Pmode -Pterminology -Pversion -Pinput.dir') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.GenerateData'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['generateData']
     jvmArgs = ['-Dtype=nci'] + adminJvmArgs(['mode': '', 'terminology': '', 'version': '', 'input.dir': ''])
 }
 
 task adminGenerateDemoData(type: JavaExec, group: 'Admin',
         description: 'Generate demo data. Params: -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.GenerateData'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['generateData']
     jvmArgs = ['-Dtype=demo'] + adminJvmArgs(['mode': ''])
 }
 
@@ -486,14 +505,16 @@ task adminGenerateDemoData(type: JavaExec, group: 'Admin',
 task adminRemoveTerminology(type: JavaExec, group: 'Admin',
         description: 'Remove a terminology from the database. Params: -Pterminology -Pversion -Pserver') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.TerminologyRemover'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['removeTerminology']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'server': ''])
 }
 
 task adminRemoveSourceData(type: JavaExec, group: 'Admin',
         description: 'Remove source data and terminology. Params: -Pterminology -Pversion -Pserver') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.SourceDataRemover'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['removeSourceData']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'server': ''])
 }
 
@@ -502,6 +523,7 @@ task adminRemoveSourceData(type: JavaExec, group: 'Admin',
 task adminLoadRrfSourceData(type: JavaExec, group: 'Admin',
         description: 'Load RRF files into a source data object. Params: -Pterminology -Pversion -Pprefix -Pinput.dir -Pmode') {
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wci.umls.server.admin.RrfSourceDataLoader'
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfSourceData']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'mode': ''])
 }
