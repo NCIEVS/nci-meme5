@@ -51,8 +51,9 @@ tsApp.service('websocketService',
         url = url.replace('index.html', '');
         url = url.replace('index2.html', '');
         url = url.substring(0, url.indexOf('#'));
+        url = url.replace(/\/$/, '');
         var user = securityService.getUser();
-        url = url + "/websocket?" + user.userName;
+        url = url + "/websocket?" + encodeURIComponent(user.userName);
         console.debug("Websocket URL " + url);
         return url;
       }
@@ -107,7 +108,6 @@ tsApp.service('websocketService',
       connection.onerror = function(error) {
         console.debug('MESSAGE Connection on error', error);
         data.connected = false;
-        utilService.handleError(error, null, null, null);
       };
 
       // Send a message to the websocket server endpoint

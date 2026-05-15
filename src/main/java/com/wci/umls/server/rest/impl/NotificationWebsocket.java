@@ -19,6 +19,7 @@ import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 
 import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 /**
  * Websocket for asynchronous notifications. For now just messages, but could be
@@ -29,6 +30,7 @@ import org.apache.log4j.Logger;
  * Useful URL: http://www.programmingforliving.com/2013/08/websocket-tomcat-8-ServerEndpointConfig-Configurator.html
  * </pre>
  */
+@Component
 @ServerEndpoint(value = "/websocket", configurator = NotificationWebsocketConfigurator.class)
 public class NotificationWebsocket {
 
@@ -40,7 +42,7 @@ public class NotificationWebsocket {
    * Instantiates an empty {@link NotificationWebsocket}.
    */
   public NotificationWebsocket() {
-    // n/a
+    RootServiceRestImpl.setNotificationWebsocket(this);
   }
 
   /**
