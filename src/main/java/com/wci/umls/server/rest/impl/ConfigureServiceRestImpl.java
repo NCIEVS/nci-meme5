@@ -42,10 +42,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link HistoryServiceRest}.
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/configure")
 @Path("/configure")
 @Api(value = "/configure")
 @SwaggerDefinition(info = @Info(description = "Operations to configure application",
@@ -142,6 +154,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
    * @throws Exception the exception
    */
   /* see superclass */
+  @RequestMapping(value = "/configured", method = RequestMethod.GET)
   @GET
   @Override
   @Path("/configured")
@@ -163,13 +176,14 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   }
 
   /* see superclass */
+  @RequestMapping(value = "/configure", method = RequestMethod.POST)
   @POST
   @Override
   @Path("/configure")
   @ApiOperation(value = "Checks if application is configured",
       notes = "Returns true if application is configured, false if not", response = Boolean.class)
   public void configure(@ApiParam(value = "Configuration parameters as JSON string",
-      required = true) HashMap<String, String> parameters)
+      required = true) @RequestBody HashMap<String, String> parameters)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Configure): /configure/configure with parameters " + parameters.toString());
@@ -287,6 +301,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   }
 
   /* see superclass */
+  @RequestMapping(value = "/destroy", method = RequestMethod.DELETE)
   @DELETE
   @Override
   @Path("/destroy")
@@ -294,7 +309,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       notes = "Resets database to clean state and deletes any uploaded files",
       response = Boolean.class)
   public void destroy(@ApiParam(value = "Authorization token, e.g. 'author1'",
-      required = true) @HeaderParam("Authorization") String authToken)
+      required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Configure): /configure/destroy");
 
@@ -374,6 +389,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   }
 
   /* see superclass */
+  @RequestMapping(value = "/properties", method = RequestMethod.GET)
   @GET
   @Override
   @Path("/properties")

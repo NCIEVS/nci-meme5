@@ -48,10 +48,24 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.context.annotation.Conditional;
 
 /**
  * REST implementation for {@link IntegrationTestServiceRest}..
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@Conditional(NonProdRestCondition.class)
+@RequestMapping(value = "/test")
 @Path("/test")
 @Api(value = "/test")
 @SwaggerDefinition(info = @Info(description = "Operations to support integration tests.", title = "Integration test API", version = "1.0.1"))
@@ -78,12 +92,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/add", method = RequestMethod.PUT)
   @PUT
   @Path("/concept/add")
   @ApiOperation(value = "Add new concept", notes = "Creates a new concept", response = ConceptJpa.class)
   public Concept addConcept(
-    @ApiParam(value = "Concept, e.g. newConcept", required = true) ConceptJpa concept,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Concept, e.g. newConcept", required = true) @RequestBody ConceptJpa concept,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Test): /add " + concept);
 
@@ -111,12 +126,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/update", method = RequestMethod.PUT)
   @PUT
   @Path("/concept/update")
   @ApiOperation(value = "Update concept", notes = "Updates the concept")
   public void updateConcept(
-    @ApiParam(value = "Concept, e.g. newConcept", required = true) ConceptJpa concept,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Concept, e.g. newConcept", required = true) @RequestBody ConceptJpa concept,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /update " + concept);
@@ -169,13 +185,14 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
    */
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/remove/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/concept/remove/{id}")
   @ApiOperation(value = "Remove concept", notes = "Removes the concept with the specified id")
   public void removeConcept(
-    @ApiParam(value = "Concept id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Remove all attached components", required = false) @QueryParam("cascade") boolean cascade,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Concept id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Remove all attached components", required = false) @RequestParam(value = "cascade", required = false, defaultValue = "false") boolean cascade,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Test): /remove/" + id);
 
@@ -239,12 +256,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
   }
 
   @Override
+  @RequestMapping(value = "/sty/{styId}", method = RequestMethod.GET)
   @GET
   @Path("/sty/{styId}")
   @ApiOperation(value = "Get a semantic type component", notes = "Get a semantic type component", response = SemanticTypeComponent.class)
   public SemanticTypeComponent getSemanticTypeComponent(
-    @ApiParam(value = "Semantic Type Component id, e.g. 1", required = true) @PathParam("styId") Long styId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Semantic Type Component id, e.g. 1", required = true) @PathVariable("styId") Long styId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Test): /sty/" + styId);
 
@@ -272,12 +290,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
   }
 
   @Override
+  @RequestMapping(value = "/concept/relationship/{id}", method = RequestMethod.GET)
   @GET
   @Path("/concept/relationship/{id}")
   @ApiOperation(value = "Get a concept relationship", notes = "Get a concept relationship", response = ConceptRelationship.class)
   public ConceptRelationship getConceptRelationship(
-    @ApiParam(value = "Concept Relationship id, e.g. 1", required = true) @PathParam("id") Long relationshipId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Concept Relationship id, e.g. 1", required = true) @PathVariable("id") Long relationshipId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /relationship/" + relationshipId);
@@ -308,12 +327,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
   }
 
   @Override
+  @RequestMapping(value = "/attribute/{attributeId}", method = RequestMethod.GET)
   @GET
   @Path("/attribute/{attributeId}")
   @ApiOperation(value = "Get an attribute", notes = "Get an attribute", response = Attribute.class)
   public Attribute getAttribute(
-    @ApiParam(value = "Attribute id, e.g. 1", required = true) @PathParam("attributeId") Long attributeId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Attribute id, e.g. 1", required = true) @PathVariable("attributeId") Long attributeId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /attribute/" + attributeId);
@@ -343,12 +363,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/{id}", method = RequestMethod.GET)
   @GET
   @Path("/atom/{id}")
   @ApiOperation(value = "Get an atom", notes = "Get an atom", response = Atom.class)
   public Atom getAtom(
-    @ApiParam(value = "Atom id, e.g. 1", required = true) @PathParam("id") Long atomId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Atom id, e.g. 1", required = true) @PathVariable("id") Long atomId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Test): /atom/" + atomId);
 
@@ -377,12 +398,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/update", method = RequestMethod.PUT)
   @PUT
   @Path("/atom/update")
   @ApiOperation(value = "Update atom", notes = "Updates the atom")
   public void updateAtom(
-    @ApiParam(value = "Atom, e.g. new atom", required = true) AtomJpa atom,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Atom, e.g. new atom", required = true) @RequestBody AtomJpa atom,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Test): /update " + atom);
 
@@ -424,12 +446,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/relationship/add", method = RequestMethod.PUT)
   @PUT
   @Path("/concept/relationship/add")
   @ApiOperation(value = "Add new concept relationship", notes = "Creates a new concept relationship", response = ConceptRelationshipJpa.class)
   public ConceptRelationship addRelationship(
-    @ApiParam(value = "a concept relationship", required = true) ConceptRelationshipJpa relationship,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "a concept relationship", required = true) @RequestBody ConceptRelationshipJpa relationship,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /relationship/add " + relationship);
@@ -456,12 +479,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/relationship/add", method = RequestMethod.PUT)
   @PUT
   @Path("/atom/relationship/add")
   @ApiOperation(value = "Add new atom relationship", notes = "Creates a new atom relationship", response = ConceptRelationshipJpa.class)
   public AtomRelationship addRelationship(
-    @ApiParam(value = "A atom relationship", required = true) AtomRelationshipJpa relationship,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "A atom relationship", required = true) @RequestBody AtomRelationshipJpa relationship,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /relationship/add " + relationship);
@@ -488,12 +512,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/relationship/update", method = RequestMethod.PUT)
   @PUT
   @Path("/concept/relationship/update")
   @ApiOperation(value = "Update relationship", notes = "Updates the relationship", response = ConceptRelationshipJpa.class)
   public void updateRelationship(
-    @ApiParam(value = "ConceptRelationship", required = true) ConceptRelationshipJpa relationship,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "ConceptRelationship", required = true) @RequestBody ConceptRelationshipJpa relationship,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /relationship/update " + relationship);
@@ -539,12 +564,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/worklist/{id}", method = RequestMethod.GET)
   @GET
   @Path("/worklist/{id}")
   @ApiOperation(value = "Get a worklist", notes = "Get a worklist", response = WorklistJpa.class)
   public Worklist getWorklist(
-    @ApiParam(value = "Worklist id, e.g. 1", required = true) @PathParam("id") Long worklistId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Worklist id, e.g. 1", required = true) @PathVariable("id") Long worklistId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /worklist/" + worklistId);
@@ -565,12 +591,13 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/typekeyvalue/add", method = RequestMethod.PUT)
   @PUT
   @Path("/typekeyvalue/add")
   @ApiOperation(value = "Add new TypeKeyValue", notes = "Creates a new TypeKeyValue", response = TypeKeyValue.class)
   public TypeKeyValue addTypeKeyValue(
-    @ApiParam(value = "TypeKeyValue, e.g. newTypeKeyValue", required = true) TypeKeyValueJpa typeKeyValue,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "TypeKeyValue, e.g. newTypeKeyValue", required = true) @RequestBody TypeKeyValueJpa typeKeyValue,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Test): /add " + typeKeyValue);

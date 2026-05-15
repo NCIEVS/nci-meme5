@@ -59,10 +59,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link MetaEditingServiceRest}..
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/meta")
 @Path("/meta")
 @Api(value = "/meta")
 // TODO: consider renaming this to "MetathesaurusRestImpl" vs "Authoring API"
@@ -90,17 +102,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/sty/add", method = RequestMethod.POST)
   @POST
   @Path("/sty/add")
   @ApiOperation(value = "Add semantic type to concept", notes = "Add semantic type to concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult addSemanticType(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Semantic type to add", required = true) @QueryParam("semanticType") String semanticTypeValue,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Semantic type to add", required = true) @RequestParam(value = "semanticType", required = false) String semanticTypeValue,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -186,17 +199,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/sty/remove/{id}", method = RequestMethod.POST)
   @POST
   @Path("/sty/remove/{id}")
   @ApiOperation(value = "Remove semantic type from concept", notes = "Remove semantic type from concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult removeSemanticType(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, in ms ", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Semantic type id, e.g. 3", required = true) @PathParam("id") Long semanticTypeComponentId,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, in ms ", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Semantic type id, e.g. 3", required = true) @PathVariable("id") Long semanticTypeComponentId,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -268,17 +282,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/attribute/add", method = RequestMethod.POST)
   @POST
   @Path("/attribute/add")
   @ApiOperation(value = "Add attribute to concept", notes = "Add attribute to concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult addAttribute(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Attribute to add", required = true) AttributeJpa attribute,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Attribute to add", required = true) @RequestBody AttributeJpa attribute,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -356,17 +371,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/attribute/remove/{id}", method = RequestMethod.POST)
   @POST
   @Path("/attribute/remove/{id}")
   @ApiOperation(value = "Remove attribute from concept", notes = "Remove attribute from concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult removeAttribute(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, in ms ", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Attribute id, e.g. 3", required = true) @PathParam("id") Long attributeId,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, in ms ", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Attribute id, e.g. 3", required = true) @PathVariable("id") Long attributeId,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -437,17 +453,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/add", method = RequestMethod.POST)
   @POST
   @Path("/atom/add")
   @ApiOperation(value = "Add atom to concept", notes = "Add atom to concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult addAtom(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Atom to add", required = true) AtomJpa atom,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Atom to add", required = true) @RequestBody AtomJpa atom,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -523,17 +540,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/remove/{id}", method = RequestMethod.POST)
   @POST
   @Path("/atom/remove/{id}")
   @ApiOperation(value = "Remove atom from concept", notes = "Remove atom from concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult removeAtom(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, in ms ", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Atom id, e.g. 3", required = true) @PathParam("id") Long atomId,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, in ms ", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Atom id, e.g. 3", required = true) @PathVariable("id") Long atomId,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -604,17 +622,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/update", method = RequestMethod.POST)
   @POST
   @Path("/atom/update")
   @ApiOperation(value = "Update an atom", notes = "Update an atom on a project branch", response = ValidationResultJpa.class)
   public ValidationResult updateAtom(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Atom to add", required = true) AtomJpa atom,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Atom to add", required = true) @RequestBody AtomJpa atom,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -685,17 +704,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationship/add", method = RequestMethod.POST)
   @POST
   @Path("/relationship/add")
   @ApiOperation(value = "Add relationship to concept", notes = "Add relationship to concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult addRelationship(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Relationship to add", required = true) ConceptRelationshipJpa relationship,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Relationship to add", required = true) @RequestBody ConceptRelationshipJpa relationship,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -787,17 +807,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationships/add", method = RequestMethod.POST)
   @POST
   @Path("/relationships/add")
   @ApiOperation(value = "Add relationships to concept", notes = "Add relationships to concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult addRelationships(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Relationships to add", required = true) List<ConceptRelationshipJpa> relationships,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Relationships to add", required = true) @RequestBody List<ConceptRelationshipJpa> relationships,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -921,19 +942,20 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/demotion/add", method = RequestMethod.POST)
   @POST
   @Path("/demotion/add")
   @ApiOperation(value = "Add demotion between atoms", notes = "Add demotion between atoms on a project branch", response = ValidationResultJpa.class)
   public ValidationResult addDemotion(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "From Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "From Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "To Concept id, e.g. 3", required = true) @QueryParam("conceptId2") Long conceptId2,
-    @ApiParam(value = "From Atom id, e.g. 3", required = true) @PathParam("atomId") Long atomId,
-    @ApiParam(value = "To Atom id, e.g. 3", required = true) @PathParam("atomId2") Long atomId2,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "From Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "From Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "To Concept id, e.g. 3", required = true) @RequestParam(value = "conceptId2", required = false) Long conceptId2,
+    @ApiParam(value = "From Atom id, e.g. 3", required = true) @RequestParam(value = "atomId", required = false) Long atomId,
+    @ApiParam(value = "To Atom id, e.g. 3", required = true) @RequestParam(value = "atomId2", required = false) Long atomId2,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1006,17 +1028,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationship/remove/{id}", method = RequestMethod.POST)
   @POST
   @Path("/relationship/remove/{id}")
   @ApiOperation(value = "Remove relationship from concept", notes = "Remove relationship from concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult removeRelationship(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, in ms ", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Relationship id, e.g. 3", required = true) @PathParam("id") Long relationshipId,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, in ms ", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Relationship id, e.g. 3", required = true) @PathVariable("id") Long relationshipId,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1093,17 +1116,18 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/merge", method = RequestMethod.POST)
   @POST
   @Path("/concept/merge")
   @ApiOperation(value = "Merge concepts together", notes = "Merge concepts together on a project branch", response = ValidationResultJpa.class)
   public ValidationResult mergeConcepts(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "From Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "From Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "To Concept id, e.g. 3", required = true) @QueryParam("conceptId2") Long conceptId2,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "From Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "From Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "To Concept id, e.g. 3", required = true) @RequestParam(value = "conceptId2", required = false) Long conceptId2,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1179,18 +1203,19 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/atom/move", method = RequestMethod.POST)
   @POST
   @Path("/atom/move")
   @ApiOperation(value = "Move atoms from concept to concept", notes = "Move atoms from concept to concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult moveAtoms(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "From Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "From Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "To Concept id, e.g. 3", required = true) @QueryParam("conceptId2") Long conceptId2,
-    @ApiParam(value = "Atoms to move", required = true) List<Long> atomIds,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "From Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "From Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "To Concept id, e.g. 3", required = true) @RequestParam(value = "conceptId2", required = false) Long conceptId2,
+    @ApiParam(value = "Atoms to move", required = true) @RequestBody List<Long> atomIds,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1266,20 +1291,21 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/split", method = RequestMethod.POST)
   @POST
   @Path("/concept/split")
   @ApiOperation(value = "Split concept into two", notes = "Split concept into two on a project branch", response = ValidationResultJpa.class)
   public ValidationResult splitConcept(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Atoms to move", required = true) List<Long> atomIds,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Copy relationships", required = false) @QueryParam("copyRelationships") boolean copyRelationships,
-    @ApiParam(value = "Copy semantic types", required = false) @QueryParam("copySemanticTypes") boolean copySemanticTypes,
-    @ApiParam(value = "Relationship to new concept", required = true) @QueryParam("relationshipType") String relationshipType,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Atoms to move", required = true) @RequestBody List<Long> atomIds,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Copy relationships", required = false) @RequestParam(value = "copyRelationships", required = false, defaultValue = "false") boolean copyRelationships,
+    @ApiParam(value = "Copy semantic types", required = false) @RequestParam(value = "copySemanticTypes", required = false, defaultValue = "false") boolean copySemanticTypes,
+    @ApiParam(value = "Relationship to new concept", required = true) @RequestParam(value = "relationshipType", required = false) String relationshipType,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1359,16 +1385,17 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/approve", method = RequestMethod.POST)
   @POST
   @Path("/concept/approve")
   @ApiOperation(value = "Approve concept", notes = "Approve concept on a project branch", response = ValidationResultJpa.class)
   public ValidationResult approveConcept(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. 2", required = true) @QueryParam("conceptId") Long conceptId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Concept lastModified, as date", required = true) @QueryParam("lastModified") Long lastModified,
-    @ApiParam(value = "Override warnings", required = false) @QueryParam("overrideWarnings") boolean overrideWarnings,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. 2", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Concept lastModified, as date", required = true) @RequestParam(value = "lastModified", required = false) Long lastModified,
+    @ApiParam(value = "Override warnings", required = false) @RequestParam(value = "overrideWarnings", required = false, defaultValue = "false") boolean overrideWarnings,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1438,15 +1465,16 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/action/undo", method = RequestMethod.POST)
   @POST
   @Path("/action/undo")
   @ApiOperation(value = "Undo action", notes = "Undo a previously performed action", response = ValidationResultJpa.class)
   public ValidationResult undoAction(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Molecular Action id, e.g. 2", required = true) @QueryParam("molecularActionId") Long molecularActionId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Force action", required = false) @QueryParam("force") boolean force,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Molecular Action id, e.g. 2", required = true) @RequestParam(value = "molecularActionId", required = false) Long molecularActionId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Force action", required = false) @RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1542,15 +1570,16 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/action/redo", method = RequestMethod.POST)
   @POST
   @Path("/action/redo")
   @ApiOperation(value = "Redo action", notes = "Redo a previously undone action", response = ValidationResultJpa.class)
   public ValidationResult redoAction(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Molecular Action id, e.g. 2", required = true) @QueryParam("molecularActionId") Long molecularActionId,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @QueryParam("activityId") String activityId,
-    @ApiParam(value = "Force action", required = false) @QueryParam("force") boolean force,
-    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Molecular Action id, e.g. 2", required = true) @RequestParam(value = "molecularActionId", required = false) Long molecularActionId,
+    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @ApiParam(value = "Force action", required = false) @RequestParam(value = "force", required = false, defaultValue = "false") boolean force,
+    @ApiParam(value = "Authorization token, e.g. 'author'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())

@@ -51,10 +51,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link ReportServiceRest}.
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/report")
 @Path("/report")
 @Api(value = "/report")
 @SwaggerDefinition(info = @Info(description = "Operations for reporting.", title = "Report API", version = "1.0.1"))
@@ -81,14 +93,15 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/concept/{id}", method = RequestMethod.GET)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   @Path("/concept/{id}")
   @ApiOperation(value = "Get concept report", notes = "Gets a concept report", response = String.class)
   public String getConceptReport(
-    @ApiParam(value = "Project id, e.g. UMLS", required = false) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Concept id, e.g. UMLS", required = true) @PathParam("id") Long conceptId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. UMLS", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Concept id, e.g. UMLS", required = true) @PathVariable("id") Long conceptId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Report): /report " + projectId);
@@ -123,14 +136,15 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/descriptor/{id}", method = RequestMethod.GET)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   @Path("/descriptor/{id}")
   @ApiOperation(value = "Get descriptor report", notes = "Gets a descriptor report", response = String.class)
   public String getDescriptorReport(
-    @ApiParam(value = "Project id, e.g. UMLS", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Descriptor id, e.g. UMLS", required = true) @PathParam("id") Long descriptorId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. UMLS", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Descriptor id, e.g. UMLS", required = true) @PathVariable("id") Long descriptorId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Report): /report");
 
@@ -165,14 +179,15 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/code/{id}", method = RequestMethod.GET)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   @Path("/code/{id}")
   @ApiOperation(value = "Get code report", notes = "Gets a code report", response = String.class)
   public String getCodeReport(
-    @ApiParam(value = "Project id, e.g. UMLS", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Code id, e.g. UMLS", required = true) @PathParam("id") Long codeId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. UMLS", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Code id, e.g. UMLS", required = true) @PathVariable("id") Long codeId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Report): /report");
 
@@ -206,12 +221,13 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/definitions", method = RequestMethod.GET)
   @GET
   @Path("/definitions")
   @ApiOperation(value = "Find report definitions", notes = "Find report definitions")
   public WorkflowBinDefinitionList findReportDefinitions(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Report): /definitions" + " " + projectId);
@@ -257,14 +273,15 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/find", method = RequestMethod.POST)
   @POST
   @Path("/find")
   @ApiOperation(value = "Finds reports", notes = "Finds reports for the specified query", response = ReportListJpa.class)
   public ReportList findReports(
-    @ApiParam(value = "Project id, e.g. 1", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Query", required = false) @QueryParam("query") String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
+    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -294,12 +311,13 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/{id}")
   @ApiOperation(value = "Remove report", notes = "Removes the report with the specified id")
   public void removeReport(
-    @ApiParam(value = "Report id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Report id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Report): /" + id);
 
@@ -325,12 +343,13 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
   
   /* see superclass */
   @Override
+  @RequestMapping(value = "/{id}", method = RequestMethod.GET)
   @GET
   @Path("/{id}")
   @ApiOperation(value = "Get report for id", notes = "Gets the report for the specified id", response = ProjectJpa.class)
   public Report getReport(
-    @ApiParam(value = "Project internal id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project internal id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /" + id);
 
@@ -351,16 +370,17 @@ public class ReportServiceRestImpl extends RootServiceRestImpl
   }
 
   @Override
+  @RequestMapping(value = "/generate/{projectId}", method = RequestMethod.GET)
   @GET
   @Path("/generate/{projectId}")
   @ApiOperation(value = "Generates a report", notes = "Generates a report", response = ReportJpa.class)
   public Report generateReport(
-    @ApiParam(value = "Project internal id, e.g. 2", required = true) @PathParam("projectId") Long projectId,
-    @ApiParam(value = "Name", required = false) @QueryParam("name") String name,
-    @ApiParam(value = "Query", required = true) @QueryParam("query") String query,
-    @ApiParam(value = "Query Type, e.g. LUCENE", required = true) @QueryParam("queryType") QueryType queryType,
-    @ApiParam(value = "Object type name, e.g. AtomJpa", required = false) @QueryParam("resultType") IdType resultType,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project internal id, e.g. 2", required = true) @PathVariable("projectId") Long projectId,
+    @ApiParam(value = "Name", required = false) @RequestParam(value = "name", required = false) String name,
+    @ApiParam(value = "Query", required = true) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "Query Type, e.g. LUCENE", required = true) @RequestParam(value = "queryType", required = false) QueryType queryType,
+    @ApiParam(value = "Object type name, e.g. AtomJpa", required = false) @RequestParam(value = "resultType", required = false) IdType resultType,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Report): /generate");
 

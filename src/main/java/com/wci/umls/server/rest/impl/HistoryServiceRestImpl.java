@@ -32,10 +32,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link HistoryServiceRest}.
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/history")
 @Path("/history")
 @Api(value = "/history")
 @SwaggerDefinition(info = @Info(description = "Operations to retrieve historical content for a terminology.", title = "History API", version = "1.0.1"))
@@ -62,12 +74,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/releases/{terminology}", method = RequestMethod.GET)
   @GET
   @Path("/releases/{terminology}")
   @ApiOperation(value = "Get release history", notes = "Gets all release info objects", response = ReleaseInfoListJpa.class)
   public ReleaseInfoList getReleaseHistory(
-    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release/history/");
@@ -91,12 +104,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release/{terminology}/current", method = RequestMethod.GET)
   @GET
   @Path("/release/{terminology}/current")
   @ApiOperation(value = "Get current release info", notes = "Gets release info for current release", response = ReleaseInfoJpa.class)
   public ReleaseInfo getCurrentReleaseInfo(
-    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release/current/");
@@ -120,12 +134,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release/{terminology}/previous", method = RequestMethod.GET)
   @GET
   @Path("/release/{terminology}/previous")
   @ApiOperation(value = "Get previous release info", notes = "Gets release info for previous release", response = ReleaseInfoJpa.class)
   public ReleaseInfo getPreviousReleaseInfo(
-    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release/previous/");
@@ -149,12 +164,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release/{terminology}/planned", method = RequestMethod.GET)
   @GET
   @Path("/release/{terminology}/planned")
   @ApiOperation(value = "Get planned release info", notes = "Gets release info for planned release", response = ReleaseInfoJpa.class)
   public ReleaseInfo getPlannedReleaseInfo(
-    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release/planned/");
@@ -178,13 +194,14 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release/{terminology}/{name}", method = RequestMethod.GET)
   @GET
   @Path("/release/{terminology}/{name}")
   @ApiOperation(value = "Get release info", notes = "Gets release info for specified release name and terminology", response = ReleaseInfoJpa.class)
   public ReleaseInfo getReleaseInfo(
-    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Release version info, e.g. 'latest'", required = true) @PathParam("name") String name,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info terminology , e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Release version info, e.g. 'latest'", required = true) @PathVariable("name") String name,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release/" + name);
@@ -208,12 +225,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release", method = RequestMethod.PUT)
   @PUT
   @Path("/release")
   @ApiOperation(value = "Add release info", notes = "Adds the specified release info", response = ReleaseInfoJpa.class)
   public ReleaseInfo addReleaseInfo(
-    @ApiParam(value = "Release info object, e.g. see output of /release/current", required = true) ReleaseInfoJpa releaseInfo,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info object, e.g. see output of /release/current", required = true) @RequestBody ReleaseInfoJpa releaseInfo,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release " + releaseInfo.getName());
@@ -239,12 +257,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release", method = RequestMethod.POST)
   @POST
   @Path("/release")
   @ApiOperation(value = "Update release info", notes = "Updatess the specified release info")
   public void updateReleaseInfo(
-    @ApiParam(value = "Release info object, e.g. see output of /release/current", required = true) ReleaseInfoJpa releaseInfo,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info object, e.g. see output of /release/current", required = true) @RequestBody ReleaseInfoJpa releaseInfo,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (History): /release " + releaseInfo.getName());
@@ -267,12 +286,13 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/release/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/release/{id}")
   @ApiOperation(value = "Remove release info", notes = "Removes the release info for the specified id")
   public void removeReleaseInfo(
-    @ApiParam(value = "Release info object id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Release info object id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (History): /release/" + id);
 

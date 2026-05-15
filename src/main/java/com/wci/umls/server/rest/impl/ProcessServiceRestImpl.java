@@ -49,7 +49,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.wci.umls.server.algo.Algorithm;
 import com.wci.umls.server.helpers.CancelException;
@@ -77,10 +77,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link ProcessServiceRest}..
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/process")
 @Path("/process")
 @Api(value = "/process")
 @SwaggerDefinition(info = @Info(description = "Operations to interact with process and algorithm info.", title = "Process API", version = "1.0.1"))
@@ -120,13 +132,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config", method = RequestMethod.PUT)
   @PUT
   @Path("/config")
   @ApiOperation(value = "Add new process config", notes = "Creates a new process config", response = ProcessConfigJpa.class)
   public ProcessConfig addProcessConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessConfig, as POST data", required = true) ProcessConfigJpa process,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessConfig, as POST data", required = true) @RequestBody ProcessConfigJpa process,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config?projectId=" + projectId
@@ -191,13 +204,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/clone", method = RequestMethod.PUT)
   @PUT
   @Path("/config/clone")
   @ApiOperation(value = "Clone a process config", notes = "Clones a process config", response = ProcessConfigJpa.class)
   public ProcessConfig cloneProcessConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessConfig, as POST data", required = true) ProcessConfigJpa process,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessConfig, as POST data", required = true) @RequestBody ProcessConfigJpa process,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/clone?projectId=" + projectId
@@ -266,16 +280,39 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
+  @RequestMapping(value = "/config/import", method = RequestMethod.POST)
   @POST
-  @Override
   @Path("/config/import")
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   @ApiOperation(value = "Import process config", notes = "Imports a process config", response = ProcessConfigJpa.class)
   public ProcessConfig importProcessConfig(
-    @ApiParam(value = "Form data header", required = true) @FormDataParam("file") FormDataContentDisposition contentDispositionHeader,
-    @ApiParam(value = "Content of members file", required = true) @FormDataParam("file") InputStream in,
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Content of members file", required = true) @RequestParam("file") MultipartFile file,
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    try (InputStream in = file.getInputStream()) {
+      return importProcessConfig(in, projectId, authToken);
+    }
+  }
+
+  /* see superclass */
+  @Override
+  public ProcessConfig importProcessConfig(
+    FormDataContentDisposition contentDispositionHeader, InputStream in, Long projectId,
+    String authToken) throws Exception {
+    return importProcessConfig(in, projectId, authToken);
+  }
+
+  /**
+   * Imports a process config from a stream.
+   *
+   * @param in the input stream
+   * @param projectId the project id
+   * @param authToken the auth token
+   * @return the process config
+   * @throws Exception the exception
+   */
+  private ProcessConfig importProcessConfig(InputStream in, Long projectId, String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/import?projectId=" + projectId);
@@ -362,15 +399,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
+  @RequestMapping(value = "/config/export", method = RequestMethod.POST)
   @POST
   @Override
   @Produces("application/octet-stream")
   @Path("/config/export")
   @ApiOperation(value = "Export process config", notes = "Exports a process config", response = InputStream.class)
   public InputStream exportProcessConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process id, e.g. 23425", required = true) @QueryParam("processId") Long processId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process id, e.g. 23425", required = true) @RequestParam(value = "processId", required = false) Long processId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/export?projectId=" + projectId);
@@ -423,13 +461,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config", method = RequestMethod.POST)
   @POST
   @Path("/config")
   @ApiOperation(value = "Update process config", notes = "Updates the specified process config")
   public void updateProcessConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessConfig, as POST data", required = true) ProcessConfigJpa processConfig,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessConfig, as POST data", required = true) @RequestBody ProcessConfigJpa processConfig,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config?projectId=" + projectId
@@ -483,14 +522,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/config/{id}")
   @ApiOperation(value = "Remove process config", notes = "Removes the processConfig with the specified id")
   public void removeProcessConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessConfig id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Cascade, e.g. true", required = true) @QueryParam("cascade") Boolean cascade,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessConfig id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Cascade, e.g. true", required = true) @RequestParam(value = "cascade", required = false) Boolean cascade,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/" + id + "?projectId="
@@ -544,13 +584,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/{id}", method = RequestMethod.GET)
   @GET
   @Path("/config/{id}")
   @ApiOperation(value = "Get processConfig for id", notes = "Gets the processConfig for the specified id", response = ProcessConfigJpa.class)
   public ProcessConfig getProcessConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessConfig internal id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessConfig internal id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /config/" + id
         + "?projectId=" + projectId + " for user " + authToken);
@@ -606,14 +647,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/find", method = RequestMethod.POST)
   @POST
   @Path("/config/find")
   @ApiOperation(value = "Find processConfigs", notes = "Find processConfigs", response = ProcessConfigListJpa.class)
   public ProcessConfigList findProcessConfigs(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "The query string", required = false) @QueryParam("query") String query,
-    @ApiParam(value = "The paging/sorting/filtering parameter", required = false) PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "The query string", required = false) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "The paging/sorting/filtering parameter", required = false) @RequestBody PfsParameterJpa pfs,
+    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/find?projectId=" + projectId
@@ -647,13 +689,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/{id}", method = RequestMethod.GET)
   @GET
   @Path("/execution/{id}")
   @ApiOperation(value = "Get processExecution for id", notes = "Gets the processExecution for the specified id", response = ProcessExecutionJpa.class)
   public ProcessExecution getProcessExecution(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessExecution internal id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessExecution internal id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /execution/" + id
         + "?projectId=" + projectId + " for user " + authToken);
@@ -720,14 +763,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/find", method = RequestMethod.POST)
   @POST
   @Path("/execution/find")
   @ApiOperation(value = "Find processExecutions", notes = "Find processExecutions", response = ProcessExecutionListJpa.class)
   public ProcessExecutionList findProcessExecutions(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "The query string", required = false) @QueryParam("query") String query,
-    @ApiParam(value = "The paging/sorting/filtering parameter", required = false) PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "The query string", required = false) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "The paging/sorting/filtering parameter", required = false) @RequestBody PfsParameterJpa pfs,
+    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /execution/find?projectId=" + projectId
@@ -762,12 +806,13 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/executing", method = RequestMethod.GET)
   @GET
   @Path("/executing")
   @ApiOperation(value = "Find currently executing processes", notes = "Find currently executing processes", response = ProcessExecutionListJpa.class)
   public ProcessExecutionList findCurrentlyExecutingProcesses(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /executing?projectId=" + projectId
@@ -824,14 +869,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/execution/{id}")
   @ApiOperation(value = "Remove process execution", notes = "Removes the processExecution with the specified id")
   public void removeProcessExecution(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "ProcessExecution id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Cascade, e.g. true", required = true) @QueryParam("cascade") Boolean cascade,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "ProcessExecution id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Cascade, e.g. true", required = true) @RequestParam(value = "cascade", required = false) Boolean cascade,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /execution/" + id + "?projectId="
@@ -886,14 +932,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/algo", method = RequestMethod.PUT)
   @PUT
   @Path("/config/algo")
   @ApiOperation(value = "Add new algorithm config", notes = "Creates a new algorithm config", response = AlgorithmConfigJpa.class)
   public AlgorithmConfig addAlgorithmConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process id, e.g. 12345", required = true) @QueryParam("processId") Long processId,
-    @ApiParam(value = "AlgorithmConfig, as POST data", required = true) AlgorithmConfigJpa config,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process id, e.g. 12345", required = true) @RequestParam(value = "processId", required = false) Long processId,
+    @ApiParam(value = "AlgorithmConfig, as POST data", required = true) @RequestBody AlgorithmConfigJpa config,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/algo?projectId=" + projectId
@@ -966,14 +1013,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/algo", method = RequestMethod.POST)
   @POST
   @Path("/config/algo")
   @ApiOperation(value = "Update algorithm config", notes = "Updates the specified algorithm config")
   public void updateAlgorithmConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process id, e.g. 12345", required = true) @QueryParam("processId") Long processId,
-    @ApiParam(value = "AlgorithmConfig, as POST data", required = true) AlgorithmConfigJpa algo,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process id, e.g. 12345", required = true) @RequestParam(value = "processId", required = false) Long processId,
+    @ApiParam(value = "AlgorithmConfig, as POST data", required = true) @RequestBody AlgorithmConfigJpa algo,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/algo?projectId=" + projectId
@@ -1041,14 +1089,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/algo/validate", method = RequestMethod.POST)
   @POST
   @Path("/config/algo/validate")
   @ApiOperation(value = "Validate algorithm config", notes = "Validates the specified algorithm config properties.")
   public void validateAlgorithmConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process id, e.g. 34234", required = true) @QueryParam("processId") Long processId,
-    @ApiParam(value = "AlgorithmConfig, as POST data", required = true) AlgorithmConfigJpa algo,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process id, e.g. 34234", required = true) @RequestParam(value = "processId", required = false) Long processId,
+    @ApiParam(value = "AlgorithmConfig, as POST data", required = true) @RequestBody AlgorithmConfigJpa algo,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/algo/validate?projectId="
@@ -1107,13 +1156,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/algo/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/config/algo/{id}")
   @ApiOperation(value = "Remove algorithm config", notes = "Removes the algorithm config with the specified id")
   public void removeAlgorithmConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "AlgorithmConfig id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "AlgorithmConfig id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /config/algo/"
         + id + "?projectId=" + projectId + " for user " + authToken);
@@ -1166,13 +1216,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/algo/{id}", method = RequestMethod.GET)
   @GET
   @Path("/config/algo/{id}")
   @ApiOperation(value = "Get algorithm config for id", notes = "Gets the algorithm config for the specified id", response = AlgorithmConfigJpa.class)
   public AlgorithmConfig getAlgorithmConfig(
-    @ApiParam(value = "Project internal id, e.g. 2", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "AlgorithmConfig internal id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project internal id, e.g. 2", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "AlgorithmConfig internal id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /config/algo/"
         + id + "?projectId=" + projectId + " for user " + authToken);
@@ -1229,13 +1280,14 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/algo/{type:insertion|inversion|maintenance|release|report|autofix}", method = RequestMethod.GET)
   @GET
   @Path("/algo/{type:insertion|inversion|maintenance|release|report|autofix}")
   @ApiOperation(value = "Get all algorithms", notes = "Gets the algorithms for the specified type", response = KeyValuePairList.class)
   public KeyValuePairList getAlgorithmsForType(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "The type, e.g. insertion, maintenance, release, report", required = true) @PathParam("type") String type,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "The type, e.g. insertion, maintenance, release, report", required = true) @PathVariable("type") String type,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /algo/" + type
         + "?projectId=" + projectId + " for user " + authToken);
@@ -1260,14 +1312,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/{id}/prepare", method = RequestMethod.GET)
   @GET
   @Path("/config/{id}/prepare")
   @Produces("text/plain")
   @ApiOperation(value = "Prepare a process for execution", notes = "Prepare the specified process configuration for execution", response = Long.class)
   public Long prepareProcess(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process Config id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process Config id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /config/" + id
         + "/execute?projectId=" + projectId + " for user " + authToken);
@@ -1333,15 +1386,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/{processId}/execute", method = RequestMethod.GET)
   @GET
   @Path("/execution/{processId}/execute")
   @Produces("text/plain")
   @ApiOperation(value = "Execute a process", notes = "Execute the specified process", response = Long.class)
   public Long executeProcess(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathParam("processId") Long processId,
-    @ApiParam(value = "Background, e.g. true", required = true) @QueryParam("background") Boolean background,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathVariable("processId") Long processId,
+    @ApiParam(value = "Background, e.g. true", required = true) @RequestParam(value = "background", required = false) Boolean background,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /execution/" + processId
@@ -1411,15 +1465,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/{id}/restart", method = RequestMethod.GET)
   @GET
   @Path("/execution/{id}/restart")
   @Produces("text/plain")
   @ApiOperation(value = "Execute a process configuration", notes = "Execute the specified process configuration")
   public Long restartProcess(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Background, e.g. true", required = true) @QueryParam("background") Boolean background,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Background, e.g. true", required = true) @RequestParam(value = "background", required = false) Boolean background,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /execution/" + id + "/restart?projectId="
@@ -1484,16 +1539,17 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/{id}/step", method = RequestMethod.GET)
   @GET
   @Path("/execution/{id}/step")
   @Produces("text/plain")
   @ApiOperation(value = "Execute a step of  a process configuration", notes = "Execute a step in either direction for a specified process configuration")
   public Long stepProcess(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Step, e.g. -1 to go back, 1 to go forward one step", required = true) @QueryParam("step") Integer step,
-    @ApiParam(value = "Background, e.g. true", required = true) @QueryParam("background") Boolean background,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Step, e.g. -1 to go back, 1 to go forward one step", required = true) @RequestParam(value = "step", required = false) Integer step,
+    @ApiParam(value = "Background, e.g. true", required = true) @RequestParam(value = "background", required = false) Boolean background,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /execution/" + id + "/step?projectId="
@@ -1566,14 +1622,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/execution/{id}/cancel", method = RequestMethod.GET)
   @GET
   @Path("/execution/{id}/cancel")
   @Produces("text/plain")
   @ApiOperation(value = "Cancel a running process execution", notes = "Execute the specified process configuration")
   public Long cancelProcess(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process Execution id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Process): /execution/" + id
         + "/cancel?projectId=" + projectId + " for user " + authToken);
@@ -1658,15 +1715,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
+  @RequestMapping(value = "/{id}/progress", method = RequestMethod.GET)
   @GET
   @Path("/{id}/progress")
   @Produces("text/plain")
   @ApiOperation(value = "Find progress of specified executing process", notes = "Find progress of specified executing process", response = Integer.class)
   @Override
   public Integer getProcessProgress(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process execution internal id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process execution internal id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).debug("RESTful call POST (Process): /" + id
         + "/progress?projectId=" + projectId + " for user " + authToken);
@@ -1709,15 +1767,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
+  @RequestMapping(value = "algo/{id}/progress", method = RequestMethod.GET)
   @GET
   @Path("algo/{id}/progress")
   @Produces("text/plain")
   @ApiOperation(value = "Find progress of specified executing algorithm", notes = "Find progress of specified executing algorithm", response = Integer.class)
   @Override
   public Integer getAlgorithmProgress(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Algorithm execution internal id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Algorithm execution internal id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).debug("RESTful call POST (Process): /algo/"
         + id + "/progress?projectId=" + projectId + " for user " + authToken);
@@ -2248,15 +2307,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
+  @RequestMapping(value = "{processExecutionId}/log", method = RequestMethod.GET)
   @GET
   @Path("{processExecutionId}/log")
   @ApiOperation(value = "Get log entries of specified process execution", notes = "Get log entries of specified process execution", response = Integer.class)
   @Override
   public String getProcessLog(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process execution internal id, e.g. 2", required = true) @PathParam("processExecutionId") Long processExecutionId,
-    @ApiParam(value = "Query, e.g. 2", required = true) @QueryParam("query") String query,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process execution internal id, e.g. 2", required = true) @PathVariable("processExecutionId") Long processExecutionId,
+    @ApiParam(value = "Query, e.g. 2", required = true) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     // Logger.getLogger(getClass()).info(
     // "RESTful call (Process): /" + processExecutionId + "/log?projectId="
@@ -2286,15 +2346,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
+  @RequestMapping(value = "algo/{algorithmExecutionId}/log", method = RequestMethod.GET)
   @GET
   @Path("algo/{algorithmExecutionId}/log")
   @ApiOperation(value = "Get log entries of specified algorithm execution", notes = "Get log entries of specified algorithm execution", response = Integer.class)
   @Override
   public String getAlgorithmLog(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Algorithm execution internal id, e.g. 2", required = true) @PathParam("algorithmExecutionId") Long algorithmExecutionId,
-    @ApiParam(value = "Query, e.g. 2", required = true) @QueryParam("query") String query,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Algorithm execution internal id, e.g. 2", required = true) @PathVariable("algorithmExecutionId") Long algorithmExecutionId,
+    @ApiParam(value = "Query, e.g. 2", required = true) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     // Logger.getLogger(getClass())
     // .info("RESTful call (Process): /algo/" + algorithmExecutionId
@@ -2327,14 +2388,15 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/config/algo/{key}/new", method = RequestMethod.GET)
   @GET
   @Path("/config/algo/{key}/new")
   @ApiOperation(value = "Get an empty new algorithm config", notes = "Returns an empty new algorithm config", response = AlgorithmConfigJpa.class)
   public AlgorithmConfig newAlgorithmConfig(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process id, e.g. 12345", required = true) @QueryParam("processId") Long processId,
-    @ApiParam(value = "Algorithm config key, e.g. MATRIXINT", required = true) @PathParam("key") String key,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process id, e.g. 12345", required = true) @RequestParam(value = "processId", required = false) Long processId,
+    @ApiParam(value = "Algorithm config key, e.g. MATRIXINT", required = true) @PathVariable("key") String key,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /config/algo/" + key + "/new?projectId="
@@ -2381,18 +2443,19 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       "unchecked", "rawtypes"
   })
   @Override
+  @RequestMapping(value = "testquery", method = RequestMethod.GET)
   @GET
   @Path("testquery")
   @Produces("text/plain")
   @ApiOperation(value = "Test query", notes = "Attempts to run a query and returns whether it works or not.")
   public Integer testQuery(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @QueryParam("projectId") Long projectId,
-    @ApiParam(value = "Process id, e.g. 12345", required = true) @QueryParam("processId") Long processId,
-    @ApiParam(value = "Query Type, e.g. LUCENE", required = true) @QueryParam("queryType") QueryType queryType,
-    @ApiParam(value = "Query Style, e.g. ID_PAIR", required = true) @QueryParam("queryStyle") QueryStyle queryStyle,
-    @ApiParam(value = "Query, e.g. select a.id from AtomJpa a", required = true) @QueryParam("query") String query,
-    @ApiParam(value = "Object type name, e.g. AtomJpa", required = false) @QueryParam("objectTypeName") String objectTypeName,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @ApiParam(value = "Process id, e.g. 12345", required = true) @RequestParam(value = "processId", required = false) Long processId,
+    @ApiParam(value = "Query Type, e.g. LUCENE", required = true) @RequestParam(value = "queryType", required = false) QueryType queryType,
+    @ApiParam(value = "Query Style, e.g. ID_PAIR", required = true) @RequestParam(value = "queryStyle", required = false) QueryStyle queryStyle,
+    @ApiParam(value = "Query, e.g. select a.id from AtomJpa a", required = true) @RequestParam(value = "query", required = false) String query,
+    @ApiParam(value = "Object type name, e.g. AtomJpa", required = false) @RequestParam(value = "objectTypeName", required = false) String objectTypeName,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Process): /testquery?projectId=" + projectId

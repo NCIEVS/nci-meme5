@@ -70,7 +70,6 @@ ext {
 // ── Dependencies ───────────────────────────────────────────────────────────────
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-jersey'
 
     // JPA / Hibernate
     implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"
@@ -95,11 +94,9 @@ dependencies {
     compileOnly        'jakarta.websocket:jakarta.websocket-api:2.1.0'
     implementation     'jakarta.websocket:jakarta.websocket-client-api:2.1.0'
 
-    // Jersey
+    // Jersey client support
     implementation "org.glassfish.jersey.core:jersey-client:${jerseyVersion}"
     implementation "org.glassfish.jersey.core:jersey-common:${jerseyVersion}"
-    implementation "org.glassfish.jersey.containers:jersey-container-servlet:${jerseyVersion}"
-    implementation "org.glassfish.jersey.containers:jersey-container-servlet-core:${jerseyVersion}"
     implementation "org.glassfish.jersey.media:jersey-media-multipart:${jerseyVersion}"
     implementation "org.glassfish.jersey.media:jersey-media-json-jackson:${jerseyVersion}"
     implementation "org.glassfish.jersey.media:jersey-media-jaxb:${jerseyVersion}"
