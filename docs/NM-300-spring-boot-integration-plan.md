@@ -69,7 +69,7 @@ Relevant files:
 The REST layer is still JAX-RS/Jersey, not Spring MVC. The reference
 terminology-service project has many Spring MVC `@RestController` classes, but
 converting MEME's REST endpoints should not be part of the first Spring Boot
-startup story.
+startup story. That conversion belongs in NM-301.
 
 ## Target Outcome
 
@@ -133,6 +133,8 @@ Out of scope:
 
 Future ticket:
 
+- NM-301: convert REST implementation classes from JAX-RS/Jersey resources to
+  Spring MVC controllers using `@RestController` and `@RequestMapping`
 - update Springdoc / Swagger / OpenAPI support after the Boot startup path is
   stable
 - decide whether to keep Swagger Core/JAX-RS generation, migrate to Springdoc
@@ -307,7 +309,9 @@ or query parameters need encoded slash/backslash behavior.
 
 ### 5. Wire Existing Jersey Application Into Boot
 
-Keep `TermServerApplication` as the Jersey `ResourceConfig` for NM-300.
+Keep `TermServerApplication` as the Jersey `ResourceConfig` for NM-300. This is
+a temporary compatibility bridge until NM-301 converts the REST classes to
+Spring MVC controllers.
 
 Preferred first-pass approach:
 
