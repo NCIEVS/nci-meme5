@@ -6,8 +6,6 @@ package com.wci.umls;
 import java.io.File;
 
 import org.apache.tomcat.util.buf.EncodedSolidusHandling;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -23,9 +21,11 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import com.wci.umls.server.rest.impl.ApiOriginFilter;
 import com.wci.umls.server.rest.impl.SessionFactoryShutdownListener;
-import com.wci.umls.server.rest.impl.TermServerApplication;
 import com.wci.umls.server.rest.impl.UserActivityLoggingFilter;
 
 /**
@@ -37,6 +37,10 @@ import com.wci.umls.server.rest.impl.UserActivityLoggingFilter;
     HibernateJpaAutoConfiguration.class
 })
 public class Application extends SpringBootServletInitializer {
+
+  static {
+    configureCatalinaBase();
+  }
 
   /** The logger. */
   private static final Logger logger = LoggerFactory.getLogger(Application.class);
@@ -78,18 +82,6 @@ public class Application extends SpringBootServletInitializer {
   }
 
   /**
-   * Returns the Jersey resource configuration.
-   *
-   * @return the resource configuration
-   * @throws Exception if the application cannot initialize
-   */
-  @Bean
-  public ResourceConfig jerseyConfig() throws Exception {
-    return new TermServerApplication()
-        .property(ServletProperties.FILTER_FORWARD_ON_404, true);
-  }
-
-  /**
    * Registers the Hibernate shutdown listener used by the WAR deployment.
    *
    * @return the listener registration
@@ -127,6 +119,20 @@ public class Application extends SpringBootServletInitializer {
     bean.addUrlPatterns("/*");
     bean.setOrder(2);
     return bean;
+  }
+
+  /**
+   * Returns the Jackson object mapper used by Spring MVC.
+   *
+   * @return the object mapper
+   */
+  @Bean
+  public ObjectMapper objectMapper() {
+    ObjectMapper mapper = new ObjectMapper();
+    AnnotationIntrospector introspector =
+        new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
+    mapper.setAnnotationIntrospector(introspector);
+    return mapper;
   }
 
   /**

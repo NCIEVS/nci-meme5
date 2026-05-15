@@ -34,10 +34,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link InversionServiceRest}.
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/inversion")
 @Path("/inversion")
 @Api(value = "/inversion")
 @SwaggerDefinition(info = @Info(description = "Operations for inversion.", title = "Inversion API", version = "1.0.1"))
@@ -68,13 +80,14 @@ public class InversionServiceRestImpl extends RootServiceRestImpl
   }
   /* see superclass */
   @Override
+  @RequestMapping(value = "/range/{id}/{terminology}", method = RequestMethod.GET)
   @GET
   @Path("/range/{id}/{terminology}")
   @ApiOperation(value = "Get sourceIdRange for vsab", notes = "Gets the sourceIdRange for the specified versioned source abbreviation", response = SourceIdRangeJpa.class)
   public SourceIdRangeList getSourceIdRange(
-    @ApiParam(value = "Project id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "SourceIdRange terminology, e.g. MTH", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "SourceIdRange terminology, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (SourceIdRange): /" + id + "/" + terminology );
 
@@ -98,12 +111,13 @@ public class InversionServiceRestImpl extends RootServiceRestImpl
   
   /* see superclass */
   @Override
+  @RequestMapping(value = "/range/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/range/{id}")
   @ApiOperation(value = "Remove source id range", notes = "Removes the source id range with the specified id")
   public void removeSourceIdRange(
-    @ApiParam(value = "Source id range id, e.g. 3", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Source id range id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Inversion): /" + id);
 
@@ -129,15 +143,16 @@ public class InversionServiceRestImpl extends RootServiceRestImpl
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/range/{id}/{terminology}/{numberofids}", method = RequestMethod.GET)
   @GET
   @Path("/range/{id}/{terminology}/{numberofids}")
   @ApiOperation(value = "Request new sourceIdRange for vsab", notes = "Requests a new sourceIdRange for the specified versioned source abbreviation", response = SourceIdRangeJpa.class)
   public SourceIdRange requestSourceIdRange(
-    @ApiParam(value = "Project id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "SourceIdRange terminology, e.g. MTH", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Number of ids requested, e.g. 100000", required = true) @PathParam("numberofids") Integer numberOfIds,
-    @ApiParam(value = "Begin id to start the range (only for SNOMED)", required = false) @QueryParam("beginSourceId") Long beginSourceId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "SourceIdRange terminology, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Number of ids requested, e.g. 100000", required = true) @PathVariable("numberofids") Integer numberOfIds,
+    @ApiParam(value = "Begin id to start the range (only for SNOMED)", required = false) @RequestParam(value = "beginSourceId", required = false) Long beginSourceId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (SourceIdRange): /range/" + id + "/" + terminology + "/" + numberOfIds + ": " + beginSourceId);
 
@@ -173,15 +188,16 @@ public class InversionServiceRestImpl extends RootServiceRestImpl
   
   /* see superclass */
   @Override
+  @RequestMapping(value = "/range/update/{id}/{terminology}/{numberofids}", method = RequestMethod.GET)
   @GET
   @Path("/range/update/{id}/{terminology}/{numberofids}")
   @ApiOperation(value = "Request new sourceIdRange for vsab", notes = "Requests a new sourceIdRange for the specified versioned source abbreviation", response = SourceIdRangeJpa.class)
   public SourceIdRange updateSourceIdRange(
-    @ApiParam(value = "Project id, e.g. 2", required = true) @PathParam("id") Long id,
-    @ApiParam(value = "SourceIdRange terminology, e.g. MTH", required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Number of ids requested, e.g. 100000", required = true) @PathParam("numberofids") Integer numberOfIds,
-    @ApiParam(value = "Begin id to start the range (only for SNOMED)", required = false) @QueryParam("beginSourceId") Long beginSourceId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @HeaderParam("Authorization") String authToken)
+    @ApiParam(value = "Project id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @ApiParam(value = "SourceIdRange terminology, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Number of ids requested, e.g. 100000", required = true) @PathVariable("numberofids") Integer numberOfIds,
+    @ApiParam(value = "Begin id to start the range (only for SNOMED)", required = false) @RequestParam(value = "beginSourceId", required = false) Long beginSourceId,
+    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (SourceIdRange): /range/" + id + "/" + terminology + "/" + numberOfIds + ": " + beginSourceId);
 

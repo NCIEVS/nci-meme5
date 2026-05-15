@@ -54,10 +54,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST implementation for {@link MetadataServiceRest}.
  */
+@RestController
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+@RequestMapping(value = "/metadata")
 @Path("/metadata")
 @Api(value = "/metadata")
 @SwaggerDefinition(info = @Info(description = "Operations providing terminology metadata.",
@@ -81,16 +93,17 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/terminology/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/terminology/{terminology}/{version}")
   @ApiOperation(value = "Get terminology",
       notes = "Gets the terminology for the specified parameters", response = TerminologyJpa.class)
   public Terminology getTerminology(
     @ApiParam(value = "Terminology name, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Metadata): /terminology/" + terminology + "/" + version);
@@ -121,6 +134,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/rootTerminology/{terminology}", method = RequestMethod.GET)
   @GET
   @Path("/rootTerminology/{terminology}")
   @ApiOperation(value = "Get root terminology",
@@ -128,9 +142,9 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       response = TerminologyJpa.class)
   public RootTerminology getRootTerminology(
     @ApiParam(value = "Terminology name, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
+        required = true) @PathVariable("terminology") String terminology,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /rootTerminology/" + terminology);
 
@@ -160,6 +174,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/all/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/all/{terminology}/{version}")
   @ApiOperation(value = "Get metadata for terminology and version",
@@ -167,10 +182,10 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       response = KeyValuePairLists.class)
   public KeyValuePairLists getAllMetadata(
     @ApiParam(value = "Terminology name, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -261,13 +276,14 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/terminology/current", method = RequestMethod.GET)
   @GET
   @Path("/terminology/current")
   @ApiOperation(value = "Get current terminologies",
       notes = "Gets the list of current terminologies", response = TerminologyListJpa.class)
   public TerminologyList getCurrentTerminologies(
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /terminology/current");
@@ -296,6 +312,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/precedence/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/precedence/{terminology}/{version}")
   @ApiOperation(value = "Get default precedence list",
@@ -303,10 +320,10 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       response = PrecedenceListJpa.class)
   public PrecedenceList getDefaultPrecedenceList(
     @ApiParam(value = "Terminology name, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -337,15 +354,16 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/precedence/{id}", method = RequestMethod.GET)
   @GET
   @Path("/precedence/{id}")
   @ApiOperation(value = "Gets a precedence list", notes = "Gets a precedence list",
       response = PrecedenceListJpa.class)
   public PrecedenceList getPrecedenceList(
     @ApiParam(value = "Precedence list id, e.g. 1",
-        required = true) @PathParam("id") Long precedenceListId,
+        required = true) @PathVariable("id") Long precedenceListId,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /precedence/" + precedenceListId);
@@ -373,14 +391,15 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/precedence", method = RequestMethod.PUT)
   @PUT
   @Path("/precedence")
   @ApiOperation(value = "Add a precedence list", notes = "Add a precedence list",
       response = PrecedenceListJpa.class)
   public PrecedenceList addPrecedenceList(
-    @ApiParam(value = "Precedence list to add", required = true) PrecedenceListJpa precedenceList,
+    @ApiParam(value = "Precedence list to add", required = true) @RequestBody PrecedenceListJpa precedenceList,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /precedence");
@@ -404,15 +423,16 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/precedence", method = RequestMethod.POST)
   @POST
   @Path("/precedence")
   @ApiOperation(value = "Update a precedence list", notes = "Update a precedence list",
       response = PrecedenceListJpa.class)
   public void updatePrecedenceList(
     @ApiParam(value = "Precedence list to update",
-        required = true) PrecedenceListJpa precedenceList,
+        required = true) @RequestBody PrecedenceListJpa precedenceList,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /precedence");
 
@@ -434,13 +454,14 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/precedence/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/precedence/{id}")
   @ApiOperation(value = "Remove a precedence list", notes = "Remove a precedence list")
   public void removePrecedenceList(
-    @ApiParam(value = "Precedence list id, e.g. 1", required = true) @PathParam("id") Long id,
+    @ApiParam(value = "Precedence list id, e.g. 1", required = true) @PathVariable("id") Long id,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /precedence");
 
@@ -463,16 +484,17 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/termType/{type}/{terminology}/{version}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/termType/{type}/{terminology}/{version}")
   @ApiOperation(value = "Remove a term type", notes = "Remove a term type")
   public void removeTermType(
-    @ApiParam(value = "Term type, e.g. AB", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Term type, e.g. AB", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /termType/" + type);
 
@@ -497,16 +519,17 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/termType/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/termType/{terminology}/{version}")
   @ApiOperation(value = "Retrieve all term type", notes = "Retrieve all term types",
   response = TermTypeListJpa.class)
   public TermTypeList getTermTypes(
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Metadata): /termType/" + terminology + "/" + version);
@@ -532,17 +555,18 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/termType/{type}/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/termType/{type}/{terminology}/{version}")
   @ApiOperation(value = "Retrieve a term type", notes = "Retrieve a term type",
       response = TermTypeJpa.class)
   public TermType getTermType(
-    @ApiParam(value = "Term type, e.g. AB", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Term type, e.g. AB", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /termType/" + type);
 
@@ -567,16 +591,17 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/attributeName/{type}/{terminology}/{version}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/attributeName/{type}/{terminology}/{version}")
   @ApiOperation(value = "Remove a attribute name", notes = "Remove a attribute name")
   public void removeAttributeName(
-    @ApiParam(value = "Attribute name, e.g. AMT", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Attribute name, e.g. AMT", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /attributeName/" + type);
 
@@ -601,17 +626,18 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/attributeName/{type}/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/attributeName/{type}/{terminology}/{version}")
   @ApiOperation(value = "Retrieve a attribute name", notes = "Retrieve a attribute name",
       response = AttributeNameJpa.class)
   public AttributeName getAttributeName(
-    @ApiParam(value = "Attribute name, e.g. AMT", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Attribute name, e.g. AMT", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /attributeName/" + type);
 
@@ -636,18 +662,19 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/additionalRelationshipType/{type}/{terminology}/{version}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/additionalRelationshipType/{type}/{terminology}/{version}")
   @ApiOperation(value = "Remove a add relationship type",
       notes = "Remove a additional relationship type")
   public void removeAdditionalRelationshipType(
     @ApiParam(value = "Additional Relationship type, e.g. RB",
-        required = true) @PathParam("type") String type,
+        required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Metadata): /additionalRelationshipType/" + type);
@@ -681,18 +708,19 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/additionalRelationshipType/{type}/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/additionalRelationshipType/{type}/{terminology}/{version}")
   @ApiOperation(value = "Retrieve a additional relationship type",
       notes = "Retrieve a additional relationship type",
       response = AdditionalRelationshipTypeJpa.class)
   public AdditionalRelationshipType getAdditionalRelationshipType(
-    @ApiParam(value = "Relationship type, e.g. RN", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Relationship type, e.g. RN", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Metadata): /additionalRelationshipType/" + type);
@@ -718,6 +746,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/additionalRelationshipType/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/additionalRelationshipType/{terminology}/{version}")
   @ApiOperation(value = "Retrieve all additional relationship types",
@@ -725,10 +754,10 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       response = AdditionalRelationshipTypeListJpa.class)
   public AdditionalRelationshipTypeList getAdditionalRelationshipTypes(
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Metadata): /additionalRelationshipType/" + terminology + "/" + version);
@@ -753,16 +782,17 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationshipType/{type}/{terminology}/{version}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/relationshipType/{type}/{terminology}/{version}")
   @ApiOperation(value = "Remove a rel type", notes = "Remove a rel type")
   public void removeRelationshipType(
-    @ApiParam(value = "Relationship type, e.g. AB", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Relationship type, e.g. AB", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /relationshipType/" + type);
 
@@ -796,17 +826,18 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationshipType/{type}/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/relationshipType/{type}/{terminology}/{version}")
   @ApiOperation(value = "Retrieve a relationship type", notes = "Retrieve a relationship type",
       response = RelationshipTypeJpa.class)
   public RelationshipType getRelationshipType(
-    @ApiParam(value = "Relationship type, e.g. RN", required = true) @PathParam("type") String type,
+    @ApiParam(value = "Relationship type, e.g. RN", required = true) @PathVariable("type") String type,
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /relationshipType/" + type);
 
@@ -831,6 +862,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "sty/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("sty/{terminology}/{version}")
   @ApiOperation(value = "Get semantic types",
@@ -838,10 +870,10 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       response = SemanticTypeListJpa.class)
   public SemanticTypeList getSemanticTypes(
     @ApiParam(value = "Terminology, e.g. UMLS",
-        required = true) @PathParam("terminology") String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @PathParam("version") String version,
+        required = true) @PathVariable("terminology") String terminology,
+    @ApiParam(value = "Version, e.g. latest", required = true) @PathVariable("version") String version,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Metadata): /sty/" + terminology + "/" + version);
@@ -863,14 +895,15 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/termType", method = RequestMethod.POST)
   @POST
   @Path("/termType")
   @ApiOperation(value = "Update a term type", notes = "Update a term type",
       response = TermTypeJpa.class)
   public void updateTermType(
-    @ApiParam(value = "Term type to update", required = true) TermTypeJpa termType,
+    @ApiParam(value = "Term type to update", required = true) @RequestBody TermTypeJpa termType,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /termType");
 
@@ -892,14 +925,15 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/attributeName", method = RequestMethod.POST)
   @POST
   @Path("/attributeName")
   @ApiOperation(value = "Update an attribute name", notes = "Update an attribute name",
       response = AttributeNameJpa.class)
   public void updateAttributeName(
-    @ApiParam(value = "Attribute name to update", required = true) AttributeNameJpa attributeName,
+    @ApiParam(value = "Attribute name to update", required = true) @RequestBody AttributeNameJpa attributeName,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /attributeName");
 
@@ -921,14 +955,15 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationshipType", method = RequestMethod.POST)
   @POST
   @Path("/relationshipType")
   @ApiOperation(value = "Update a relationship type", notes = "Update a relationship type",
       response = RelationshipTypeJpa.class)
   public void updateRelationshipType(
-    @ApiParam(value = "Relationship type to update", required = true) RelationshipTypeJpa relType,
+    @ApiParam(value = "Relationship type to update", required = true) @RequestBody RelationshipTypeJpa relType,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /relationshipType");
 
@@ -950,15 +985,16 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/rootTerminology", method = RequestMethod.POST)
   @POST
   @Path("/rootTerminology")
   @ApiOperation(value = "Update a root terminology", notes = "Update a root terminology",
       response = RootTerminologyJpa.class)
   public void updateRootTerminology(
     @ApiParam(value = "Root terminology to update",
-        required = true) RootTerminologyJpa rootTerminology,
+        required = true) @RequestBody RootTerminologyJpa rootTerminology,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /rootTerminology");
 
@@ -980,14 +1016,15 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/terminology", method = RequestMethod.POST)
   @POST
   @Path("/terminology")
   @ApiOperation(value = "Update a terminology", notes = "Update a terminology",
       response = TerminologyJpa.class)
   public void updateTerminology(
-    @ApiParam(value = "Terminology to update", required = true) TerminologyJpa terminology,
+    @ApiParam(value = "Terminology to update", required = true) @RequestBody TerminologyJpa terminology,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /terminology");
 
@@ -1009,15 +1046,16 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/additionalRelationshipType", method = RequestMethod.POST)
   @POST
   @Path("/additionalRelationshipType")
   @ApiOperation(value = "Update a relationship type", notes = "Update a relationship type",
       response = AdditionalRelationshipTypeJpa.class)
   public void updateAdditionalRelationshipType(
     @ApiParam(value = "AdditionalRelationship type to update",
-        required = true) AdditionalRelationshipTypeJpa relType,
+        required = true) @RequestBody AdditionalRelationshipTypeJpa relType,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /additionalRelationshipType");
 
@@ -1039,13 +1077,14 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/termType", method = RequestMethod.PUT)
   @PUT
   @Path("/termType")
   @ApiOperation(value = "Add a term type", notes = "Add a term type", response = TermTypeJpa.class)
   public TermType addTermType(
-    @ApiParam(value = "Term type to add", required = true) TermTypeJpa termType,
+    @ApiParam(value = "Term type to add", required = true) @RequestBody TermTypeJpa termType,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /termType");
@@ -1069,14 +1108,15 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/attributeName", method = RequestMethod.PUT)
   @PUT
   @Path("/attributeName")
   @ApiOperation(value = "Add an attribute name", notes = "Add an attribute name",
       response = AttributeNameJpa.class)
   public AttributeName addAttributeName(
-    @ApiParam(value = "Attribute name to add", required = true) AttributeNameJpa attributeName,
+    @ApiParam(value = "Attribute name to add", required = true) @RequestBody AttributeNameJpa attributeName,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /attributeName");
@@ -1100,15 +1140,16 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/relationshipType", method = RequestMethod.PUT)
   @PUT
   @Path("/relationshipType")
   @ApiOperation(value = "Add a relationship type (and its inverse)",
       notes = "Add a relationship type and its inverse", response = RelationshipTypeJpa.class)
   public RelationshipType addRelationshipType(
     @ApiParam(value = "Relationship type (and its inverse) to add",
-        required = true) RelationshipTypeListJpa relationshipTypeList,
+        required = true) @RequestBody RelationshipTypeListJpa relationshipTypeList,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /relationshipType");
@@ -1148,6 +1189,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/additionalRelationshipType", method = RequestMethod.PUT)
   @PUT
   @Path("/additionalRelationshipType")
   @ApiOperation(value = "Add an additional relationship type and its inverse",
@@ -1155,9 +1197,9 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       response = AdditionalRelationshipTypeJpa.class)
   public AdditionalRelationshipType addAdditionalRelationshipType(
     @ApiParam(value = "AdditionalRelationship type (and its inverse) to add",
-        required = true) AdditionalRelationshipTypeListJpa addRelTypeList,
+        required = true) @RequestBody AdditionalRelationshipTypeListJpa addRelTypeList,
     @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @HeaderParam("Authorization") String authToken)
+        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Metadata): /additionalRelationshipType");
