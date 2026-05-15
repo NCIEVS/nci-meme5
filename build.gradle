@@ -70,6 +70,7 @@ ext {
 // ── Dependencies ───────────────────────────────────────────────────────────────
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
     // JPA / Hibernate
     implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"

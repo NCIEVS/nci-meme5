@@ -20,6 +20,7 @@ import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
 import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -119,6 +120,16 @@ public class Application extends SpringBootServletInitializer {
     bean.addUrlPatterns("/*");
     bean.setOrder(2);
     return bean;
+  }
+
+  /**
+   * Registers {@code @ServerEndpoint} websocket endpoints with embedded Tomcat.
+   *
+   * @return the websocket endpoint exporter
+   */
+  @Bean
+  public ServerEndpointExporter serverEndpointExporter() {
+    return new ServerEndpointExporter();
   }
 
   /**
