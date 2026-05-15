@@ -54,6 +54,7 @@ export DB_MAX_CONNECTION_AGE="${DB_MAX_CONNECTION_AGE:-3600}"
 # Web/deploy defaults
 export SERVER_PORT="${SERVER_PORT:-8080}"
 export SERVER_CONTEXT_PATH="${SERVER_CONTEXT_PATH:-/umls-server-rest}"
+export SERVER_SERVLET_CONTEXT_PATH="${SERVER_SERVLET_CONTEXT_PATH:-$SERVER_CONTEXT_PATH}"
 export BASE_URL="${BASE_URL:-http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}}"
 export RUN_CONFIG_LABEL="${RUN_CONFIG_LABEL:-umls}"
 export DEPLOY_LINK="${DEPLOY_LINK:-http://www.westcoastinformatics.com}"

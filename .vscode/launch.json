@@ -3,7 +3,16 @@
   "configurations": [
     {
       "type": "java",
-      "name": "Attach to Tomcat 10",
+      "name": "Attach to Spring Boot",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "preLaunchTask": "spring boot: run (debug)",
+      "postDebugTask": "spring boot: stop"
+    },
+    {
+      "type": "java",
+      "name": "Attach to Tomcat 10 (fallback)",
       "request": "attach",
       "hostName": "localhost",
       "port": 8001,

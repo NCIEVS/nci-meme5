@@ -2,6 +2,74 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "spring boot: run",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && \"${workspaceFolder}/gradlew\" bootRun"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "spring boot: run (debug)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && \"${workspaceFolder}/gradlew\" bootRun --debug-jvm"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "pattern": [
+            {
+              "regexp": ".*"
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".*Starting process.*|.*Task :bootRun.*",
+            "endsPattern": ".*Listening for transport dt_socket at address: 5005.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "spring boot: stop",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && pids=$(lsof -tiTCP:${SERVER_PORT:-8080} -sTCP:LISTEN || true) && if [ -n \"$pids\" ]; then kill $pids; fi"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "gradle: bootWar",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/config/local/setenv.sh\" && \"${workspaceFolder}/gradlew\" bootWar"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
       "label": "gradle: explodeWar",
       "type": "shell",
       "command": "bash",

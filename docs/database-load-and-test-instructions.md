@@ -33,6 +33,29 @@ source config/local/setenv.sh
 ./gradlew explodeWar
 ```
 
+## Run The Application With Spring Boot
+
+The normal local startup path no longer requires SmartTomcat or a separately
+started Tomcat instance.
+
+```sh
+source config/local/setenv.sh
+./gradlew bootRun
+```
+
+Then open:
+
+```text
+http://localhost:8080/umls-server-rest
+```
+
+To package the executable web artifact:
+
+```sh
+source config/local/setenv.sh
+./gradlew bootWar
+```
+
 ## Load The Sample DB
 
 Run these with Tomcat stopped.
