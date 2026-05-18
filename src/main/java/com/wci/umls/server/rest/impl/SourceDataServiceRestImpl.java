@@ -51,11 +51,6 @@ import com.wci.umls.server.services.SecurityService;
 import com.wci.umls.server.services.SourceDataService;
 import com.wci.umls.server.services.handlers.SourceDataHandler;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Info;
-import io.swagger.annotations.SwaggerDefinition;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,6 +60,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * REST implementation for {@link SourceDataServiceRest}.
@@ -73,8 +71,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @RequestMapping(value = "/file")
 @Path("/file")
-@Api(value = "/file")
-@SwaggerDefinition(info = @Info(description = "Operations supporting file uploading and importing.", title = "Source Data API", version = "1.0.1"))
+@Tag(name = "Source Data", description = "Operations supporting file uploading and importing.")
 @Consumes({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
 })
@@ -108,11 +105,13 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/upload/{id}", method = RequestMethod.POST)
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
+  @Operation(summary = "Upload source data file",
+      description = "Uploads a file for the specified source data configuration.")
   public void uploadSourceDataFile(
     @RequestParam("file") MultipartFile multipartFile,
     @RequestParam(value = "unzip", required = false, defaultValue = "false") boolean unzip,
-    @ApiParam(value = "Source data id, e.g. 1", required = true) @PathVariable("id") Long sourceDataId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Source data id, e.g. 1", required = true) @PathVariable("id") Long sourceDataId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     String fileName = multipartFile.getOriginalFilename() != null
         ? multipartFile.getOriginalFilename() : "UNKNOWN FILE";
@@ -219,9 +218,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/add", method = RequestMethod.PUT)
   @PUT
   @Path("/add")
+  @Operation(summary = "Add source data file",
+      description = "Adds metadata for a source data file.")
   public SourceDataFile addSourceDataFile(
-    @ApiParam(value = "SourceDataFile to add", required = true) @RequestBody SourceDataFileJpa sourceDataFile,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "SourceDataFile to add", required = true) @RequestBody SourceDataFileJpa sourceDataFile,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Source Data): /add");
@@ -254,9 +255,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/update", method = RequestMethod.POST)
   @POST
   @Path("/update")
+  @Operation(summary = "Update source data file",
+      description = "Updates metadata for a source data file.")
   public void updateSourceDataFile(
-    @ApiParam(value = "SourceDataFile to update", required = true) @RequestBody SourceDataFileJpa sourceDataFile,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "SourceDataFile to update", required = true) @RequestBody SourceDataFileJpa sourceDataFile,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Source Data): /update");
 
@@ -288,9 +291,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/remove/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/remove/{id}")
+  @Operation(summary = "Remove source data file",
+      description = "Removes a source data file and its metadata.")
   public void removeSourceDataFile(
-    @ApiParam(value = "SourceDataFile id, e.g. 5", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "SourceDataFile id, e.g. 5", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /remove/" + id);
@@ -343,11 +348,12 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/find", method = RequestMethod.GET)
   @GET
   @Path("/find")
-  @ApiOperation(value = "Query source data files", notes = "Returns list of details for uploaded files returned by query", response = StringList.class)
+  @Operation(summary = "Query source data files",
+      description = "Returns list of details for uploaded files returned by query")
   public SourceDataFileList findSourceDataFiles(
-    @ApiParam(value = "String query, e.g. SNOMEDCT", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Paging/filtering/sorting object", required = false) @RequestBody PfsParameter pfsParameter,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "String query, e.g. SNOMEDCT", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Paging/filtering/sorting object") @RequestBody PfsParameter pfsParameter,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /find - " + query);
@@ -382,9 +388,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @Path("/data/add")
   @RequestMapping(value = "/data/add", method = RequestMethod.PUT)
   @PUT
+  @Operation(summary = "Add source data",
+      description = "Adds a source data configuration.")
   public SourceData addSourceData(
-    @ApiParam(value = "Source data to add", required = true) @RequestBody SourceDataJpa sourceData,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Source data to add", required = true) @RequestBody SourceDataJpa sourceData,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Source Data): /data/add");
 
@@ -418,9 +426,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @Path("/data/update")
   @RequestMapping(value = "/data/update", method = RequestMethod.POST)
   @POST
+  @Operation(summary = "Update source data",
+      description = "Updates a source data configuration.")
   public void updateSourceData(
-    @ApiParam(value = "Source data to update", required = true) @RequestBody SourceDataJpa sourceData,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Source data to update", required = true) @RequestBody SourceDataJpa sourceData,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /data/update");
@@ -454,9 +464,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "data/remove/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("data/remove/{id}")
+  @Operation(summary = "Remove source data",
+      description = "Removes a source data configuration and its files.")
   public void removeSourceData(
-    @ApiParam(value = "SourceData id, e.g. 5", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "SourceData id, e.g. 5", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /data/remove/" + id);
@@ -498,11 +510,12 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/find", method = RequestMethod.GET)
   @GET
   @Path("/data/find")
-  @ApiOperation(value = "Query source data files", notes = "Returns list of details for uploaded files returned by query", response = StringList.class)
+  @Operation(summary = "Query source data files",
+      description = "Returns list of details for uploaded files returned by query")
   public SourceDataList findSourceData(
-    @ApiParam(value = "String query, e.g. SNOMEDCT", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Paging/filtering/sorting object", required = false) @RequestBody PfsParameter pfsParameter,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "String query, e.g. SNOMEDCT", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Paging/filtering/sorting object") @RequestBody PfsParameter pfsParameter,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /data/find" + query);
@@ -541,9 +554,10 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/sourceDataHandlers", method = RequestMethod.GET)
   @GET
   @Path("/data/sourceDataHandlers")
-  @ApiOperation(value = "Get source data handler names", notes = "Gets all loader names.", response = StringList.class)
+  @Operation(summary = "Get source data handler names",
+      description = "Gets all loader names.")
   public KeyValuePairList getSourceDataHandlerNames(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /data/loaders");
@@ -569,10 +583,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/id/{id}", method = RequestMethod.GET)
   @GET
   @Path("/data/id/{id}")
-  @ApiOperation(value = "Get source data by id", notes = "Gets a source data object by Hibernate id", response = SourceDataJpa.class)
+  @Operation(summary = "Get source data by id",
+      description = "Gets a source data object by Hibernate id")
   public SourceData getSourceData(
-    @ApiParam(value = "Source data id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Source data id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // NOTE: Debug as used for polling
@@ -603,9 +618,10 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/all", method = RequestMethod.GET)
   @GET
   @Path("/data/all")
-  @ApiOperation(value = "Get source datas", notes = "Gets all source datas", response = SourceDataListJpa.class)
+  @Operation(summary = "Get source datas",
+      description = "Gets all source datas")
   public SourceDataList getSourceData(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /data/loaders");
@@ -630,11 +646,12 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/load", method = RequestMethod.POST)
   @POST
   @Path("/data/load")
-  @ApiOperation(value = "Load data from source data configuration", notes = "Invokes loading of data based on source data files and configuration")
+  @Operation(summary = "Load data from source data configuration",
+      description = "Invokes loading of data based on source data files and configuration")
   public void loadFromSourceData(
-    @ApiParam(value = "Run as background process", required = false) @RequestParam(value = "background", required = false) Boolean background,
-    @ApiParam(value = "Source data to load from", required = true) @RequestBody SourceDataJpa sourceData,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Run as background process") @RequestParam(value = "background", required = false) Boolean background,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Source data to load from", required = true) @RequestBody SourceDataJpa sourceData,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Source Data): /data/load "
         + (sourceData == null ? "No source data" : sourceData.getName()));
@@ -697,11 +714,12 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/remove", method = RequestMethod.POST)
   @POST
   @Path("/data/remove")
-  @ApiOperation(value = "Remove data from source data configuration", notes = "Invokes removing of data based on source data files and configuration")
+  @Operation(summary = "Remove data from source data configuration",
+      description = "Invokes removing of data based on source data files and configuration")
   public void removeFromSourceData(
-    @ApiParam(value = "Run as background process", required = false) @RequestParam(value = "background", required = false) Boolean background,
-    @ApiParam(value = "Source data to removed loaded data for", required = true) @RequestBody SourceDataJpa sourceData,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Run as background process") @RequestParam(value = "background", required = false) Boolean background,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Source data to removed loaded data for", required = true) @RequestBody SourceDataJpa sourceData,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Source Data): /data/remove");
@@ -760,10 +778,11 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/data/cancel", method = RequestMethod.POST)
   @POST
   @Path("/data/cancel")
-  @ApiOperation(value = "Load data from source data configuration", notes = "Invokes loading of data based on source data files and configuration")
+  @Operation(summary = "Load data from source data configuration",
+      description = "Invokes loading of data based on source data files and configuration")
   public void cancelFromSourceData(
-    @ApiParam(value = "Source data running process", required = true) @RequestBody SourceDataJpa sourceData,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Source data running process", required = true) @RequestBody SourceDataJpa sourceData,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Source Data): /data/cancel " + sourceData.toString());
@@ -789,18 +808,20 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
-  @RequestMapping(value = "/log", method = RequestMethod.GET)
+  @RequestMapping(value = "/log", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Path("/log")
   @Produces("text/plain")
-  @ApiOperation(value = "Get log entries", notes = "Returns log entries for specified query parameters", response = String.class)
+  @Operation(summary = "Get log entries",
+      description = "Returns log entries for specified query parameters")
   @Override
   public String getLog(
-    @ApiParam(value = "Terminology, e.g. SNOMED_CT", required = true) @RequestParam(value = "terminology", required = false) String terminology,
-    @ApiParam(value = "Version, e.g. 20150131", required = true) @RequestParam(value = "version", required = false) String version,
-    @ApiParam(value = "Activity, e.g. EDITING", required = true) @RequestParam(value = "activity", required = false) String activity,
-    @ApiParam(value = "Lines, e.g. 5", required = false) @RequestParam(value = "lines", required = false, defaultValue = "0") int lines,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMED_CT", required = true) @RequestParam(value = "terminology", required = false) String terminology,
+    @Parameter(description = "Version, e.g. 20150131", required = true) @RequestParam(value = "version", required = false) String version,
+    @Parameter(description = "Activity, e.g. EDITING", required = true) @RequestParam(value = "activity", required = false) String activity,
+    @Parameter(description = "Lines, e.g. 5") @RequestParam(value = "lines", required = false, defaultValue = "0") int lines,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     // NOTE: Debug as used for polling
     Logger.getLogger(getClass()).debug("RESTful call (Source Data): /log/"

@@ -36,11 +36,6 @@ import com.wci.umls.server.jpa.services.rest.SourceDataServiceRest;
 import com.wci.umls.server.services.MetadataService;
 import com.wci.umls.server.services.SourceDataService;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Info;
-import io.swagger.annotations.SwaggerDefinition;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,6 +45,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * REST implementation for {@link HistoryServiceRest}.
@@ -58,9 +56,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @RequestMapping(value = "/configure")
 @Path("/configure")
-@Api(value = "/configure")
-@SwaggerDefinition(info = @Info(description = "Operations to configure application",
-    title = "Configure API", version = "1.0.1"))
+@Tag(name = "Configure", description = "Operations to configure application")
 @Consumes({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
 })
@@ -155,8 +151,8 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   @GET
   @Override
   @Path("/configured")
-  @ApiOperation(value = "Checks if application is configured",
-      notes = "Returns true if application is configured, false if not", response = Boolean.class)
+  @Operation(summary = "Checks if application is configured",
+      description = "Returns true if application is configured, false if not")
   public boolean isConfigured() throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Configure): /configure/configured");
 
@@ -177,10 +173,9 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   @POST
   @Override
   @Path("/configure")
-  @ApiOperation(value = "Checks if application is configured",
-      notes = "Returns true if application is configured, false if not", response = Boolean.class)
-  public void configure(@ApiParam(value = "Configuration parameters as JSON string",
-      required = true) @RequestBody HashMap<String, String> parameters)
+  @Operation(summary = "Checks if application is configured",
+      description = "Returns true if application is configured, false if not")
+  public void configure(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Configuration parameters as JSON string", required = true) @RequestBody HashMap<String, String> parameters)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Configure): /configure/configure with parameters " + parameters.toString());
@@ -303,11 +298,9 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   @DELETE
   @Override
   @Path("/destroy")
-  @ApiOperation(value = "Destroys and rebuilds the database",
-      notes = "Resets database to clean state and deletes any uploaded files",
-      response = Boolean.class)
-  public void destroy(@ApiParam(value = "Authorization token, e.g. 'author1'",
-      required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+  @Operation(summary = "Destroys and rebuilds the database",
+      description = "Resets database to clean state and deletes any uploaded files")
+  public void destroy(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Configure): /configure/destroy");
 
@@ -394,9 +387,8 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   @Produces({
       MediaType.APPLICATION_JSON
   })
-  @ApiOperation(value = "Get configuration properties",
-      notes = "Gets user interface-relevant configuration properties", response = String.class,
-      responseContainer = "Map")
+  @Operation(summary = "Get configuration properties",
+      description = "Gets user interface-relevant configuration properties")
   public Map<String, String> getConfigProperties() {
     Logger.getLogger(getClass()).info("RESTful call (Configure): /configure/properties");
     try {

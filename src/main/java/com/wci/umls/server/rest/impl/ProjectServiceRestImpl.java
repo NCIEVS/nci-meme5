@@ -14,6 +14,7 @@ import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
 import com.wci.umls.server.jpa.model.helpers.ProjectListJpa;
 import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
+import com.wci.umls.server.jpa.model.helpers.TypeKeyValueListJpa;
 import com.wci.umls.server.jpa.model.helpers.UserListJpa;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.User;
@@ -56,11 +57,13 @@ import com.wci.umls.server.services.MetadataService;
 import com.wci.umls.server.services.ProjectService;
 import com.wci.umls.server.services.SecurityService;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Info;
-import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -78,8 +81,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @RequestMapping(value = "/project")
 @Path("/project")
-@Api(value = "/project")
-@SwaggerDefinition(info = @Info(description = "Operations to interact with project info.", title = "Project API", version = "1.0.1"))
+@Tag(name = "Project", description = "Project metadata, roles, validation checks, and project-user assignments.")
 @Consumes({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
@@ -110,10 +112,21 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/", method = RequestMethod.PUT)
   @PUT
   // @Path("/")
-  @ApiOperation(value = "Add new project", notes = "Creates a new project", response = ProjectJpa.class)
+  @Operation(summary = "Add project",
+      description = "Creates a new project. Requires application USER access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project created",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = ProjectJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or project could not be created",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public Project addProject(
-    @ApiParam(value = "Project, e.g. newProject", required = true) @RequestBody ProjectJpa project,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Project, e.g. newProject", required = true) @RequestBody ProjectJpa project,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): / " + project);
 
@@ -180,10 +193,20 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/", method = RequestMethod.POST)
   @POST
   // @Path("/")
-  @ApiOperation(value = "Update project", notes = "Updates the specified project")
+  @Operation(summary = "Update project",
+      description = "Updates an existing project. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project updated",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON)),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or project could not be updated",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public void updateProject(
-    @ApiParam(value = "Project, e.g. existingProject", required = true) @RequestBody ProjectJpa project,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Project, e.g. existingProject", required = true) @RequestBody ProjectJpa project,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): / " + project);
 
@@ -257,10 +280,22 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/{id}")
-  @ApiOperation(value = "Remove project", notes = "Removes the project with the specified id")
+  @Operation(summary = "Remove project",
+      description = "Removes the project with the specified id. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project removed",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON)),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or project could not be removed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public void removeProject(
-    @ApiParam(value = "Project id, e.g. 3", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751",
+        required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /" + id);
 
@@ -290,10 +325,23 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/{id}", method = RequestMethod.GET)
   @GET
   @Path("/{id}")
-  @ApiOperation(value = "Get project for id", notes = "Gets the project for the specified id", response = ProjectJpa.class)
+  @Operation(summary = "Get project",
+      description = "Returns the project for the specified id.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = ProjectJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or project could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public Project getProject(
-    @ApiParam(value = "Project internal id, e.g. 2", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751",
+        required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /" + id);
 
@@ -318,12 +366,29 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/assign", method = RequestMethod.GET)
   @GET
   @Path("/assign")
-  @ApiOperation(value = "Assign user to project", notes = "Assigns the specified user to the specified project with the specified role", response = ProjectJpa.class)
+  @Operation(summary = "Assign user to project",
+      description = "Assigns a project role to a user. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project assignment updated",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = ProjectJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or assignment could not be updated",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public Project assignUserToProject(
-    @ApiParam(value = "Project id, e.g. 5", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "User name, e.g. guest", required = true) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "User role, e.g. 'ADMINISTRATOR'", required = true) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751") @RequestParam(
+            value = "projectId", required = false) Long projectId,
+    @Parameter(
+        description = "User name", example = "DSS") @RequestParam(
+            value = "userName", required = false) String userName,
+    @Parameter(
+        description = "Project role to assign", example = "AUTHOR") @RequestParam(
+            value = "role", required = false) UserRole role,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /assign "
         + projectId + ", " + userName + ", " + role);
@@ -370,12 +435,37 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/{projectId}/users", method = RequestMethod.POST)
   @POST
   @Path("/{projectId}/users")
-  @ApiOperation(value = "Find users assigned to project", notes = "Finds users with assigned roles on the specified project", response = UserListJpa.class)
+  @Operation(summary = "Find users assigned to a project",
+      description = "Returns users with assigned roles on the specified project. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Assigned users returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = UserListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public UserList findAssignedUsersForProject(
-    @ApiParam(value = "Project id, e.g. 3", required = true) @PathVariable("projectId") Long projectId,
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751",
+        required = true) @PathVariable("projectId") Long projectId,
+    @Parameter(
+        description = "Optional Lucene query to filter assigned users",
+        example = "userName:DSS") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters for assigned users.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /" + projectId
         + "/users, " + query + ", " + pfs);
@@ -414,9 +504,22 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/roles", method = RequestMethod.GET)
   @GET
   @Path("/roles")
-  @ApiOperation(value = "Get project roles", notes = "Gets list of valid project roles", response = StringList.class)
+  @Operation(summary = "Get project roles",
+      description = "Returns the valid project role values.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project roles returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = StringList.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public StringList getProjectRoles(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /roles");
 
@@ -441,9 +544,22 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/queryTypes", method = RequestMethod.GET)
   @GET
   @Path("/queryTypes")
-  @ApiOperation(value = "Get query types", notes = "Gets list of valid query types", response = StringList.class)
+  @Operation(summary = "Get query types",
+      description = "Returns the valid query type values.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Query types returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = StringList.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public StringList getQueryTypes(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /queryTypes");
 
@@ -470,12 +586,37 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/{projectId}/users/unassigned", method = RequestMethod.POST)
   @POST
   @Path("/{projectId}/users/unassigned")
-  @ApiOperation(value = "Find candidate users for project", notes = "Finds users who do not yet have assigned roles on the specified project", response = UserListJpa.class)
+  @Operation(summary = "Find users not assigned to a project",
+      description = "Returns users who do not yet have assigned roles on the specified project. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Unassigned users returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = UserListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public UserList findUnassignedUsersForProject(
-    @ApiParam(value = "Project id, e.g. 3", required = true) @PathVariable("projectId") Long projectId,
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751",
+        required = true) @PathVariable("projectId") Long projectId,
+    @Parameter(
+        description = "Optional Lucene query to filter candidate users",
+        example = "userName:DSS") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters for unassigned users.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /users/ "
         + projectId + "/unassigned, " + query + ", " + pfs);
@@ -514,9 +655,22 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @GET
   @Produces("text/plain")
   @Path("/user/anyrole")
-  @ApiOperation(value = "Determines whether the user has a project role", notes = "Returns true if the user has any role on any project", response = Boolean.class)
+  @Operation(summary = "Check whether current user has any project role",
+      description = "Returns true if the authorized user has any project role on any project.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Role check returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = Boolean.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or role check could not be completed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public Boolean userHasSomeProjectRole(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /user/anyrole");
     final ProjectService projectService = new ProjectServiceJpa();
@@ -547,11 +701,28 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/unassign", method = RequestMethod.GET)
   @GET
   @Path("/unassign")
-  @ApiOperation(value = "Unassign user from project", notes = "Unassigns the specified user from the specified project", response = ProjectJpa.class)
+  @Operation(summary = "Unassign user from project",
+      description = "Removes a user's assignment from the specified project. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Project assignment updated",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = ProjectJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or assignment could not be updated",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public Project unassignUserFromProject(
-    @ApiParam(value = "Project id, e.g. 5", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "User name, e.g. guest", required = true) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751") @RequestParam(
+            value = "projectId", required = false) Long projectId,
+    @Parameter(
+        description = "User name", example = "DSS") @RequestParam(
+            value = "userName", required = false) String userName,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Project): /unassign " + projectId + ", " + userName);
@@ -610,11 +781,34 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/find", method = RequestMethod.POST)
   @POST
   @Path("/find")
-  @ApiOperation(value = "Finds projects", notes = "Finds projects for the specified query", response = ProjectListJpa.class)
+  @Operation(summary = "Find projects",
+      description = "Returns projects matching an optional Lucene query. Leave query empty to return all projects.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Projects returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = ProjectListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public ProjectList findProjects(
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Optional Lucene query. Leave blank to use id:[* TO *].",
+        example = "id:[* TO *]") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters. Do not put this JSON in the query parameter.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Project): /find, " + pfs);
@@ -634,18 +828,41 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
-  @RequestMapping(value = "/log", method = RequestMethod.GET)
+  @RequestMapping(value = "/log", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Path("/log")
   @Produces("text/plain")
-  @ApiOperation(value = "Get log entries", notes = "Returns log entries for specified query parameters", response = String.class)
+  @Operation(summary = "Get project log entries",
+      description = "Returns log entries for the specified project, optional object id, and optional message filter. Requires project AUTHOR access or better.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Log entries returned",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string"))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or log entries could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   @Override
   public String getLog(
-    @ApiParam(value = "Project id, e.g. 5", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Object id, e.g. 5", required = false) @RequestParam(value = "objectId", required = false) Long objectId,
-    @ApiParam(value = "Message, e.g. Action", required = false) @RequestParam(value = "message", required = false) String message,
-    @ApiParam(value = "Lines, e.g. 5", required = true) @RequestParam(value = "lines", required = false, defaultValue = "0") int lines,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Project id", example = "39751") @RequestParam(
+            value = "projectId", required = false) Long projectId,
+    @Parameter(
+        description = "Optional object id", example = "39751") @RequestParam(
+            value = "objectId", required = false) Long objectId,
+    @Parameter(
+        description = "Optional exact message filter",
+        example = "ADD project") @RequestParam(value = "message",
+            required = false) String message,
+    @Parameter(
+        description = "Maximum number of log lines", example = "25") @RequestParam(
+            value = "lines", required = false, defaultValue = "0") int lines,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /log/"
         + projectId + ", " + objectId + ", " + message + ", " + lines);
@@ -710,18 +927,40 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
-  @RequestMapping(value = "/log/{activity}", method = RequestMethod.GET)
+  @RequestMapping(value = "/log/{activity}", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Path("/log/{activity}")
   @Produces("text/plain")
-  @ApiOperation(value = "Get log entries", notes = "Returns log entries for specified query parameters", response = String.class)
+  @Operation(summary = "Get activity log entries",
+      description = "Returns log entries for the specified terminology, version, and activity.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Log entries returned",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string"))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or log entries could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   @Override
   public String getLog(
-    @ApiParam(value = "Terminology, e.g. SNOMED_CT", required = true) @RequestParam(value = "terminology", required = false) String terminology,
-    @ApiParam(value = "Version, e.g. 20150131", required = true) @RequestParam(value = "version", required = false) String version,
-    @ApiParam(value = "Activity, e.g. EDITING", required = true) @PathVariable("activity") String activity,
-    @ApiParam(value = "Lines, e.g. 5", required = true) @RequestParam(value = "lines", required = false, defaultValue = "0") int lines,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Terminology", example = "NCI") @RequestParam(
+            value = "terminology", required = false) String terminology,
+    @Parameter(
+        description = "Terminology version", example = "latest") @RequestParam(
+            value = "version", required = false) String version,
+    @Parameter(
+        description = "Activity", example = "EDITING",
+        required = true) @PathVariable("activity") String activity,
+    @Parameter(
+        description = "Maximum number of log lines", example = "25") @RequestParam(
+            value = "lines", required = false, defaultValue = "0") int lines,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Terminology): /log/"
         + terminology + ", " + version + ", " + activity + ", " + lines);
@@ -792,14 +1031,43 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/actions/molecular", method = RequestMethod.POST)
   @POST
   @Path("/actions/molecular")
-  @ApiOperation(value = "Get molecular actions", notes = "Get molecular actions", response = MolecularActionListJpa.class)
+  @Operation(summary = "Find molecular actions",
+      description = "Returns molecular actions matching the optional component, terminology, version, and query filters.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Molecular actions returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = MolecularActionListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public MolecularActionList findMolecularActions(
-    @ApiParam(value = "Component Id, e.g. 1", required = false) @RequestParam(value = "componentId", required = false) Long componentId,
-    @ApiParam(value = "Terminology, e.g. UMLS", required = false) @RequestParam(value = "terminology", required = false) String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = false) @RequestParam(value = "version", required = false) String version,
-    @ApiParam(value = "The query string", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "The paging/sorting/filtering parameter", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Optional component id", example = "1") @RequestParam(
+            value = "componentId", required = false) Long componentId,
+    @Parameter(
+        description = "Optional terminology", example = "NCI") @RequestParam(
+            value = "terminology", required = false) String terminology,
+    @Parameter(
+        description = "Optional terminology version",
+        example = "latest") @RequestParam(value = "version",
+            required = false) String version,
+    @Parameter(
+        description = "Optional Lucene query") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters for molecular actions.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /actions/molecular " + query);
@@ -825,12 +1093,36 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/actions/atomic", method = RequestMethod.POST)
   @POST
   @Path("/actions/atomic")
-  @ApiOperation(value = "Get atomic actions for a molecular action", notes = "Get atomic actions for a molecular action", response = AtomicActionListJpa.class)
+  @Operation(summary = "Find atomic actions",
+      description = "Returns atomic actions for a molecular action and optional query filter.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Atomic actions returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = AtomicActionListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public AtomicActionList findAtomicActions(
-    @ApiParam(value = "The molecularActionId id, e.g. 1", required = true) @RequestParam(value = "molecularActionId", required = false) Long molecularActionId,
-    @ApiParam(value = "The query string", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "The paging/sorting/filtering parameter", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Molecular action id", example = "1") @RequestParam(
+            value = "molecularActionId", required = false) Long molecularActionId,
+    @Parameter(
+        description = "Optional Lucene query") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters for atomic actions.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /actions/atomic "
         + molecularActionId + ", " + query);
@@ -857,9 +1149,22 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/checks", method = RequestMethod.GET)
   @GET
   @Path("/checks")
-  @ApiOperation(value = "Gets all validation checks", notes = "Gets all validation checks", response = KeyValuePairList.class)
+  @Operation(summary = "Get validation checks",
+      description = "Returns configured validation check names.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Validation checks returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = KeyValuePairList.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public KeyValuePairList getValidationChecks(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /checks ");
 
@@ -884,9 +1189,20 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/reload", method = RequestMethod.POST)
   @POST
   @Path("/reload")
-  @ApiOperation(value = "Reload config properties", notes = "Reloads config properties and clears caches")
+  @Operation(summary = "Reload configuration properties",
+      description = "Reloads configuration properties and clears caches. Requires application ADMINISTRATOR access.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Configuration properties reloaded"),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or reload could not be completed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public void reloadConfigProperties(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /reload ");
 
@@ -910,10 +1226,24 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/exception", method = RequestMethod.POST)
   @POST
   @Path("/exception")
-  @ApiOperation(value = "Force an exception", notes = "Forces an exception, to test email handling.")
+  @Operation(summary = "Force an exception",
+      description = "Forces an exception to test exception handling. Requires application ADMINISTRATOR access.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Exception handler completed"),
+          @ApiResponse(responseCode = "500",
+              description = "Forced exception or authorization failure",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public void forceException(
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestParam(value = "local", required = false) Boolean localFlag,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "When true, force a LocalException instead of a generic Exception.",
+        example = "true") @RequestParam(value = "local",
+            required = false) Boolean localFlag,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /reload ");
     try {
@@ -937,10 +1267,23 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @Path("/typeKeyValue/add")
   @RequestMapping(value = "/typeKeyValue/add", method = RequestMethod.PUT)
   @PUT
-  @ApiOperation(value = "Add a type key value", notes = "Adds a type key value object", response = TypeKeyValueJpa.class)
+  @Operation(summary = "Add type key value",
+      description = "Adds a type-key-value object.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Type-key-value object created",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = TypeKeyValueJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or type-key-value object could not be created",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public TypeKeyValue addTypeKeyValue(
-    @ApiParam(value = "The type key value to add") @RequestBody TypeKeyValueJpa typeKeyValue,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The type key value to add") @RequestBody TypeKeyValueJpa typeKeyValue,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Project, PUT): / " + typeKeyValue);
@@ -963,10 +1306,25 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @Path("/typeKeyValue/{id}")
   @RequestMapping(value = "/typeKeyValue/{id}", method = RequestMethod.GET)
   @GET
-  @ApiOperation(value = "Get a type key value", notes = "Gets a type key value object by id", response = TypeKeyValueJpa.class)
+  @Operation(summary = "Get type key value",
+      description = "Returns a type-key-value object by id.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Type-key-value object returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = TypeKeyValueJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or type-key-value object could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public TypeKeyValue getTypeKeyValue(
-    @ApiParam(value = "The type key value id, e.g. 1") @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Type-key-value id", example = "1",
+        required = true) @PathVariable("id") Long id,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     {
       Logger.getLogger(getClass()).info("RESTful call (Project, Get): / " + id);
@@ -989,11 +1347,22 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @Path("/typeKeyValue/update")
   @RequestMapping(value = "/typeKeyValue/update", method = RequestMethod.POST)
   @POST
-  @ApiOperation(value = "Update a type key value", notes = "Updates a type key value object", response = TypeKeyValueJpa.class)
+  @Operation(summary = "Update type key value",
+      description = "Updates a type-key-value object.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Type-key-value object updated"),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or type-key-value object could not be updated",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
 
   public void updateTypeKeyValue(
-    @ApiParam(value = "The type key value to add") @RequestBody TypeKeyValueJpa typeKeyValue,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The type key value to add") @RequestBody TypeKeyValueJpa typeKeyValue,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Project, TypeKeyValue): /update "
@@ -1018,11 +1387,24 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @Path("/typeKeyValue/remove/{id}")
   @RequestMapping(value = "/typeKeyValue/remove/{id}", method = RequestMethod.DELETE)
   @DELETE
-  @ApiOperation(value = "Removes a type key value", notes = "Removes a type key value object by id", response = TypeKeyValueJpa.class)
+  @Operation(summary = "Remove type key value",
+      description = "Removes a type-key-value object by id.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Type-key-value object removed"),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or type-key-value object could not be removed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
 
   public void removeTypeKeyValue(
-    @ApiParam(value = "The type key value to remove") @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Type-key-value id", example = "1",
+        required = true) @PathVariable("id") Long id,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Project/TypeKeyValue): /remove " + id);
@@ -1046,11 +1428,33 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   @Path("/typeKeyValue/find")
   @RequestMapping(value = "/typeKeyValue/find", method = RequestMethod.POST)
   @POST
-  @ApiOperation(value = "Finds type key values", notes = "Finds type key value objects", response = TypeKeyValueJpa.class)
+  @Operation(summary = "Find type key values",
+      description = "Returns type-key-value objects matching an optional Lucene query.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Type-key-value objects returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = TypeKeyValueListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public TypeKeyValueList findTypeKeyValues(
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Optional Lucene query") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters for type-key-value objects.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Project): /find, " + query + " " + pfs);

@@ -127,11 +127,13 @@ import com.wci.umls.server.services.SecurityService;
 import com.wci.umls.server.services.handlers.GraphResolutionHandler;
 import com.wci.umls.server.services.handlers.SearchHandler;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Info;
-import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -157,8 +159,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
 })
-@Api(value = "/content")
-@SwaggerDefinition(info = @Info(description = "Operations to retrieve content for a terminology.", title = "Content API", version = "1.0.1"))
+@Tag(name = "Content", description = "Terminology content lookup, search, validation, and maintenance operations.")
 public class ContentServiceRestImpl extends RootServiceRestImpl
     implements ContentServiceRest {
 
@@ -179,10 +180,11 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/reindex", method = RequestMethod.POST)
   @POST
   @Path("/reindex")
-  @ApiOperation(value = "Reindexes specified objects", notes = "Recomputes lucene indexes for the specified comma-separated objects")
+  @Operation(summary = "Reindexes specified objects",
+      description = "Recomputes lucene indexes for the specified comma-separated objects")
   public void luceneReindex(
-    @ApiParam(value = "Comma-separated list of objects to reindex, e.g. ConceptJpa (optional)", required = false) @RequestBody String indexedObjects,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Comma-separated list of objects to reindex, e.g. ConceptJpa (optional)") @RequestBody String indexedObjects,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /reindex "
@@ -220,12 +222,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/expression/count/{terminology}/{version}/{query}", method = RequestMethod.GET)
   @GET
   @Path("/expression/count/{terminology}/{version}/{query}")
-  @ApiOperation(value = "Returns count for a (presumably) valid EC query", notes = "Returns total count if the query can be parsed as an ECL expression, false if not")
+  @Operation(summary = "Returns count for a (presumably) valid EC query",
+      description = "Returns total count if the query can be parsed as an ECL expression, false if not")
   public Integer getEclExpressionResultCount(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "The expression to be checked", required = true) @PathVariable("query") String query,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "The expression to be checked", required = true) @PathVariable("query") String query,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /expression/count/" + terminology
@@ -251,12 +254,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/expression/query/{terminology}/{version}/{query}", method = RequestMethod.GET)
   @GET
   @Path("/expression/query/{terminology}/{version}/{query}")
-  @ApiOperation(value = "Returns results for EC query", notes = "Returns list of result terminology and hibernate ids as search results for an expression constraint query.")
+  @Operation(summary = "Returns results for EC query",
+      description = "Returns list of result terminology and hibernate ids as search results for an expression constraint query.")
   public SearchResultList getEclExpressionResults(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "The expression to be checked", required = true) @PathVariable("query") String query,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "The expression to be checked", required = true) @PathVariable("query") String query,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /expression/count/" + terminology
@@ -282,11 +286,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/expression/index/{terminology}/{version}", method = RequestMethod.POST)
   @POST
   @Path("/expression/index/{terminology}/{version}")
-  @ApiOperation(value = "Computes expression indexes", notes = "Computes the indexes required for expression searches for a given terminology and version")
+  @Operation(summary = "Computes expression indexes",
+      description = "Computes the indexes required for expression searches for a given terminology and version")
   public void computeExpressionIndexes(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -321,11 +326,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/terminology/closure/compute/{terminology}/{version}", method = RequestMethod.POST)
   @POST
   @Path("/terminology/closure/compute/{terminology}/{version}")
-  @ApiOperation(value = "Computes terminology transitive closure", notes = "Computes transitive closure for the latest version of the specified terminology")
+  @Operation(summary = "Computes terminology transitive closure",
+      description = "Computes transitive closure for the latest version of the specified terminology")
   public void computeTransitiveClosure(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
 
     throws Exception {
 
@@ -371,11 +377,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/terminology/treepos/compute/{terminology}/{version}", method = RequestMethod.POST)
   @POST
   @Path("/terminology/treepos/compute/{terminology}/{version}")
-  @ApiOperation(value = "Computes terminology tree positions", notes = "Computes tree positions for the latest version of the specified terminology")
+  @Operation(summary = "Computes terminology tree positions",
+      description = "Computes tree positions for the latest version of the specified terminology")
   public void computeTreePositions(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
 
     throws Exception {
 
@@ -427,12 +434,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @PUT
   @Path("/terminology/load/simple")
   @Consumes(MediaType.TEXT_PLAIN)
-  @ApiOperation(value = "Load simple terminology from directory", notes = "Loads simple terminology from specified directory")
+  @Operation(summary = "Load simple terminology from directory",
+      description = "Loads simple terminology from specified directory")
   public void loadTerminologySimple(
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
-    @ApiParam(value = "Input directory", required = true) @RequestBody String inputDir,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
+    @Parameter(description = "version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Input directory", required = true) @RequestBody String inputDir,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -520,14 +528,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @PUT
   @Path("/terminology/load/rrf")
   @Consumes(MediaType.TEXT_PLAIN)
-  @ApiOperation(value = "Load all terminologies from an RRF directory", notes = "Loads terminologies from an RRF directory for specified terminology and version")
+  @Operation(summary = "Load all terminologies from an RRF directory",
+      description = "Loads terminologies from an RRF directory for specified terminology and version")
   public void loadTerminologyRrf(
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
-    @ApiParam(value = "Style, e.g. SINGLE", required = true) @RequestParam(value = "style", required = false) String style,
-    @ApiParam(value = "Prefix, e.g. MR or RXN", required = false) @RequestParam(value = "prefix", required = false) String prefix,
-    @ApiParam(value = "RRF input directory", required = true) @RequestBody String inputDir,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
+    @Parameter(description = "version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
+    @Parameter(description = "Style, e.g. SINGLE", required = true) @RequestParam(value = "style", required = false) String style,
+    @Parameter(description = "Prefix, e.g. MR or RXN") @RequestParam(value = "prefix", required = false) String prefix,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "RRF input directory", required = true) @RequestBody String inputDir,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -667,11 +676,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @PUT
   @Path("/terminology/load/rf2/delta/{terminology}")
   @Consumes(MediaType.TEXT_PLAIN)
-  @ApiOperation(value = "Loads terminology RF2 delta from directory", notes = "Loads terminology RF2 delta from directory for specified terminology and version")
+  @Operation(summary = "Loads terminology RF2 delta from directory",
+      description = "Loads terminology RF2 delta from directory for specified terminology and version")
   public void loadTerminologyRf2Delta(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "RF2 input directory", required = true) @RequestBody String inputDir,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "RF2 input directory", required = true) @RequestBody String inputDir,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -783,12 +793,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @Consumes({
       MediaType.TEXT_PLAIN
   })
-  @ApiOperation(value = "Loads terminology RF2 snapshot from directory", notes = "Loads terminology RF2 snapshot from directory for specified terminology and version")
+  @Operation(summary = "Loads terminology RF2 snapshot from directory",
+      description = "Loads terminology RF2 snapshot from directory for specified terminology and version")
   public void loadTerminologyRf2Snapshot(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "RF2 input directory", required = true) @RequestBody String inputDir,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "RF2 input directory", required = true) @RequestBody String inputDir,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -899,12 +910,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @Consumes({
       MediaType.TEXT_PLAIN
   })
-  @ApiOperation(value = "Loads terminology RF2 full from directory", notes = "Loads terminology RF2 full from directory for specified terminology and version")
+  @Operation(summary = "Loads terminology RF2 full from directory",
+      description = "Loads terminology RF2 full from directory for specified terminology and version")
   public void loadTerminologyRf2Full(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "RF2 input directory", required = true) @RequestBody String inputDir,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "RF2 input directory", required = true) @RequestBody String inputDir,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -1004,12 +1016,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @Consumes({
       MediaType.TEXT_PLAIN
   })
-  @ApiOperation(value = "Loads ClaML terminology from file", notes = "Loads terminology from ClaML file, assigning specified version")
+  @Operation(summary = "Loads ClaML terminology from file",
+      description = "Loads terminology from ClaML file, assigning specified version")
   public void loadTerminologyClaml(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "ClaML input file", required = true) @RequestBody String inputFile,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "ClaML input file", required = true) @RequestBody String inputFile,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1087,12 +1100,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @Consumes({
       MediaType.TEXT_PLAIN
   })
-  @ApiOperation(value = "Loads Owl terminology from file", notes = "Loads terminology from Owl file, assigning specified version")
+  @Operation(summary = "Loads Owl terminology from file",
+      description = "Loads terminology from Owl file, assigning specified version")
   public void loadTerminologyOwl(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Owl input file", required = true) @RequestBody String inputFile,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Owl input file", required = true) @RequestBody String inputFile,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1164,11 +1178,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/terminology/{terminology}/{version}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/terminology/{terminology}/{version}")
-  @ApiOperation(value = "Remove a terminology", notes = "Removes all elements for a specified terminology and version")
+  @Operation(summary = "Remove a terminology",
+      description = "Removes all elements for a specified terminology and version")
   public boolean removeTerminology(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -1215,13 +1230,35 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}", method = RequestMethod.GET)
   @GET
   @Path("/concept/{terminology}/{version}/{terminologyId}")
-  @ApiOperation(value = "Get concept by id, terminology, and version", notes = "Get the root branch concept matching the specified parameters", response = ConceptJpa.class)
+  @Operation(summary = "Get concept by terminology id",
+      description = "Returns the root-branch concept matching the terminology, version, and terminology id.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Concept returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = ConceptJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the concept could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public Concept getConcept(
-    @ApiParam(value = "Concept terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Concept terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Concept terminology id", example = "C0000039",
+        required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(
+        description = "Terminology name", example = "NCIMTH",
+        required = true) @PathVariable("terminology") String terminology,
+    @Parameter(
+        description = "Terminology version", example = "latest",
+        required = true) @PathVariable("version") String version,
+    @Parameter(
+        description = "Optional project id used for atom sorting context",
+        example = "39751") @RequestParam(value = "projectId",
+            required = false) Long projectId,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/"
@@ -1257,11 +1294,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{conceptId}", method = RequestMethod.GET)
   @GET
   @Path("/concept/{conceptId}")
-  @ApiOperation(value = "Get concept by concept id", notes = "Get the root branch concept matching the specified parameters", response = ConceptJpa.class)
+  @Operation(summary = "Get concept by concept id",
+      description = "Get the root branch concept matching the specified parameters")
   public Concept getConcept(
-    @ApiParam(value = "Concept id, e.g. 2145", required = true) @PathVariable("conceptId") Long conceptId,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept id, e.g. 2145", required = true) @PathVariable("conceptId") Long conceptId,
+    @Parameter(description = "Project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1308,11 +1346,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/atom/{atomId}", method = RequestMethod.GET)
   @GET
   @Path("/atom/{atomId}")
-  @ApiOperation(value = "Get atom by atom id", notes = "Get the root branch atom matching the specified parameters", response = AtomJpa.class)
+  @Operation(summary = "Get atom by atom id",
+      description = "Get the root branch atom matching the specified parameters")
   public Atom getAtom(
-    @ApiParam(value = "Atom id, e.g. 2145", required = true) @PathVariable("atomId") Long atomId,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Atom id, e.g. 2145", required = true) @PathVariable("atomId") Long atomId,
+    @Parameter(description = "Project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -1344,12 +1383,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/mapset/{terminology}/{version}/{terminologyId}", method = RequestMethod.GET)
   @GET
   @Path("/mapset/{terminology}/{version}/{terminologyId}")
-  @ApiOperation(value = "Get mapset by id, terminology, and version", notes = "Get the root branch mapset matching the specified parameters", response = MapSetJpa.class)
+  @Operation(summary = "Get mapset by id, terminology, and version",
+      description = "Get the root branch mapset matching the specified parameters")
   public MapSet getMapSet(
-    @ApiParam(value = "mapSet terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "mapSet terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "mapSet terminology version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "mapSet terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "mapSet terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "mapSet terminology version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /mapset/"
@@ -1383,11 +1423,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/mapset/all/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/mapset/all/{terminology}/{version}")
-  @ApiOperation(value = "Get mapsets", notes = "Get the mapsets", response = MapSetListJpa.class)
+  @Operation(summary = "Get mapsets",
+      description = "Get the mapsets")
   public MapSetList getMapSets(
-    @ApiParam(value = "MapSet terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "MapSet terminology version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "MapSet terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "MapSet terminology version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -1418,13 +1459,40 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}")
-  @ApiOperation(value = "Find concepts matching a search query", notes = "Gets a list of search results that match the lucene query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Find concept search results",
+      description = "Returns root-branch concept search results matching a Lucene query for the specified terminology and version.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Concept search results returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = SearchResultListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or the query could not be processed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
   public SearchResultList findConcepts(
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(
+        description = "Terminology name", example = "NCIMTH",
+        required = true) @PathVariable("terminology") String terminology,
+    @Parameter(
+        description = "Terminology version", example = "latest",
+        required = true) @PathVariable("version") String version,
+    @Parameter(
+        description = "Lucene query. Empty query returns all concept search results.",
+        example = "aspirin") @RequestParam(value = "query",
+            required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        description = "Paging/filtering/sorting parameters for concept search results.",
+        required = false,
+        content = @Content(mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(implementation = PfsParameterJpa.class),
+            examples = @ExampleObject(name = "First page",
+                value = "{\"maxResults\":25,\"startIndex\":0}")))
+    @RequestBody PfsParameterJpa pfs,
+    @Parameter(
+        hidden = true) @RequestHeader(value = "Authorization",
+            required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1457,14 +1525,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/get", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/get")
-  @ApiOperation(value = "Get full concepts matching a search query", notes = "Gets a list of concepts that match the lucene query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Get full concepts matching a search query",
+      description = "Gets a list of concepts that match the lucene query for the root branch")
   public ConceptList getConceptsForQuery(
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "project id, e.g. 1 (optional)", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(description = "project id, e.g. 1 (optional)") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1512,12 +1581,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept", method = RequestMethod.POST)
   @POST
   @Path("/concept")
-  @ApiOperation(value = "Find concepts matching a lucene or JPQL search query", notes = "Gets a list of search results that match the lucene or JPQL query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Find concepts matching a lucene or JPQL search query",
+      description = "Gets a list of search results that match the lucene or JPQL query for the root branch")
   public SearchResultList findConceptsForGeneralQuery(
-    @ApiParam(value = "Lucene Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "JPQL Query", required = false) @RequestParam(value = "JPQL", required = false) String JPQL,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Lucene Query") @RequestParam(value = "query", required = false) String query,
+    @Parameter(description = "JPQL Query") @RequestParam(value = "JPQL", required = false) String JPQL,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1551,12 +1621,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code", method = RequestMethod.POST)
   @POST
   @Path("/code")
-  @ApiOperation(value = "Find codes matching a lucene or JPQL search query", notes = "Gets a list of search results that match the lucene or JPQL query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Find codes matching a lucene or JPQL search query",
+      description = "Gets a list of search results that match the lucene or JPQL query for the root branch")
   public SearchResultList findCodesForGeneralQuery(
-    @ApiParam(value = "Lucene Query", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "HQL Query", required = true) @RequestParam(value = "JPQL", required = false) String JPQL,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Lucene Query", required = true) @RequestParam(value = "query", required = false) String query,
+    @Parameter(description = "HQL Query", required = true) @RequestParam(value = "JPQL", required = false) String JPQL,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1589,12 +1660,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/autocomplete/{searchTerm}", method = RequestMethod.GET)
   @GET
   @Path("/concept/{terminology}/{version}/autocomplete/{searchTerm}")
-  @ApiOperation(value = "Find autocomplete matches for concept searches", notes = "Gets a list of search autocomplete matches for the specified search term", response = StringList.class)
+  @Operation(summary = "Find autocomplete matches for concept searches",
+      description = "Gets a list of search autocomplete matches for the specified search term")
   public StringList autocompleteConcepts(
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Search term, e.g. 'sul'", required = true) @PathVariable("searchTerm") String searchTerm,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Search term, e.g. 'sul'", required = true) @PathVariable("searchTerm") String searchTerm,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/"
@@ -1622,13 +1694,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}", method = RequestMethod.GET)
   @GET
   @Path("/descriptor/{terminology}/{version}/{terminologyId}")
-  @ApiOperation(value = "Get descriptor by id, terminology, and version", notes = "Get the root branch descriptor matching the specified parameters", response = DescriptorJpa.class)
+  @Operation(summary = "Get descriptor by id, terminology, and version",
+      description = "Get the root branch descriptor matching the specified parameters")
   public Descriptor getDescriptor(
-    @ApiParam(value = "Descriptor terminology id, e.g. D003933", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology id, e.g. D003933", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /descriptor/"
@@ -1661,16 +1734,19 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   }
   
   @Override
-  @RequestMapping(value = "/inverseRelationshipType/{terminology}/{version}/{relationshipType}", method = RequestMethod.GET)
+  @RequestMapping(value = "/inverseRelationshipType/{terminology}/{version}/{relationshipType}",
+      method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   @Path("/inverseRelationshipType/{terminology}/{version}/{relationshipType}")
-  @ApiOperation(value = "Get inverse of a relationship type by type abbreviation, terminology, and version", notes = "Get the inverse relationship type abbreviation matching the specified parameters", response = String.class)
+  @Operation(summary = "Get inverse of a relationship type by type abbreviation, terminology, and version",
+      description = "Get the inverse relationship type abbreviation matching the specified parameters")
   public String getInverseRelationshipType(
-    @ApiParam(value = "Project terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Project terminology version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Relationship Type abbreviation, e.g. RN", required = true) @PathVariable("relationshipType") String relationshipType,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Project terminology version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Relationship Type abbreviation, e.g. RN", required = true) @PathVariable("relationshipType") String relationshipType,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /inverseRelationshipType/"
@@ -1700,13 +1776,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}")
-  @ApiOperation(value = "Find descriptors matching a search query", notes = "Gets a list of search results that match the lucene query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Find descriptors matching a search query",
+      description = "Gets a list of search results that match the lucene query for the root branch")
   public SearchResultList findDescriptors(
-    @ApiParam(value = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1741,12 +1818,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/")
-  @ApiOperation(value = "Find descriptors matching a lucene or JPQL search query", notes = "Gets a list of search results that match the lucene or JPQL query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Find descriptors matching a lucene or JPQL search query",
+      description = "Gets a list of search results that match the lucene or JPQL query for the root branch")
   public SearchResultList findDescriptorsForGeneralQuery(
-    @ApiParam(value = "Lucene Query", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "HQL Query", required = true) @RequestParam(value = "JPQL", required = false) String JPQL,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Lucene Query", required = true) @RequestParam(value = "query", required = false) String query,
+    @Parameter(description = "HQL Query", required = true) @RequestParam(value = "JPQL", required = false) String JPQL,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1781,12 +1859,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/autocomplete/{searchTerm}", method = RequestMethod.GET)
   @GET
   @Path("/descriptor/{terminology}/{version}/autocomplete/{searchTerm}")
-  @ApiOperation(value = "Find autocomplete matches for descriptor searches", notes = "Gets a list of search autocomplete matches for the specified search term", response = StringList.class)
+  @Operation(summary = "Find autocomplete matches for descriptor searches",
+      description = "Gets a list of search autocomplete matches for the specified search term")
   public StringList autocompleteDescriptors(
-    @ApiParam(value = "Terminology, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Search term, e.g. 'sul'", required = true) @PathVariable("searchTerm") String searchTerm,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Search term, e.g. 'sul'", required = true) @PathVariable("searchTerm") String searchTerm,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /descriptor/"
@@ -1814,13 +1893,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/{terminologyId}", method = RequestMethod.GET)
   @GET
   @Path("/code/{terminology}/{version}/{terminologyId}")
-  @ApiOperation(value = "Get code by id, terminology, and version", notes = "Get the root branch code matching the specified parameters", response = CodeJpa.class)
+  @Operation(summary = "Get code by id, terminology, and version",
+      description = "Get the root branch code matching the specified parameters")
   public Code getCode(
-    @ApiParam(value = "Code terminology id, e.g. U002135", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Code terminology name, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014AB", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology id, e.g. U002135", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Code terminology name, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014AB", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /code/"
@@ -1856,13 +1936,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}")
-  @ApiOperation(value = "Find codes matching a search query", notes = "Gets a list of search results that match the lucene query for the root branch", response = SearchResultListJpa.class)
+  @Operation(summary = "Find codes matching a search query",
+      description = "Gets a list of search results that match the lucene query for the root branch")
   public SearchResultList findCodes(
-    @ApiParam(value = "Code terminology name, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014AB", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology name, e.g. MTH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014AB", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'aspirin'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -1896,12 +1977,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/autocomplete/{searchTerm}", method = RequestMethod.GET)
   @GET
   @Path("/code/{terminology}/{version}/autocomplete/{searchTerm}")
-  @ApiOperation(value = "Find autocomplete matches for code searches", notes = "Gets a list of search autocomplete matches for the specified search term", response = StringList.class)
+  @Operation(summary = "Find autocomplete matches for code searches",
+      description = "Gets a list of search autocomplete matches for the specified search term")
   public StringList autocompleteCodes(
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Search term, e.g. 'sul'", required = true) @PathVariable("searchTerm") String searchTerm,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Search term, e.g. 'sul'", required = true) @PathVariable("searchTerm") String searchTerm,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /code/"
@@ -1927,13 +2009,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/lui/{terminology}/{version}/{terminologyId}", method = RequestMethod.GET)
   @GET
   @Path("/lui/{terminology}/{version}/{terminologyId}")
-  @ApiOperation(value = "Get lexical class by id, terminology, and version", notes = "Get the root branch lexical class matching the specified parameters", response = LexicalClassJpa.class)
+  @Operation(summary = "Get lexical class by id, terminology, and version",
+      description = "Get the root branch lexical class matching the specified parameters")
   public LexicalClass getLexicalClass(
-    @ApiParam(value = "Lexical class terminology id, e.g. L0356926", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Lexical class terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Lexical class version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Lexical class terminology id, e.g. L0356926", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Lexical class terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Lexical class version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /lui/"
@@ -1971,13 +2054,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/sui/{terminology}/{version}/{terminologyId}", method = RequestMethod.GET)
   @GET
   @Path("/sui/{terminology}/{version}/{terminologyId}")
-  @ApiOperation(value = "Get string class by id, terminology, and version", notes = "Get the root branch string class matching the specified parameters", response = StringClassJpa.class)
+  @Operation(summary = "Get string class by id, terminology, and version",
+      description = "Get the root branch string class matching the specified parameters")
   public StringClass getStringClass(
-    @ApiParam(value = "String class terminology id, e.g. S0356926", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "String class terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "String class version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "String class terminology id, e.g. S0356926", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "String class terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "String class version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /sui/"
@@ -2015,14 +2099,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/ancestors/{parentsOnly}", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/ancestors/{parentsOnly}")
-  @ApiOperation(value = "Find ancestor concepts", notes = "Gets a list of ancestor concepts", response = ConceptListJpa.class)
+  @Operation(summary = "Find ancestor concepts",
+      description = "Gets a list of ancestor concepts")
   public ConceptList findAncestorConcepts(
-    @ApiParam(value = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Children only flag, e.g. true", required = true) @PathVariable("parentsOnly") boolean parentsOnly,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Children only flag, e.g. true", required = true) @PathVariable("parentsOnly") boolean parentsOnly,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2059,14 +2144,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/descendants/{childrenOnly}", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/descendants/{childrenOnly}")
-  @ApiOperation(value = "Find descendant concepts", notes = "Gets a list of descendant concepts", response = ConceptListJpa.class)
+  @Operation(summary = "Find descendant concepts",
+      description = "Gets a list of descendant concepts")
   public ConceptList findDescendantConcepts(
-    @ApiParam(value = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Children only flag, e.g. true", required = true) @PathVariable("childrenOnly") boolean childrenOnly,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Children only flag, e.g. true", required = true) @PathVariable("childrenOnly") boolean childrenOnly,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2103,14 +2189,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}/ancestors/{parentsOnly}", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/{terminologyId}/ancestors/{parentsOnly}")
-  @ApiOperation(value = "Find ancestor descriptors", notes = "Gets a list of ancestor descriptors", response = DescriptorListJpa.class)
+  @Operation(summary = "Find ancestor descriptors",
+      description = "Gets a list of ancestor descriptors")
   public DescriptorList findAncestorDescriptors(
-    @ApiParam(value = "Descriptor terminology id, e.g. D003423", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Children only flag, e.g. true", required = true) @PathVariable("parentsOnly") boolean parentsOnly,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology id, e.g. D003423", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Children only flag, e.g. true", required = true) @PathVariable("parentsOnly") boolean parentsOnly,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2146,14 +2233,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}/descendants/{childrenOnly}", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/{terminologyId}/descendants/{childrenOnly}")
-  @ApiOperation(value = "Find descendant descriptors", notes = "Gets a list of descendant descriptors", response = DescriptorListJpa.class)
+  @Operation(summary = "Find descendant descriptors",
+      description = "Gets a list of descendant descriptors")
   public DescriptorList findDescendantDescriptors(
-    @ApiParam(value = "Descriptor terminology id, e.g. D002342", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Children only flag, e.g. true", required = true) @PathVariable("childrenOnly") boolean childrenOnly,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology id, e.g. D002342", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Children only flag, e.g. true", required = true) @PathVariable("childrenOnly") boolean childrenOnly,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2189,14 +2277,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/{terminologyId}/ancestors/{parentsOnly}", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/{terminologyId}/ancestors/{parentsOnly}")
-  @ApiOperation(value = "Find ancestor codes", notes = "Gets a list of ancestor codes", response = CodeListJpa.class)
+  @Operation(summary = "Find ancestor codes",
+      description = "Gets a list of ancestor codes")
   public CodeList findAncestorCodes(
-    @ApiParam(value = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Children only flag, e.g. true", required = true) @PathVariable("parentsOnly") boolean parentsOnly,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Children only flag, e.g. true", required = true) @PathVariable("parentsOnly") boolean parentsOnly,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2231,14 +2320,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/{terminologyId}/descendants/{childrenOnly}", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/{terminologyId}/descendants/{childrenOnly}")
-  @ApiOperation(value = "Find descendant codes", notes = "Gets a list of descendant codes", response = CodeListJpa.class)
+  @Operation(summary = "Find descendant codes",
+      description = "Gets a list of descendant codes")
   public CodeList findDescendantCodes(
-    @ApiParam(value = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Children only flag, e.g. true", required = true) @PathVariable("childrenOnly") boolean childrenOnly,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Children only flag, e.g. true", required = true) @PathVariable("childrenOnly") boolean childrenOnly,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2274,12 +2364,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/members", method = RequestMethod.GET)
   @GET
   @Path("/concept/{terminology}/{version}/{terminologyId}/members")
-  @ApiOperation(value = "Get subset members with this terminologyId", notes = "Get the subset members with the given concept id", response = SubsetMemberListJpa.class)
+  @Operation(summary = "Get subset members with this terminologyId",
+      description = "Get the subset members with the given concept id")
   public SubsetMemberList getConceptSubsetMembers(
-    @ApiParam(value = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/"
@@ -2314,12 +2405,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/aui/{terminology}/{version}/{terminologyId}/members", method = RequestMethod.GET)
   @GET
   @Path("/aui/{terminology}/{version}/{terminologyId}/members")
-  @ApiOperation(value = "Get subset members with this terminologyId", notes = "Get the subset members with the given atom id", response = SubsetMemberListJpa.class)
+  @Operation(summary = "Get subset members with this terminologyId",
+      description = "Get the subset members with the given atom id")
   public SubsetMemberList getAtomSubsetMembers(
-    @ApiParam(value = "Atom terminology id, e.g. 102751015", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Atom terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Atom version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Atom terminology id, e.g. 102751015", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Atom terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Atom version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /aui/"
@@ -2356,14 +2448,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/relationships", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/relationships")
-  @ApiOperation(value = "Get relationships with this terminologyId", notes = "Get the relationships with the given concept id", response = RelationshipListJpa.class)
+  @Operation(summary = "Get relationships with this terminologyId",
+      description = "Get the relationships with the given concept id")
   public RelationshipList findConceptRelationships(
-    @ApiParam(value = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2448,18 +2541,19 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/relationships/deep", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/relationships/deep")
-  @ApiOperation(value = "Get deep relationships with this terminologyId", notes = "Get the relationships for the concept and also for any other atoms, concepts, descirptors, or codes in its graph for the specified concept id", response = RelationshipListJpa.class)
+  @Operation(summary = "Get deep relationships with this terminologyId",
+      description = "Get the relationships for the concept and also for any other atoms, concepts, descirptors, or codes in its graph for the specified concept id")
   public RelationshipList findConceptDeepRelationships(
-    @ApiParam(value = "Concept terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Concept terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Inverse flag", required = false) @RequestParam(value = "inverseFlag", required = false, defaultValue = "false") boolean inverseFlag,
-    @ApiParam(value = "Include concept rels", required = false) @RequestParam(value = "includeConceptRels", required = false, defaultValue = "false") boolean includeConceptRels,
-    @ApiParam(value = "Preferred only", required = false) @RequestParam(value = "preferredOnly", required = false, defaultValue = "false") boolean preferredOnly,
-    @ApiParam(value = "Include self referential", required = false) @RequestParam(value = "includeSelfReferential", required = false, defaultValue = "false") boolean includeSelfReferential,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Concept terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Inverse flag") @RequestParam(value = "inverseFlag", required = false, defaultValue = "false") boolean inverseFlag,
+    @Parameter(description = "Include concept rels") @RequestParam(value = "includeConceptRels", required = false, defaultValue = "false") boolean includeConceptRels,
+    @Parameter(description = "Preferred only") @RequestParam(value = "preferredOnly", required = false, defaultValue = "false") boolean preferredOnly,
+    @Parameter(description = "Include self referential") @RequestParam(value = "includeSelfReferential", required = false, defaultValue = "false") boolean includeSelfReferential,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(description = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2490,14 +2584,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}/relationships", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/{terminologyId}/relationships")
-  @ApiOperation(value = "Get relationships with this terminologyId", notes = "Get the relationships with the given descriptor id", response = RelationshipListJpa.class)
+  @Operation(summary = "Get relationships with this terminologyId",
+      description = "Get the relationships with the given descriptor id")
   public RelationshipList findDescriptorRelationships(
-    @ApiParam(value = "Descriptor terminology id, e.g. D042033", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology id, e.g. D042033", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     String queryStr = query == null ? "" : query;
@@ -2538,14 +2633,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/{terminologyId}/relationships", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/{terminologyId}/relationships")
-  @ApiOperation(value = "Get relationships with this terminologyId", notes = "Get the relationships with the given code id", response = RelationshipListJpa.class)
+  @Operation(summary = "Get relationships with this terminologyId",
+      description = "Get the relationships with the given code id")
   public RelationshipList findCodeRelationships(
-    @ApiParam(value = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     String queryStr = query == null ? "" : query;
@@ -2584,11 +2680,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/aui/subset/all/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/aui/subset/all/{terminology}/{version}")
-  @ApiOperation(value = "Get atom subsets", notes = "Get the atom level subsets", response = SubsetListJpa.class)
+  @Operation(summary = "Get atom subsets",
+      description = "Get the atom level subsets")
   public SubsetList getAtomSubsets(
-    @ApiParam(value = "Atom terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Atom version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Atom terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Atom version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /aui/"
@@ -2620,11 +2717,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/subset/all/{terminology}/{version}", method = RequestMethod.GET)
   @GET
   @Path("/concept/subset/all/{terminology}/{version}")
-  @ApiOperation(value = "Get concept subsets", notes = "Get the concept level subsets", response = SubsetListJpa.class)
+  @Operation(summary = "Get concept subsets",
+      description = "Get the concept level subsets")
   public SubsetList getConceptSubsets(
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/"
@@ -2658,14 +2756,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/aui/subset/{subsetId}/{terminology}/{version}/members", method = RequestMethod.POST)
   @POST
   @Path("/aui/subset/{subsetId}/{terminology}/{version}/members")
-  @ApiOperation(value = "Find atom subset members", notes = "Get the members for the indicated atom subset", response = SubsetMemberListJpa.class)
+  @Operation(summary = "Find atom subset members",
+      description = "Get the members for the indicated atom subset")
   public SubsetMemberList findAtomSubsetMembers(
-    @ApiParam(value = "Subset id, e.g. 341823003", required = true) @PathVariable("subsetId") String subsetId,
-    @ApiParam(value = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'iron'", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Subset id, e.g. 341823003", required = true) @PathVariable("subsetId") String subsetId,
+    @Parameter(description = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'iron'") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -2701,14 +2800,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/subset/{subsetId}/{terminology}/{version}/members", method = RequestMethod.POST)
   @POST
   @Path("/concept/subset/{subsetId}/{terminology}/{version}/members")
-  @ApiOperation(value = "Find concept subset members", notes = "Get the members for the indicated concept subset", response = SubsetMemberListJpa.class)
+  @Operation(summary = "Find concept subset members",
+      description = "Get the members for the indicated concept subset")
   public SubsetMemberList findConceptSubsetMembers(
-    @ApiParam(value = "Subset id, e.g. 341823003", required = true) @PathVariable("subsetId") String subsetId,
-    @ApiParam(value = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'iron'", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Subset id, e.g. 341823003", required = true) @PathVariable("subsetId") String subsetId,
+    @Parameter(description = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'iron'") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -2743,11 +2843,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/atom/{atomId}/trees", method = RequestMethod.POST)
   @POST
   @Path("/atom/{atomId}/trees")
-  @ApiOperation(value = "Get trees with this atom Id", notes = "Get the trees with the specified atom id", response = TreeListJpa.class)
+  @Operation(summary = "Get trees with this atom Id",
+      description = "Get the trees with the specified atom id")
   public TreeList findAtomTrees(
-    @ApiParam(value = "Atom id, e.g. 275105", required = true) @PathVariable("atomId") Long atomId,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Atom id, e.g. 275105", required = true) @PathVariable("atomId") Long atomId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -2785,13 +2886,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/trees", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/trees")
-  @ApiOperation(value = "Get trees with this terminologyId", notes = "Get the trees with the given concept id", response = TreeListJpa.class)
+  @Operation(summary = "Get trees with this terminologyId",
+      description = "Get the trees with the given concept id")
   public TreeList findConceptTrees(
-    @ApiParam(value = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/"
@@ -2832,13 +2934,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}/trees/", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/{terminologyId}/trees/")
-  @ApiOperation(value = "Get trees with this terminologyId", notes = "Get the trees with the given descriptor id", response = TreeListJpa.class)
+  @Operation(summary = "Get trees with this terminologyId",
+      description = "Get the trees with the given descriptor id")
   public TreeList findDescriptorTrees(
-    @ApiParam(value = "Descriptor terminology id, e.g. D002943", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology id, e.g. D002943", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Descriptor terminology name, e.g. MSH", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2015_2014_09_08", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /descriptor/"
         + terminology + "/" + version + "/" + terminologyId + "/trees");
@@ -2877,13 +2980,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/{terminologyId}/trees", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/{terminologyId}/trees")
-  @ApiOperation(value = "Get trees with this terminologyId", notes = "Get the trees with the given code id", response = TreeListJpa.class)
+  @Operation(summary = "Get trees with this terminologyId",
+      description = "Get the trees with the given code id")
   public TreeList findCodeTrees(
-    @ApiParam(value = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /code/"
@@ -2923,13 +3027,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/trees", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/trees")
-  @ApiOperation(value = "Find concept trees matching the query", notes = "Finds all merged trees matching the specified parameters", response = TreeJpa.class)
+  @Operation(summary = "Find concept trees matching the query",
+      description = "Finds all merged trees matching the specified parameters")
   public Tree findConceptTree(
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query search term, e.g. 'vitamin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query search term, e.g. 'vitamin'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3000,13 +3105,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/trees", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/trees")
-  @ApiOperation(value = "Find descriptor trees matching the query", notes = "Finds all merged trees matching the specified parameters", response = TreeJpa.class)
+  @Operation(summary = "Find descriptor trees matching the query",
+      description = "Finds all merged trees matching the specified parameters")
   public Tree findDescriptorTree(
-    @ApiParam(value = "Descriptor terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query search term, e.g. 'vitamin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query search term, e.g. 'vitamin'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3078,13 +3184,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/trees", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/trees")
-  @ApiOperation(value = "Find code trees matching the query", notes = "Finds all merged trees matching the specified parameters", response = TreeJpa.class)
+  @Operation(summary = "Find code trees matching the query",
+      description = "Finds all merged trees matching the specified parameters")
   public Tree findCodeTree(
-    @ApiParam(value = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query search term, e.g. 'vitamin'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query search term, e.g. 'vitamin'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3154,11 +3261,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/atom/{atomId}/trees/children", method = RequestMethod.POST)
   @POST
   @Path("/atom/{atomId}/trees/children")
-  @ApiOperation(value = "Find children trees for an atom", notes = "Returns paged children trees for n atom. Note: not ancestorPath-sensitive", response = TreeListJpa.class)
+  @Operation(summary = "Find children trees for an atom",
+      description = "Returns paged children trees for n atom. Note: not ancestorPath-sensitive")
   public TreeList findAtomTreeChildren(
-    @ApiParam(value = "Atom id, e.g. 483123", required = true) @PathVariable("atomId") Long atomId,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Atom id, e.g. 483123", required = true) @PathVariable("atomId") Long atomId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -3199,13 +3307,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/trees/children", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/trees/children")
-  @ApiOperation(value = "Find children trees for a concept", notes = "Returns paged children trees for a concept. Note: not ancestorPath-sensitive", response = TreeListJpa.class)
+  @Operation(summary = "Find children trees for a concept",
+      description = "Returns paged children trees for a concept. Note: not ancestorPath-sensitive")
   public TreeList findConceptTreeChildren(
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Concept terminologyId, e.g. C0000061", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Concept terminologyId, e.g. C0000061", required = true) @PathVariable("terminologyId") String terminologyId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -3249,13 +3358,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/{terminologyId}/trees/children", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/{terminologyId}/trees/children")
-  @ApiOperation(value = "Find children trees for a code", notes = "Returns paged children trees for a code. Note: not ancestorPath-sensitive", response = TreeListJpa.class)
+  @Operation(summary = "Find children trees for a code",
+      description = "Returns paged children trees for a code. Note: not ancestorPath-sensitive")
   public TreeList findCodeTreeChildren(
-    @ApiParam(value = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Code terminologyId, e.g. C0000061", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Code terminologyId, e.g. C0000061", required = true) @PathVariable("terminologyId") String terminologyId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -3299,13 +3409,14 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}/trees/children", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/{terminologyId}/trees/children")
-  @ApiOperation(value = "Find children trees for a descriptor", notes = "Returns paged children trees for a descriptor. Note: not ancestorPath-sensitive", response = TreeListJpa.class)
+  @Operation(summary = "Find children trees for a descriptor",
+      description = "Returns paged children trees for a descriptor. Note: not ancestorPath-sensitive")
   public TreeList findDescriptorTreeChildren(
-    @ApiParam(value = "Descriptor terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Descriptor terminologyId, e.g. D0000061", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Descriptor terminologyId, e.g. D0000061", required = true) @PathVariable("terminologyId") String terminologyId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -3348,12 +3459,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/trees/roots", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/trees/roots")
-  @ApiOperation(value = "Find root trees for a concept-based terminology", notes = "Returns paged root trees for a concept-based terminology.", response = TreeJpa.class)
+  @Operation(summary = "Find root trees for a concept-based terminology",
+      description = "Returns paged root trees for a concept-based terminology.")
   public Tree findConceptTreeRoots(
-    @ApiParam(value = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/"
@@ -3435,12 +3547,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminology}/{version}/trees/roots", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/trees/roots")
-  @ApiOperation(value = "Find root trees for a descriptor-based terminology", notes = "Returns paged root trees for a descriptor-based terminology.", response = TreeJpa.class)
+  @Operation(summary = "Find root trees for a descriptor-based terminology",
+      description = "Returns paged root trees for a descriptor-based terminology.")
   public Tree findDescriptorTreeRoots(
-    @ApiParam(value = "Descriptor terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Descriptor version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Descriptor version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /descriptor/"
@@ -3527,12 +3640,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminology}/{version}/trees/roots", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminology}/{version}/trees/roots")
-  @ApiOperation(value = "Find root trees for a code-based terminology", notes = "Returns paged root trees for a code-based terminology.", response = TreeJpa.class)
+  @Operation(summary = "Find root trees for a code-based terminology",
+      description = "Returns paged root trees for a code-based terminology.")
   public Tree findCodeTreeRoots(
-    @ApiParam(value = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Code version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Content): /code/"
@@ -3616,14 +3730,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/mapset/{mapSetId}/{terminology}/{version}/mappings", method = RequestMethod.POST)
   @POST
   @Path("/mapset/{mapSetId}/{terminology}/{version}/mappings")
-  @ApiOperation(value = "Find mappings", notes = "Get the mappings for the indicated mapset", response = MappingListJpa.class)
+  @Operation(summary = "Find mappings",
+      description = "Get the mappings for the indicated mapset")
   public MappingList findMappings(
-    @ApiParam(value = "MapSet terminology id, e.g. 341823003", required = true) @PathVariable("mapSetId") String mapSetId,
-    @ApiParam(value = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "MapSet terminology id, e.g. 341823003", required = true) @PathVariable("mapSetId") String mapSetId,
+    @Parameter(description = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3660,14 +3775,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminologyId}/{terminology}/{version}/mappings", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminologyId}/{terminology}/{version}/mappings")
-  @ApiOperation(value = "Find mappings", notes = "Get the mappings for the indicated concept", response = MappingListJpa.class)
+  @Operation(summary = "Find mappings",
+      description = "Get the mappings for the indicated concept")
   public MappingList findConceptMappings(
-    @ApiParam(value = "Concept terminology id, e.g. 341823003", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. 341823003", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3702,14 +3818,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/code/{terminologyId}/{terminology}/{version}/mappings", method = RequestMethod.POST)
   @POST
   @Path("/code/{terminologyId}/{terminology}/{version}/mappings")
-  @ApiOperation(value = "Find mappings", notes = "Get the mappings for the indicated code", response = MappingListJpa.class)
+  @Operation(summary = "Find mappings",
+      description = "Get the mappings for the indicated code")
   public MappingList findCodeMappings(
-    @ApiParam(value = "Code terminology id, e.g. 341823003", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Code terminology id, e.g. 341823003", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3744,14 +3861,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/descriptor/{terminologyId}/{terminology}/{version}/mappings", method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminologyId}/{terminology}/{version}/mappings")
-  @ApiOperation(value = "Find mappings", notes = "Get the mappings for the indicated descriptor", response = MappingListJpa.class)
+  @Operation(summary = "Find mappings",
+      description = "Get the mappings for the indicated descriptor")
   public MappingList findDescriptorMappings(
-    @ApiParam(value = "Descriptor terminology id, e.g. 341823003", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Descriptor terminology id, e.g. 341823003", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Terminology version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Query, e.g. 'iron'", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     // Fix query
@@ -3788,11 +3906,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/favorites", method = RequestMethod.POST)
   @POST
   @Path("/favorites")
-  @ApiOperation(value = "Get user favorites", notes = "Gets user favorites for a terminology and version", response = String.class)
+  @Operation(summary = "Get user favorites",
+      description = "Gets user favorites for a terminology and version")
   @Override
   public SearchResultList getFavoritesForUser(
-    @ApiParam(value = "Paging/filtering/sorting object", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Paging/filtering/sorting object") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /content/favorites for authToken "
@@ -3885,12 +4004,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @POST
   @Path("/concept/{id}/note")
   @Produces("text/plain")
-  @ApiOperation(value = "Adds a user note to a concept", notes = "Adds a user note to a concept", response = String.class)
+  @Operation(summary = "Adds a user note to a concept",
+      description = "Adds a user note to a concept")
   @Override
   public void addConceptNote(
-    @ApiParam(value = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Note to add", required = true) @RequestBody String noteText,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Note to add", required = true) @RequestBody String noteText,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/" + id
         + "note for authToken " + authToken);
@@ -3930,12 +4050,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @POST
   @Path("/atom/{id}/note")
   @Produces("text/plain")
-  @ApiOperation(value = "Adds a user note to a atom", notes = "Adds a user note to a atom", response = String.class)
+  @Operation(summary = "Adds a user note to a atom",
+      description = "Adds a user note to a atom")
   @Override
   public void addAtomNote(
-    @ApiParam(value = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Note to add", required = true) @RequestBody String noteText,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Note to add", required = true) @RequestBody String noteText,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /atom/" + id
         + "note for authToken " + authToken);
@@ -3976,11 +4097,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @DELETE
   @Path("/concept/note/{id}")
   @Produces("text/plain")
-  @ApiOperation(value = "Remove a note from a concept", notes = "Remove a note from a concept", response = String.class)
+  @Operation(summary = "Remove a note from a concept",
+      description = "Remove a note from a concept")
   @Override
   public void removeConceptNote(
-    @ApiParam(value = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /concept/note"
         + noteId + " for authToken " + authToken);
@@ -4013,11 +4135,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @DELETE
   @Path("/atom/note/{id}")
   @Produces("text/plain")
-  @ApiOperation(value = "Remove a note from a atom", notes = "Remove a note from a atom", response = String.class)
+  @Operation(summary = "Remove a note from a atom",
+      description = "Remove a note from a atom")
   @Override
   public void removeAtomNote(
-    @ApiParam(value = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /atom/note"
         + noteId + " for authToken " + authToken);
@@ -4052,12 +4175,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @POST
   @Path("/code/{id}/note")
   @Produces("text/plain")
-  @ApiOperation(value = "Adds a user note to a code", notes = "Adds a user note to a code", response = String.class)
+  @Operation(summary = "Adds a user note to a code",
+      description = "Adds a user note to a code")
   @Override
   public void addCodeNote(
-    @ApiParam(value = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Note to add", required = true) @RequestBody String noteText,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Note to add", required = true) @RequestBody String noteText,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /code/" + id
         + "note for authToken " + authToken);
@@ -4098,11 +4222,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @DELETE
   @Path("/code/note/{id}")
   @Produces("text/plain")
-  @ApiOperation(value = "Remove a note from a code", notes = "Remove a note from a code", response = String.class)
+  @Operation(summary = "Remove a note from a code",
+      description = "Remove a note from a code")
   @Override
   public void removeCodeNote(
-    @ApiParam(value = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /code/note"
         + noteId + " for authToken " + authToken);
@@ -4135,12 +4260,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @POST
   @Path("/descriptor/{id}/note")
   @Produces("text/plain")
-  @ApiOperation(value = "Adds a user note to a descriptor", notes = "Adds a user note to a descriptor", response = String.class)
+  @Operation(summary = "Adds a user note to a descriptor",
+      description = "Adds a user note to a descriptor")
   @Override
   public void addDescriptorNote(
-    @ApiParam(value = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Note to add", required = true) @RequestBody String noteText,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "id, e.g. 12345", required = true) @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Note to add", required = true) @RequestBody String noteText,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /descriptor/"
         + id + "note for authToken " + authToken);
@@ -4181,11 +4307,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @DELETE
   @Path("/descriptor/note/{id}")
   @Produces("text/plain")
-  @ApiOperation(value = "Remove a note from a descriptor", notes = "Remove a note from a descriptor", response = String.class)
+  @Operation(summary = "Remove a note from a descriptor",
+      description = "Remove a note from a descriptor")
   @Override
   public void removeDescriptorNote(
-    @ApiParam(value = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Id of note to remove", required = true) @PathVariable("id") Long noteId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Content): /descriptor/note"
         + noteId + " for authToken " + authToken);
@@ -4218,12 +4345,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/component/notes", method = RequestMethod.POST)
   @POST
   @Path("/component/notes")
-  @ApiOperation(value = "Get components annotated by a user", notes = "Gets user favorites for a terminology and version", response = String.class)
+  @Operation(summary = "Get components annotated by a user",
+      description = "Gets user favorites for a terminology and version")
   @Override
   public SearchResultList getComponentsWithNotes(
-    @ApiParam(value = "Query text", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Paging/filtering/sorting object", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Query text") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Paging/filtering/sorting object") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /content/component/notes/?query=" + query
@@ -4336,15 +4464,16 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/component/{type}/{terminology}/{version}/{terminologyId}/relationships", method = RequestMethod.POST)
   @POST
   @Path("/component/{type}/{terminology}/{version}/{terminologyId}/relationships")
-  @ApiOperation(value = "Get relationships with this terminologyId", notes = "Get the relationships with the given component info id", response = RelationshipListJpa.class)
+  @Operation(summary = "Get relationships with this terminologyId",
+      description = "Get the relationships with the given component info id")
   public RelationshipList findComponentInfoRelationships(
-    @ApiParam(value = "Component info terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Component info terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Component info version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "Component info type, e.g. CODE", required = true) @PathVariable("type") IdType type,
-    @ApiParam(value = "Query for searching relationships, e.g. component info id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Component info terminology id, e.g. 102751005", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Component info terminology name, e.g. SNOMEDCT_US", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Component info version, e.g. 2014_09_01", required = true) @PathVariable("version") String version,
+    @Parameter(description = "Component info type, e.g. CODE", required = true) @PathVariable("type") IdType type,
+    @Parameter(description = "Query for searching relationships, e.g. component info id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -4386,11 +4515,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/validate/descriptor", method = RequestMethod.POST)
   @POST
   @Path("/validate/descriptor")
-  @ApiOperation(value = "Validate Descriptor", notes = "Validates a descriptor")
+  @Operation(summary = "Validate Descriptor",
+      description = "Validates a descriptor")
   public ValidationResult validateDescriptor(
-    @ApiParam(value = "The project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Descriptor", required = true) @RequestBody DescriptorJpa descriptor,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "The project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Descriptor", required = true) @RequestBody DescriptorJpa descriptor,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /validate/descriptor " + descriptor);
@@ -4417,11 +4547,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/validate/atom", method = RequestMethod.POST)
   @POST
   @Path("/validate/atom")
-  @ApiOperation(value = "Validate Atom", notes = "Validates a atom")
+  @Operation(summary = "Validate Atom",
+      description = "Validates a atom")
   public ValidationResult validateAtom(
-    @ApiParam(value = "The project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Atom", required = true) @RequestBody AtomJpa atom,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "The project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Atom", required = true) @RequestBody AtomJpa atom,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /validate/atom " + atom);
@@ -4447,11 +4578,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/validate/code", method = RequestMethod.POST)
   @POST
   @Path("/validate/code")
-  @ApiOperation(value = "Validate Code", notes = "Validates a code")
+  @Operation(summary = "Validate Code",
+      description = "Validates a code")
   public ValidationResult validateCode(
-    @ApiParam(value = "The project id (optional), e.g. 1", required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Code", required = true) @RequestBody CodeJpa code,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "The project id (optional), e.g. 1") @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Code", required = true) @RequestBody CodeJpa code,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /validate/code " + code);
@@ -4477,12 +4609,13 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/validate/concept", method = RequestMethod.POST)
   @POST
   @Path("/validate/concept")
-  @ApiOperation(value = "Validate Concept", notes = "Validates a concept against a specific check or all project checks")
+  @Operation(summary = "Validate Concept",
+      description = "Validates a concept against a specific check or all project checks")
   public ValidationResult validateConcept(
-    @ApiParam(value = "The project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept", required = true) @RequestBody ConceptJpa concept,
-    @ApiParam(value = "The validation check (e.g. DEFAULT)", required = false) @RequestParam(value = "checkId", required = false) String check,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "The project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Concept", required = true) @RequestBody ConceptJpa concept,
+    @Parameter(description = "The validation check (e.g. DEFAULT)") @RequestParam(value = "checkId", required = false) String check,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /validate/concept " + concept);
@@ -4523,11 +4656,12 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/validate/concepts", method = RequestMethod.POST)
   @POST
   @Path("/validate/concepts")
-  @ApiOperation(value = "Validate All Concepts", notes = "Validates all concept against a specific check or all project checks")
+  @Operation(summary = "Validate All Concepts",
+      description = "Validates all concept against a specific check or all project checks")
   public Set<Long> validateConcepts(
-    @ApiParam(value = "The project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "The validation check (e.g. DEFAULT)", required = false) @RequestParam(value = "checkId", required = false) String check,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "The project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "The validation check (e.g. DEFAULT)") @RequestParam(value = "checkId", required = false) String check,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Content): /validate/concepts " + projectId);
@@ -4566,14 +4700,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{terminology}/{version}/{terminologyId}/treePositions/deep", method = RequestMethod.POST)
   @POST
   @Path("/concept/{terminology}/{version}/{terminologyId}/treePositions/deep")
-  @ApiOperation(value = "Get deep tree positions with this terminologyId", notes = "Get the tree positions for the concept and also for any other atoms, concepts, descirptors, or codes in its graph for the specified concept id", response = TreePositionListJpa.class)
+  @Operation(summary = "Get deep tree positions with this terminologyId",
+      description = "Get the tree positions for the concept and also for any other atoms, concepts, descirptors, or codes in its graph for the specified concept id")
   public TreePositionList findConceptDeepTreePositions(
-    @ApiParam(value = "Concept terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
-    @ApiParam(value = "Concept terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
-    @ApiParam(value = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Authorization token, e.g. 'guest'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Concept terminology id, e.g. C0000039", required = true) @PathVariable("terminologyId") String terminologyId,
+    @Parameter(description = "Concept terminology name, e.g. UMLS", required = true) @PathVariable("terminology") String terminology,
+    @Parameter(description = "Concept version, e.g. latest", required = true) @PathVariable("version") String version,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(description = "Query for searching relationships, e.g. concept id or concept name", required = true) @RequestParam(value = "query", required = false) String query,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())
@@ -4605,16 +4740,29 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   }
 
   /* see superclass */
-  @RequestMapping(value = "/terminology/export/simple", method = RequestMethod.GET)
+  @RequestMapping(value = "/terminology/export/simple", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  @Operation(summary = "Export termionlogy to simple code file",
+      description = "Exports terminology to a simple codes file")
+  public byte[] exportTerminologySimpleResponse(
+    @Parameter(description = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
+    @Parameter(description = "Version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    try (InputStream in = exportTerminologySimple(terminology, version, authToken)) {
+      return in == null ? new byte[0] : in.readAllBytes();
+    }
+  }
+
+  /* see superclass */
   @GET
   @Override
   @Produces("application/octet-stream")
   @Path("/terminology/export/simple")
-  @ApiOperation(value = "Export termionlogy to simple code file", notes = "Exports terminology to a simple codes file", response = InputStream.class)
   public InputStream exportTerminologySimple(
-    @ApiParam(value = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
-    @ApiParam(value = "Version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Terminology, e.g. UMLS", required = true) @RequestParam(value = "terminology", required = false) String terminology,
+    @Parameter(description = "Version, e.g. latest", required = true) @RequestParam(value = "version", required = false) String version,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass())

@@ -42,11 +42,6 @@ import com.wci.umls.server.model.workflow.WorkflowStatus;
 import com.wci.umls.server.services.ContentService;
 import com.wci.umls.server.services.SecurityService;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Info;
-import io.swagger.annotations.SwaggerDefinition;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,6 +51,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * Reference implementation of {@link ContentServiceRest}. Includes hibernate
@@ -71,8 +69,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Produces({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML
 })
-@Api(value = "/edit")
-@SwaggerDefinition(info = @Info(description = "Operations to perform basic content editing for a terminology.", title = "Simple Edit API", version = "1.0.1"))
+@Tag(name = "Simple Edit", description = "Operations to perform basic content editing for a terminology.")
 public class SimpleEditServiceRestImpl extends RootServiceRestImpl
     implements SimpleEditServiceRest {
 
@@ -92,13 +89,14 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/atom", method = RequestMethod.PUT)
   @PUT
   @Path("/atom")
-  @ApiOperation(value = "Add an atom to a concept", notes = "Adds an atom to a concept", response = AtomJpa.class)
+  @Operation(summary = "Add an atom to a concept",
+      description = "Adds an atom to a concept")
   @Override
   public Atom addAtomToConcept(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
-    @ApiParam(value = "Atom to add, as POST data", required = true) @RequestBody AtomJpa atom,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Atom to add, as POST data", required = true) @RequestBody AtomJpa atom,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Edit): /atom add "
         + projectId + ", " + conceptId + ", " + atom);
@@ -165,13 +163,14 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/atom", method = RequestMethod.POST)
   @POST
   @Path("/atom")
-  @ApiOperation(value = "Update an atom", notes = "Updates an atom ")
+  @Operation(summary = "Update an atom",
+      description = "Updates an atom ")
   @Override
   public void updateAtom(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
-    @ApiParam(value = "Atom to add, as POST data", required = true) @RequestBody AtomJpa atom,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Atom to add, as POST data", required = true) @RequestBody AtomJpa atom,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Edit): /atom update "
         + projectId + ", " + conceptId + ", " + atom.getId());
@@ -235,13 +234,14 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/atom/{atomId}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/atom/{atomId}")
-  @ApiOperation(value = "Remove an atom", notes = "Removes the atom and detaches it from the concept")
+  @Operation(summary = "Remove an atom",
+      description = "Removes the atom and detaches it from the concept")
   @Override
   public void removeAtom(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
-    @ApiParam(value = "Atom id, e.g. 482831", required = true) @PathVariable("atomId") Long atomId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @Parameter(description = "Atom id, e.g. 482831", required = true) @PathVariable("atomId") Long atomId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Edit): /atom/" + atomId + " " + conceptId);
@@ -300,13 +300,14 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/sty", method = RequestMethod.PUT)
   @PUT
   @Path("/sty")
-  @ApiOperation(value = "Add an semanticType to a concept", notes = "Adds an semanticType to a concept", response = SemanticTypeJpa.class)
+  @Operation(summary = "Add an semanticType to a concept",
+      description = "Adds an semanticType to a concept")
   @Override
   public SemanticTypeComponent addSemanticTypeToConcept(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
-    @ApiParam(value = "SemanticType to add, as POST data", required = true) @RequestBody SemanticTypeJpa semanticType,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "SemanticType to add, as POST data", required = true) @RequestBody SemanticTypeJpa semanticType,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Edit): /semanticType add "
         + projectId + ", " + conceptId + ", " + semanticType);
@@ -361,13 +362,14 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/sty/{semanticTypeId}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/sty/{semanticTypeId}")
-  @ApiOperation(value = "Remove an semanticType", notes = "Removes the semanticType and detaches it from the concept")
+  @Operation(summary = "Remove an semanticType",
+      description = "Removes the semanticType and detaches it from the concept")
   @Override
   public void removeSemanticType(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
-    @ApiParam(value = "SemanticType id, e.g. 482831", required = true) @PathVariable("semanticTypeId") Long semanticTypeId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @Parameter(description = "SemanticType id, e.g. 482831", required = true) @PathVariable("semanticTypeId") Long semanticTypeId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Edit): /semanticType/"
         + semanticTypeId + " " + conceptId);
@@ -425,12 +427,13 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept", method = RequestMethod.PUT)
   @PUT
   @Path("/concept")
-  @ApiOperation(value = "Add an concept=", notes = "Adds a concept", response = ConceptJpa.class)
+  @Operation(summary = "Add an concept=",
+      description = "Adds a concept")
   @Override
   public Concept addConcept(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept to add, as POST data", required = true) @RequestBody ConceptJpa concept,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Concept to add, as POST data", required = true) @RequestBody ConceptJpa concept,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Edit): /concept add " + projectId);
@@ -488,12 +491,13 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept", method = RequestMethod.POST)
   @POST
   @Path("/concept")
-  @ApiOperation(value = "Update a concept", notes = "Updates a concept")
+  @Operation(summary = "Update a concept",
+      description = "Updates a concept")
   @Override
   public void updateConcept(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept to update, as POST data", required = true) @RequestBody ConceptJpa concept,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Concept to update, as POST data", required = true) @RequestBody ConceptJpa concept,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Edit): /concept update "
         + projectId + ", " + concept.getId());
@@ -538,12 +542,13 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @RequestMapping(value = "/concept/{conceptId}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/concept/{conceptId}")
-  @ApiOperation(value = "Remove an concept", notes = "Removes the concept and detaches it from the concept")
+  @Operation(summary = "Remove an concept",
+      description = "Removes the concept and detaches it from the concept")
   @Override
   public void removeConcept(
-    @ApiParam(value = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Concept id, e.g. 43232345", required = true) @RequestParam(value = "conceptId", required = false) Long conceptId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Edit, DELETE): /concept/" + conceptId);
@@ -599,12 +604,13 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
   @Path("/concepts/remove")
   @RequestMapping(value = "/concepts/remove", method = RequestMethod.POST)
   @POST
-  @ApiOperation(value = "Removes concepts", notes = "Removes concepts for project")
+  @Operation(summary = "Removes concepts",
+      description = "Removes concepts for project")
   public void removeConcepts(
-    @ApiParam(value = "The id of the project, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "The query for concepts to remove", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "The PFS filtering criteria", required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "The id of the project, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "The query for concepts to remove") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The PFS filtering criteria") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Project/TypeKeyValue): /remove " + projectId + ", "
