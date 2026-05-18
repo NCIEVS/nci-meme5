@@ -124,11 +124,6 @@ import com.wci.umls.server.services.SecurityService;
 import com.wci.umls.server.services.WorkflowService;
 import com.wci.umls.server.services.handlers.WorkflowActionHandler;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.Info;
-import io.swagger.annotations.SwaggerDefinition;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -138,6 +133,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * REST implementation for {@link WorkflowServiceRest}.
@@ -146,9 +144,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 @RequestMapping(value = "/workflow")
 @Path("/workflow")
-@Api(value = "/workflow")
-@SwaggerDefinition(info = @Info(description = "Operations supporting workflow",
-    title = "Workflow API", version = "1.0.1"))
+@Tag(name = "Workflow", description = "Operations supporting workflow")
 @Consumes({
     MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN
 })
@@ -176,15 +172,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/config", method = RequestMethod.PUT)
   @PUT
   @Path("/config")
-  @ApiOperation(value = "Add a workflow config", notes = "Add a workflow config",
-      response = WorkflowConfigJpa.class)
+  @Operation(summary = "Add a workflow config",
+      description = "Add a workflow config")
   @Override
   public WorkflowConfig addWorkflowConfig(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow config to add", required = true) @RequestBody WorkflowConfigJpa workflowConfig,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Workflow config to add", required = true) @RequestBody WorkflowConfigJpa workflowConfig,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /config/" + projectId + " "
         + workflowConfig.toString() + " " + authToken);
@@ -227,15 +221,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @POST
   @Path("/config/import")
   @Consumes(MediaType.MULTIPART_FORM_DATA)
-  @ApiOperation(value = "Import workflow config", notes = "Imports a workflow config",
-      response = WorkflowConfigJpa.class)
+  @Operation(summary = "Import workflow config",
+      description = "Imports a workflow config")
   public WorkflowConfig importWorkflowConfig(
-    @ApiParam(value = "Content of members file",
-        required = true) @RequestParam("file") MultipartFile file,
-    @ApiParam(value = "Project id, e.g. 12345",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Content of members file", required = true) @RequestParam("file") MultipartFile file,
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     try (InputStream in = file.getInputStream()) {
       return importWorkflowConfig(in, projectId, authToken);
@@ -328,20 +319,29 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   }
 
   /* see superclass */
-  @RequestMapping(value = "/config/export", method = RequestMethod.POST)
+  @RequestMapping(value = "/config/export", method = RequestMethod.POST,
+      produces = org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  @Operation(summary = "Export workflow config",
+      description = "Exports a workflow config")
+  public byte[] exportWorkflowConfigResponse(
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "WorkflowConfig id, e.g. 23425", required = true) @RequestParam(value = "workflowId", required = false) Long workflowId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    try (InputStream in = exportWorkflowConfig(projectId, workflowId, authToken)) {
+      return in == null ? new byte[0] : in.readAllBytes();
+    }
+  }
+
+  /* see superclass */
   @POST
   @Override
   @Produces("application/octet-stream")
   @Path("/config/export")
-  @ApiOperation(value = "Export workflow config", notes = "Exports a workflow config",
-      response = InputStream.class)
   public InputStream exportWorkflowConfig(
-    @ApiParam(value = "Project id, e.g. 12345",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "WorkflowConfig id, e.g. 23425",
-        required = true) @RequestParam(value = "workflowId", required = false) Long workflowId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 12345", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "WorkflowConfig id, e.g. 23425", required = true) @RequestParam(value = "workflowId", required = false) Long workflowId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /config/export?projectId=" + projectId);
@@ -373,13 +373,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/config", method = RequestMethod.POST)
   @POST
   @Path("/config")
-  @ApiOperation(value = "Update a workflow config", notes = "Update a workflow config")
+  @Operation(summary = "Update a workflow config",
+      description = "Update a workflow config")
   public void updateWorkflowConfig(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow config to update", required = true) @RequestBody WorkflowConfigJpa config,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Workflow config to update", required = true) @RequestBody WorkflowConfigJpa config,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Workflow): /config/" + projectId + " " + config.getId() + " " + authToken);
@@ -420,13 +419,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist", method = RequestMethod.POST)
   @POST
   @Path("/worklist")
-  @ApiOperation(value = "Update a worklist", notes = "Update a worklist")
+  @Operation(summary = "Update a worklist",
+      description = "Update a worklist")
   public void updateWorklist(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist to update", required = true) @RequestBody WorklistJpa worklist,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Worklist to update", required = true) @RequestBody WorklistJpa worklist,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/" + projectId + " "
         + worklist.getId() + " " + authToken);
@@ -469,13 +467,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/config/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/config/{id}")
-  @ApiOperation(value = "Remove a workflow config", notes = "Remove a workflow config")
+  @Operation(summary = "Remove a workflow config",
+      description = "Remove a workflow config")
   public void removeWorkflowConfig(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow config id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow config id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /config " + id + " " + projectId);
 
@@ -519,14 +516,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/config/{id}", method = RequestMethod.GET)
   @GET
   @Path("/config/{id}")
-  @ApiOperation(value = "Get workflow config", notes = "Gets a workflow config",
-      response = WorkflowConfigJpa.class)
+  @Operation(summary = "Get workflow config",
+      description = "Gets a workflow config")
   public WorkflowConfig getWorkflowConfig(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow config id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow config id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /config/" + id + "  " + projectId);
 
@@ -559,13 +554,11 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/epoch", method = RequestMethod.GET)
   @GET
   @Path("/epoch")
-  @ApiOperation(value = "Get current workflow epoch", notes = "Gets a workflow epoch",
-      response = WorkflowEpochJpa.class)
+  @Operation(summary = "Get current workflow epoch",
+      description = "Gets a workflow epoch")
   public WorkflowEpoch getCurrentWorkflowEpoch(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /workflow/epoch" + projectId);
 
@@ -594,13 +587,11 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/config/all", method = RequestMethod.GET)
   @GET
   @Path("/config/all")
-  @ApiOperation(value = "Get workflow configs", notes = "Gets a workflow configs",
-      response = WorkflowConfigJpa.class, responseContainer = "List")
+  @Operation(summary = "Get workflow configs",
+      description = "Gets a workflow configs")
   public WorkflowConfigList getWorkflowConfigs(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /config/all" + "  " + projectId);
 
@@ -638,13 +629,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/worklist/{id}")
-  @ApiOperation(value = "Remove a worklist", notes = "Remove a worklist")
+  @Operation(summary = "Remove a worklist",
+      description = "Remove a worklist")
   public void removeWorklist(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/" + id);
 
@@ -698,13 +688,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/checklist/{id}")
-  @ApiOperation(value = "Remove a checklist", notes = "Remove a checklist")
+  @Operation(summary = "Remove a checklist",
+      description = "Remove a checklist")
   public void removeChecklist(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist/" + id);
 
@@ -738,17 +727,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/definition", method = RequestMethod.PUT)
   @PUT
   @Path("/definition")
-  @ApiOperation(value = "Add a workflow bin definition", notes = "Add a workflow bin definition",
-      response = WorkflowBinDefinitionJpa.class)
+  @Operation(summary = "Add a workflow bin definition",
+      description = "Add a workflow bin definition")
   public WorkflowBinDefinition addWorkflowBinDefinition(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "New definition should be positioned after this bin definition, e.g. 1",
-        required = false) @RequestParam(value = "positionAfterId", required = false) Long positionAfterId,
-    @ApiParam(value = "Workflow bin definition to add",
-        required = true) @RequestBody WorkflowBinDefinitionJpa binDefinition,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "New definition should be positioned after this bin definition, e.g. 1") @RequestParam(value = "positionAfterId", required = false) Long positionAfterId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Workflow bin definition to add", required = true) @RequestBody WorkflowBinDefinitionJpa binDefinition,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /definition/" + projectId + " "
         + positionAfterId + " " + binDefinition.getName() + " " + authToken);
@@ -829,14 +814,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/epoch", method = RequestMethod.PUT)
   @PUT
   @Path("/epoch")
-  @ApiOperation(value = "Add a workflow epoch", notes = "Add a workflow epoch",
-      response = WorkflowEpochJpa.class)
+  @Operation(summary = "Add a workflow epoch",
+      description = "Add a workflow epoch")
   public WorkflowEpoch addWorkflowEpoch(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow epoch to add", required = true) @RequestBody WorkflowEpochJpa epoch,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Workflow epoch to add", required = true) @RequestBody WorkflowEpochJpa epoch,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Workflow): /epoch/" + projectId + " " + epoch.getName() + " " + authToken);
@@ -877,13 +860,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/epoch/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/epoch/{id}")
-  @ApiOperation(value = "Remove a workflow epoch", notes = "Remove a workflow epoch")
+  @Operation(summary = "Remove a workflow epoch",
+      description = "Remove a workflow epoch")
   public void removeWorkflowEpoch(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow epoch id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow epoch id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /epoch " + id + " " + projectId);
 
@@ -918,15 +900,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/definition", method = RequestMethod.POST)
   @POST
   @Path("/definition")
-  @ApiOperation(value = "Update a workflow bin definition",
-      notes = "Update a workflow bin definition")
+  @Operation(summary = "Update a workflow bin definition",
+      description = "Update a workflow bin definition")
   public void updateWorkflowBinDefinition(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin definition to update",
-        required = true) @RequestBody WorkflowBinDefinitionJpa def,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Workflow bin definition to update", required = true) @RequestBody WorkflowBinDefinitionJpa def,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Workflow): /definition  " + projectId + " " + def.getId() + " " + authToken);
@@ -981,15 +960,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/definition/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/definition/{id}")
-  @ApiOperation(value = "Remove a workflow bin definition",
-      notes = "Remove a workflow bin definition")
+  @Operation(summary = "Remove a workflow bin definition",
+      description = "Remove a workflow bin definition")
   public void removeWorkflowBinDefinition(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin definition id, e.g. 1",
-        required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin definition id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /definition/" + id);
 
@@ -1040,13 +1016,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/bin/{id}")
-  @ApiOperation(value = "Remove a workflow bin ", notes = "Remove a workflow bin ")
+  @Operation(summary = "Remove a workflow bin ",
+      description = "Remove a workflow bin ")
   public void removeWorkflowBin(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/" + id);
 
@@ -1080,14 +1055,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/definition/{id}", method = RequestMethod.GET)
   @GET
   @Path("/definition/{id}")
-  @ApiOperation(value = "Get workflow bin definition", notes = "Gets workflow bin definition")
+  @Operation(summary = "Get workflow bin definition",
+      description = "Gets workflow bin definition")
   public WorkflowBinDefinition getWorkflowBinDefinition(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin definition id, e.g. 1",
-        required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin definition id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /definition/" + id + " " + projectId);
@@ -1122,16 +1095,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/definition", method = RequestMethod.GET)
   @GET
   @Path("/definition")
-  @ApiOperation(value = "Get workflow bin definition",
-      notes = "Gets workflow bin definition by name")
+  @Operation(summary = "Get workflow bin definition",
+      description = "Gets workflow bin definition by name")
   public WorkflowBinDefinition getWorkflowBinDefinition(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin definition name, e.g. demotions",
-        required = true) @RequestParam(value = "name", required = false) String name,
-    @ApiParam(value = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin definition name, e.g. demotions", required = true) @RequestParam(value = "name", required = false) String name,
+    @Parameter(description = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /definition/" + name + " " + projectId);
@@ -1169,13 +1139,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/clear/all", method = RequestMethod.POST)
   @POST
   @Path("/bin/clear/all")
-  @ApiOperation(value = "Clear bins", notes = "Clear bins")
+  @Operation(summary = "Clear bins",
+      description = "Clear bins")
   public void clearBins(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/clear/all " + type);
 
@@ -1210,13 +1179,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/regenerate/all", method = RequestMethod.POST)
   @POST
   @Path("/bin/regenerate/all")
-  @ApiOperation(value = "Regenerate bins", notes = "Regenerate bins")
+  @Operation(summary = "Regenerate bins",
+      description = "Regenerate bins")
   public void regenerateBins(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/regenerate/all " + type);
 
@@ -1271,17 +1239,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/record/assigned", method = RequestMethod.POST)
   @POST
   @Path("/record/assigned")
-  @ApiOperation(value = "Find assigned work", notes = "Finds tracking records assigned",
-      response = TrackingRecordListJpa.class)
+  @Operation(summary = "Find assigned work",
+      description = "Finds tracking records assigned")
   public TrackingRecordList findAssignedWork(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "User name", required = false) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "User role, e.g. AUTHOR", required = false) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "User name") @RequestParam(value = "userName", required = false) String userName,
+    @Parameter(description = "User role, e.g. AUTHOR") @RequestParam(value = "role", required = false) UserRole role,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /record/assigned ");
 
@@ -1319,17 +1284,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/record/done", method = RequestMethod.POST)
   @POST
   @Path("/record/done")
-  @ApiOperation(value = "Find done work", notes = "Finds tracking records done",
-      response = TrackingRecordListJpa.class)
+  @Operation(summary = "Find done work",
+      description = "Finds tracking records done")
   public TrackingRecordList findDoneWork(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "User name", required = false) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "User role, e.g. AUTHOR", required = false) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "User name") @RequestParam(value = "userName", required = false) String userName,
+    @Parameter(description = "User role, e.g. AUTHOR") @RequestParam(value = "role", required = false) UserRole role,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /record/done ");
 
@@ -1367,16 +1329,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/record/available", method = RequestMethod.POST)
   @POST
   @Path("/record/available")
-  @ApiOperation(value = "Find available work", notes = "Finds tracking records available for work",
-      response = TrackingRecordListJpa.class)
+  @Operation(summary = "Find available work",
+      description = "Finds tracking records available for work")
   public TrackingRecordList findAvailableWork(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "UserRole", required = false) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "UserRole") @RequestParam(value = "role", required = false) UserRole role,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /record/available ");
 
@@ -1413,16 +1372,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist/{id}/records", method = RequestMethod.POST)
   @POST
   @Path("/checklist/{id}/records")
-  @ApiOperation(value = "Find tracking records for checklist",
-      notes = "Finds tracking records for checklist", response = TrackingRecordListJpa.class)
+  @Operation(summary = "Find tracking records for checklist",
+      description = "Finds tracking records for checklist")
   public TrackingRecordList findTrackingRecordsForChecklist(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 5", required = false) @PathVariable("id") Long id,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 5") @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist/" + id + "/records");
 
@@ -1463,16 +1419,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/{id}/records", method = RequestMethod.POST)
   @POST
   @Path("/worklist/{id}/records")
-  @ApiOperation(value = "Find records for worklist", notes = "Finds tracking records for worklist",
-      response = TrackingRecordListJpa.class)
+  @Operation(summary = "Find records for worklist",
+      description = "Finds tracking records for worklist")
   public TrackingRecordList findTrackingRecordsForWorklist(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 5", required = false) @PathVariable("id") Long id,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 5") @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/" + id + "/records");
 
@@ -1518,16 +1471,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/{id}/records", method = RequestMethod.POST)
   @POST
   @Path("/bin/{id}/records")
-  @ApiOperation(value = "Find records for workflow bin",
-      notes = "Finds tracking records for workflow bin", response = TrackingRecordListJpa.class)
+  @Operation(summary = "Find records for workflow bin",
+      description = "Finds tracking records for workflow bin")
   public TrackingRecordList findTrackingRecordsForWorkflowBin(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "WorkflowBin id, e.g. 5", required = false) @PathVariable("id") Long id,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "WorkflowBin id, e.g. 5") @PathVariable("id") Long id,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/" + id + "/records");
 
@@ -1570,17 +1520,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/assigned", method = RequestMethod.POST)
   @POST
   @Path("/worklist/assigned")
-  @ApiOperation(value = "Find assigned worklists", notes = "Finds worklists assigned for work",
-      response = WorklistListJpa.class)
+  @Operation(summary = "Find assigned worklists",
+      description = "Finds worklists assigned for work")
   public WorklistList findAssignedWorklists(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "User name", required = false) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "User role, e.g. AUTHOR", required = false) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "User name") @RequestParam(value = "userName", required = false) String userName,
+    @Parameter(description = "User role, e.g. AUTHOR") @RequestParam(value = "role", required = false) UserRole role,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/assigned, " + projectId
         + ", " + userName + ", " + role);
@@ -1614,17 +1561,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/done", method = RequestMethod.POST)
   @POST
   @Path("/worklist/done")
-  @ApiOperation(value = "Find done worklists", notes = "Finds worklists done for work",
-      response = WorklistListJpa.class)
+  @Operation(summary = "Find done worklists",
+      description = "Finds worklists done for work")
   public WorklistList findDoneWorklists(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "User name", required = false) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "User role, e.g. AUTHOR", required = false) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "User name") @RequestParam(value = "userName", required = false) String userName,
+    @Parameter(description = "User role, e.g. AUTHOR") @RequestParam(value = "role", required = false) UserRole role,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Workflow): /worklist/done, " + projectId + ", " + userName + ", " + role);
@@ -1658,16 +1602,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist/find", method = RequestMethod.POST)
   @POST
   @Path("/checklist/find")
-  @ApiOperation(value = "Find checklists", notes = "Finds checklists for query",
-      response = ChecklistListJpa.class)
+  @Operation(summary = "Find checklists",
+      description = "Finds checklists for query")
   public ChecklistList findChecklists(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Query") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -1714,16 +1655,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/find", method = RequestMethod.POST)
   @POST
   @Path("/worklist/find")
-  @ApiOperation(value = "Find worklists", notes = "Finds worklists for query",
-      response = WorklistListJpa.class)
+  @Operation(summary = "Find worklists",
+      description = "Finds worklists for query")
   public WorklistList findWorklists(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Query") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info(
@@ -1776,10 +1714,9 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/paths", method = RequestMethod.GET)
   @GET
   @Path("/paths")
-  @ApiOperation(value = "Get workflow paths", notes = "Gets the supported workflow paths",
-      response = StringList.class)
-  public StringList getWorkflowPaths(@ApiParam(value = "Authorization token, e.g. 'author1'",
-      required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+  @Operation(summary = "Get workflow paths",
+      description = "Gets the supported workflow paths")
+  public StringList getWorkflowPaths(@Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /paths");
 
@@ -1804,13 +1741,11 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/epoch/all", method = RequestMethod.GET)
   @GET
   @Path("/epoch/all")
-  @ApiOperation(value = "Get workflow epochs", notes = "Gets the supported workflow epochs",
-      response = WorkflowEpochList.class)
+  @Operation(summary = "Get workflow epochs",
+      description = "Gets the supported workflow epochs")
   public WorkflowEpochList getWorkflowEpochs(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /epochs");
 
@@ -1841,22 +1776,15 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/action", method = RequestMethod.GET)
   @GET
   @Path("/worklist/action")
-  @ApiOperation(value = "Perform workflow action on a tracking record",
-      notes = "Performs the specified action as the specified worklist as the specified user",
-      response = WorklistJpa.class)
+  @Operation(summary = "Perform workflow action on a tracking record",
+      description = "Performs the specified action as the specified worklist as the specified user")
   public Worklist performWorkflowAction(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 5",
-        required = false) @RequestParam(value = "worklistId", required = false) Long worklistId,
-    @ApiParam(value = "User name, e.g. author1",
-        required = true) @RequestParam(value = "userName", required = false) String userName,
-    @ApiParam(value = "User role, e.g. AUTHOR",
-        required = true) @RequestParam(value = "userRole", required = false) UserRole userRole,
-    @ApiParam(value = "Workflow action, e.g. 'SAVE'",
-        required = true) @RequestParam(value = "action", required = false) WorkflowAction action,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 5") @RequestParam(value = "worklistId", required = false) Long worklistId,
+    @Parameter(description = "User name, e.g. author1", required = true) @RequestParam(value = "userName", required = false) String userName,
+    @Parameter(description = "User role, e.g. AUTHOR", required = true) @RequestParam(value = "userRole", required = false) UserRole userRole,
+    @Parameter(description = "Workflow action, e.g. 'SAVE'", required = true) @RequestParam(value = "action", required = false) WorkflowAction action,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /action " + projectId + ", "
         + worklistId + ", " + userName + ", " + action);
@@ -1907,16 +1835,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/available", method = RequestMethod.POST)
   @POST
   @Path("/worklist/available")
-  @ApiOperation(value = "Find available  worklists", notes = "Finds worklists available for work",
-      response = WorklistListJpa.class)
+  @Operation(summary = "Find available  worklists",
+      description = "Finds worklists available for work")
   public WorklistList findAvailableWorklists(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "UserRole", required = false) @RequestParam(value = "role", required = false) UserRole role,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "UserRole") @RequestParam(value = "role", required = false) UserRole role,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/available ");
 
@@ -1949,27 +1874,19 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist", method = RequestMethod.POST)
   @POST
   @Path("/checklist")
-  @ApiOperation(value = "Create checklist", notes = "Create checklist",
-      response = ChecklistJpa.class)
+  @Operation(summary = "Create checklist",
+      description = "Create checklist")
   public Checklist createChecklist(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin id, e.g. 5",
-        required = false) @RequestParam(value = "workflowBinId", required = false) Long workflowBinId,
-    @ApiParam(value = "Cluster type",
-        required = false) @RequestParam(value = "clusterType", required = false) String clusterType,
-    @ApiParam(value = "Checklist name", required = false) @RequestParam(value = "name", required = false) String name,
-    @ApiParam(value = "Checklist description",
-        required = false) @RequestParam(value = "description", required = false) String description,
-    @ApiParam(value = "Randomize, e.g. false",
-        required = true) @RequestParam(value = "randomize", required = false) Boolean randomize,
-    @ApiParam(value = "Exclude on worklist, e.g. false",
-        required = true) @RequestParam(value = "excludeOnWorklist", required = false) Boolean excludeOnWorklist,
-    @ApiParam(value = "Query", required = false) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin id, e.g. 5") @RequestParam(value = "workflowBinId", required = false) Long workflowBinId,
+    @Parameter(description = "Cluster type") @RequestParam(value = "clusterType", required = false) String clusterType,
+    @Parameter(description = "Checklist name") @RequestParam(value = "name", required = false) String name,
+    @Parameter(description = "Checklist description") @RequestParam(value = "description", required = false) String description,
+    @Parameter(description = "Randomize, e.g. false", required = true) @RequestParam(value = "randomize", required = false) Boolean randomize,
+    @Parameter(description = "Exclude on worklist, e.g. false", required = true) @RequestParam(value = "excludeOnWorklist", required = false) Boolean excludeOnWorklist,
+    @Parameter(description = "Query") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist " + projectId + ", "
         + workflowBinId + ", " + clusterType + ", " + name + ", " + randomize);
@@ -2061,18 +1978,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist", method = RequestMethod.PUT)
   @PUT
   @Path("/worklist")
-  @ApiOperation(value = "Create worklist", notes = "Create worklist", response = WorklistJpa.class)
+  @Operation(summary = "Create worklist",
+      description = "Create worklist")
   public Worklist createWorklist(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin id, e.g. 5",
-        required = true) @RequestParam(value = "workflowBinId", required = false) Long workflowBinId,
-    @ApiParam(value = "Cluster type",
-        required = false) @RequestParam(value = "clusterType", required = false) String clusterType,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin id, e.g. 5", required = true) @RequestParam(value = "workflowBinId", required = false) Long workflowBinId,
+    @Parameter(description = "Cluster type") @RequestParam(value = "clusterType", required = false) String clusterType,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist ");
 
@@ -2213,16 +2126,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/all", method = RequestMethod.GET)
   @GET
   @Path("/bin/all")
-  @ApiOperation(value = "Get workflow bins",
-      notes = "Gets the workflow bins for the project and type.", response = WorkflowBinJpa.class,
-      responseContainer = "List")
+  @Operation(summary = "Get workflow bins",
+      description = "Gets the workflow bins for the project and type.")
   public WorkflowBinList getWorkflowBins(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin type, e.g. MUTUALLY_EXCLUSIVE",
-        required = false) @RequestParam(value = "type", required = false) String type,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin type, e.g. MUTUALLY_EXCLUSIVE") @RequestParam(value = "type", required = false) String type,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/all " + type);
@@ -2339,14 +2248,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/{id}", method = RequestMethod.GET)
   @GET
   @Path("/worklist/{id}")
-  @ApiOperation(value = "Get the worklist", notes = "Gets the statistics for the worklist.",
-      response = WorklistJpa.class)
+  @Operation(summary = "Get the worklist",
+      description = "Gets the statistics for the worklist.")
   public Worklist getWorklist(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 5", required = false) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 5") @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/" + id);
@@ -2459,14 +2366,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist/{id}", method = RequestMethod.GET)
   @GET
   @Path("/checklist/{id}")
-  @ApiOperation(value = "Get the checklist", notes = "Gets the statistics for the checklist.",
-      response = ChecklistJpa.class)
+  @Operation(summary = "Get the checklist",
+      description = "Gets the statistics for the checklist.")
   public Checklist getChecklist(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = false) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 5", required = false) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 5") @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist/" + id);
@@ -2560,23 +2465,20 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   }
 
   /* see superclass */
-  @RequestMapping(value = "/log", method = RequestMethod.GET)
+  @RequestMapping(value = "/log", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Path("/log")
   @Produces("text/plain")
-  @ApiOperation(value = "Get log entries",
-      notes = "Returns log entries for specified query parameters", response = String.class)
+  @Operation(summary = "Get log entries",
+      description = "Returns log entries for specified query parameters")
   @Override
   public String getLog(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 5",
-        required = false) @RequestParam(value = "checklistId", required = false) Long checklistId,
-    @ApiParam(value = "Worklist id, e.g. 5",
-        required = false) @RequestParam(value = "worklistId", required = false) Long worklistId,
-    @ApiParam(value = "Lines, e.g. 5", required = true) @RequestParam(value = "lines", required = false, defaultValue = "0") int lines,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 5") @RequestParam(value = "checklistId", required = false) Long checklistId,
+    @Parameter(description = "Worklist id, e.g. 5") @RequestParam(value = "worklistId", required = false) Long worklistId,
+    @Parameter(description = "Lines, e.g. 5", required = true) @RequestParam(value = "lines", required = false, defaultValue = "0") int lines,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Project): /log/" + projectId + ", "
         + checklistId + ", " + worklistId + ", " + lines);
@@ -2651,13 +2553,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/{id}/clear", method = RequestMethod.POST)
   @POST
   @Path("/bin/{id}/clear")
-  @ApiOperation(value = "Clear bin", notes = "Clear bin")
+  @Operation(summary = "Clear bin",
+      description = "Clear bin")
   public void clearBin(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin id, e.g. 1", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin id, e.g. 1", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/" + id + "/clear ");
@@ -2689,14 +2590,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/bin/{id}/regenerate", method = RequestMethod.POST)
   @POST
   @Path("/bin/{id}/regenerate")
-  @ApiOperation(value = "Regenerate bin", notes = "Regenerate bin", response = WorkflowBinJpa.class)
+  @Operation(summary = "Regenerate bin",
+      description = "Regenerate bin")
   public WorkflowBin regenerateBin(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin id, e.g. 5", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin id, e.g. 5", required = true) @PathVariable("id") Long id,
+    @Parameter(description = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/" + id + "/regenerate ");
@@ -2776,17 +2676,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/definition/regenerate", method = RequestMethod.POST)
   @POST
   @Path("/definition/regenerate")
-  @ApiOperation(value = "Regenerate bin from definition",
-      notes = "Regenerate bin from definition.  Used for a defintion that does not yet have a bin",
-      response = WorkflowBinJpa.class)
+  @Operation(summary = "Regenerate bin from definition",
+      description = "Regenerate bin from definition.  Used for a defintion that does not yet have a bin")
   public WorkflowBin regenerateBinDefinition(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin definition name, e.g. 'demotions'",
-        required = true) @RequestParam(value = "name", required = false) String name,
-    @ApiParam(value = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow bin definition name, e.g. 'demotions'", required = true) @RequestParam(value = "name", required = false) String name,
+    @Parameter(description = "Workflow bin type", required = true) @RequestParam(value = "type", required = false) String type,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /definition/regenerate " + name);
@@ -2854,25 +2750,21 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
   /* see superclass */
   @Override
-  @RequestMapping(value = "/worklist/{id}/report/generate", method = RequestMethod.GET)
+  @RequestMapping(value = "/worklist/{id}/report/generate", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   @Path("/worklist/{id}/report/generate")
-  @ApiOperation(value = "Generate concept reports for worklist",
-      notes = "Generate concept reports for the specified worklist", response = String.class)
+  @Operation(summary = "Generate concept reports for worklist",
+      description = "Generate concept reports for the specified worklist")
   public String generateConceptReport(
-    @ApiParam(value = "Project id, e.g. 5",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 5", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Delay", required = false) @RequestParam(value = "delay", required = false) Long delay,
-    @ApiParam(value = "Send email, e.g. false",
-        required = false) @RequestParam(value = "sendEmail", required = false) Boolean sendEmail,
-    @ApiParam(value = "Concept report type",
-        required = false) @RequestParam(value = "conceptReportType", required = false) String conceptReportType,
-    @ApiParam(value = "Relationship count",
-        required = false) @RequestParam(value = "relationshipCt", required = false) Integer relationshipCt,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 5", required = true) @PathVariable("id") Long id,
+    @Parameter(description = "Delay") @RequestParam(value = "delay", required = false) Long delay,
+    @Parameter(description = "Send email, e.g. false") @RequestParam(value = "sendEmail", required = false) Boolean sendEmail,
+    @Parameter(description = "Concept report type") @RequestParam(value = "conceptReportType", required = false) String conceptReportType,
+    @Parameter(description = "Relationship count") @RequestParam(value = "relationshipCt", required = false) Integer relationshipCt,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /report/" + id + "/report/generate ");
@@ -2964,15 +2856,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/report", method = RequestMethod.POST)
   @POST
   @Path("/report")
-  @ApiOperation(value = "Find concept reports", notes = "Find generated concept reports",
-      response = StringList.class)
+  @Operation(summary = "Find concept reports",
+      description = "Find generated concept reports")
   public StringList findGeneratedConceptReports(
-    @ApiParam(value = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Query") @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Query") @RequestParam(value = "query", required = false) String query,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /report " + projectId + ", " + query);
@@ -3023,17 +2913,17 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
   /* see superclass */
   @Override
-  @RequestMapping(value = "/report/{fileName}", method = RequestMethod.GET)
+  @RequestMapping(value = "/report/{fileName}", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
   @Path("/report/{fileName}")
-  @ApiOperation(value = "Get generated concept report", notes = "Get generated concept report",
-      response = String.class)
+  @Operation(summary = "Get generated concept report",
+      description = "Get generated concept report")
   public String getGeneratedConceptReport(
-    @ApiParam(value = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "File name") @PathVariable("fileName") String fileName,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "File name") @PathVariable("fileName") String fileName,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /report/" + fileName);
 
@@ -3066,13 +2956,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/report/{fileName}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/report/{fileName}")
-  @ApiOperation(value = "Get generated concept report", notes = "Get generated concept report",
-      response = String.class)
+  @Operation(summary = "Get generated concept report",
+      description = "Get generated concept report")
   public void removeGeneratedConceptReport(
-    @ApiParam(value = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "File name") @PathVariable("fileName") String fileName,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "File name") @PathVariable("fileName") String fileName,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /report/" + fileName);
     final WorkflowServiceJpa workflowService = new WorkflowServiceJpa();
@@ -3100,18 +2989,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/query/test", method = RequestMethod.GET)
   @GET
   @Path("/query/test")
-  @ApiOperation(value = "Test query.", notes = "Test workflow bin definition query.",
-      response = SearchResultListJpa.class)
+  @Operation(summary = "Test query.",
+      description = "Test workflow bin definition query.")
   public SearchResultList testQuery(
-    @ApiParam(value = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Query, e.g. NOT workflowStatus:NEEDS_REVIEW",
-        required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Query type, e.g. LUCENE",
-        required = true) @RequestParam(value = "queryType", required = false) QueryType queryType,
-    @ApiParam(value = "Query style, e.g. CLUSTER",
-        required = true) @RequestParam(value = "queryStyle", required = false) QueryStyle queryStyle,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 5") @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Query, e.g. NOT workflowStatus:NEEDS_REVIEW", required = true) @RequestParam(value = "query", required = false) String query,
+    @Parameter(description = "Query type, e.g. LUCENE", required = true) @RequestParam(value = "queryType", required = false) QueryType queryType,
+    @Parameter(description = "Query style, e.g. CLUSTER", required = true) @RequestParam(value = "queryStyle", required = false) QueryStyle queryStyle,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /query/test ");
@@ -3191,15 +3076,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @PUT
   @Path("/checklist/{id}/note")
   @Consumes("text/plain")
-  @ApiOperation(value = "Add checklist note", notes = "Adds a checklist note",
-      response = ChecklistNoteJpa.class)
+  @Operation(summary = "Add checklist note",
+      description = "Adds a checklist note")
   public Note addChecklistNote(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 3", required = true) @PathVariable("id") Long checklistId,
-    @ApiParam(value = "The note, e.g. \"this is a sample note\"", required = true) @RequestBody String note,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 3", required = true) @PathVariable("id") Long checklistId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The note, e.g. \"this is a sample note\"", required = true) @RequestBody String note,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /checklist/" + checklistId + "/note " + note);
@@ -3250,15 +3133,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @PUT
   @Path("/worklist/{id}/note")
   @Consumes("text/plain")
-  @ApiOperation(value = "Add worklist note", notes = "Adds a worklist note",
-      response = WorklistNoteJpa.class)
+  @Operation(summary = "Add worklist note",
+      description = "Adds a worklist note")
   public Note addWorklistNote(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 3", required = true) @PathVariable("id") Long worklistId,
-    @ApiParam(value = "The note, e.g. \"this is a sample note\"", required = true) @RequestBody String note,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 3", required = true) @PathVariable("id") Long worklistId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "The note, e.g. \"this is a sample note\"", required = true) @RequestBody String note,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call (Workflow): /worklist/" + worklistId + "/note " + note);
@@ -3310,13 +3191,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist/note/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/checklist/note/{id}")
-  @ApiOperation(value = "Remove checklist note", notes = "Removes the specified checklist note")
+  @Operation(summary = "Remove checklist note",
+      description = "Removes the specified checklist note")
   public void removeChecklistNote(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Note id, e.g. 3", required = true) @PathVariable("id") Long noteId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Note id, e.g. 3", required = true) @PathVariable("id") Long noteId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist/note/" + noteId);
 
@@ -3365,13 +3245,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/note/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/worklist/note/{id}")
-  @ApiOperation(value = "Remove worklist note", notes = "Removes the specified worklist note")
+  @Operation(summary = "Remove worklist note",
+      description = "Removes the specified worklist note")
   public void removeWorklistNote(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Note id, e.g. 3", required = true) @PathVariable("id") Long noteId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Note id, e.g. 3", required = true) @PathVariable("id") Long noteId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/note/" + noteId);
 
@@ -3432,17 +3311,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @POST
   @Path("/checklist/import")
   @Consumes(MediaType.MULTIPART_FORM_DATA)
-  @ApiOperation(value = "Import checklist", notes = "Imports a checklist in the standard format",
-      response = ChecklistJpa.class)
+  @Operation(summary = "Import checklist",
+      description = "Imports a checklist in the standard format")
   public Checklist importChecklist(
-    @ApiParam(value = "Content of members file",
-        required = true) @RequestParam("file") MultipartFile file,
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist name, e.g. chk_test",
-        required = false) @RequestParam(value = "name", required = false) String name,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Content of members file", required = true) @RequestParam("file") MultipartFile file,
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist name, e.g. chk_test") @RequestParam(value = "name", required = false) String name,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     try (InputStream in = file.getInputStream()) {
       return importChecklist(in, projectId, name, authToken);
@@ -3574,21 +3449,15 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @POST
   @Override
   @Path("/checklist/compute")
-  @ApiOperation(value = "Compute checklist", notes = "Computes a checklist from a query",
-      response = ChecklistJpa.class)
+  @Operation(summary = "Compute checklist",
+      description = "Computes a checklist from a query")
   public Checklist computeChecklist(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Query, e.g. NOT workflowStatus:NEEDS_REVIEW",
-        required = true) @RequestParam(value = "query", required = false) String query,
-    @ApiParam(value = "Query type, e.g. LUCENE",
-        required = true) @RequestParam(value = "queryType", required = false) QueryType queryType,
-    @ApiParam(value = "Checklist name, e.g. chk_test",
-        required = false) @RequestParam(value = "name", required = false) String name,
-    @ApiParam(value = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'",
-        required = false) @RequestBody PfsParameterJpa pfs,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Query, e.g. NOT workflowStatus:NEEDS_REVIEW", required = true) @RequestParam(value = "query", required = false) String query,
+    @Parameter(description = "Query type, e.g. LUCENE", required = true) @RequestParam(value = "queryType", required = false) QueryType queryType,
+    @Parameter(description = "Checklist name, e.g. chk_test") @RequestParam(value = "name", required = false) String name,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "PFS Parameter, e.g. '{ \"startIndex\":\"1\", \"maxResults\":\"5\" }'") @RequestBody PfsParameterJpa pfs,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info(
         "RESTful call (Workflow): /checklist/compute " + projectId + ", " + name + ", " + query);
@@ -3628,19 +3497,29 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   }
 
   /* see superclass */
-  @RequestMapping(value = "/checklist/{id}/export", method = RequestMethod.GET)
+  @RequestMapping(value = "/checklist/{id}/export", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  @Operation(summary = "Export checklist",
+      description = "Exports the checklist")
+  public byte[] exportChecklistResponse(
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    try (InputStream in = exportChecklist(projectId, id, authToken)) {
+      return in == null ? new byte[0] : in.readAllBytes();
+    }
+  }
+
+  /* see superclass */
   @GET
   @Override
   @Produces("application/octet-stream")
   @Path("/checklist/{id}/export")
-  @ApiOperation(value = "Export checklist", notes = "Exports the checklist",
-      response = InputStream.class)
   public InputStream exportChecklist(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 3", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist/" + id + "/export");
@@ -3667,19 +3546,29 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   }
 
   /* see superclass */
-  @RequestMapping(value = "/worklist/{id}/export", method = RequestMethod.GET)
+  @RequestMapping(value = "/worklist/{id}/export", method = RequestMethod.GET,
+      produces = org.springframework.http.MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  @Operation(summary = "Export worklist",
+      description = "Exports the worklist")
+  public byte[] exportWorklistResponse(
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    try (InputStream in = exportWorklist(projectId, id, authToken)) {
+      return in == null ? new byte[0] : in.readAllBytes();
+    }
+  }
+
+  /* see superclass */
   @GET
   @Override
   @Produces("application/octet-stream")
   @Path("/worklist/{id}/export")
-  @ApiOperation(value = "Export worklist", notes = "Exports the worklist",
-      response = InputStream.class)
   public InputStream exportWorklist(
-    @ApiParam(value = "Project id, e.g. 3",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 3", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Authorization token, e.g. 'author1'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 3", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 3", required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/" + id + "/export");
     // identical to prior method but for worklists.
@@ -3741,16 +3630,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/worklist/{id}/stamp", method = RequestMethod.POST)
   @POST
   @Path("/worklist/{id}/stamp")
-  @ApiOperation(value = "Stamp worklist", notes = "Approve all concepts on worklist")
+  @Operation(summary = "Stamp worklist",
+      description = "Approve all concepts on worklist")
   public void stampWorklist(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Worklist id, e.g. 2", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001",
-        required = true) @RequestParam(value = "activityId", required = false) String activityId,
-    @ApiParam(value = "Approve", required = false) @RequestParam(value = "approve", required = false, defaultValue = "false") boolean approve,
-    @ApiParam(value = "Authorization token, e.g. 'author'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Worklist id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @Parameter(description = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @Parameter(description = "Approve") @RequestParam(value = "approve", required = false, defaultValue = "false") boolean approve,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist/" + id + "/stamp "
@@ -3794,16 +3681,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/checklist/{id}/stamp", method = RequestMethod.POST)
   @POST
   @Path("/checklist/{id}/stamp")
-  @ApiOperation(value = "Stamp checklist", notes = "Approve all concepts on checklist")
+  @Operation(summary = "Stamp checklist",
+      description = "Approve all concepts on checklist")
   public void stampChecklist(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Checklist id, e.g. 2", required = true) @PathVariable("id") Long id,
-    @ApiParam(value = "Activity id, e.g. wrk16a_demotions_001",
-        required = true) @RequestParam(value = "activityId", required = false) String activityId,
-    @ApiParam(value = "Approve", required = false) @RequestParam(value = "approve", required = false, defaultValue = "false") boolean approve,
-    @ApiParam(value = "Authorization token, e.g. 'author'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Checklist id, e.g. 2", required = true) @PathVariable("id") Long id,
+    @Parameter(description = "Activity id, e.g. wrk16a_demotions_001", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @Parameter(description = "Approve") @RequestParam(value = "approve", required = false, defaultValue = "false") boolean approve,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /checklist/" + id + "/stamp "
         + projectId + ", " + activityId + ", " + approve);
@@ -3846,16 +3731,13 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/status/compute", method = RequestMethod.POST)
   @POST
   @Path("/status/compute")
-  @ApiOperation(value = "Recompute concept status", notes = "Recompute concept status")
+  @Operation(summary = "Recompute concept status",
+      description = "Recompute concept status")
   public void recomputeConceptStatus(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Activity id, e.g. MATRIXINIT",
-        required = true) @RequestParam(value = "activityId", required = false) String activityId,
-    @ApiParam(value = "Update flag, e.g. false",
-        required = false) @RequestParam(value = "update", required = false) Boolean updateFlag,
-    @ApiParam(value = "Authorization token, e.g. 'author'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Activity id, e.g. MATRIXINIT", required = true) @RequestParam(value = "activityId", required = false) String activityId,
+    @Parameter(description = "Update flag, e.g. false") @RequestParam(value = "update", required = false) Boolean updateFlag,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /status/compute " + projectId + ", "
         + activityId + ", " + updateFlag);
@@ -3927,13 +3809,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "runautofix", method = RequestMethod.POST)
   @POST
   @Path("runautofix")
-  @ApiOperation(value = "Autofix bin", notes = "Autofix bin")
+  @Operation(summary = "Autofix bin",
+      description = "Autofix bin")
   public void runAutofix(
-    @ApiParam(value = "Project id, e.g. 1",
-        required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Workflow bin to run autofix on", required = true) @RequestBody WorkflowBinJpa workflowBin,
-    @ApiParam(value = "Authorization token, e.g. 'guest'",
-        required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Workflow bin to run autofix on", required = true) @RequestBody WorkflowBinJpa workflowBin,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
 
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /runautofix ");
@@ -4018,11 +3899,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/lookup/progress", method = RequestMethod.POST)
   @POST
   @Path("/lookup/progress")
-  @ApiOperation(value = "Lookup progress through process", notes = "Returns whether the process is still in progress", response = Boolean.class)
+  @Operation(summary = "Lookup progress through process",
+      description = "Returns whether the process is still in progress")
   public Boolean getProcessProgress(
-    @ApiParam(value = "Project id", required = true) @RequestBody Long projectId,
-    @ApiParam(value = "Process, e.g. BETA", required = true) @RequestParam(value = "process", required = false) String process,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Project id", required = true) @RequestBody Long projectId,
+    @Parameter(description = "Process, e.g. BETA", required = true) @RequestParam(value = "process", required = false) String process,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call GET (Workflow): /lookup/process " + projectId + ", "
@@ -4052,11 +3934,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/process/results/{projectId}", method = RequestMethod.GET)
   @GET
   @Path("/process/results/{projectId}")
-  @ApiOperation(value = "Get process results", notes = "Returns the validation result of a completed process", response = ValidationResultJpa.class)
+  @Operation(summary = "Get process results",
+      description = "Returns the validation result of a completed process")
   public ValidationResult getProcessResults(
-    @ApiParam(value = "Project id, e.g. 2", required = true) @PathVariable("projectId") Long projectId,
-    @ApiParam(value = "Bulk Process, e.g. BETA", required = true) @RequestParam(value = "process", required = false) String process,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 2", required = true) @PathVariable("projectId") Long projectId,
+    @Parameter(description = "Bulk Process, e.g. BETA", required = true) @RequestParam(value = "process", required = false) String process,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call GET (Refset): /process/results/" + projectId + ", "
@@ -4093,11 +3976,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/lookup/progress/bulk", method = RequestMethod.POST)
   @POST
   @Path("/lookup/progress/bulk")
-  @ApiOperation(value = "Lookup progress through bulk process", notes = "Returns the refsetIds that are still in progress for specified bulk process", response = StringList.class)
+  @Operation(summary = "Lookup progress through bulk process",
+      description = "Returns the refsetIds that are still in progress for specified bulk process")
   public StringList getBulkProcessProgress(
-    @ApiParam(value = "List of workflow bins", required = true) @RequestBody String[] binNames,
-    @ApiParam(value = "Project id", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "List of workflow bins", required = true) @RequestBody String[] binNames,
+    @Parameter(description = "Project id", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call POST (Workflow): /lookup/process/bulk "
@@ -4131,11 +4015,12 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
   @RequestMapping(value = "/process/results/bulk/{projectId}", method = RequestMethod.GET)
   @GET
   @Path("/process/results/bulk/{projectId}")
-  @ApiOperation(value = "Get bulk process results", notes = "Returns the validation results of a completed bulk process", response = ValidationResultJpa.class)
+  @Operation(summary = "Get bulk process results",
+      description = "Returns the validation results of a completed bulk process")
   public ValidationResult getBulkProcessResults(
-    @ApiParam(value = "Project id, e.g. 2", required = true) @PathVariable("projectId") Long projectId,
-    @ApiParam(value = "Bulk Process, e.g. BETA", required = true) @RequestParam(value = "process", required = false) String process,
-    @ApiParam(value = "Authorization token, e.g. 'author1'", required = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    @Parameter(description = "Project id, e.g. 2", required = true) @PathVariable("projectId") Long projectId,
+    @Parameter(description = "Bulk Process, e.g. BETA", required = true) @RequestParam(value = "process", required = false) String process,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     Logger.getLogger(getClass())
         .info("RESTful call GET (Refset): /process/results/bulk/" + projectId

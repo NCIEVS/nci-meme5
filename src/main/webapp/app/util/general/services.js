@@ -106,12 +106,18 @@ tsApp
 
         // Handle error message
         this.handleError = function(response) {
-          if (response.data && response.data.length > 100) {
+          var responseMessage = response.data;
+          if (responseMessage && typeof responseMessage !== 'string') {
+            responseMessage = responseMessage.message || responseMessage.error
+              || JSON.stringify(responseMessage);
+          }
+
+          if (responseMessage && responseMessage.length > 100) {
             this.error.message = "Unexpected error, click the icon to view attached full error";
-            this.error.longMessage = response.data;
+            this.error.longMessage = responseMessage;
             console.error(this.error.longMessage);
           } else {
-            this.error.message = response.data;
+            this.error.message = responseMessage;
             console.error(this.error.message);
           }
           // handle no message

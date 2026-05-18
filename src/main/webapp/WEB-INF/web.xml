@@ -26,7 +26,7 @@
     <url-pattern>/*</url-pattern>
   </servlet-mapping>
 
-  <!-- Redirect swagger ui pages to swagger UI -->
+  <!-- Swagger UI compatibility and supporting static assets -->
   <servlet-mapping>
     <servlet-name>default</servlet-name>
     <url-pattern>/swagger.html</url-pattern>

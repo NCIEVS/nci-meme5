@@ -103,9 +103,12 @@ dependencies {
     implementation "org.glassfish.jersey.media:jersey-media-jaxb:${jerseyVersion}"
     implementation "org.glassfish.jersey.inject:jersey-hk2:${jerseyVersion}"
 
-    // Swagger
-    implementation 'io.swagger.core.v3:swagger-jaxrs2-jakarta:2.2.20'
-    implementation 'io.swagger:swagger-annotations:1.6.12'
+    // OpenAPI / Swagger UI
+    implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14') {
+        // Keep the existing SLF4J 1.7 stack while Springdoc supplies OpenAPI support.
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }
 
     // Jakarta EE APIs
     compileOnly    'jakarta.servlet:jakarta.servlet-api:6.0.0'
