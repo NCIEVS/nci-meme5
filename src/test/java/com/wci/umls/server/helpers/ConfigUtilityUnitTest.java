@@ -4,7 +4,9 @@
 package com.wci.umls.server.helpers;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -30,6 +32,7 @@ public class ConfigUtilityUnitTest {
   public void teardown() throws Exception {
     System.clearProperty("app.dir");
     System.clearProperty("config.legacy.runConfig.enabled");
+    System.clearProperty("DB_POOL_NAME");
     System.clearProperty("spring.profiles.active");
     System.clearProperty("run.config.umls");
     System.clearProperty("run.config.label");
@@ -68,6 +71,50 @@ public class ConfigUtilityUnitTest {
   }
 
   /**
+   * Verifies Hibernate uses HikariCP settings and c3p0 keys are removed.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testHikariConfigurationReplacesC3p0() throws Exception {
+    System.setProperty("app.dir", "/tmp/nm279-hikari-test");
+    System.setProperty("DB_POOL_NAME", "NciMemeHikariCPPool");
+    System.setProperty("spring.profiles.active", "local");
+
+    final Properties properties = PropertyUtility.loadApplicationProperties();
+
+    assertEquals("org.hibernate.hikaricp.internal.HikariCPConnectionProvider",
+        properties.getProperty("hibernate.connection.provider_class"));
+    assertEquals(properties.getProperty("jakarta.persistence.jdbc.url"),
+        properties.getProperty("hibernate.hikari.jdbcUrl"));
+    assertEquals(properties.getProperty("jakarta.persistence.jdbc.user"),
+        properties.getProperty("hibernate.hikari.username"));
+    assertEquals(properties.getProperty("jakarta.persistence.jdbc.password"),
+        properties.getProperty("hibernate.hikari.password"));
+    assertEquals("NciMemeHikariCPPool",
+        properties.getProperty("hibernate.hikari.poolName"));
+
+    for (final String key : properties.stringPropertyNames()) {
+      assertFalse("Unexpected c3p0 property remains: " + key,
+          key.startsWith("hibernate.c3p0."));
+    }
+  }
+
+  /**
+   * Verifies the runtime classpath has HikariCP and excludes c3p0 providers.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testHikariClasspathReplacesC3p0() throws Exception {
+    Class.forName("org.hibernate.hikaricp.internal.HikariCPConnectionProvider");
+    Class.forName("com.zaxxer.hikari.HikariDataSource");
+
+    assertClassMissing("org.hibernate.c3p0.internal.C3P0ConnectionProvider");
+    assertClassMissing("com.mchange.v2.c3p0.ComboPooledDataSource");
+  }
+
+  /**
    * Verifies Spring environment property sources are flattened into Properties.
    *
    * @throws Exception the exception
@@ -86,6 +133,20 @@ public class ConfigUtilityUnitTest {
 
     assertEquals("/tmp/nm302-env-test/data",
         properties.getProperty("nm302.test.value"));
+  }
+
+  /**
+   * Asserts a class is absent from the test runtime classpath.
+   *
+   * @param className the class name
+   */
+  private static void assertClassMissing(final String className) {
+    try {
+      Class.forName(className);
+      fail("Unexpected class on runtime classpath: " + className);
+    } catch (ClassNotFoundException e) {
+      // expected
+    }
   }
 
   /**

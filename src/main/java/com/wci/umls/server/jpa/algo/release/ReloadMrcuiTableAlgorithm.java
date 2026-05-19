@@ -4,21 +4,16 @@
 package com.wci.umls.server.jpa.algo.release;
 
 import java.io.File;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
 import org.hibernate.Session;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -79,61 +74,58 @@ public class ReloadMrcuiTableAlgorithm
         + "/META");
     
     try {
-      Class.forName("com.mysql.cj.jdbc.Driver");
-      java.sql.Connection connection =
-          DriverManager.getConnection(PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.url"),
-              PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.user"),
-              PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.password"));
-      connection.getMetaData();
-      connection.setAutoCommit(false);
-      String sql="insert IGNORE into  ncimdb.mrcui values (?, ?, ?, ?, ?, ?, ?) ";
-
-      PreparedStatement preparedStatement = connection.prepareStatement(sql);
-
       final List<String> lines =
           loadFileIntoStringList(path, "MRCUI.RRF", "", null, null);
 
       // Set the number of steps to the number of rows to be inserted
       setSteps(lines.size());
 
-      final String fields[] = new String[14];
+      final Session session = getEntityManager().unwrap(Session.class);
+      session.doWork(connection -> {
+        final String sql =
+            "insert IGNORE into mrcui values (?, ?, ?, ?, ?, ?, ?) ";
+        try (PreparedStatement preparedStatement =
+            connection.prepareStatement(sql)) {
+          final String fields[] = new String[14];
+          int ct = 0;
 
-      int ct = 0; 
-      
-      for (final String line : lines) {
+          for (final String line : lines) {
 
-        FieldedStringTokenizer.split(line, "|", 14, fields);
+            FieldedStringTokenizer.split(line, "|", 14, fields);
 
-        // Fields:
-        // 0 cui1
-        // 1 version
-        // 2 rel
-        // 3 rela
-        // 4 mapreason
-        // 5 cui2
-        // 6 mapin
-        
-        preparedStatement.setString(1, fields[0]);
-        preparedStatement.setString(2, fields[1]);
-        preparedStatement.setString(3, fields[2]);
-        preparedStatement.setString(4, fields[3]);
-        preparedStatement.setString(5, fields[4]);
-        preparedStatement.setString(6, fields[5]);
-        preparedStatement.setBoolean(7, fields[6].equals("Y") ? true : false);
-        preparedStatement.addBatch();
-        ct++;
-        
-        if ((ct + 1) % 10000 == 0) {
-            preparedStatement.executeBatch();
-            logInfo("ct : " + ct);
+            // Fields:
+            // 0 cui1
+            // 1 version
+            // 2 rel
+            // 3 rela
+            // 4 mapreason
+            // 5 cui2
+            // 6 mapin
+
+            preparedStatement.setString(1, fields[0]);
+            preparedStatement.setString(2, fields[1]);
+            preparedStatement.setString(3, fields[2]);
+            preparedStatement.setString(4, fields[3]);
+            preparedStatement.setString(5, fields[4]);
+            preparedStatement.setString(6, fields[5]);
+            preparedStatement.setBoolean(7, fields[6].equals("Y"));
+            preparedStatement.addBatch();
+            ct++;
+
+            if (ct % 10000 == 0) {
+              preparedStatement.executeBatch();
+              Logger.getLogger(getClass()).info("ct : " + ct);
+            }
+          }
+          preparedStatement.executeBatch();
         }
-      }
-      connection.commit();
-      
-    } catch (SQLException e) {
+      });
+
+    } catch (RuntimeException e) {
       e.printStackTrace();
       throw new LocalException(
-          "Could not establish connection to database. Please check database name and credentials.");
+          "Could not load MRCUI.RRF through Hibernate pooled database connection.",
+          e);
     }
       
 

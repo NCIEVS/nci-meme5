@@ -75,7 +75,10 @@ dependencies {
     // JPA / Hibernate
     implementation "org.hibernate.orm:hibernate-core:${hibernateVersion}"
     implementation "org.hibernate.orm:hibernate-envers:${hibernateVersion}"
-    implementation "org.hibernate.orm:hibernate-c3p0:${hibernateVersion}"
+    implementation ("org.hibernate.orm:hibernate-hikaricp:${hibernateVersion}") {
+        exclude group: "com.zaxxer", module: "HikariCP"
+    }
+    implementation "com.zaxxer:HikariCP:6.2.1"
     implementation "org.hibernate.search:hibernate-search-mapper-orm:${hibernateSearchVersion}"
     implementation "org.hibernate.search:hibernate-search-backend-lucene:${hibernateSearchVersion}"
     implementation 'org.jboss.logging:jboss-logging:3.6.0.Final'
