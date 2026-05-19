@@ -9,7 +9,9 @@ import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
  * Base class for admin tools that load source data.
- * Provides a utility method for recreating the database.
+ * Provides a legacy transitional utility method for recreating the database via
+ * Hibernate schema generation. Use Flyway migrations for normal schema
+ * evolution.
  */
 public abstract class AbstractLoader {
 
@@ -29,7 +31,8 @@ public abstract class AbstractLoader {
   }
 
   /**
-   * Creates (or drops-and-recreates) the database schema via JPA.
+   * Creates (or drops-and-recreates) the database schema via JPA. This path is
+   * retained for transitional local/test bootstrap only.
    *
    * @param serverRunning whether the server is currently running
    * @throws Exception the exception
@@ -39,7 +42,7 @@ public abstract class AbstractLoader {
     final java.util.Properties properties =
         PropertyUtility.getProperties();
 
-    LOG.info("Recreate database");
+    LOG.info("Recreate database using legacy Hibernate schema generation");
     properties.setProperty("hibernate.hbm2ddl.auto", "create");
     String autoRegisterProperty =
         properties.getProperty("hibernate.listeners.envers.autoRegister");

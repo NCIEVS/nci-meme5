@@ -37,6 +37,7 @@ public final class GeneratorApplication {
   static {
     COMMANDS.put("createDb", UpdateDb.class);
     COMMANDS.put("updateDb", UpdateDb.class);
+    COMMANDS.put("flywayDb", FlywayDb.class);
     COMMANDS.put("adHoc", AdHoc.class);
     COMMANDS.put("reindex", LuceneReindex.class);
     COMMANDS.put("reindexEcl", LuceneReindexEcl.class);

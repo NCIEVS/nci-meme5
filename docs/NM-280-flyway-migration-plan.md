@@ -89,6 +89,11 @@ dependency graph.
 If the selected Flyway version does not require a separate MySQL module, document
 that explicitly in the PR.
 
+Initial implementation note: the branch started from the `wci-common-java`
+version candidate, then upgraded to Flyway `12.6.1` after confirming both
+`flyway-core` and `flyway-mysql` are available at that release and the admin
+info command runs cleanly against local MySQL 8.4.
+
 ### 2. Add migration resources
 
 Create:
@@ -126,6 +131,16 @@ Document two paths:
 
 The legacy baseline flow should be explicit and operationally hard to run by
 accident.
+
+Initial implementation note: `adminFlywayBaseline` requires an explicit
+confirmation flag:
+
+```bash
+./gradlew adminFlywayBaseline -Pflyway.baseline.confirm=true
+```
+
+Use this only for an existing populated legacy database that already represents
+the `1.0` schema.
 
 ### 4. Add a MEME MigrationUtility
 
@@ -183,6 +198,9 @@ adminFlywayBaseline
 ```
 
 These should use the same config/env conventions as existing admin tasks.
+`adminFlywayBaseline` should remain guarded by
+`flyway.baseline.confirm=true`; fresh databases should use
+`adminFlywayMigrate` instead.
 
 ### 6. Add configuration flags
 
@@ -204,12 +222,23 @@ task/script satisfies the ticket as written.
 
 ### 7. Decide startup behavior
 
-Preferred initial behavior:
+Chosen initial behavior:
 
 - migrations are run by explicit Gradle/admin task
 - application startup does not mutate schema by default
 
-Optional guarded startup behavior:
+Rationale:
+
+- MEME does not currently define a normal runtime default for
+  `hibernate.hbm2ddl.auto`; it is set imperatively only by transitional admin,
+  loader, and configure/reset flows.
+- Running Flyway automatically on startup would add schema mutation to the
+  Tomcat WAR startup path before the baseline strategy has been fully exercised
+  across fresh and existing legacy databases.
+- Explicit Gradle/admin execution is operationally clearer for the first Flyway
+  rollout and satisfies the initial acceptance path.
+
+Future optional guarded startup behavior:
 
 - if `flyway.migrate.on.startup=true`, run Flyway before the first
   `EntityManagerFactory` is created
@@ -217,7 +246,7 @@ Optional guarded startup behavior:
 - startup migration must happen once per JVM and must fail fast on migration
   errors
 
-If startup migration is implemented, it should not coexist with
+If startup migration is implemented in a future ticket, it should not coexist with
 `hibernate.hbm2ddl.auto=update` in normal runtime configuration.
 
 ### 8. Transition existing Hibernate schema tools
@@ -238,6 +267,16 @@ Update docs to say:
 - do not run Hibernate update and Flyway migrate as competing production schema
   management mechanisms
 
+Initial implementation note:
+
+- `adminCreateDb` and `adminUpdateDb` remain available but their Gradle task
+  descriptions and `UpdateDb` runtime log now identify them as legacy
+  transitional Hibernate schema tools.
+- Loader and configure/reset database recreation paths remain unchanged, with
+  comments marking them as transitional local/test bootstrap flows.
+- New schema changes should be added as Flyway migrations under
+  `src/main/resources/db.migration` and applied with `adminFlywayMigrate`.
+
 ### 9. Tests and verification
 
 Add focused coverage:
@@ -255,6 +294,24 @@ Add focused coverage:
   - create schema using existing `adminCreateDb`
   - run `adminFlywayBaseline`
   - run `adminFlywayValidate`
+
+Initial implementation note:
+
+- `MigrationUtilityUnitTest` covers application Flyway defaults, Hikari-first
+  connection resolution, Jakarta JDBC fallback, location parsing, and Flyway
+  safety defaults such as `baselineOnMigrate=false` and `cleanDisabled=true`.
+- `FlywayMigrationIT` adds opt-in MySQL smoke coverage for:
+  - migrating a fresh empty schema, confirming `flyway_schema_history`, and
+    bootstrapping a JPA service
+  - marking a legacy schema as baseline, applying later migrations, and
+    validating the Flyway state
+- `FlywayMigrationIT` is skipped unless `-Dflyway.it.enabled=true` and a
+  disposable empty schema JDBC URL are provided. It intentionally fails if the
+  target schema is not empty before it mutates anything.
+- Local verification ran the opt-in MySQL smoke tests against disposable
+  `ncimdb_flyway_it` and `ncimdb_flyway_base_it` schemas. The Gradle XML report
+  showed `tests="2" skipped="0" failures="0" errors="0"` for
+  `FlywayMigrationIT`.
 
 Useful commands:
 
@@ -274,6 +331,18 @@ source config/local/setenv.sh
 ./gradlew integrationTest --tests "com.wci.umls.server.test.jpa.CloseReopenFactoryIT"
 ```
 
+Opt-in disposable MySQL smoke tests:
+
+```bash
+./gradlew integrationTest --tests "*.FlywayMigrationIT" \
+  -Dflyway.it.enabled=true \
+  -Dflyway.it.jdbcUrl=jdbc:mysql://127.0.0.1:3306/ncimdb_flyway_it \
+  -Dflyway.it.baselineJdbcUrl=jdbc:mysql://127.0.0.1:3306/ncimdb_flyway_base_it \
+  -Dflyway.it.user=root
+```
+
+Both schemas must exist and be empty before running that command.
+
 ## Acceptance Criteria Mapping
 
 - Flyway dependencies are added and integrated with the application.
@@ -289,8 +358,9 @@ source config/local/setenv.sh
   - verify with `adminFlywayMigrate` and `adminFlywayValidate`
 - Application startup runs Flyway migrations automatically, or via documented
   Gradle task/script.
-  - start with documented `adminFlywayMigrate`
-  - optionally add guarded startup migration through
+  - chosen initial behavior is documented `adminFlywayMigrate`
+  - startup does not mutate schema by default
+  - future optional behavior can add guarded startup migration through
     `flyway.migrate.on.startup=true`
 
 ## Watchpoints

@@ -125,6 +125,10 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
   /**
    * Initializes the configured database after config has been written.
    *
+   * <p>This uses the legacy Hibernate create/update path retained for
+   * transitional configure flows. Versioned schema evolution should use Flyway
+   * admin tasks.
+   *
    * @throws Exception the exception
    */
   void initializeConfiguredDatabase() throws Exception {
@@ -348,7 +352,8 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       }
 
       //
-      // Recreate the database
+      // Recreate the database using the legacy Hibernate create/update path.
+      // Versioned schema evolution should use Flyway admin tasks.
       //
       MetadataService metadataService = null;
       PropertyUtility.setProperty("hibernate.hbm2ddl.auto", "create");
