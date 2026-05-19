@@ -6,13 +6,14 @@ package com.wci.umls.server.admin;
 import java.util.Properties;
 import java.util.logging.Logger;
 
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 
 /**
  * Admin tool which updates or creates the database schema to sync it with the
- * JPA model.
+ * JPA model. This is a legacy transitional schema-management path retained for
+ * local/test bootstrap while Flyway is adopted. Use Flyway admin tasks for
+ * versioned schema evolution.
  *
  * <p>Usage:
  * <pre>
@@ -37,6 +38,9 @@ public class UpdateDb {
     final String mode = System.getProperty("mode");
     LOG.info("Starting updating database schema...");
     LOG.info("  mode = " + mode);
+    LOG.warning("adminCreateDb/adminUpdateDb are legacy transitional "
+        + "Hibernate schema tools. Use Flyway admin tasks for versioned "
+        + "schema evolution.");
 
     if (mode == null || (!mode.equals("update") && !mode.equals("create"))) {
       throw new IllegalArgumentException(

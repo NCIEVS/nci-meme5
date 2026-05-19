@@ -62,6 +62,7 @@ springBoot {
 ext {
     hibernateVersion       = '6.6.3.Final'
     hibernateSearchVersion = '7.2.2.Final'
+    flywayVersion          = '12.6.1'
     jerseyVersion          = '3.1.11'
     luceneVersion          = '9.9.2'
     jacksonVersion         = '2.16.1'
@@ -82,6 +83,10 @@ dependencies {
     implementation "org.hibernate.search:hibernate-search-mapper-orm:${hibernateSearchVersion}"
     implementation "org.hibernate.search:hibernate-search-backend-lucene:${hibernateSearchVersion}"
     implementation 'org.jboss.logging:jboss-logging:3.6.0.Final'
+
+    // Flyway is managed manually with the same admin/config path as Hibernate.
+    implementation "org.flywaydb:flyway-core:${flywayVersion}"
+    implementation "org.flywaydb:flyway-mysql:${flywayVersion}"
 
     // Lucene
     implementation "org.apache.lucene:lucene-queryparser:${luceneVersion}"
@@ -277,9 +282,12 @@ tasks.register('integrationTest', Test) {
     // Temporary migration fallback: forward explicitly-enabled legacy config
     // properties so ConfigUtility can still find an old-style config file
     // when the Spring application.properties bridge is unavailable.
+    // Also forward opt-in Flyway smoke-test properties; those tests require
+    // disposable database URLs and are skipped unless explicitly enabled.
     System.getProperties().each { key, value ->
         if (key.toString().startsWith('run.config.') ||
-                key.toString() == 'config.legacy.runConfig.enabled') {
+                key.toString() == 'config.legacy.runConfig.enabled' ||
+                key.toString().startsWith('flyway.it.')) {
             systemProperty key.toString(), value.toString()
         }
     }
@@ -342,7 +350,8 @@ def adminJvmArgs(Map<String, String> propNames) {
 // ── Database ──────────────────────────────────────────────────────────────────
 
 task adminCreateDb(type: JavaExec, group: 'Admin',
-        description: 'Create the database schema from JPA entities (mode=create).') {
+        description: 'Legacy transitional path: create schema from JPA entities. ' +
+                'Use Flyway for versioned schema evolution.') {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
     args = ['createDb']
@@ -350,11 +359,52 @@ task adminCreateDb(type: JavaExec, group: 'Admin',
 }
 
 task adminUpdateDb(type: JavaExec, group: 'Admin',
-        description: 'Update the database schema from JPA entities (mode=update).') {
+        description: 'Legacy transitional path: update schema from JPA entities. ' +
+                'Use Flyway for versioned schema evolution.') {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
     args = ['updateDb']
     jvmArgs = ['-Dmode=update'] + adminJvmArgs([:])
+}
+
+def flywayAdminProperties = [
+        'flyway.locations': '',
+        'flyway.baseline.version': '',
+        'flyway.baseline.description': '',
+        'flyway.baseline.confirm': ''
+]
+
+task adminFlywayMigrate(type: JavaExec, group: 'Admin',
+        description: 'Run Flyway migrations against the configured database.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['flywayDb']
+    jvmArgs = ['-Dflyway.command=migrate'] + adminJvmArgs(flywayAdminProperties)
+}
+
+task adminFlywayInfo(type: JavaExec, group: 'Admin',
+        description: 'Show Flyway migration status for the configured database.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['flywayDb']
+    jvmArgs = ['-Dflyway.command=info'] + adminJvmArgs(flywayAdminProperties)
+}
+
+task adminFlywayValidate(type: JavaExec, group: 'Admin',
+        description: 'Validate Flyway migrations against the configured database.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['flywayDb']
+    jvmArgs = ['-Dflyway.command=validate'] + adminJvmArgs(flywayAdminProperties)
+}
+
+task adminFlywayBaseline(type: JavaExec, group: 'Admin',
+        description: 'Mark a legacy populated database as Flyway baseline version 1.0. ' +
+                'Requires -Pflyway.baseline.confirm=true.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['flywayDb']
+    jvmArgs = ['-Dflyway.command=baseline'] + adminJvmArgs(flywayAdminProperties)
 }
 
 task adminAdHoc(type: JavaExec, group: 'Admin',
