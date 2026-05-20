@@ -39,7 +39,7 @@ public final class MigrationUtility {
    * @throws Exception the exception
    */
   public static void migrate() throws Exception {
-    migrate(ConfigUtility.getConfigProperties());
+    migrate(PropertyUtility.getProperties());
   }
 
   /**
@@ -57,7 +57,7 @@ public final class MigrationUtility {
    * @throws Exception the exception
    */
   public static void validate() throws Exception {
-    validate(ConfigUtility.getConfigProperties());
+    validate(PropertyUtility.getProperties());
   }
 
   /**
@@ -75,7 +75,7 @@ public final class MigrationUtility {
    * @throws Exception the exception
    */
   public static void baseline() throws Exception {
-    baseline(ConfigUtility.getConfigProperties());
+    baseline(PropertyUtility.getProperties());
   }
 
   /**
@@ -94,7 +94,7 @@ public final class MigrationUtility {
    * @throws Exception the exception
    */
   public static String info() throws Exception {
-    return info(ConfigUtility.getConfigProperties());
+    return info(PropertyUtility.getProperties());
   }
 
   /**

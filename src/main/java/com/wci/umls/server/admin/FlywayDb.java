@@ -8,8 +8,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.MigrationUtility;
+import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
  * Admin tool for running explicit Flyway database migration commands.
@@ -65,7 +65,7 @@ public class FlywayDb {
   public static void main(String[] args) throws Exception {
 
     final String command = resolveCommand(args);
-    final Properties properties = ConfigUtility.getConfigProperties();
+    final Properties properties = PropertyUtility.getProperties();
     LOG.info("Starting Flyway command: " + command);
 
     switch (command) {

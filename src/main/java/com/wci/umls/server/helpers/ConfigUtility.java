@@ -246,29 +246,6 @@ public class ConfigUtility {
   }
 
   /**
-   * Returns the config properties.
-   * @return the config properties
-   *
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static Properties getConfigProperties() throws Exception {
-    config = PropertyUtility.getProperties();
-    return config;
-  }
-
-  /**
-   * Clear config properties.
-   *
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static void clearConfigProperties() throws Exception {
-    PropertyUtility.clearProperties();
-    config = null;
-  }
-
-  /**
    * Returns the ui config properties.
    *
    * @return the ui config properties

@@ -152,7 +152,7 @@ src/main/java/com/wci/umls/server/helpers/MigrationUtility.java
 
 Responsibilities:
 
-- load properties from `ConfigUtility.getConfigProperties()`
+- load properties from `PropertyUtility.getProperties()`
 - read database connection settings
 - configure Flyway locations:
   - `classpath:db.migration`
