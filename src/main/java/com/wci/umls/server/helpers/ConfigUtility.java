@@ -134,10 +134,6 @@ public class ConfigUtility {
   public final static String PUNCTUATION_REGEX =
       "[ \\t\\-\\(\\{\\[\\)\\}\\]_!@#%&\\*\\\\:;\\\"',\\.\\?\\/~\\+=\\|<>$`^]";
 
-  /** The config. */
-  @Deprecated
-  public static Properties config = null;
-
   /** The transformer for DOM -> XML. */
   private static Transformer transformer;
 
@@ -200,71 +196,6 @@ public class ConfigUtility {
     } catch (Throwable e) {
       return false;
     }
-  }
-
-  /**
-   * Reset config properties. Needed for testing so we can reset the state of
-   * config.properties and reload it.
-   */
-  @Deprecated
-  public static void resetConfigProperties() {
-    PropertyUtility.resetProperties();
-    config = null;
-  }
-
-  /**
-   * Get the config label.
-   *
-   * @return the label
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static String getConfigLabel() throws Exception {
-    return PropertyUtility.getConfigLabel();
-  }
-
-  /**
-   * The get local config file.
-   *
-   * @return the local config file
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static String getLocalConfigFile() throws Exception {
-    return PropertyUtility.getLocalConfigFile();
-  }
-
-  /**
-   * Gets the local config folder.
-   *
-   * @return the local config folder
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static String getLocalConfigFolder() throws Exception {
-    return PropertyUtility.getLocalConfigFolder();
-  }
-
-  /**
-   * Returns the ui config properties.
-   *
-   * @return the ui config properties
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static Properties getUiConfigProperties() throws Exception {
-    return PropertyUtility.getUiProperties();
-  }
-
-  /**
-   * Returns the home dirs of the operating environment.
-   *
-   * @return the home dirs
-   * @throws Exception the exception
-   */
-  @Deprecated
-  public static Map<String, String> getHomeDirs() throws Exception {
-    return PropertyUtility.getHomeDirs();
   }
 
   /**
