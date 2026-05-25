@@ -30,7 +30,7 @@ public class QuerySearchHandler extends DefaultSearchHandler {
       final Map<String, String> params = new HashMap<>();
       params.put("terminology", terminology);
       params.put("version", version);
-      return executeQuery(query, literalField.equals(QueryType.SQL), clazz,
+      return executeQuery(query, QueryType.SQL.toString().equals(literalField), clazz,
           params, manager);
     } else {
       return super.getQueryResults(terminology, version, branch, query,

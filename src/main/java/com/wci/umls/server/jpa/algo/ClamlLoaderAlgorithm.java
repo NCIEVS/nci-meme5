@@ -983,15 +983,8 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
             if (conceptMap.containsKey(parentCode)) {
               final ConceptRelationship relationship =
                   new ConceptRelationshipJpa();
-              // For reference, use the provided id
-              if (id != null) {
-                relationship.setTerminologyId(id);
-              }
-              // otherwise, make a new id
-              else {
-                relationship
-                    .setTerminologyId(Integer.valueOf(relIdCounter++).toString());
-              }
+              relationship
+                  .setTerminologyId(Integer.valueOf(relIdCounter++).toString());
 
               relationship.setTerminology(getTerminology());
               relationship.setVersion(getVersion());

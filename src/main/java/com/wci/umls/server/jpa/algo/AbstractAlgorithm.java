@@ -417,7 +417,7 @@ public abstract class AbstractAlgorithm extends WorkflowServiceJpa
       throw new LocalException("Algorithm properties must not be null");
     }
     for (final String prop : required) {
-      if (prop != "" && !p.containsKey(prop)) {
+      if (!"".equals(prop) && !p.containsKey(prop)) {
         throw new LocalException("Required property " + prop + " missing");
       }
     }

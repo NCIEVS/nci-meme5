@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -98,7 +97,12 @@ public class Rf2FullSourceDataHandler extends AbstractSourceDataHandler {
     String revisedInputDir = null;
 
     // find the FULL file
-    for (final File f : new File(inputDir).listFiles()) {
+    final File[] files = new File(inputDir).listFiles();
+    if (files == null) {
+      throw new LocalException(
+          "Source data directory is not readable: " + inputDir);
+    }
+    for (final File f : files) {
       if (f.getName().equals("Full")) {
         revisedInputDir = f.getAbsolutePath();
       }

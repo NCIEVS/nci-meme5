@@ -340,6 +340,7 @@ public class AssignReleaseIdentifiersAlgorithm extends AbstractAlgorithm {
 
       if (sty == null) {
         logInfo("sty is null " + result.toString() + " " + c.toString());
+        continue;
       }
       // For each semantic type component (e.g. concept.getSemanticTypes())
       final String origAtui = sty.getTerminologyId();

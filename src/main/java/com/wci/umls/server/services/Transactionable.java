@@ -9,10 +9,10 @@ package com.wci.umls.server.services;
 public interface Transactionable {
 
   /** The logging object ct threshold. */
-  public final static int logCt = 2000;
+  public static final int logCt = 2000;
 
   /** The commit count. */
-  public final static int commitCt = 2000;
+  public static final int commitCt = 2000;
 
   /**
    * Gets the transaction per operation.

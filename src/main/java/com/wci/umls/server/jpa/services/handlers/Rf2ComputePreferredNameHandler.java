@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.PrecedenceList;

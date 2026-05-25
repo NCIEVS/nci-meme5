@@ -7,7 +7,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -28,20 +27,10 @@ import com.wci.umls.server.jpa.model.content.ConceptTreePositionJpa;
 import com.wci.umls.server.jpa.model.content.DescriptorJpa;
 import com.wci.umls.server.jpa.model.content.DescriptorNoteJpa;
 import com.wci.umls.server.jpa.model.content.DescriptorTreePositionJpa;
-import com.wci.umls.server.jpa.model.content.LexicalClassJpa;
-import com.wci.umls.server.jpa.model.content.MapSetJpa;
-import com.wci.umls.server.jpa.model.content.StringClassJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.SearchResultJpa;
 import com.wci.umls.server.jpa.model.helpers.SearchResultListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.CodeListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.ConceptListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.DescriptorListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.MapSetListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.MappingListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.RelationshipListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.SubsetListJpa;
-import com.wci.umls.server.jpa.model.helpers.content.SubsetMemberListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreeJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreeListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.TreePositionListJpa;
@@ -52,13 +41,10 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.log4j.Logger;
@@ -101,7 +87,6 @@ import com.wci.umls.server.jpa.algo.TreePositionAlgorithm;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.handlers.EclExpressionHandler;
-import com.wci.umls.server.jpa.services.helper.ReportsAtomComparator;
 import com.wci.umls.server.jpa.services.rest.ContentServiceRest;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomClass;
@@ -500,13 +485,19 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
     } catch (Exception e) {
       handleException(e, "trying to load simple terminology from directory");
     } finally {
-      algo.close();
+      if (algo != null) {
+        algo.close();
+      }
       if (algo2 != null) {
         algo2.close();
       }
-      algo3.close();
+      if (algo3 != null) {
+        algo3.close();
+      }
 
-      contentService.close();
+      if (contentService != null) {
+        contentService.close();
+      }
       securityService.close();
     }
   }
@@ -779,7 +770,9 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       if (algo5 != null) {
         algo5.close();
       }
-      contentService.close();
+      if (contentService != null) {
+        contentService.close();
+      }
       securityService.close();
     }
   }
@@ -895,7 +888,9 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       if (algo5 != null) {
         algo5.close();
       }
-      contentService.close();
+      if (contentService != null) {
+        contentService.close();
+      }
       securityService.close();
     }
 
@@ -995,14 +990,24 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
     } catch (Exception e) {
       handleException(e, "trying to load terminology full from RF2 directory");
     } finally {
-      algo.close();
+      if (algo != null) {
+        algo.close();
+      }
       if (algo2 != null) {
         algo2.close();
       }
-      algo3.close();
-      algo4.close();
-      algo5.close();
-      contentService.close();
+      if (algo3 != null) {
+        algo3.close();
+      }
+      if (algo4 != null) {
+        algo4.close();
+      }
+      if (algo5 != null) {
+        algo5.close();
+      }
+      if (contentService != null) {
+        contentService.close();
+      }
       securityService.close();
     }
 
@@ -1082,11 +1087,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
     } catch (Exception e) {
       handleException(e, "trying to load terminology from ClaML file");
     } finally {
-      algo.close();
+      if (algo != null) {
+        algo.close();
+      }
       if (algo2 != null) {
         algo2.close();
       }
-      algo3.close();
+      if (algo3 != null) {
+        algo3.close();
+      }
       securityService.close();
     }
   }
@@ -1163,11 +1172,15 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
     } catch (Exception e) {
       handleException(e, "trying to load terminology from Owl file");
     } finally {
-      algo.close();
+      if (algo != null) {
+        algo.close();
+      }
       if (algo2 != null) {
         algo2.close();
       }
-      algo3.close();
+      if (algo3 != null) {
+        algo3.close();
+      }
       securityService.close();
     }
   }
@@ -1282,7 +1295,9 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       handleException(e, "trying to retrieve a concept");
       return null;
     } finally {
-      contentService.close();
+      if (contentService != null) {
+        contentService.close();
+      }
       securityService.close();
     }
 
@@ -2922,7 +2937,9 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
       handleException(e, "trying to retrieve trees for a concept");
       return null;
     } finally {
-      contentService.close();
+      if (contentService != null) {
+        contentService.close();
+      }
       securityService.close();
     }
 

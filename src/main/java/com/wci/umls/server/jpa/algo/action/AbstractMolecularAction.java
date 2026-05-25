@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
@@ -44,7 +45,7 @@ public abstract class AbstractMolecularAction extends AbstractAlgorithm
     implements MolecularActionAlgorithm {
 
   /** The Constant LOCK. */
-  private final static String LOCK = "lock";
+  private static final String LOCK = "lock";
 
   /** The concept id. */
   private Long conceptId;
@@ -264,10 +265,10 @@ public abstract class AbstractMolecularAction extends AbstractAlgorithm
           continue;
         }
 
-        if (i == conceptId) {
+        if (Objects.equals(i, conceptId)) {
           concept = new ConceptJpa(tempConcept, true);
         }
-        if (i == conceptId2) {
+        if (Objects.equals(i, conceptId2)) {
           concept2 = new ConceptJpa(tempConcept, true);
         }
 

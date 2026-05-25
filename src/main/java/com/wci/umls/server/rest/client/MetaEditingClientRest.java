@@ -122,7 +122,7 @@ public class MetaEditingClientRest extends RootClientRest
     boolean overrideWarnings, String authToken) throws Exception {
     Logger.getLogger(getClass())
         .debug("MetaEditing Client - add attribute to concept " + projectId
-            + ", " + conceptId + ", " + attribute.toString() + ", "
+            + ", " + conceptId + ", " + String.valueOf(attribute) + ", "
             + lastModified + ", " + overrideWarnings + ", " + authToken);
 
     validateNotEmpty(projectId, "projectId");
@@ -197,7 +197,7 @@ public class MetaEditingClientRest extends RootClientRest
     boolean overrideWarnings, String authToken) throws Exception {
     Logger.getLogger(getClass())
         .debug("MetaEditing Client - add atom to concept " + projectId + ", "
-            + conceptId + ", " + atom.toString() + ", " + lastModified + ", "
+            + conceptId + ", " + String.valueOf(atom) + ", " + lastModified + ", "
             + overrideWarnings + ", " + authToken);
 
     validateNotEmpty(projectId, "projectId");
@@ -271,7 +271,7 @@ public class MetaEditingClientRest extends RootClientRest
     boolean overrideWarnings, String authToken) throws Exception {
     Logger.getLogger(getClass())
         .debug("MetaEditing Client - update atom on concept " + projectId + ", "
-            + conceptId + ", " + atom.toString() + ", " + lastModified + ", "
+            + conceptId + ", " + String.valueOf(atom) + ", " + lastModified + ", "
             + overrideWarnings + ", " + authToken);
 
     validateNotEmpty(projectId, "projectId");
@@ -309,7 +309,7 @@ public class MetaEditingClientRest extends RootClientRest
     boolean overrideWarnings, String authToken) throws Exception {
     Logger.getLogger(getClass())
         .debug("MetaEditing Client - add relationship to concept " + projectId
-            + ", " + conceptId + ", " + relationship.toString() + ", "
+            + ", " + conceptId + ", " + String.valueOf(relationship) + ", "
             + lastModified + ", " + overrideWarnings + ", " + authToken);
 
     validateNotEmpty(projectId, "projectId");
@@ -348,7 +348,7 @@ public class MetaEditingClientRest extends RootClientRest
     String authToken) throws Exception {
     Logger.getLogger(getClass())
         .debug("MetaEditing Client - add relationship to concept " + projectId
-            + ", " + conceptId + ", " + relationships.toString() + ", "
+            + ", " + conceptId + ", " + String.valueOf(relationships) + ", "
             + lastModified + ", " + overrideWarnings + ", " + authToken);
 
     validateNotEmpty(projectId, "projectId");
@@ -501,7 +501,9 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
     validateNotEmpty(conceptId, "conceptId");
     validateNotEmpty(conceptId2, "conceptId2");
-    validateNotEmpty(atomIds.toString(), "atoms");
+    if (atomIds == null) {
+      throw new IllegalArgumentException("Parameter atoms must not be null.");
+    }
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(config.getProperty("base.url")
@@ -510,8 +512,7 @@ public class MetaEditingClientRest extends RootClientRest
         + "&lastModified=" + lastModified + "&conceptId2=" + conceptId2
         + (overrideWarnings ? "&overrideWarnings=true" : ""));
 
-    String atomIdsString = ConfigUtility
-        .getJsonForGraph(atomIds == null ? new ArrayList<Long>() : atomIds);
+    String atomIdsString = ConfigUtility.getJsonForGraph(atomIds);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.json(atomIdsString));

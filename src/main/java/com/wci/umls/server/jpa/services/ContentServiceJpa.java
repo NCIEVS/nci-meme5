@@ -133,7 +133,6 @@ import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomClass;
-import com.wci.umls.server.model.content.AtomRelationship;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Code;
 import com.wci.umls.server.model.content.Component;
@@ -3410,7 +3409,8 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         + conceptId + "/" + terminology + "/" + version + "/" + filter);
 
     // Determine if skipping suppressible (and obsolete by definition)
-    final String suppressibleClause = (pfs.getQueryRestriction() != null
+    final String suppressibleClause = (pfs != null
+        && pfs.getQueryRestriction() != null
         && pfs.getQueryRestriction().equals("suppressible:false")) ? " and a.suppressible = false "
             : "";
 

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import jakarta.persistence.Query;
@@ -185,7 +186,7 @@ public abstract class AbstractMergeAlgorithm
           // If from and to concepts have a relationship between them,
           // do NOT make demotion, and add log entry saying why
           for (final ConceptRelationship rel : fromConcept.getRelationships()) {
-            if (rel.getTo().getId() == toConcept.getId()) {
+            if (Objects.equals(rel.getTo().getId(), toConcept.getId())) {
               // Too many for a large mergeset
               // addLogEntry(getLastModifiedBy(), getProject().getId(),
               // fromConcept.getId(), getActivityId(), getWorkId(),

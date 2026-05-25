@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+    <!-- Preserve CRLF legacy release files; import cleanup there creates noisy diffs. -->
+    <suppress checks="UnusedImports" files="AssignReleaseIdentifiersAlgorithm\.java"/>
+    <suppress checks="UnusedImports" files="FeedbackReleaseAlgorithm\.java"/>
+    <suppress checks="UnusedImports" files="MetamorphoSysReplacementAlgorithm\.java"/>
+    <suppress checks="UnusedImports" files="WriteRrfHistoryFilesAlgorithm\.java"/>
+</suppressions>

@@ -17,7 +17,7 @@ public abstract class AbstractTerminologyLoaderAlgorithm
     extends AbstractAlgorithm implements TerminologyLoaderAlgorithm {
 
   /** LOADER constant for use as userName. */
-  public final static String LOADER = "loader";
+  public static final String LOADER = "loader";
 
   /** The input path. */
   private String inputPath = null;

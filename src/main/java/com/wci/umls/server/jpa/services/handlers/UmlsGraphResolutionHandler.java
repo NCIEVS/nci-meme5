@@ -5,7 +5,6 @@ package com.wci.umls.server.jpa.services.handlers;
 
 import java.util.ArrayList;
 
-import org.apache.log4j.Logger;
 
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomSubsetMember;

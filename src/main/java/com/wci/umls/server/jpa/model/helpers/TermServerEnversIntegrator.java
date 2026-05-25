@@ -13,7 +13,6 @@ import org.hibernate.event.service.spi.EventListenerRegistry;
 import org.hibernate.event.spi.EventType;
 import org.hibernate.service.spi.SessionFactoryServiceRegistry;
 
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
@@ -36,13 +35,21 @@ public class TermServerEnversIntegrator  extends EnversIntegrator {
 
         super.integrate(metadata, sessionFactory, serviceRegistry);
 
-        EnversService enversService = serviceRegistry.getService(EnversService.class);
+        EnversService enversService =
+            serviceRegistry.getService(EnversService.class);
+        if (enversService == null) {
+          throw new HibernateException("Unable to retrieve EnversService");
+        }
         if (!enversService.isInitialized()) {
           throw new HibernateException(
               "Expecting EnversService to have been initialized prior to call to EnversIntegrator#integrate");
         }
         EventListenerRegistry listenerRegistry =
             serviceRegistry.getService(EventListenerRegistry.class);
+        if (listenerRegistry == null) {
+          throw new HibernateException(
+              "Unable to retrieve EventListenerRegistry");
+        }
 
         listenerRegistry.addDuplicationStrategy(EnversListenerDuplicationStrategy.INSTANCE);
 

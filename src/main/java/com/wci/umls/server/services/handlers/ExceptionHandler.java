@@ -25,7 +25,7 @@ import com.wci.umls.server.helpers.LocalException;
 public class ExceptionHandler {
 
   /** Date format */
-  public final static FastDateFormat df =
+  public static final FastDateFormat df =
       FastDateFormat.getInstance("hh:mm:ss a");
 
   /**

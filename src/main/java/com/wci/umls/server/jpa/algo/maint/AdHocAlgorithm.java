@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -3137,6 +3138,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
       if (sty == null) {
         logInfo("sty is null " + result.toString() + " " + c.toString());
+        continue;
       }
       logInfo("[AssignMissingStyAtui]  " + c.getTerminologyId() + " " + sty.getId());
       // For each semantic type component (e.g. concept.getSemanticTypes())
@@ -3431,11 +3433,12 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         final Concept c1 = getConcept(Long.valueOf(result[1].toString()));
         final Concept c2 = getConcept(Long.valueOf(result[2].toString()));
 
+        if (rel == null) {
+          continue;
+        }
         logInfo(
             "Remove demotion: " + rel.getId() + " between " + c1.getId() + " and " + c2.getId());
-        if (rel != null) {
-          removeRelationship(rel.getId(), AtomRelationshipJpa.class);
-        }
+        removeRelationship(rel.getId(), AtomRelationshipJpa.class);
         updateProgress();
       }
 
@@ -3452,7 +3455,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
   private boolean noXRRel(Concept a, Concept b) {
     for (ConceptRelationship cr : a.getRelationships()) {
       if (cr.getRelationshipType().equals("XR")
-          && (cr.getFrom().getId() == b.getId() || cr.getTo().getId() == b.getId())) {
+          && (Objects.equals(cr.getFrom().getId(), b.getId())
+              || Objects.equals(cr.getTo().getId(), b.getId()))) {
         System.out.println("found XR rel: " + a.getId() + " " + b.getId());
         return false;
       }

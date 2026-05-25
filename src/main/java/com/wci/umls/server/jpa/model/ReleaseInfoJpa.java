@@ -25,7 +25,6 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.envers.Audited;
 
 import com.wci.umls.server.model.algo.ReleaseInfo;
 import com.wci.umls.server.model.algo.ReleaseProperty;

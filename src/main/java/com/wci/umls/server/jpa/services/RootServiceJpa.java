@@ -475,7 +475,7 @@ public abstract class RootServiceJpa implements RootService {
     List<T> result = list;
 
     // handle filtering based on query restriction
-    if (pfs != null && pfs.getQueryRestriction() != null
+    if (pfs.getQueryRestriction() != null
         && !pfs.getQueryRestriction().isEmpty()) {
 
       if (pfs.getQueryRestriction().contains(" OR ")) {
@@ -517,26 +517,24 @@ public abstract class RootServiceJpa implements RootService {
     }
 
     // check if sorting required
-    if (pfs != null) {
+    List<String> pfsSortFields = new ArrayList<>();
 
-      List<String> pfsSortFields = new ArrayList<>();
+    // if sort field specified, add to list of sort fields
+    if (pfs.getSortField() != null && !pfs.getSortField().isEmpty()) {
+      pfsSortFields.add(pfs.getSortField());
+    }
 
-      // if sort field specified, add to list of sort fields
-      if (pfs.getSortField() != null && !pfs.getSortField().isEmpty()) {
-        pfsSortFields.add(pfs.getSortField());
-      }
+    // otherwise, if multiple sort fields specified
+    else if (pfs.getSortFields() != null && !pfs.getSortFields().isEmpty()) {
+      pfsSortFields = pfs.getSortFields();
+    }
 
-      // otherwise, if multiple sort fields specified
-      else if (pfs.getSortFields() != null && !pfs.getSortFields().isEmpty()) {
-        pfsSortFields = pfs.getSortFields();
-      }
+    // if one or more sort fields found, apply sorting
+    if (!pfsSortFields.isEmpty() && !pfsSortFields.contains("RANDOM")) {
 
-      // if one or more sort fields found, apply sorting
-      if (!pfsSortFields.isEmpty() && !pfsSortFields.contains("RANDOM")) {
-
-        // declare the final ascending flag and sort fields for comparator
-        final boolean ascending = (pfs != null) ? pfs.isAscending() : true;
-        final List<String> sortFields = pfsSortFields;
+      // declare the final ascending flag and sort fields for comparator
+      final boolean ascending = pfs.isAscending();
+      final List<String> sortFields = pfsSortFields;
 
         // sort the list
         Collections.sort(result, new Comparator<T>() {
@@ -629,8 +627,6 @@ public abstract class RootServiceJpa implements RootService {
           }
         });
       }
-    }
-
     // set the total count
     totalCt[0] = result.size();
 
@@ -638,7 +634,7 @@ public abstract class RootServiceJpa implements RootService {
     int startIndex = 0;
 
     int toIndex = result.size();
-    if (pfs != null && pfs.getStartIndex() != -1) {
+    if (pfs.getStartIndex() != -1) {
       startIndex = pfs.getStartIndex();
       toIndex = Math.min(result.size(), startIndex + pfs.getMaxResults());
       if (startIndex > toIndex) {
@@ -869,9 +865,7 @@ public abstract class RootServiceJpa implements RootService {
     } catch (ParseException e) {
       // If parse exception, try a literal query
       final StringBuilder escapedQuery = new StringBuilder();
-      if (query != null && !query.isEmpty()) {
-        escapedQuery.append(QueryParserBase.escape(query));
-      }
+      escapedQuery.append(QueryParserBase.escape(query));
       fullTextQueryResult = IndexUtility.applyPfsToLuceneQuery(clazz,
           escapedQuery.toString(), pfs, manager);
     }
@@ -1670,18 +1664,17 @@ public abstract class RootServiceJpa implements RootService {
     QueryType queryType, Map<String, String> params,
     Class<? extends Component> clazz, boolean test) throws Exception {
 
-    Logger.getLogger(getClass()).info("  query params = ");
-    for (final String key : params.keySet()) {
-      Logger.getLogger(getClass()).info("   " + key + " -> " + params.get(key));
-    }
-    Logger.getLogger(getClass()).info("  query = " + query);
-
     // If query type is not filled out, return an empty List.
     if (ConfigUtility.isEmpty(query)) {
       return new ArrayList<>();
     }
     // Validate parameters and query
     validateQueryAndParams(query, queryType, params);
+    Logger.getLogger(getClass()).info("  query params = ");
+    for (final String key : params.keySet()) {
+      Logger.getLogger(getClass()).info("   " + key + " -> " + params.get(key));
+    }
+    Logger.getLogger(getClass()).info("  query = " + query);
 
     // Handle the LUCENE case
     if (queryType == QueryType.LUCENE) {
@@ -1751,11 +1744,9 @@ public abstract class RootServiceJpa implements RootService {
       throw new Exception("Unsupported query type " + queryType);
     }
     // Handle special query key-words
-    if (params != null) {
-      for (final String key : params.keySet()) {
-        if (query.contains(":" + key)) {
-          jpaQuery.setParameter(key, params.get(key));
-        }
+    for (final String key : params.keySet()) {
+      if (query.contains(":" + key)) {
+        jpaQuery.setParameter(key, params.get(key));
       }
     }
     if (test) {
@@ -2257,6 +2248,9 @@ public abstract class RootServiceJpa implements RootService {
         } else if (entry[1] instanceof Long) {
           conceptId2 = (Long) entry[1];
         }
+        if (conceptId1 == null || conceptId2 == null) {
+          continue;
+        }
         final Long par = Math.min(conceptId1, conceptId2);
         final Long chd = Math.max(conceptId1, conceptId2);
 
@@ -2462,12 +2456,17 @@ public abstract class RootServiceJpa implements RootService {
 
     if (type == QueryType.LUCENE) {
       // precondition check for lucene queries
-      if (params == null || !params.containsKey("terminology")) {
+      if (params == null) {
         throw new Exception(
             "Execute query should be passed params with the key 'terminology'"
                 + params);
       }
-      if (params == null || !params.containsKey("version")) {
+      if (!params.containsKey("terminology")) {
+        throw new Exception(
+            "Execute query should be passed params with the key 'terminology'"
+                + params);
+      }
+      if (!params.containsKey("version")) {
         throw new Exception(
             "Execute query should be passed params with the key 'version'"
                 + params);
@@ -2477,17 +2476,22 @@ public abstract class RootServiceJpa implements RootService {
 
     else {
       // precondition check for lucene queries
-      if (params == null || !params.containsKey("projectTerminology")) {
+      if (params == null) {
         throw new Exception(
             "Execute query should be passed params with the key 'projectTerminology'"
                 + params);
       }
-      if (params == null || !params.containsKey("terminology")) {
+      if (!params.containsKey("projectTerminology")) {
+        throw new Exception(
+            "Execute query should be passed params with the key 'projectTerminology'"
+                + params);
+      }
+      if (!params.containsKey("terminology")) {
         throw new Exception(
             "Execute query should be passed params with the key 'terminology'"
                 + params);
       }
-      if (params == null || !params.containsKey("version")) {
+      if (!params.containsKey("version")) {
         throw new Exception(
             "Execute query should be passed params with the key 'version'"
                 + params);

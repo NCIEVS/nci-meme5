@@ -201,7 +201,11 @@ public class RrfFileSorter {
   public File findFile(File dir, String prefix) throws Exception {
     File file = null;
     // file
-    for (final File f : dir.listFiles()) {
+    final File[] files = dir.listFiles();
+    if (files == null) {
+      return null;
+    }
+    for (final File f : files) {
       if (f.getName().contains(prefix)) {
         if (file != null)
           throw new Exception("Multiple " + prefix + " files");

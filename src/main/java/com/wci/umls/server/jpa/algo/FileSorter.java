@@ -128,6 +128,9 @@ public class FileSorter {
     if (file.isDirectory()) {
       // Get all files in the folder
       File[] files = file.listFiles();
+      if (files == null) {
+        return;
+      }
 
       for (int i = 0; i < files.length; i++) {
         // Delete each file in the folder

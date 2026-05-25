@@ -349,11 +349,12 @@ public class PropertyUtility {
       return props;
     }
 
-    try (InputStream is =
-        PropertyUtility.class.getResourceAsStream("/config.properties")) {
-      LOGGER.info("Cannot find Spring application.properties resources"
-          + ", looking for config.properties in the classpath");
-      if (is != null) {
+    final InputStream configStream =
+        PropertyUtility.class.getResourceAsStream("/config.properties");
+    LOGGER.info("Cannot find Spring application.properties resources"
+        + ", looking for config.properties in the classpath");
+    if (configStream != null) {
+      try (InputStream is = configStream) {
         props = new Properties();
         props.load(is);
         return props;

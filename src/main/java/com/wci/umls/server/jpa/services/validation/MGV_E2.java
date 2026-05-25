@@ -4,6 +4,7 @@
 package com.wci.umls.server.jpa.services.validation;
 
 import java.util.Properties;
+import java.util.Objects;
 
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
@@ -61,7 +62,7 @@ public class MGV_E2 extends AbstractValidationCheck {
         continue;
       }
       
-      if (rel.getTo().getId() == target.getId()) {
+      if (Objects.equals(rel.getTo().getId(), target.getId())) {
         result.getErrors()
             .add(getName() + ": Concepts are connected by a publishable, "
                 + project.getTerminology() + " concept-relationship");

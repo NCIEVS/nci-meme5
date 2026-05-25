@@ -114,10 +114,10 @@ import com.wci.umls.server.model.workflow.WorkflowStatus;
 public class OwlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
   /** The logging object ct threshold. */
-  private final static int logCt = 2000;
+  private static final int logCt = 2000;
 
   /** The commit count. */
-  private final static int commitCt = 2000;
+  private static final int commitCt = 2000;
 
   /** release version. */
   private String releaseVersion;

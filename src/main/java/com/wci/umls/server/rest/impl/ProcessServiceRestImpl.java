@@ -22,7 +22,6 @@ import com.wci.umls.server.jpa.model.ProcessConfigJpa;
 import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
-import com.wci.umls.server.jpa.model.helpers.ProcessConfigListJpa;
 import com.wci.umls.server.jpa.model.helpers.ProcessExecutionListJpa;
 import com.wci.umls.server.model.algo.AlgorithmConfig;
 import com.wci.umls.server.model.algo.AlgorithmExecution;
@@ -35,13 +34,10 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
@@ -1620,7 +1616,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
         }
       }
 
-      if (step != null && step < -1) {
+      if (step < -1) {
         throw new LocalException("Steps can only be revered one at a time.");
       }
 
@@ -1778,7 +1774,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
         return -1;
       }
       // If process has already completed successfully, return 100
-      if (processExecution != null && processExecution.getFinishDate() != null
+      if (processExecution.getFinishDate() != null
           && processExecution.getFailDate() == null) {
         return 100;
       }
@@ -2119,9 +2115,8 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
                 // algorithm has finished
                 algorithmExecution.setFinishDate(new Date());
               } catch (Exception e) {
-                if ((e != null && e.getMessage() == null) || 
-                    (e != null && e.getMessage() != null && 
-                      !e.getMessage().contains("quiet fail"))) {
+                if (e.getMessage() == null
+                    || !e.getMessage().contains("quiet fail")) {
                   throw e;
                 } else {
                   algorithmExecution.setFailDate(new Date());
@@ -2213,6 +2208,13 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
           // Mark algorithm and process as failed
           try {
+            if (processService == null || processExecution == null
+                || algorithmExecution == null) {
+              if (handleException) {
+                handleException(e, "trying to execute a process");
+              }
+              return;
+            }
 
             // set cancel conditions if cancel was used.
             algorithmExecution.setFailDate(new Date());
@@ -2323,7 +2325,9 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
         } finally {
           try {
-            processService.close();
+            if (processService != null) {
+              processService.close();
+            }
           } catch (Exception e) {
             e.printStackTrace();
           }

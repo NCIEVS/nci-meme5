@@ -22,13 +22,10 @@ import com.wci.umls.server.model.algo.UserRole;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.log4j.Logger;
@@ -886,9 +883,7 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
       String query = "";
 
       // projectId and objectId must be set
-      if (projectId != null) {
-        query += "projectId:" + projectId;
-      }
+      query += "projectId:" + projectId;
       if (objectId != null) {
         query += " AND objectId:" + objectId;
       }
@@ -982,19 +977,8 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
       pfs.setAscending(false);
       pfs.setSortField("lastModified");
 
-      String query = "";
-
-      // Terminology/version and activity must be set
-      if (terminology != null) {
-        query +=
-            (query.length() == 0 ? "" : " AND ") + "terminology:" + terminology;
-      }
-      if (version != null) {
-        query += (query.length() == 0 ? "" : " AND ") + "version:" + version;
-      }
-      if (activity != null) {
-        query += " AND activity:" + activity;
-      }
+      String query = "terminology:" + terminology + " AND version:" + version
+          + " AND activity:" + activity;
 
       if (query.isEmpty()) {
         throw new Exception(

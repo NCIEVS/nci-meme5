@@ -1528,7 +1528,7 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
         // Get the concept for the AUI
         Atom atom = getAtom(atomIdMap.get(fields[3]));
         // These are likely attributes on SRC thing, skip
-        if (atom == null && style == Style.MULTI) {
+        if (atom == null) {
           continue;
         }
         atom.getAttributes().add(att);
@@ -2555,6 +2555,9 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
             && ConfigUtility.isEmpty(ancPath)) {
           continue;
         }
+        if (atom == null) {
+          continue;
+        }
 
         // Skip top-level SRC atoms
         if (atom.getTerminology().equals("SRC")
@@ -2611,6 +2614,9 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
       // If multi, and top-level atom is null, skip it
       if (style == Style.MULTI && atom == null
           && ConfigUtility.isEmpty(ancPath)) {
+        continue;
+      }
+      if (atom == null) {
         continue;
       }
 

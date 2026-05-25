@@ -115,7 +115,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
     //
 
     // NM-258: if large number of atoms, don't validate obsolete ones
-    if (concept.getAtoms().size() > 1000 ) {
+    if (concept != null && concept.getAtoms().size() > 1000 ) {
     	concept.setAtoms(concept.getAtoms().stream().filter(atom -> !atom.isObsolete()).collect(Collectors.toList()));
     }
     if (project != null && concept != null) {
@@ -396,27 +396,11 @@ public class ReportServiceJpa extends HistoryServiceJpa
     //
     // Notes
     //
-    StringBuilder notesBuffer = new StringBuilder();
-    String notesLabel = "CONCEPT NOTE(S)";
-    notesBuffer.append(notesLabel);
-    for (final Note note : concept.getNotes()) {
-      notesBuffer.append(lineEnd)
-          .append(
-              WordUtils.wrap(
-                  "  - " + note.getLastModifiedBy() + "/"
-                      + note.getLastModified() + "  " + note.getNote(),
-                  65, "\r\n    ", true));
-    }
-    if (notesBuffer.toString().length() > notesLabel.length()) {
-      sb.append(notesBuffer.toString());
-      sb.append(lineEnd);
-    }
-
-    notesBuffer = new StringBuilder();
-    notesLabel = "ATOM NOTE(S)";
-    notesBuffer.append(notesLabel);
-    for (final Atom atom : concept.getAtoms()) {
-      for (final Note note : atom.getNotes()) {
+    if (concept != null) {
+      StringBuilder notesBuffer = new StringBuilder();
+      String notesLabel = "CONCEPT NOTE(S)";
+      notesBuffer.append(notesLabel);
+      for (final Note note : concept.getNotes()) {
         notesBuffer.append(lineEnd)
             .append(
                 WordUtils.wrap(
@@ -424,10 +408,28 @@ public class ReportServiceJpa extends HistoryServiceJpa
                         + note.getLastModified() + "  " + note.getNote(),
                     65, "\r\n    ", true));
       }
-    }
-    if (notesBuffer.toString().length() > notesLabel.length()) {
-      sb.append(notesBuffer.toString());
-      sb.append(lineEnd);
+      if (notesBuffer.toString().length() > notesLabel.length()) {
+        sb.append(notesBuffer.toString());
+        sb.append(lineEnd);
+      }
+
+      notesBuffer = new StringBuilder();
+      notesLabel = "ATOM NOTE(S)";
+      notesBuffer.append(notesLabel);
+      for (final Atom atom : concept.getAtoms()) {
+        for (final Note note : atom.getNotes()) {
+          notesBuffer.append(lineEnd)
+              .append(
+                  WordUtils.wrap(
+                      "  - " + note.getLastModifiedBy() + "/"
+                          + note.getLastModified() + "  " + note.getNote(),
+                      65, "\r\n    ", true));
+        }
+      }
+      if (notesBuffer.toString().length() > notesLabel.length()) {
+        sb.append(notesBuffer.toString());
+        sb.append(lineEnd);
+      }
     }
     sb.append(lineEnd);
 
@@ -640,23 +642,24 @@ public class ReportServiceJpa extends HistoryServiceJpa
     // CONTEXTS
     //
 
-    // Check cache
-    final String contexts = getCachedContexts(concept.getId());
-    if (contexts != null) {
-      sb.append(contexts);
-    }
+    if (concept != null) {
+      // Check cache
+      final String contexts = getCachedContexts(concept.getId());
+      if (contexts != null) {
+        sb.append(contexts);
+      }
 
-    else {
+      else {
 
-      final StringBuilder cxtBuilder = new StringBuilder();
-      boolean firstContext = true;
+        final StringBuilder cxtBuilder = new StringBuilder();
+        boolean firstContext = true;
 
-      final TreePositionList treePositionList = findConceptDeepTreePositions(
-          concept.getTerminologyId(), concept.getTerminology(),
-          concept.getVersion(), Branch.ROOT, null, new PfsParameterJpa());
+        final TreePositionList treePositionList = findConceptDeepTreePositions(
+            concept.getTerminologyId(), concept.getTerminology(),
+            concept.getVersion(), Branch.ROOT, null, new PfsParameterJpa());
 
-      // display context for each tree position
-      for (final TreePosition<?> treePos : treePositionList.getObjects()) {
+        // display context for each tree position
+        for (final TreePosition<?> treePos : treePositionList.getObjects()) {
 
         // Write header
         if (firstContext) {
@@ -739,9 +742,10 @@ public class ReportServiceJpa extends HistoryServiceJpa
           }
         }
         cxtBuilder.append(lineEnd);
+        }
+        cacheContexts(concept.getId(), cxtBuilder.toString());
+        sb.append(cxtBuilder.toString());
       }
-      cacheContexts(concept.getId(), cxtBuilder.toString());
-      sb.append(cxtBuilder.toString());
     }
 
     if (comp.getLastModified() != null && comp.getLastModifiedBy() != null) {

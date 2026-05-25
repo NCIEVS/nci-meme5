@@ -241,8 +241,7 @@ public class RootServiceRestImpl {
         && user.getUserPreferences().getPrecedenceList() != null) {
       list = user.getUserPreferences().getPrecedenceList();
     } else if (project != null) {
-      final Project lproject = (project != null ? project
-          : contentService.getProject(user.getUserPreferences().getLastProjectId()));
+      final Project lproject = project;
       final PrecedenceList projectList = lproject.getPrecedenceList();
       if (projectList != null) {
         list = projectList;

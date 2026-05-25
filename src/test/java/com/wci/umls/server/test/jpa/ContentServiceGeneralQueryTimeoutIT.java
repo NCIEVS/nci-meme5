@@ -3,8 +3,6 @@
  */
 package com.wci.umls.server.test.jpa;
 
-import static org.junit.Assert.fail;
-
 import jakarta.persistence.PersistenceException;
 
 import org.apache.log4j.Logger;

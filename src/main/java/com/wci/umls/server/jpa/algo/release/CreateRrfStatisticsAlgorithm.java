@@ -193,9 +193,6 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     try {
       attributes = new BufferedReader(new FileReader(attributesFile));
     } catch (Exception e) {
-      if (attributes != null) {
-        attributes.close();
-      }
       throw new Exception("File not found: " + attributesFile);
     }
 
