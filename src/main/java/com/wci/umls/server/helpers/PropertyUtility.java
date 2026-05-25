@@ -48,14 +48,6 @@ public class PropertyUtility {
   private static final String PROFILE_APPLICATION_PROPERTIES =
       "application-%s.properties";
 
-  /** Enables migration-only legacy run.config.* file loading. */
-  private static final String LEGACY_RUN_CONFIG_ENABLED =
-      "config.legacy.runConfig.enabled";
-
-  /** Environment equivalent for legacy run.config.* file loading. */
-  private static final String LEGACY_RUN_CONFIG_ENABLED_ENV =
-      "CONFIG_LEGACY_RUN_CONFIG_ENABLED";
-
   /** The logger. */
   private static final Logger LOGGER =
       Logger.getLogger(PropertyUtility.class.getName());
@@ -80,7 +72,6 @@ public class PropertyUtility {
     LOGGER.info("  INIT property utility");
     setProperties(loadEnvironmentProperties(env));
     LOGGER.info("Loaded application.properties configuration from Spring environment");
-    logIgnoredLegacyRunConfig(getConfigLabel());
   }
 
   /**
@@ -296,8 +287,7 @@ public class PropertyUtility {
     if (!isEmpty(appDir)) {
       dir = FilenameUtils.separatorsToUnix(appDir);
     } else {
-      final String label = getConfigLabel();
-      String configFile = getLegacyRunConfigFile(label);
+      String configFile = null;
       final java.net.URL url = PropertyUtility.class.getResource("/config.properties");
       if (url != null) {
         configFile = url.getPath();
@@ -353,19 +343,10 @@ public class PropertyUtility {
    * @throws Exception the exception
    */
   private static Properties loadStandaloneProperties() throws Exception {
-    final String label = getConfigLabel();
-
     Properties props = loadApplicationResourceProperties();
     if (props != null) {
       LOGGER.info("Loaded application.properties configuration");
-      logIgnoredLegacyRunConfig(label);
       return props;
-    }
-
-    final String configFileName = getLegacyRunConfigFile(label);
-    if (configFileName != null) {
-      LOGGER.info("  run.config." + label + " = " + configFileName);
-      return loadLegacyConfigFile(configFileName);
     }
 
     try (InputStream is =
@@ -466,7 +447,10 @@ public class PropertyUtility {
     }
     if (isEmpty(configuredProfiles)) {
       configuredProfiles = mergedProperties
-          .getProperty(AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME, "local");
+          .getProperty(AbstractEnvironment.DEFAULT_PROFILES_PROPERTY_NAME);
+    }
+    if (isEmpty(configuredProfiles)) {
+      return new ArrayList<>();
     }
 
     final List<String> profiles = new ArrayList<>();
@@ -477,52 +461,6 @@ public class PropertyUtility {
       }
     }
     return profiles;
-  }
-
-  /**
-   * Indicates whether migration-only run.config.* fallback is enabled.
-   *
-   * @return true if legacy run.config file loading is explicitly enabled
-   */
-  static boolean isLegacyRunConfigEnabled() {
-    String enabled = System.getProperty(LEGACY_RUN_CONFIG_ENABLED);
-    if (isEmpty(enabled)) {
-      enabled = System.getenv(LEGACY_RUN_CONFIG_ENABLED_ENV);
-    }
-    return "true".equalsIgnoreCase(enabled);
-  }
-
-  /**
-   * Returns the legacy run.config file for the label if fallback is enabled.
-   *
-   * @param label the config label
-   * @return the legacy config file, or null
-   */
-  private static String getLegacyRunConfigFile(String label) {
-    final String configFileName = System.getProperty("run.config." + label);
-    if (isEmpty(configFileName)) {
-      return null;
-    }
-    if (!isLegacyRunConfigEnabled()) {
-      logIgnoredLegacyRunConfig(label);
-      return null;
-    }
-    return configFileName;
-  }
-
-  /**
-   * Logs ignored run.config.* settings once configuration has a primary source.
-   *
-   * @param label the config label
-   */
-  private static void logIgnoredLegacyRunConfig(String label) {
-    final String configFileName = System.getProperty("run.config." + label);
-    if (!isEmpty(configFileName)) {
-      LOGGER.info("Ignoring run.config." + label + " because Spring-style"
-          + " application properties are primary. Set "
-          + LEGACY_RUN_CONFIG_ENABLED + "=true only for migration-only"
-          + " fallback when application.properties is unavailable.");
-    }
   }
 
   /**

@@ -12,9 +12,9 @@ This effort **is** modeled after:
 
 This effort is specifically intended to:
 
-- move configuration into `application.properties` and `application-*.properties`
+- move configuration into `application.properties`
 - wire environment-specific and sensitive values through environment variables or injected config
-- use Spring profiles for different configuration setups
+- defer Spring profile files until there is a concrete need for profile-specific overrides
 - add a `setenv.sh` file for local environment setup
 - preserve the current manual Hibernate wiring
 - preserve the current manual Flyway wiring
@@ -28,11 +28,11 @@ This effort is **not** intended, at this stage, to:
 
 ## Story Summary
 
-This story standardizes configuration using Spring and Spring Boot conventions, moving configuration into `application.properties` / `application-*.properties` and wiring them to environment variables.
+This story standardizes configuration using Spring and Spring Boot conventions, moving configuration into `application.properties` and wiring environment-specific values to environment variables.
 
 ## Acceptance Criteria
 
-- Configuration values currently in property files are mapped into Spring Boot-style configuration (`application.properties` / profiles).
+- Configuration values currently in property files are mapped into Spring Boot-style configuration (`application.properties` plus environment overrides).
 - Sensitive or environment-specific settings (DB URL, user/password, pools, feature flags, etc.) are externalized via environment variables or config injection.
 - Application starts successfully using only externalized configuration (no hard-coded environment-specific values).
 - Clear documentation exists on required env vars and how to override them per environment (dev/test/prod).
@@ -117,8 +117,7 @@ This is the model to follow for `NM-278`.
 The target state for this story is:
 
 - `application.properties` contains shared defaults and common settings
-- `application-local.properties`, `application-test.properties`, and `application-prod.properties` provide profile-specific overrides
-- possibly additional profile files exist if needed, but only where they represent real configuration profiles
+- profile-specific property files are deferred until they represent real configuration profiles
 - secrets and environment-specific settings are injected via environment variables
 - Hibernate remains wired manually
 - Flyway remains wired manually
@@ -142,19 +141,16 @@ To keep `NM-278` focused, this story should not expand into:
 
 Those may happen later, but they should not be coupled to this configuration story.
 
-## Recommended Profiles
+## Deferred Profiles
 
-Recommended baseline profiles:
-
-- `local`
-- `test`
-- `prod`
-
-Possibly additional profiles:
+Possible future profiles:
 
 - `sample`
 - `ncimeta`
 - `insert`
+- `local`
+- `test`
+- `prod`
 
 However, those should only become Spring profiles if they truly represent application configuration shapes.
 
@@ -165,12 +161,12 @@ If they are really dataset or workflow modes rather than application environment
 Planned configuration files:
 
 - `src/main/resources/application.properties`
-- `src/main/resources/application-local.properties`
-- `src/main/resources/application-test.properties`
-- `src/main/resources/application-prod.properties`
 
 Possibly later:
 
+- `src/main/resources/application-local.properties`
+- `src/main/resources/application-test.properties`
+- `src/main/resources/application-prod.properties`
 - `src/main/resources/application-sample.properties`
 - `src/main/resources/application-ncimeta.properties`
 - `src/main/resources/application-insert.properties`
@@ -199,7 +195,7 @@ It should document:
 - which vars are required
 - which vars are optional
 - which values are safe defaults for local use
-- how those values map into `application-local.properties`
+- how those values map into `application.properties`
 
 ## Local Startup Notes
 
@@ -237,7 +233,6 @@ The most common optional overrides are:
 The intended local defaults are:
 
 - mail disabled
-- `SPRING_PROFILES_ACTIVE=local`
 - local filesystem paths under the repo root unless overridden
 - local DB host/port defaults with credentials provided externally as needed
 
@@ -307,14 +302,12 @@ to:
 
 ### Proposed transitional behavior
 
-During migration, `ConfigUtility.getConfigProperties()` should load configuration using this priority:
+Runtime configuration should load using this priority:
 
 1. Spring environment / `application*.properties`
 2. environment variables and JVM property overrides
-3. explicitly-enabled temporary fallback to legacy `run.config.*` only if the
-   Spring application property bridge is unavailable
 
-Once startup and tests are fully migrated, the legacy fallback can be removed.
+The temporary legacy `run.config.*` file fallback has been removed.
 
 ### Benefits of the bridge
 
@@ -376,9 +369,6 @@ Tasks:
 - add minimal Spring Boot bootstrap support to the project
 - add:
   - `application.properties`
-  - `application-local.properties`
-  - `application-test.properties`
-  - `application-prod.properties`
 - exclude Spring auto-configuration for JDBC/JPA/transaction manager if needed to preserve manual Hibernate and Flyway wiring
 - add a minimal application bootstrap class if required
 
@@ -456,12 +446,12 @@ Tasks:
 - update `build.gradle` tasks that currently assume `run.config.*`
 - update `.vscode/tasks.json` and startup conventions
 - update Tomcat launch conventions if they remain in use
-- update integration test conventions to use Spring profiles and environment-backed config
+- update integration test conventions to use environment-backed config
 - update admin tasks to read from the new property system
 
 Deliverable:
 
-- app, admin tasks, and test flows work using profile-driven Spring config
+- app, admin tasks, and test flows work using Spring config plus environment overrides
 
 ### Phase 7: Remove or deprecate legacy config files
 
@@ -550,7 +540,7 @@ Legacy config should only be removed once the compatibility bridge and updated w
 
 The story should aim to produce the following:
 
-1. `application.properties` plus baseline profile-specific property files exist.
+1. `application.properties` exists for shared defaults.
 2. Spring Boot property loading is active for the application.
 3. `ConfigUtility.getConfigProperties()` returns Spring-backed properties.
 4. Sensitive values are externalized through env vars.
@@ -563,7 +553,7 @@ The story should aim to produce the following:
 This is the recommended sequence once implementation begins.
 
 1. Add Spring Boot configuration skeleton.
-2. Add `application.properties` and `application-local.properties`.
+2. Add `application.properties`.
 3. Refactor `ConfigUtility` to read Spring-loaded properties first.
 4. Migrate common and local settings into Spring property files.
 5. Add `config/local/setenv.sh`.
@@ -593,25 +583,21 @@ Current status note:
 
 - [x] Add minimal Spring Boot configuration/bootstrap support to the project
 - [x] Add `src/main/resources/application.properties`
-- [x] Add `src/main/resources/application-local.properties`
-- [x] Add `src/main/resources/application-test.properties`
-- [x] Add `src/main/resources/application-prod.properties`
+- [x] Defer `application-local.properties`, `application-test.properties`, and `application-prod.properties` until they are needed
 - [x] Exclude Spring JDBC/JPA auto-config if needed to preserve manual Hibernate/Flyway wiring
 
 ### Compatibility bridge
 
 - [x] Refactor `ConfigUtility.getConfigProperties()` to load from Spring environment
 - [x] Preserve return type as `Properties`
-- [x] Add temporary fallback for legacy `run.config.*` if needed
+- [x] Remove temporary fallback for legacy `run.config.*`
 - [x] Add clear logging of active config source/profile
 - [x] Keep current callers working without broad application rewrites
 
 ### Property migration
 
 - [x] Move shared app properties into `application.properties`
-- [x] Move local overrides into `application-local.properties`
-- [x] Move test overrides into `application-test.properties`
-- [x] Move prod/deploy overrides into `application-prod.properties`
+- [x] Keep local/test/prod overrides as environment variables for now
 - [x] Convert sensitive values to `${ENV_VAR}` placeholders
 - [x] Convert machine-specific filesystem settings to `${ENV_VAR}` placeholders
 
@@ -627,12 +613,12 @@ Current status note:
 - [x] Update `build.gradle` tasks that currently depend on `run.config.*`
 - [x] Update `.vscode/tasks.json`
 - [x] Update Tomcat launch/startup approach if still applicable
-- [x] Update local run instructions to use Spring profiles and env vars
+- [x] Update local run instructions to use env vars
 - [x] Update admin task entrypoints to read new configuration
 
 ### Testing
 
-- [x] Update integration tests to use `application-test.properties` or equivalent
+- [x] Update integration tests to use `application.properties` plus env/system-property overrides
 - [ ] Confirm tests can run without legacy `config*.properties`
 - [ ] Validate sample / ncimeta / insert flows under the new model
 - [x] Verify at least one REST test flow and one admin flow
@@ -685,20 +671,15 @@ Current proof points:
   Spring/env-backed config path and authenticated successfully, but the REST
   endpoint returned HTTP 500. Treat that as a separate server-up reindex issue,
   not evidence against the usual server-down admin flow.
-- `ConfigUtility.getConfigProperties()` now loads Spring-style
-  `application*.properties` first. Direct legacy `run.config.*` file loading is
-  only available when `config.legacy.runConfig.enabled=true` or
-  `CONFIG_LEGACY_RUN_CONFIG_ENABLED=true` is explicitly set, and only as a
-  fallback when the Spring application property bridge is unavailable.
+- Runtime configuration now loads Spring-style `application*.properties` first.
+  Direct legacy `run.config.*` file loading has been removed.
 - Focused unit coverage for `ConfigUtilityUnitTest` and
   `ConfigureServiceRestImplUnitTest` passed after the compatibility bridge was
   tightened.
 - Local Tomcat smoke testing after the compatibility bridge tightening looked
   healthy on April 30, 2026.
-- Decision: keep the gated legacy `run.config.*` fallback temporarily. It no
-  longer has override precedence, but it remains available as an explicit
-  migration-only escape hatch while sample / ncimeta / insert flows are
-  translated to the new env-backed model.
+- Decision: remove the gated legacy `run.config.*` fallback after the normal
+  sample / ncimeta / insert flows were translated to the env-backed model.
 - `docs/database-load-and-test-instructions.md` was translated to the
   env-backed model on April 30, 2026. Normal sample / ncimeta / insert examples
   now source `config/local/setenv.sh` and no longer use `-Drun.config.*`.
@@ -721,6 +702,7 @@ Current proof points:
 - [x] Remove any unused `config-demo.properties`
 - [x] Remove or retire `label.prop`
 - [x] Retire direct `run.config.*` override precedence
+- [x] Remove gated legacy `run.config.*` fallback
 - [x] Remove or simplify assembly/package artifacts that only support legacy config packaging
 
 ### Documentation

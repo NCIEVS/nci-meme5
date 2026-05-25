@@ -28,9 +28,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 WORKSPACE_ROOT="$(cd "${REPO_ROOT}/.." && pwd)"
 
 # Core app/data layout
-export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-local}"
-export CONFIG_LEGACY_RUN_CONFIG_ENABLED="${CONFIG_LEGACY_RUN_CONFIG_ENABLED:-false}"
 export APP_DIR="${APP_DIR:-$WORKSPACE_ROOT/meme-jdk17}"
+export CATALINA_BASE="${CATALINA_BASE:-$APP_DIR}"
 export DATA_DIR="${DATA_DIR:-$APP_DIR/data}"
 export INDEX_DIR="${INDEX_DIR:-$DATA_DIR/indexes-jdk17}"
 export LVG_DIR="${LVG_DIR:-$DATA_DIR/lvg2020}"
@@ -104,9 +103,8 @@ export MAIL_TO="${MAIL_TO:-}"
 set +a
 
 echo "Loaded local NM-278 environment from ${SCRIPT_DIR}/setenv.sh"
-echo "  SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}"
-echo "  CONFIG_LEGACY_RUN_CONFIG_ENABLED=${CONFIG_LEGACY_RUN_CONFIG_ENABLED}"
 echo "  APP_DIR=${APP_DIR}"
+echo "  CATALINA_BASE=${CATALINA_BASE}"
 echo "  DATA_DIR=${DATA_DIR}"
 echo "  INDEX_DIR=${INDEX_DIR}"
 echo "  SOURCE_DATA_DIR=${SOURCE_DATA_DIR}"

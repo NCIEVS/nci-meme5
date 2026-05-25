@@ -6,13 +6,10 @@ The normal path is now Spring-style application properties plus environment
 variables:
 
 - `src/main/resources/application.properties`
-- `src/main/resources/application-*.properties`
 - `config/local/setenv.sh`
 
 Legacy `-Drun.config.*=/path/to/config.properties` files no longer override
-the Spring-backed configuration. A gated migration fallback still exists, but
-only for older runtimes where the Spring application property bridge is
-unavailable.
+the Spring-backed configuration.
 
 For each flow below, set any local overrides first, then source the bootstrap:
 
@@ -43,6 +40,10 @@ source config/local/setenv.sh
 ./gradlew bootRun
 ```
 
+The local bootstrap sets `CATALINA_BASE` to `APP_DIR` by default, and
+`bootRun` passes that value into the JVM as `catalina.base` for the Log4j user
+activity appender.
+
 Then open:
 
 ```text
@@ -54,6 +55,14 @@ To package the executable web artifact:
 ```sh
 source config/local/setenv.sh
 ./gradlew bootWar
+```
+
+When running the packaged executable WAR directly, pass the same base directory
+as a JVM system property:
+
+```sh
+source config/local/setenv.sh
+java -Dcatalina.base="$CATALINA_BASE" -jar build/libs/ROOT-2.0.0-SNAPSHOT-webapp.war
 ```
 
 ## Load The Sample DB
@@ -246,15 +255,3 @@ Run the NCI-META load steps against that selected insertion database, then run:
 `AtomLoaderAlgorithmIT`, `RelationshipLoaderAlgorithmIT`,
 `ContextLoaderAlgorithmIT`, `SemanticTypeLoaderAlgorithmIT`, and
 `AttributeLoaderAlgorithmIT`.
-
-## Legacy Fallback
-
-The legacy form is retained only as migration documentation. In the current
-runtime, `application*.properties` remain primary even if `run.config.*` is
-passed.
-
-```sh
-./gradlew adminCreateDb \
-  -Dconfig.legacy.runConfig.enabled=true \
-  -Drun.config.umls=/path/to/config.properties
-```

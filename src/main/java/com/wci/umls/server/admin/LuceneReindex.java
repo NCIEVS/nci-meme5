@@ -24,10 +24,10 @@ import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
  *   # Leave indexed.objects blank to rebuild all Lucene indexes.
  *   ./gradlew adminReindex -Pserver=false
  *
- *   # Legacy migration fallback:
- *   ./gradlew adminReindex -Pindexed.objects=ConceptJpa -Pserver=false -Drun.config.umls=/path/to/config.properties
- *   # or directly: java -Dindexed.objects=ConceptJpa -Dserver=false -Drun.config.umls=/path/to/config.properties -cp ... \
- *   #              com.wci.umls.server.admin.LuceneReindex
+ *   # Direct Java invocation still reads Spring-style application.properties
+ *   # and environment variables.
+ *   java -Dindexed.objects=ConceptJpa -Dserver=false -cp ... \
+ *       com.wci.umls.server.admin.LuceneReindex
  * </pre>
  */
 public class LuceneReindex {

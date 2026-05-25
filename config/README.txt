@@ -6,7 +6,7 @@ retired for normal local and application startup.
 Preferred configuration path:
 
 - shared defaults in `src/main/resources/application.properties`
-- environment/profile overrides in `src/main/resources/application-*.properties`
+- environment variable or JVM system property overrides
 - local developer setup through `config/local/setenv.sh`
 
 The old `config/dev-windows` packaged config files have been removed. Their
@@ -21,7 +21,9 @@ The remaining `config/prod-nci-meta` resources are no longer a runtime
 - operational scripts, metadata support files, and table-generator migration
   SQL that still need separate review before cleanup
 
-New configuration changes should be made in the Spring-style property files
-first. New web branding/content overrides should be added through the explicit
-web-resource overlay path in `build.gradle`, not by reviving packaged
-`config.properties` files.
+New default configuration changes should be made in
+`src/main/resources/application.properties` first. Environment-specific values
+should be supplied as environment variables or JVM system properties. New web
+branding/content overrides should be added through the explicit web-resource
+overlay path in `build.gradle`, not by reviving packaged `config.properties`
+files.

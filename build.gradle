@@ -36,9 +36,9 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'org.springframework.boot'
 
 group = 'com.wcinformatics.umls.server'
-version = '1.5.1-SNAPSHOT'
+version = '2.0.0-SNAPSHOT'
 // Saved separately so adminJvmArgs can suppress the artifact version even when -Pversion overrides project.version
-ext.artifactVersion = '1.5.1-SNAPSHOT'
+ext.artifactVersion = '2.0.0-SNAPSHOT'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -56,6 +56,18 @@ configurations.all {
 
 springBoot {
     mainClass = 'com.wci.umls.Application'
+}
+
+def localCatalinaBase = {
+    def catalinaBase = System.getenv('CATALINA_BASE')
+    if (catalinaBase != null && !catalinaBase.trim().isEmpty()) {
+        return catalinaBase
+    }
+    def appDir = System.getenv('APP_DIR')
+    if (appDir != null && !appDir.trim().isEmpty()) {
+        return appDir
+    }
+    return project.projectDir.absolutePath
 }
 
 // ── Version constants ──────────────────────────────────────────────────────────
@@ -220,7 +232,7 @@ war {
     webAppDirectory = generatedWebappDir
 
     // Legacy label.prop packaging is no longer required for the normal local
-    // or profile-based startup path. ConfigUtility now prefers runtime
+    // or Spring Boot startup path. ConfigUtility now prefers runtime
     // run.config.label / RUN_CONFIG_LABEL overrides if a legacy label is needed.
 }
 
@@ -239,6 +251,11 @@ bootWar {
 bootRun {
     dependsOn prepareWebapp
     systemProperty 'spring.web.resources.static-locations', generatedWebappDir.toURI().toString()
+    doFirst {
+        def base = localCatalinaBase()
+        systemProperty 'catalina.base', base
+        file("${base}/logs").mkdirs()
+    }
 }
 
 // ── Exploded WAR for SmartTomcat deployment ───────────────────────────────────
@@ -267,9 +284,6 @@ sourceSets {
 //   source config/local/setenv.sh
 //   ./gradlew integrationTest
 //
-// Legacy migration fallback:
-//   ./gradlew integrationTest -Drun.config.umls=/path/to/config.properties
-//
 // Optionally filter:  --tests "com.wci.umls.server.test.jpa.*"
 //                     --tests "com.wci.umls.server.test.rest.*"  (requires running server)
 tasks.register('integrationTest', Test) {
@@ -279,15 +293,10 @@ tasks.register('integrationTest', Test) {
     // Include only *IT classes; exclude the plain *Test classes run by :test
     include '**/*IT.class'
 
-    // Temporary migration fallback: forward explicitly-enabled legacy config
-    // properties so ConfigUtility can still find an old-style config file
-    // when the Spring application.properties bridge is unavailable.
-    // Also forward opt-in Flyway smoke-test properties; those tests require
+    // Forward opt-in Flyway smoke-test properties; those tests require
     // disposable database URLs and are skipped unless explicitly enabled.
     System.getProperties().each { key, value ->
-        if (key.toString().startsWith('run.config.') ||
-                key.toString() == 'config.legacy.runConfig.enabled' ||
-                key.toString().startsWith('flyway.it.')) {
+        if (key.toString().startsWith('flyway.it.')) {
             systemProperty key.toString(), value.toString()
         }
     }
@@ -305,10 +314,6 @@ tasks.register('integrationTest', Test) {
 // e.g.:  ./gradlew adminReindex -Pindexed.objects=ConceptJpa -Pserver=false
 // Preferred local usage is to source config/local/setenv.sh first so the
 // Spring-style application properties resolve from environment variables.
-// Legacy fallback still supports passing both
-// -Dconfig.legacy.runConfig.enabled=true and -Drun.config.<label>=<path> to
-// point at an old config.properties file during migration, but only when the
-// Spring application.properties bridge is unavailable.
 def adminJvmArgs(Map<String, String> propNames) {
     def args = propNames.collect { key, _ ->
         def val = project.findProperty(key)
@@ -319,17 +324,6 @@ def adminJvmArgs(Map<String, String> propNames) {
             val != null ? "-D${key}=${val}" : null
         }
     }.findAll { it != null }
-
-    // Also check for direct system properties passed via -D flags.
-    // This preserves the explicitly-enabled run.config.* migration fallback and
-    // also allows -Dversion=2016AA to bypass the Gradle 'version' property collision.
-    def sysProps = System.getProperties()
-    sysProps.each { key, value ->
-        if (key.toString().startsWith('run.config.') ||
-                key.toString() == 'config.legacy.runConfig.enabled') {
-            args.add("-D${key}=${value}")
-        }
-    }
 
     // Forward any propName keys provided as -D system properties that aren't
     // already covered by the -P project-property path above.

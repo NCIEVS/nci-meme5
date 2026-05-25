@@ -29,7 +29,6 @@ public class ConfigureServiceRestImplUnitTest {
   @After
   public void teardown() throws Exception {
     System.clearProperty("app.dir");
-    System.clearProperty("config.legacy.runConfig.enabled");
     System.clearProperty("spring.profiles.active");
     System.clearProperty("user.home");
     System.clearProperty("run.config.umls");
@@ -46,7 +45,6 @@ public class ConfigureServiceRestImplUnitTest {
   public void testGetStartingConfigurationPrefersSpringProperties()
     throws Exception {
     System.setProperty("app.dir", "/tmp/nm278-configure-test");
-    System.setProperty("spring.profiles.active", "local");
 
     final ConfigureServiceRestImpl service = new ConfigureServiceRestImpl();
     final Properties properties = service.getStartingConfiguration();
@@ -99,7 +97,6 @@ public class ConfigureServiceRestImplUnitTest {
     assertTrue(appDir.mkdirs());
 
     System.setProperty("user.home", tempHome.getAbsolutePath());
-    System.setProperty("spring.profiles.active", "local");
     System.setProperty("app.dir", appDir.getAbsolutePath());
     PropertyUtility.resetProperties();
 

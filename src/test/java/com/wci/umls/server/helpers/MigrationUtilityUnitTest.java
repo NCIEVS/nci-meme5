@@ -36,7 +36,6 @@ public class MigrationUtilityUnitTest {
   @Test
   public void testApplicationPropertiesIncludeFlywayDefaults() throws Exception {
     System.setProperty("app.dir", "/tmp/nm280-flyway-test");
-    System.setProperty("spring.profiles.active", "local");
 
     final Properties properties = PropertyUtility.loadApplicationProperties();
 
