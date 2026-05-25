@@ -31,7 +31,6 @@ public class ConfigUtilityUnitTest {
   @After
   public void teardown() throws Exception {
     System.clearProperty("app.dir");
-    System.clearProperty("config.legacy.runConfig.enabled");
     System.clearProperty("DB_POOL_NAME");
     System.clearProperty("spring.profiles.active");
     System.clearProperty("run.config.umls");
@@ -58,7 +57,6 @@ public class ConfigUtilityUnitTest {
   @Test
   public void testApplicationPropertiesBridge() throws Exception {
     System.setProperty("app.dir", "/tmp/nm278-config-test");
-    System.setProperty("spring.profiles.active", "local");
 
     final Properties properties = PropertyUtility.loadApplicationProperties();
     assertNotNull(properties);
@@ -67,7 +65,7 @@ public class ConfigUtilityUnitTest {
         properties.getProperty("source.data.dir"));
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
-    assertEquals("local", properties.getProperty("spring.profiles.active"));
+    assertFalse(properties.containsKey("spring.profiles.active"));
   }
 
   /**
@@ -79,7 +77,6 @@ public class ConfigUtilityUnitTest {
   public void testHikariConfigurationReplacesC3p0() throws Exception {
     System.setProperty("app.dir", "/tmp/nm279-hikari-test");
     System.setProperty("DB_POOL_NAME", "NciMemeHikariCPPool");
-    System.setProperty("spring.profiles.active", "local");
 
     final Properties properties = PropertyUtility.loadApplicationProperties();
 
@@ -150,19 +147,17 @@ public class ConfigUtilityUnitTest {
   }
 
   /**
-   * Verifies Spring-style properties win over legacy run.config settings.
+   * Verifies Spring-style properties ignore legacy run.config settings.
    *
    * @throws Exception the exception
    */
   @Test
-  public void testApplicationPropertiesPrecedeLegacyRunConfig() throws Exception {
+  public void testApplicationPropertiesIgnoreLegacyRunConfig() throws Exception {
     final File tempFile = File.createTempFile("config", ".properties");
     try (FileWriter writer = new FileWriter(tempFile)) {
       writer.write("base.url=http://legacy.example\n");
     }
     System.setProperty("app.dir", "/tmp/nm278-config-test");
-    System.setProperty("spring.profiles.active", "local");
-    System.setProperty("config.legacy.runConfig.enabled", "true");
     System.setProperty("run.config.umls", tempFile.getAbsolutePath());
 
     final Properties properties = PropertyUtility.getProperties();
@@ -179,7 +174,6 @@ public class ConfigUtilityUnitTest {
   @Test
   public void testGetHomeDirsFromApplicationProperties() throws Exception {
     System.setProperty("app.dir", "/tmp/nm278-home");
-    System.setProperty("spring.profiles.active", "local");
 
     final Map<String, String> homeDirs = PropertyUtility.getHomeDirs();
     assertEquals("/tmp/nm278-home/bin", homeDirs.get("bin"));

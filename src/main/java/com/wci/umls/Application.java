@@ -3,8 +3,6 @@
  */
 package com.wci.umls;
 
-import java.io.File;
-
 import org.apache.tomcat.util.buf.EncodedSolidusHandling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +38,6 @@ import com.wci.umls.server.rest.impl.UserActivityLoggingFilter;
 })
 public class Application extends SpringBootServletInitializer {
 
-  static {
-    configureCatalinaBase();
-  }
-
   /** The logger. */
   private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
@@ -53,7 +47,6 @@ public class Application extends SpringBootServletInitializer {
    * @param args command line arguments
    */
   public static void main(String[] args) {
-    configureCatalinaBase();
     ConfigurableApplicationContext app = null;
     try {
       app = SpringApplication.run(Application.class, args);
@@ -62,25 +55,6 @@ public class Application extends SpringBootServletInitializer {
       int exitCode = SpringApplication.exit(app, () -> 1);
       System.exit(exitCode);
     }
-  }
-
-  /**
-   * Provides a Tomcat-style base directory before Log4j initializes appenders.
-   */
-  private static void configureCatalinaBase() {
-    if (System.getProperty("catalina.base") != null
-        && !System.getProperty("catalina.base").isBlank()) {
-      return;
-    }
-    String base = System.getenv("CATALINA_BASE");
-    if (base == null || base.isBlank()) {
-      base = System.getenv("APP_DIR");
-    }
-    if (base == null || base.isBlank()) {
-      base = System.getProperty("user.dir");
-    }
-    System.setProperty("catalina.base", base);
-    new File(base, "logs").mkdirs();
   }
 
   /**

@@ -1,36 +1,72 @@
 # global service name
-SERVICE                 := umls-terminology-service
+SERVICE                 := nci-meme5
 
-INTERACTIVE := $(shell [ -t 0 ] && echo 1)
 #######################################################################
 #                 OVERRIDE THIS TO MATCH YOUR PROJECT                 #
 #######################################################################
+APP_VERSION             := $(shell grep "^version =" build.gradle | sed "s/version = //; s/'//g")
+VERSION                 := $(shell grep "^version =" build.gradle | sed "s/version = //; s/'//g; s/-SNAPSHOT//")
 
-# Most applications have their own method of maintaining a version number.
-APP_VERSION             := $(shell echo `grep "<version>" pom.xml | perl -pe 's/ *<\/?version>//g'`)
-GIT_VERSION             ?= $(shell echo `git describe --match=NeVeRmAtCh --always --dirty`)
-GIT_COMMIT              ?= $(shell echo `git log | grep -m1 -oE '[^ ]+$'`)
-GIT_COMMITTED_AT        ?= $(shell echo `git log -1 --format=%ct`)
+# Builds should be repeatable, therefore we need a method to reference the git
+# sha where a version came from.
+GIT_VERSION             ?= $(shell git describe --match=NeVeRmAtCh --always --dirty)
+GIT_COMMIT              ?= $(shell git log -1 --format=%H)
+GIT_COMMITTED_AT        ?= $(shell git log -1 --format=%ct)
 GIT_BRANCH              ?=
+FULL_VERSION            := v$(APP_VERSION)-g$(GIT_VERSION)
 
-.PHONY: target
+SHELL                   := /bin/bash
+GRADLEW                 ?= ./gradlew
+ENV_FILE                ?= config/local/setenv.sh
+WITH_ENV                := source $(ENV_FILE)
+WITHOUT_LOCAL_PATH_ENV  := unset APP_DIR CATALINA_BASE DATA_DIR INDEX_DIR LVG_DIR SOURCE_DATA_DIR
+UNIT_TEST_PATTERN       ?= *UnitTest
 
-# Clean build artifacts. Override for your project
+.PHONY: help clean build test run quality migrate migrate-info migrate-validate scan version
+
+help:
+	@echo "Common targets for $(SERVICE):"
+	@echo "  make build            Clean and assemble Gradle artifacts"
+	@echo "  make test             Run the unit test suite"
+	@echo "  make run              Start the app locally with Spring Boot"
+	@echo "  make quality          Run Gradle verification checks and unit tests"
+	@echo "  make migrate          Run Flyway migrations"
+	@echo "  make migrate-info     Show Flyway migration status"
+	@echo "  make migrate-validate Validate Flyway migrations"
+	@echo "  make scan             Run Trivy filesystem scan when Trivy is installed"
+
 clean:
-	./mvnw clean
+	$(WITH_ENV); $(GRADLEW) clean
+
+build:
+	$(WITH_ENV); $(GRADLEW) clean assemble
 
 test:
-	./mvnw package -DskipTests=false
+	$(WITH_ENV); $(WITHOUT_LOCAL_PATH_ENV); $(GRADLEW) test --tests '$(UNIT_TEST_PATTERN)'
 
-install:
-	./mvnw -Dconfig.artifactId=term-server-config-prod install -DskipTests=true
+run:
+	$(WITH_ENV); $(GRADLEW) bootRun
 
-adminlucene:
-	mvn install -DskipTests=true -PReindex -Drun.config.umls=$(config)
+quality:
+	$(WITH_ENV); $(WITHOUT_LOCAL_PATH_ENV); $(GRADLEW) check -x test
+	$(WITH_ENV); $(WITHOUT_LOCAL_PATH_ENV); $(GRADLEW) test --tests '$(UNIT_TEST_PATTERN)'
 
-# Publish artifacts to nexus (requires a local .gradle/gradle.properties propery configured)
-#release:
-#	./mvnw TBD
+migrate:
+	$(WITH_ENV); $(GRADLEW) adminFlywayMigrate
+
+migrate-info:
+	$(WITH_ENV); $(GRADLEW) adminFlywayInfo
+
+migrate-validate:
+	$(WITH_ENV); $(GRADLEW) adminFlywayValidate
+
+scan:
+	$(WITH_ENV); \
+	if ! command -v trivy >/dev/null 2>&1; then \
+		echo "Trivy is not installed. Skipping scan."; \
+	else \
+		trivy fs --severity HIGH,CRITICAL --exit-code 1 .; \
+	fi
 
 version:
 	@echo $(APP_VERSION)

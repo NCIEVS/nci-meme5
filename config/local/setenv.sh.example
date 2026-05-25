@@ -7,12 +7,9 @@
 #   source config/local/setenv.sh
 #   source config/local/setenv.sh.example
 
-# Profile
-export SPRING_PROFILES_ACTIVE=local
-export CONFIG_LEGACY_RUN_CONFIG_ENABLED=false
-
 # Paths
 export APP_DIR="$HOME/Code/workspace-meme/meme-jdk17"
+export CATALINA_BASE="$APP_DIR"
 export DATA_DIR="$APP_DIR/data"
 export INDEX_DIR="$DATA_DIR/indexes-jdk17"
 export LVG_DIR="$DATA_DIR/lvg2020"

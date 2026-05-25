@@ -47,7 +47,7 @@ Relevant files:
 
 - `build.gradle`
   - applies `java` and `war`
-  - builds `ROOT-1.5.1-SNAPSHOT.war`
+  - builds `ROOT-2.0.0-SNAPSHOT.war`
   - creates `build/exploded` for SmartTomcat/external Tomcat deployment
   - has no Spring Boot Gradle plugin yet
 - `src/main/java/com/wci/umls/server/rest/impl/TermServerApplication.java`

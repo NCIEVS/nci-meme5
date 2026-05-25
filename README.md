@@ -1,57 +1,165 @@
-UMLS Terminology Server
-=========================
+# NCI MEME 5
 
-This is a generic terminology server back end project.
+NCI MEME 5 is the UMLS Terminology Server codebase used for MEME-style
+terminology editing, metadata loading, release support, validation, and REST UI
+workflows. The application is a Java 17 Gradle project that packages a WAR and
+can also run locally through Spring Boot.
 
-This project hosts a basic UI that calls a set of REST APIs built around 
-a UMLS data model. The API is fully documented with Swagger (http://swagger.io)
+## Architecture
 
+At a high level the project is organized around:
 
-A reference deployment of the system exists here:
-https://umls.terminology.tools/
+- `src/main/java` - application entry point, REST services, admin utilities,
+  algorithms, helpers, and service implementations.
+- `src/main/resources` - Spring-style runtime configuration, Log4j settings,
+  JPA persistence metadata, Flyway migrations, and parser resources.
+- `src/main/webapp` - legacy web UI assets packaged into the WAR.
+- `src/test/java` and `src/test/resources` - unit tests and integration test
+  support.
+- `config` - local and deployment configuration defaults, sample terminology
+  data, and environment bootstrap files.
+- `docs` - migration plans and detailed local database/test procedures.
 
-Project Structure
------------------
-This is a flattened, single-module web application project.
+Runtime configuration is driven by `src/main/resources/application.properties`
+with environment variables supplied by `config/local/setenv.sh`. The project
+keeps Hibernate/JPA and Flyway wiring explicit in the application/admin code
+instead of relying on Spring Boot JDBC or JPA auto-configuration.
 
-* `src/main/java`: Application source code, encompassing models, JPA entities, REST services, and algorithms.
-* `src/main/resources`: Configuration properties and default data.
-* `src/main/webapp`: The basic UI and JavaScript resources.
-* `src/test/java`: Unit and integration tests (classes ending in `*IT.java`).
-* `src/test/resources`: Test configurations.
+## Prerequisites
 
-Auxiliary paths:
-* `admin`: Admin tools (as Maven plugins/POMs).
-* `config`: Sample config files and data for environments.
+- Java 17.
+- The checked-in Gradle wrapper, `./gradlew`.
+- GNU Make or a compatible `make`.
+- Bash for sourcing `config/local/setenv.sh`.
+- MySQL reachable from the values in `config/local/setenv.sh`; local defaults
+  use `127.0.0.1:3306`, database `ncimdb`, and user `root`.
+- Local data directories for `APP_DIR`, `DATA_DIR`, `INDEX_DIR`, and `LVG_DIR`.
+  The bootstrap script creates the expected values but not the full data
+  payloads.
+- Trivy only if you plan to use `make scan`.
 
-Documentation
--------------
-Find comprehensive documentation here: http://wiki.terminology.tools/confluence/display/UTS/UMLS+Terminology+Server+Home
+For local overrides, export variables before sourcing the bootstrap:
 
-License
--------
-See the included LICENSE.txt file.
+```sh
+export DB_NAME=ncimdbmeta
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DATA_DIR="$APP_DIR/data_sample"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+source config/local/setenv.sh
+```
 
-Database Setup (MySQL)
-----------------------
-1. Install and start MySQL.
-2. Create the main database and configure your connection properties.
-3. The JPA framework (Hibernate) is configured to automatically create/update the schema during startup if `hibernate.hbm2ddl.auto` is configured correctly, or you can use the admin tools to load the schema.
+The Makefile targets source `config/local/setenv.sh` automatically before
+running Gradle.
 
-Running the Application
------------------------
-This project generates a `.war` file intended for deployment onto **Tomcat 10**.
+## Common Workflows
 
-### IntelliJ IDEA (Smart Tomcat)
-1. Install the "Smart Tomcat" plugin.
-2. Add a new Run/Debug Configuration -> "Smart Tomcat".
-3. Set the Tomcat Server path to your downloaded Tomcat 10 installation.
-4. Set "Context path" to `/` or `/umls-server-rest`.
-5. Set "Deployment Directory" to `src/main/webapp` (or your `target` exploded war directory).
-6. Run the configuration to start the server.
+Build and package the project artifacts:
 
-### Eclipse (Tomcat Plugin)
-1. Add Tomcat 10 to your Servers tab (Window > Preferences > Server > Runtime Environments).
-2. Right-click the project -> Properties -> Project Facets. Ensure "Dynamic Web Module" is checked.
-3. Right-click the server in the Servers tab -> "Add and Remove..." -> add this project.
-4. Start the server from the Servers tab.
+```sh
+make build
+```
+
+Run unit tests:
+
+```sh
+make test
+```
+
+The default unit test filter is `*UnitTest`. Override it when you need a
+different focused test selection:
+
+```sh
+make test UNIT_TEST_PATTERN='*MigrationUtilityUnitTest'
+```
+
+Run Gradle verification checks:
+
+```sh
+make quality
+```
+
+Start the application locally with Spring Boot:
+
+```sh
+make run
+```
+
+Then open:
+
+```text
+http://localhost:8080/umls-server-rest
+```
+
+Run Flyway migrations against the configured database:
+
+```sh
+make migrate
+```
+
+Inspect or validate Flyway state:
+
+```sh
+make migrate-info
+make migrate-validate
+```
+
+Run the future Trivy filesystem scan target after Trivy is installed:
+
+```sh
+make scan
+```
+
+Equivalent Gradle commands can be run directly after sourcing the environment:
+
+```sh
+source config/local/setenv.sh
+./gradlew clean assemble
+./gradlew bootRun
+./gradlew adminFlywayMigrate
+```
+
+For deterministic unit test and quality runs, clear the local path overrides
+after sourcing the environment:
+
+```sh
+source config/local/setenv.sh
+unset APP_DIR CATALINA_BASE DATA_DIR INDEX_DIR LVG_DIR SOURCE_DATA_DIR
+./gradlew check -x test
+./gradlew test --tests '*UnitTest'
+```
+
+## Database And Migrations
+
+Flyway migrations live under `src/main/resources/db.migration`. The normal
+administrative tasks are:
+
+- `make migrate` or `./gradlew adminFlywayMigrate`
+- `make migrate-info` or `./gradlew adminFlywayInfo`
+- `make migrate-validate` or `./gradlew adminFlywayValidate`
+
+For an existing populated legacy database, baseline explicitly before applying
+later migrations:
+
+```sh
+source config/local/setenv.sh
+./gradlew adminFlywayBaseline -Pflyway.baseline.confirm=true
+```
+
+Fresh database loading, sample data, NCI-META data, and integration test
+recipes are documented in
+[docs/database-load-and-test-instructions.md](docs/database-load-and-test-instructions.md).
+The Flyway rollout details are in
+[docs/NM-280-flyway-migration-plan.md](docs/NM-280-flyway-migration-plan.md).
+
+## Additional Docs
+
+- [Configuration migration plan](docs/NM-278-config-migration-plan.md)
+- [HikariCP migration plan](docs/NM-279-hikaricp-migration-plan.md)
+- [Flyway migration plan](docs/NM-280-flyway-migration-plan.md)
+- [Spring Boot integration plan](docs/NM-300-spring-boot-integration-plan.md)
+- [Swagger upgrade plan](docs/NM-303-swagger-upgrade-plan.md)
+- [Database load and test instructions](docs/database-load-and-test-instructions.md)
+
+## License
+
+See [LICENSE.txt](LICENSE.txt).

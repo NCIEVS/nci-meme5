@@ -133,7 +133,7 @@ public class AssignReleaseIdentifiersAlgorithm extends AbstractAlgorithm {
       final Atom atom = getAtom(Long.valueOf(result[1].toString()));
       final Long conceptId = Long.valueOf(result[0].toString());
       final String rank = new String(prefHandler.getRank(atom, list));
-      final Long id = new Long(atom.getId());
+      final Long id = Long.valueOf(atom.getId());
       atomRankMap.put(id, rank);
       atomConceptMap.put(atom.getId(), conceptId);
       atomIds.add(atom.getId());
