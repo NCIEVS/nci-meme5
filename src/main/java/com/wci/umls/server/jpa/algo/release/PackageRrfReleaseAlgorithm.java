@@ -110,7 +110,11 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
    */
   public void zipDirectory(File folder, ZipOutputStream zipOutputStream,
     int prefixLength) throws Exception {
-    for (final File file : folder.listFiles()) {
+    final File[] files = folder.listFiles();
+    if (files == null) {
+      return;
+    }
+    for (final File file : files) {
       if (file.isFile()) {
         logInfo("    " + new File(folder, file.getName()).getName());
         final ZipEntry zipEntry =

@@ -85,16 +85,16 @@ public class Rf2SnapshotLoaderAlgorithm
     extends AbstractTerminologyLoaderAlgorithm {
 
   /** The isa type rel. */
-  private final static String isaTypeRel = "116680003";
+  private static final String isaTypeRel = "116680003";
 
   /** The root concept id. */
-  private final static String rootConceptId = "138875005";
+  private static final String rootConceptId = "138875005";
 
   /** The Constant coreModuleId. */
-  private final static String coreModuleId = "900000000000207008";
+  private static final String coreModuleId = "900000000000207008";
 
   /** The Constant metadataModuleId. */
-  private final static String metadataModuleId = "900000000000012004";
+  private static final String metadataModuleId = "900000000000012004";
 
   /** The dpn ref set id. */
   private Set<String> dpnRefSetIds = new HashSet<>();

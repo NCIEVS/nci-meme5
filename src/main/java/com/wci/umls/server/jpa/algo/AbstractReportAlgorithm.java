@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Properties;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 

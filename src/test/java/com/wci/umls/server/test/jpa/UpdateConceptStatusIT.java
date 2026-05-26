@@ -23,7 +23,6 @@ import org.junit.Test;
 
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.algo.action.UpdateConceptMolecularAction;
@@ -157,10 +156,12 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
 
     } catch (Exception e) {
       action.rollback();
+      throw e;
     } finally {
       action.close();
     }
 
+    assertNotNull(validationResult);
     assertTrue(validationResult.getErrors().isEmpty());
 
     // Re-instantiate service so it can pickup the changed concept.

@@ -17,7 +17,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.wci.umls.server.model.algo.Project;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.content.AttributeJpa;

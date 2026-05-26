@@ -45,7 +45,7 @@ public class SnomedctGraphResolutionHandler
    *
    * @throws Exception the exception
    */
-  private synchronized static void cacheProperties() throws Exception {
+  private static synchronized void cacheProperties() throws Exception {
     if (prop == null) {
       prop = new Properties();
       MetadataService service = new MetadataServiceJpa();

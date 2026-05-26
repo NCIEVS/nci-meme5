@@ -12,7 +12,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.TableGenerator;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.envers.Audited;
 
 import com.wci.umls.server.model.algo.ReleaseProperty;
 

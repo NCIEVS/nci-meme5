@@ -20,7 +20,6 @@ import com.wci.umls.server.helpers.CopyConstructorTester;
 import com.wci.umls.server.helpers.EqualsHashcodeTester;
 import com.wci.umls.server.helpers.GetterSetterTester;
 import com.wci.umls.server.helpers.XmlSerializationTester;
-import com.wci.umls.server.jpa.model.ValidationResultJpa;
 
 /**
  * Unit testing for {@link ValidationResultJpa}.

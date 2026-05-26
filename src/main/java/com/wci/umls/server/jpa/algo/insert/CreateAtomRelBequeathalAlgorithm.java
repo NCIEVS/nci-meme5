@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -18,7 +19,6 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.SearchResultList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -242,7 +242,9 @@ public class CreateAtomRelBequeathalAlgorithm extends AbstractInsertMaintRelease
 
   private boolean noXRRel(Concept a, Concept b) {
     for (ConceptRelationship cr : a.getRelationships()) {
-      if (cr.getRelationshipType().equals("XR") && (cr.getFrom().getId() == b.getId() || cr.getTo().getId() == b.getId())) {
+      if (cr.getRelationshipType().equals("XR")
+          && (Objects.equals(cr.getFrom().getId(), b.getId())
+              || Objects.equals(cr.getTo().getId(), b.getId()))) {
           System.out.println("found XR rel: " + a.getId() + " " + b.getId());
           return false;
       }

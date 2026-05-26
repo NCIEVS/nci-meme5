@@ -67,7 +67,9 @@ public class RrfFileSorter {
     Properties p = new Properties();
     try {
       final File releasedat = findFile(inputDir, "release.dat");
-      p.load(new FileInputStream(releasedat));
+      try (FileInputStream in = new FileInputStream(releasedat)) {
+        p.load(in);
+      }
     } catch (Exception e) {
       // If requiring all files, throw exception
       if (requireAllFiles) {
@@ -159,7 +161,9 @@ public class RrfFileSorter {
         try {
           final File releasedat =
               findFile(new File(inputDir + dirMap.get(key)), "release.dat");
-          p.load(new FileInputStream(releasedat));
+          try (FileInputStream in = new FileInputStream(releasedat)) {
+            p.load(in);
+          }
         } catch (Exception e) {
           throw new Exception("Unable to resolve version from release.dat", e);
         }
@@ -201,7 +205,11 @@ public class RrfFileSorter {
   public File findFile(File dir, String prefix) throws Exception {
     File file = null;
     // file
-    for (final File f : dir.listFiles()) {
+    final File[] files = dir.listFiles();
+    if (files == null) {
+      return null;
+    }
+    for (final File f : files) {
       if (f.getName().contains(prefix)) {
         if (file != null)
           throw new Exception("Multiple " + prefix + " files");

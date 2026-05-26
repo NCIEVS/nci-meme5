@@ -114,7 +114,11 @@ public class Rf2FileSorter {
     for (final String dirName : dirMap.values()) {
       final File file = new File(inputDir + dirName);
       if (file != null && file.exists()) {
-        for (final String fileName : file.list()) {
+        final String[] fileNames = file.list();
+        if (fileNames == null) {
+          continue;
+        }
+        for (final String fileName : fileNames) {
           // match last _dddddd
           try {
             Matcher matcher = Pattern.compile("\\d+")
@@ -149,7 +153,11 @@ public class Rf2FileSorter {
     for (final String dirName : dirMap.values()) {
       final File file = new File(inputDir + dirName);
       if (file != null && file.exists()) {
-        for (final String fileName : file.list()) {
+        final String[] fileNames = file.list();
+        if (fileNames == null) {
+          continue;
+        }
+        for (final String fileName : fileNames) {
           // match last _dddddd
           try {
 
@@ -306,7 +314,11 @@ public class Rf2FileSorter {
   public File findFile(File dir, String prefix) throws Exception {
     File file = null;
     // file
-    for (final File f : dir.listFiles()) {
+    final File[] files = dir.listFiles();
+    if (files == null) {
+      return null;
+    }
+    for (final File f : files) {
       if (f.getName().contains(prefix)) {
         if (file != null)
           throw new Exception("Multiple " + prefix + " files");

@@ -491,10 +491,13 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
         action.close();
       }
     }
-    contentService = new ContentServiceJpa();
-    concept = contentService.getConcept(concept.getId());
+    if (concept != null) {
+      contentService = new ContentServiceJpa();
+      concept = contentService.getConcept(concept.getId());
+    }
 
-    if (!concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
+    if (concept2 != null
+        && !concept2.getWorkflowStatus().equals(WorkflowStatus.PUBLISHED)) {
       final UpdateConceptMolecularAction action2 =
           new UpdateConceptMolecularAction();
       try {
@@ -524,8 +527,10 @@ public class MatrixInitializerAlgorithmIT extends IntegrationUnitSupport {
       }
 
     }
-    contentService = new ContentServiceJpa();
-    concept2 = contentService.getConcept(concept2.getId());
+    if (concept2 != null) {
+      contentService = new ContentServiceJpa();
+      concept2 = contentService.getConcept(concept2.getId());
+    }
   }
 
   /**

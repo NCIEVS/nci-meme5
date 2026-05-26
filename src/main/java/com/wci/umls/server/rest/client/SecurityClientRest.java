@@ -387,7 +387,7 @@ public class SecurityClientRest extends RootClientRest implements
         client.target(config.getProperty("base.url")
             + "/security/user/find"
             + (query != null ? "?query="
-                + URLEncoder.encode(query == null ? "" : query, "UTF-8")
+                + URLEncoder.encode(query, "UTF-8")
                     .replaceAll("\\+", "%20") : ""));
     String pfsString =
         ConfigUtility.getStringForGraph(pfs == null ? new PfsParameterJpa()

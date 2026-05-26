@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 
 import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.UserRole;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.AbstractConfigurable;
 import com.wci.umls.server.jpa.model.UserJpa;

@@ -79,7 +79,7 @@ public class Rf2DeltaLoaderAlgorithm
     extends AbstractTerminologyLoaderAlgorithm {
 
   /** The isa type rel. */
-  private final static String isaTypeRel = "116680003";
+  private static final String isaTypeRel = "116680003";
 
   /** The release version date. */
   private Date releaseVersionDate;

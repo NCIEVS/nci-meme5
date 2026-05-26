@@ -24,7 +24,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -93,52 +92,52 @@ import com.wci.umls.server.model.content.Component;
 public class ConfigUtility {
 
   /** The Constant DEFAULT. */
-  public final static String DEFAULT = "DEFAULT";
+  public static final String DEFAULT = "DEFAULT";
 
   /** The Constant ATOMCLASS (search handler for atoms). */
-  public final static String ATOMCLASS = "ATOMCLASS";
+  public static final String ATOMCLASS = "ATOMCLASS";
 
   /** The date format. - legacy */
-  public final static FastDateFormat DATE_FORMAT =
+  public static final FastDateFormat DATE_FORMAT =
       FastDateFormat.getInstance("yyyyMMdd");
 
   /** The Constant DATE_YYYYMMDD. */
-  public final static FastDateFormat DATE_YYYYMMDD =
+  public static final FastDateFormat DATE_YYYYMMDD =
       FastDateFormat.getInstance("yyyyMMdd");
 
   /** The Constant DATE_FORMAT2. */
-  public final static FastDateFormat DATE_YYYY_MM_DD =
+  public static final FastDateFormat DATE_YYYY_MM_DD =
       FastDateFormat.getInstance("yyyy_MM_dd");
 
   /** The Constant DATE_FORMAT3. */
-  public final static FastDateFormat DATE_YYYY =
+  public static final FastDateFormat DATE_YYYY =
       FastDateFormat.getInstance("yyyy");
 
   /** The Constant DATE_FORMAT4. */
-  public final static FastDateFormat DATE_FORMAT4 =
+  public static final FastDateFormat DATE_FORMAT4 =
       FastDateFormat.getInstance("yyyy-MM-dd HH:mm:ss");
 
   /** The Constant DATE_FORMAT5. */
-  public final static FastDateFormat DATE_FORMAT5 =
+  public static final FastDateFormat DATE_FORMAT5 =
       FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
   /** The Constant DATE_FORMAT4. */
-  public final static FastDateFormat DATE_YYYYMMDDHHMMSS =
+  public static final FastDateFormat DATE_YYYYMMDDHHMMSS =
       FastDateFormat.getInstance("yyyyMMddHHmmss");
 
   /** The Constant PUNCTUATION. */
-  public final static String PUNCTUATION =
+  public static final String PUNCTUATION =
       " \t-({[)}]_!@#%&*\\:;\"',.?/~+=|<>$`^";
 
   /** The Constant PUNCTUATION_REGEX. */
-  public final static String PUNCTUATION_REGEX =
+  public static final String PUNCTUATION_REGEX =
       "[ \\t\\-\\(\\{\\[\\)\\}\\]_!@#%&\\*\\\\:;\\\"',\\.\\?\\/~\\+=\\|<>$`^]";
 
   /** The transformer for DOM -> XML. */
   private static Transformer transformer;
 
   /** The date format. */
-  public final static FastDateFormat format =
+  public static final FastDateFormat format =
       FastDateFormat.getInstance("yyyyMMdd");
 
   static {
@@ -452,14 +451,14 @@ public class ConfigUtility {
    */
   public static Node getNodeForFile(File file)
     throws ParserConfigurationException, SAXException, IOException {
-    InputStream in = new FileInputStream(file);
-    // Parse XML file.
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder db = dbf.newDocumentBuilder();
-    Document document = db.parse(in);
-    Node rootNode = document.getFirstChild();
-    in.close();
-    return rootNode;
+    try (InputStream in = new FileInputStream(file)) {
+      // Parse XML file.
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      Document document = db.parse(in);
+      Node rootNode = document.getFirstChild();
+      return rootNode;
+    }
   }
 
   /**
@@ -597,9 +596,12 @@ public class ConfigUtility {
    * @param path the path
    * @return true, if successful
    */
-  static public boolean deleteDirectory(File path) {
+  public static boolean deleteDirectory(File path) {
     if (path.exists()) {
       final File[] files = path.listFiles();
+      if (files == null) {
+        return false;
+      }
       for (int i = 0; i < files.length; i++) {
         if (files[i].isDirectory()) {
           deleteDirectory(files[i]);
@@ -1301,18 +1303,16 @@ public class ConfigUtility {
         .info("  working dir = " + new File(dir));
     proc = run.exec(cmdarray, env, new File(dir));
 
-    BufferedReader in = null;
-
     // Connect a reader to the process
-    final InputStreamReader procIn =
-        new InputStreamReader(proc.getInputStream(), "UTF-8");
-    in = new BufferedReader(procIn);
-    while ((line = in.readLine()) != null) {
-      if (s != null) {
-        s.println(line);
-        s.flush();
+    try (BufferedReader in = new BufferedReader(
+        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+      while ((line = in.readLine()) != null) {
+        if (s != null) {
+          s.println(line);
+          s.flush();
+        }
+        output.append(line).append("\n");
       }
-      output.append(line).append("\n");
     }
 
     // If we are not running in the background
@@ -1321,15 +1321,15 @@ public class ConfigUtility {
       proc.waitFor();
       if (proc.exitValue() != 0) {
         // If there was an error, read from the error stream
-        InputStreamReader converter =
-            new InputStreamReader(proc.getErrorStream(), "UTF-8");
-        in = new BufferedReader(converter);
         StringBuffer sb = new StringBuffer(1000);
         sb.append("\n--------------------------------------------\n");
         sb.append("Error:");
-        while ((line = in.readLine()) != null) {
-          sb.append("\t" + line);
-          sb.append("\n");
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(
+            proc.getErrorStream(), StandardCharsets.UTF_8))) {
+          while ((line = in.readLine()) != null) {
+            sb.append("\t" + line);
+            sb.append("\n");
+          }
         }
         sb.append("--------------------------------------------\n");
         StringBuilder cmdBuffer = new StringBuilder();

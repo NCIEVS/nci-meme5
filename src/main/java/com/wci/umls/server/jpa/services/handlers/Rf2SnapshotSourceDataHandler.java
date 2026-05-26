@@ -14,7 +14,6 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -104,8 +103,13 @@ public class Rf2SnapshotSourceDataHandler extends AbstractSourceDataHandler {
     String revisedInputDir = null;
     boolean terminologyFound = false;
     boolean refsetFound = false;
+    final File[] inputFiles = new File(inputDir).listFiles();
+    if (inputFiles == null) {
+      throw new LocalException(
+          "Source data directory is not readable: " + inputDir);
+    }
     List<File> filesToCheck =
-        new ArrayList<>(Arrays.asList(new File(inputDir).listFiles()));
+        new ArrayList<>(Arrays.asList(inputFiles));
     while (!filesToCheck.isEmpty()) {
       File f = filesToCheck.get(0);
       if (f.isDirectory()) {
@@ -117,7 +121,10 @@ public class Rf2SnapshotSourceDataHandler extends AbstractSourceDataHandler {
         } else if (f.getName().toLowerCase().equals("refset")) {
           refsetFound = true;
         } else {
-          filesToCheck.addAll(new ArrayList<>(Arrays.asList(f.listFiles())));
+          final File[] childFiles = f.listFiles();
+          if (childFiles != null) {
+            filesToCheck.addAll(new ArrayList<>(Arrays.asList(childFiles)));
+          }
         }
       }
       filesToCheck.remove(0);

@@ -71,24 +71,25 @@ public class EqualsHashcodeBadFieldTest extends ModelUnitSupport {
     for (final Path path : paths) {
       final String method = getMethodText("public boolean equals", path);
       if (!method.isEmpty()) {
+        final String fileName = String.valueOf(path.getFileName());
         // Assert id is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an equals method that uses 'id' ",
             method.contains("id == null"));
         // Assert lastModified is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an equals method that uses 'lastModified' ",
             method.contains("lastModified == null"));
         // Assert lastModified is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an equals method that uses 'lastModifiedBy' ",
             method.contains("lastModifiedBy == null"));
         // Assert id is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an equals method that uses 'timestamp' ",
             method.contains("timestamp == null"));
         // Assert id is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an equals method that uses 'alternateTerminologyIds' ",
             method.contains("alternateTerminologyIds == null"));
       }
@@ -108,20 +109,21 @@ public class EqualsHashcodeBadFieldTest extends ModelUnitSupport {
     for (final Path path : paths) {
       final String method = getMethodText("public int hashCode", path);
       if (!method.isEmpty()) {
+        final String fileName = String.valueOf(path.getFileName());
         // Assert id is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an hashcode method that uses 'id' ",
             method.contains("id == null"));
         // Assert lastModified is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an hashcode method that uses 'lastModified' ",
             method.contains("lastModified == null"));
         // Assert lastModified is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an hashcode method that uses 'lastModifiedBy' ",
             method.contains("lastModifiedBy == null"));
         // Assert id is not used
-        assertFalse(path.getFileName().toString()
+        assertFalse(fileName
             + " has an hashcode method that uses 'timestamp' ",
             method.contains("timestamp == null"));
       }

@@ -30,16 +30,13 @@ import java.util.stream.Collectors;
 import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
 import com.wci.umls.server.jpa.model.ComponentInfoJpa;
 import com.wci.umls.server.jpa.model.ProcessConfigJpa;
-import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.model.actions.ChangeEventJpa;
-import com.wci.umls.server.jpa.model.helpers.ChecklistListJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.SearchResultJpa;
 import com.wci.umls.server.jpa.model.helpers.TrackingRecordListJpa;
 import com.wci.umls.server.jpa.model.helpers.WorkflowBinListJpa;
 import com.wci.umls.server.jpa.model.helpers.WorkflowConfigListJpa;
 import com.wci.umls.server.jpa.model.helpers.WorkflowEpochListJpa;
-import com.wci.umls.server.jpa.model.helpers.WorklistListJpa;
 import com.wci.umls.server.jpa.model.helpers.content.SearchResultListJpa;
 import com.wci.umls.server.jpa.model.workflow.ChecklistJpa;
 import com.wci.umls.server.jpa.model.workflow.ChecklistNoteJpa;
@@ -60,13 +57,10 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FileUtils;
@@ -1460,7 +1454,9 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     } catch (Exception e) {
       handleException(e, "trying to find records for worklist ");
     } finally {
-      workflowService.close();
+      if (workflowService != null) {
+        workflowService.close();
+      }
       securityService.close();
     }
     return null;
@@ -2724,6 +2720,10 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
             break;
           }
         }
+        if (newBin == null) {
+          throw new LocalException("Unable to regenerate missing bin definition "
+              + name + ", " + type);
+        }
 
         workflowService.addLogEntry(userName, projectId, newBin.getId(), null, null,
             "REGENERATE BIN DEFINITION - " + name + ", " + type);
@@ -2881,14 +2881,17 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
         dir.mkdirs();
       }
       int i = 0;
-      for (final String file : dir.list()) {
-        i++;
-        if (ConfigUtility.isEmpty(query) || file.contains(query)) {
-          matchingFiles.add(file);
+      final String[] files = dir.list();
+      if (files != null) {
+        for (final String file : files) {
+          i++;
+          if (ConfigUtility.isEmpty(query) || file.contains(query)) {
+            matchingFiles.add(file);
+          }
         }
       }
       Collections.sort(matchingFiles);
-      if (pfs != null && pfs.getStartIndex() == -1) {
+      if (pfs == null || pfs.getStartIndex() == -1) {
         stringList.setObjects(matchingFiles);
       } else {
         // Or get a substring

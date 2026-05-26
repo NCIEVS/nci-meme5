@@ -23,7 +23,6 @@ import com.wci.umls.server.jpa.services.rest.MetaEditingServiceRest;
 import com.wci.umls.server.jpa.services.rest.MetadataServiceRest;
 import com.wci.umls.server.jpa.services.rest.ProcessServiceRest;
 import com.wci.umls.server.jpa.services.rest.ProjectServiceRest;
-import com.wci.umls.server.jpa.services.rest.SecurityServiceRest;
 import com.wci.umls.server.jpa.services.rest.WorkflowServiceRest;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.rest.impl.ContentServiceRestImpl;
@@ -32,19 +31,15 @@ import com.wci.umls.server.rest.impl.MetaEditingServiceRestImpl;
 import com.wci.umls.server.rest.impl.MetadataServiceRestImpl;
 import com.wci.umls.server.rest.impl.ProcessServiceRestImpl;
 import com.wci.umls.server.rest.impl.ProjectServiceRestImpl;
-import com.wci.umls.server.rest.impl.SecurityServiceRestImpl;
 import com.wci.umls.server.rest.impl.WorkflowServiceRestImpl;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
-import org.checkerframework.checker.units.qual.C;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.helpers.PfsParameter;
-import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.helpers.SearchResult;
@@ -64,17 +59,13 @@ import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
 import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
-import com.wci.umls.server.jpa.model.workflow.ChecklistJpa;
 import com.wci.umls.server.jpa.model.workflow.WorkflowBinDefinitionJpa;
 import com.wci.umls.server.jpa.model.workflow.WorkflowConfigJpa;
 import com.wci.umls.server.jpa.model.workflow.WorkflowEpochJpa;
 import com.wci.umls.server.jpa.model.workflow.WorklistJpa;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
-import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
-import com.wci.umls.server.jpa.services.ProjectServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
-import com.wci.umls.server.jpa.services.WorkflowServiceJpa;
 import com.wci.umls.server.model.algo.AlgorithmConfig;
 import com.wci.umls.server.model.algo.ProcessConfig;
 import com.wci.umls.server.model.algo.Project;
@@ -791,13 +782,13 @@ public class GenerateData extends AbstractLoader {
         String workflowFilePath = inputDir + "/workflow/workflow.ME.txt";
         File workflowFile = new File(workflowFilePath);
 
-        InputStream in = new FileInputStream(workflowFile);
-        FormDataContentDisposition contentDispositionHeader =
-                new FormDataContentDisposition(
-                        "form-data; filename=\"workflow.ME.txt\"; name=\"file\"");
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
-        in.close();
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.ME.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear and regenerate all bins
         LOGGER.info("  Clear and regenerate ME bins");
@@ -953,17 +944,18 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.QA.txt\"; name=\"file\"");
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.QA.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate QA bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "QUALITY_ASSURANCE", authToken);
-        in.close();
 
         // Note: don't regenerate all bins. Users will do so manually as needed.
         // // Regenerate bins
@@ -979,18 +971,19 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.MV.txt\"; name=\"file\"");
         workflowService = new WorkflowServiceRestImpl();
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.MV.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate MV bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "MID_VALIDATION", authToken);
-        in.close();
 
         //
         // Add MID VALIDATION (NO concepts)
@@ -1000,18 +993,19 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.MVO.txt\"; name=\"file\"");
         workflowService = new WorkflowServiceRestImpl();
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.MVO.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate MVO bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "MID_VALIDATION_OTHER", authToken);
-        in.close();
 
         //
         // Add REPORT_DEFINITIONS
@@ -1021,18 +1015,19 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.RD.txt\"; name=\"file\"");
         workflowService = new WorkflowServiceRestImpl();
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.RD.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate RD bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "REPORT_DEFINITIONS", authToken);
-        in.close();
 
         // ComponentInfoRelationship resolves to nothing (auto-fix -> remove), need
         // algorithm?

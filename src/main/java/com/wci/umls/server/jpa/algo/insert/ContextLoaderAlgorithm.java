@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -573,7 +574,7 @@ public class ContextLoaderAlgorithm
     // node atom)
     String ancestorIdPath = "";
     for (final Atom atom : ptrAtoms) {
-      if (atom.getId() != nodeAtom.getId())
+      if (!Objects.equals(atom.getId(), nodeAtom.getId()))
         ancestorIdPath = ancestorIdPath + atom.getId() + "~";
     }
     // Get rid of final ~ character

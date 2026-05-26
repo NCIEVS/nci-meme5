@@ -6,8 +6,6 @@ package com.wci.umls.server.jpa.algo.invert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -25,7 +23,6 @@ import java.util.regex.Pattern;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
@@ -186,7 +183,8 @@ public class ValidateAtomsAlgorithm extends AbstractInsertMaintReleaseAlgorithm 
       if (fields[3].equals("SEMANTIC_TYPE") && fields[4].equals("Intellectual Product")) {
         styIntelProds.add(fields[1]);
       }
-    }       
+    }
+    in.close();
     
 /*    # Fields:
       # 1  = src_atom_id

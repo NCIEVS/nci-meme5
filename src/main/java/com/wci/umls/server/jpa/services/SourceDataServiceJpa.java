@@ -15,7 +15,6 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.SourceDataFile;
 import com.wci.umls.server.algo.Algorithm;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;

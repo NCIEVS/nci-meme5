@@ -3,18 +3,9 @@
  */
 package com.wci.umls.server.test.admin;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.Properties;
 
-import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.wci.umls.server.helpers.ConfigUtility;
 
 import static org.junit.Assert.fail;
 

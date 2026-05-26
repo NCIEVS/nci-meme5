@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -19,7 +20,6 @@ import jakarta.persistence.Query;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -321,7 +321,9 @@ public class CreateConceptRelBequeathalAlgorithm extends AbstractInsertMaintRele
 
   private boolean noXRRel(Concept a, Concept b) {
     for (ConceptRelationship cr : a.getRelationships()) {
-      if (cr.getRelationshipType().equals("XR") && (cr.getFrom().getId() == b.getId() || cr.getTo().getId() == b.getId())) {
+      if (cr.getRelationshipType().equals("XR")
+          && (Objects.equals(cr.getFrom().getId(), b.getId())
+              || Objects.equals(cr.getTo().getId(), b.getId()))) {
           System.out.println("found XR rel: " + a.getId() + " " + b.getId());
           return false;
       }

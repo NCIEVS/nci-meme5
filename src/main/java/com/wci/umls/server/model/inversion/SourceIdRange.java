@@ -5,7 +5,6 @@ package com.wci.umls.server.model.inversion;
 
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.helpers.HasLastModified;
-import com.wci.umls.server.helpers.HasTerminology;
 
 /**
  * Represents a collection of versioned sabs and their reserved starting and ending
