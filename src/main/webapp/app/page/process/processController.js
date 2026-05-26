@@ -517,17 +517,21 @@ tsApp
         }
 
         $scope.showStep = function(step) {
+          var process = $scope.selected.process;
+          if (!process || $scope.selected.mode != 'Execution') {
+            return false;
+          }
+
           // For "step"
           if (step > 0) {
             // There is a process
             // We are in execution mode
             // The process is not complete
             // The process is not running (started but not stopped)
-            var complete = $scope.selected.process.finishDate != null;
-            var running = $scope.selected.process.startDate && !$scope.selected.process.stopDate
-              && !$scope.selected.process.failDate && !$scope.selected.process.finishDate;
-            return $scope.selected.process && $scope.selected.mode == 'Execution' && !complete
-              && !running;
+            var complete = process.finishDate != null;
+            var running = process.startDate && !process.stopDate
+              && !process.failDate && !process.finishDate;
+            return !complete && !running;
           }
 
           // for "unstep"
@@ -537,13 +541,12 @@ tsApp
             // There is at least one step
             // The process has been started
             // The process is not running (started but not stopped)
-            var running = $scope.selected.process.startDate && !$scope.selected.process.stopDate
-              && !$scope.selected.process.failDate && !$scope.selected.process.finishDate;
-            return $scope.selected.process && $scope.selected.process.steps
-              && $scope.selected.process.steps.length > 0 && $scope.selected.mode == 'Execution'
-              && !running;
+            var running = process.startDate && !process.stopDate
+              && !process.failDate && !process.finishDate;
+            return process.steps && process.steps.length > 0 && !running;
 
           }
+          return false;
         }
 
         // compute execution state based on process flags
@@ -648,11 +651,15 @@ tsApp
         };
 
         $scope.isFirstIndex = function(entry) {
-          return entry.id == $scope.selected.process.steps[0].id;
+          return $scope.selected.process && $scope.selected.process.steps
+            && $scope.selected.process.steps.length > 0
+            && entry.id == $scope.selected.process.steps[0].id;
         }
 
         $scope.isLastIndex = function(entry) {
-          return entry.id == $scope.selected.process.steps[$scope.selected.process.steps.length - 1].id;
+          return $scope.selected.process && $scope.selected.process.steps
+            && $scope.selected.process.steps.length > 0
+            && entry.id == $scope.selected.process.steps[$scope.selected.process.steps.length - 1].id;
         }
 
         // Convert date to a string

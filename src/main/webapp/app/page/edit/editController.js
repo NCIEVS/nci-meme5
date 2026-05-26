@@ -136,7 +136,8 @@ tsApp
 
         // Handle workflow changes
         $scope.$on('termServer::checklistChange', function(event, data) {
-          if (data.id == $scope.selected.project.id) {
+          if (data && $scope.selected.project
+            && data.id == $scope.selected.project.id) {
             // Checklists changed, refresh checklists list if showing
             if ($scope.selected.worklistMode == 'Checklists') {
               $scope.getWorklists();
@@ -147,7 +148,8 @@ tsApp
           }
         });
         $scope.$on('termServer::worklistChange', function(event, data) {
-          if (data.id == $scope.selected.project.id) {
+          if (data && $scope.selected.project
+            && data.id == $scope.selected.project.id) {
             // Worklists changed, refresh worklists if not checklists tab
             if ($scope.selected.worklistMode != 'Checklists') {
               $scope.getWorklists();

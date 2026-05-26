@@ -143,6 +143,9 @@ tsApp.service('websocketService',
         fireBinsChange(data);
       }
       function fireBinsChange(data) {
+        if (!data) {
+          return;
+        }
         $rootScope.$broadcast('termServer::binsChange', data);
       }
 
@@ -151,6 +154,9 @@ tsApp.service('websocketService',
       }
       // Must be a local function to be accessed via the onmessage event
       function fireChecklistChange(data) {
+        if (!data) {
+          return;
+        }
         $rootScope.$broadcast('termServer::checklistChange', data);
       }
 
@@ -159,6 +165,9 @@ tsApp.service('websocketService',
       }
       // Must be a local function to be accessed via the onmessage event
       function fireWorklistChange(data) {
+        if (!data) {
+          return;
+        }
         $rootScope.$broadcast('termServer::worklistChange', data);
       }
 

@@ -2805,6 +2805,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
       for (final TrackingRecord record : recordList) {
         for (final Long conceptId : record.getOrigConceptIds()) {
           final Concept concept = reportService.getConcept(conceptId);
+          if (concept == null) {
+            final String message = "MISSING CONCEPT = " + conceptId;
+            Logger.getLogger(getClass()).warn(
+                message + " while generating report for worklist " + id);
+            conceptReport.append(message);
+            conceptReport.append("\r\n---------------------------------------------\r\n\r\n");
+            continue;
+          }
 
           final PrecedenceList list =
               sortAtoms(securityService, reportService, userName, concept, project);
@@ -2916,7 +2924,9 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
   /* see superclass */
   @Override
-  @RequestMapping(value = "/report/{fileName}", method = RequestMethod.GET,
+  @RequestMapping(value = {
+      "/report/{fileName}",
+      "/report/{fileName}/"}, method = RequestMethod.GET,
       produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
   @GET
   @Produces(MediaType.TEXT_PLAIN)
@@ -2956,7 +2966,9 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
   /* see superclass */
   @Override
-  @RequestMapping(value = "/report/{fileName}", method = RequestMethod.DELETE)
+  @RequestMapping(value = {
+      "/report/{fileName}",
+      "/report/{fileName}/"}, method = RequestMethod.DELETE)
   @DELETE
   @Path("/report/{fileName}")
   @Operation(summary = "Get generated concept report",

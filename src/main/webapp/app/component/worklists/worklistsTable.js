@@ -73,14 +73,16 @@ tsApp
 
               // Handle workflow changes
               $scope.$on('termServer::checklistChange', function(event, data) {
-                if (data.id == $scope.selected.project.id && $scope.type == 'Checklist') {
+                if (data && $scope.selected.project
+                  && data.id == $scope.selected.project.id && $scope.type == 'Checklist') {
                   // refresh the list
                   $scope.getWorklists($scope.selectedWorklist);
                 }
               });
 
               $scope.$on('termServer::worklistChange', function(event, data) {
-                if (data.id == $scope.selected.project.id && $scope.type == 'Worklist') {
+                if (data && $scope.selected.project
+                  && data.id == $scope.selected.project.id && $scope.type == 'Worklist') {
                   // refresh the list
                   $scope.getWorklists($scope.selectedWorklist);
                 }

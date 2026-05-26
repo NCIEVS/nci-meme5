@@ -71,6 +71,25 @@ tsApp
         $scope.toDate = function(lastModified) {
           return utilService.toDate(lastModified);
         };
+
+        function setNumberOfIds(entry) {
+          if (!entry) {
+            return null;
+          }
+          if (entry.endSourceId != null && entry.beginSourceId != null) {
+            entry.numberOfIds = entry.endSourceId - entry.beginSourceId + 1;
+          }
+          return entry;
+        }
+
+        function setSingleEntry(entry) {
+          $scope.entry = setNumberOfIds(entry);
+          if (!$scope.entry) {
+            return;
+          }
+          $scope.entries = [];
+          $scope.entries.push($scope.entry);
+        }
         
         // Request range modal
         $scope.openRequestRangeModal = function(vsab) {
@@ -104,10 +123,7 @@ tsApp
           modalInstance.result.then(
           // Success
           function(sourceIdRange) {
-            $scope.entry = sourceIdRange;
-            $scope.entry.numberOfIds = $scope.entry.endSourceId - $scope.entry.beginSourceId + 1;
-            $scope.entries = [];
-            $scope.entries.push($scope.entry);
+            setSingleEntry(sourceIdRange);
           });
         };
         
@@ -143,10 +159,7 @@ tsApp
           modalInstance.result.then(
           // Success
           function(sourceIdRange) {
-            $scope.entry = sourceIdRange;
-            $scope.entry.numberOfIds = $scope.entry.endSourceId - $scope.entry.beginSourceId + 1; 
-            $scope.entries = [];
-            $scope.entries.push($scope.entry);
+            setSingleEntry(sourceIdRange);
           });
         };
         
@@ -155,13 +168,20 @@ tsApp
             window.alert('Source Abbreviation and Version must be set before retrieving the range. ');
             return;
           }
+          if (!$scope.selected.project) {
+            window.alert('Project must be set before retrieving the range. ');
+            return;
+          }
           inversionService.getSourceIdRange($scope.selected.project.id, vsab).then(
           // Success
           function(data) {
-            $scope.entries = data.sourceIdRanges;
-            for (var i = 0; i < $scope.entries.length; i++) {
-              $scope.entry = $scope.entries[i];
-              $scope.entry.numberOfIds = $scope.entry.endSourceId - $scope.entry.beginSourceId + 1;
+            var sourceIdRanges = data && data.sourceIdRanges ? data.sourceIdRanges : [];
+            $scope.entries = [];
+            for (var i = 0; i < sourceIdRanges.length; i++) {
+              var entry = setNumberOfIds(sourceIdRanges[i]);
+              if (entry) {
+                $scope.entries.push(entry);
+              }
             }
           },
           // Error

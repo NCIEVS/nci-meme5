@@ -1386,7 +1386,7 @@ tsApp.service('workflowService', [
 
       gpService.increment();
       $http.get(
-        workflowUrl + '/report/' + encodeURIComponent(fileName) + '/?projectId=' + projectId).then(
+        workflowUrl + '/report/' + encodeURIComponent(fileName) + '?projectId=' + projectId).then(
       // Success
       function(response) {
         var blob = new Blob([ response.data ], {

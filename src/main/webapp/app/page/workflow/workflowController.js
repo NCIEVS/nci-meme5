@@ -80,14 +80,14 @@ tsApp.controller('WorkflowCtrl', [
       }    
     });
     $scope.$watch('groups[1].open', function(isOpen){
-      if (isOpen) {
+      if (isOpen && $scope.selected.project) {
         console.log('Checklists group was opened'); 
         $scope.lists.records = null;
         websocketService.fireChecklistChange($scope.selected.project);
       }    
     });
     $scope.$watch('groups[2].open', function(isOpen){
-      if (isOpen) {
+      if (isOpen && $scope.selected.project) {
         console.log('Worklists group was opened'); 
         $scope.lists.records = null;
         websocketService.fireWorklistChange($scope.selected.project);
@@ -96,7 +96,8 @@ tsApp.controller('WorkflowCtrl', [
     
     // Handle worklist actions
     $scope.$on('termServer::binsChange', function(event, project) {
-      if (project.id == $scope.selected.project.id) {
+      if (project && $scope.selected.project
+        && project.id == $scope.selected.project.id) {
         // Bins changed, refresh bins
         $scope.getBins($scope.selected.project.id, $scope.selected.config, $scope.selected.bin);
       }
@@ -105,7 +106,8 @@ tsApp.controller('WorkflowCtrl', [
     // $scope.$on('termServer::checklistChange', -- n/a, no action on checklist
     // change
     $scope.$on('termServer::worklistChange', function(event, data) {
-      if (data.id == $scope.selected.project.id) {
+      if (data && $scope.selected.project
+        && data.id == $scope.selected.project.id) {
         // could affect worklist bin counts
         $scope.getBins($scope.selected.project.id, $scope.selected.config, $scope.selected.bin);
       }
