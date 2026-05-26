@@ -183,7 +183,8 @@ public class ValidateAtomsAlgorithm extends AbstractInsertMaintReleaseAlgorithm 
       if (fields[3].equals("SEMANTIC_TYPE") && fields[4].equals("Intellectual Product")) {
         styIntelProds.add(fields[1]);
       }
-    }       
+    }
+    in.close();
     
 /*    # Fields:
       # 1  = src_atom_id

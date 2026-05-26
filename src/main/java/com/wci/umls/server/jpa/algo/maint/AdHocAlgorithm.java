@@ -5127,26 +5127,25 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
              throw new Exception("Specified input directory does not exist");
            }
 
-           final String workflow_type = stringParameter;
+	           final String workflow_type = stringParameter;
 
-           final String sourcesFile = inputDirFile + File.separator + "test.txt";
-           BufferedReader sources;
-           try {
-             sources = new BufferedReader(new FileReader(sourcesFile));
-           } catch (Exception e) {
-             throw new Exception("File not found: " + sourcesFile);
-           }
+	           final String sourcesFile = inputDirFile + File.separator + "test.txt";
 
-           final List<String> lines = new ArrayList<>();
-           String line = null;
+	           final List<String> lines = new ArrayList<>();
+	           String line = null;
 
-           final String fields[] = new String[3];
+	           final String fields[] = new String[3];
 
-           while ((line = sources.readLine()) != null) {
+	           try (BufferedReader sources =
+	               new BufferedReader(new FileReader(sourcesFile))) {
+	             while ((line = sources.readLine()) != null) {
 
-             FieldedStringTokenizer.split(line, "\t", 3, fields);
-             loadedNameToQuery.put(fields[1], fields[2]);
-           }
+	               FieldedStringTokenizer.split(line, "\t", 3, fields);
+	               loadedNameToQuery.put(fields[1], fields[2]);
+	             }
+	           } catch (Exception e) {
+	             throw new Exception("File not found: " + sourcesFile);
+	           }
 
            final WorkflowConfig workflowConfig = getWorkflowConfig(getProject(), workflow_type);
            for (final WorkflowBinDefinition def : workflowConfig.getWorkflowBinDefinitions()) {

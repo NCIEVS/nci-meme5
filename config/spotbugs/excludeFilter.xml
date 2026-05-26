@@ -105,15 +105,6 @@
     <Bug pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS"/>
   </Match>
   <Match>
-    <Bug pattern="OBL_UNSATISFIED_OBLIGATION"/>
-  </Match>
-  <Match>
-    <Bug pattern="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE"/>
-  </Match>
-  <Match>
-    <Bug pattern="OS_OPEN_STREAM"/>
-  </Match>
-  <Match>
     <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
   </Match>
   <Match>

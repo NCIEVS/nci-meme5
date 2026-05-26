@@ -451,14 +451,14 @@ public class ConfigUtility {
    */
   public static Node getNodeForFile(File file)
     throws ParserConfigurationException, SAXException, IOException {
-    InputStream in = new FileInputStream(file);
-    // Parse XML file.
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    DocumentBuilder db = dbf.newDocumentBuilder();
-    Document document = db.parse(in);
-    Node rootNode = document.getFirstChild();
-    in.close();
-    return rootNode;
+    try (InputStream in = new FileInputStream(file)) {
+      // Parse XML file.
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      Document document = db.parse(in);
+      Node rootNode = document.getFirstChild();
+      return rootNode;
+    }
   }
 
   /**
@@ -1303,18 +1303,16 @@ public class ConfigUtility {
         .info("  working dir = " + new File(dir));
     proc = run.exec(cmdarray, env, new File(dir));
 
-    BufferedReader in = null;
-
     // Connect a reader to the process
-    final InputStreamReader procIn =
-        new InputStreamReader(proc.getInputStream(), "UTF-8");
-    in = new BufferedReader(procIn);
-    while ((line = in.readLine()) != null) {
-      if (s != null) {
-        s.println(line);
-        s.flush();
+    try (BufferedReader in = new BufferedReader(
+        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+      while ((line = in.readLine()) != null) {
+        if (s != null) {
+          s.println(line);
+          s.flush();
+        }
+        output.append(line).append("\n");
       }
-      output.append(line).append("\n");
     }
 
     // If we are not running in the background
@@ -1323,15 +1321,15 @@ public class ConfigUtility {
       proc.waitFor();
       if (proc.exitValue() != 0) {
         // If there was an error, read from the error stream
-        InputStreamReader converter =
-            new InputStreamReader(proc.getErrorStream(), "UTF-8");
-        in = new BufferedReader(converter);
         StringBuffer sb = new StringBuffer(1000);
         sb.append("\n--------------------------------------------\n");
         sb.append("Error:");
-        while ((line = in.readLine()) != null) {
-          sb.append("\t" + line);
-          sb.append("\n");
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(
+            proc.getErrorStream(), StandardCharsets.UTF_8))) {
+          while ((line = in.readLine()) != null) {
+            sb.append("\t" + line);
+            sb.append("\n");
+          }
         }
         sb.append("--------------------------------------------\n");
         StringBuilder cmdBuffer = new StringBuilder();

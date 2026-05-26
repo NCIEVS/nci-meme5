@@ -782,13 +782,13 @@ public class GenerateData extends AbstractLoader {
         String workflowFilePath = inputDir + "/workflow/workflow.ME.txt";
         File workflowFile = new File(workflowFilePath);
 
-        InputStream in = new FileInputStream(workflowFile);
-        FormDataContentDisposition contentDispositionHeader =
-                new FormDataContentDisposition(
-                        "form-data; filename=\"workflow.ME.txt\"; name=\"file\"");
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
-        in.close();
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.ME.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear and regenerate all bins
         LOGGER.info("  Clear and regenerate ME bins");
@@ -944,17 +944,18 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.QA.txt\"; name=\"file\"");
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.QA.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate QA bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "QUALITY_ASSURANCE", authToken);
-        in.close();
 
         // Note: don't regenerate all bins. Users will do so manually as needed.
         // // Regenerate bins
@@ -970,18 +971,19 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.MV.txt\"; name=\"file\"");
         workflowService = new WorkflowServiceRestImpl();
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.MV.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate MV bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "MID_VALIDATION", authToken);
-        in.close();
 
         //
         // Add MID VALIDATION (NO concepts)
@@ -991,18 +993,19 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.MVO.txt\"; name=\"file\"");
         workflowService = new WorkflowServiceRestImpl();
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.MVO.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate MVO bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "MID_VALIDATION_OTHER", authToken);
-        in.close();
 
         //
         // Add REPORT_DEFINITIONS
@@ -1012,18 +1015,19 @@ public class GenerateData extends AbstractLoader {
 
         workflowFile = new File(workflowFilePath);
 
-        in = new FileInputStream(workflowFile);
-        contentDispositionHeader = new FormDataContentDisposition(
-                "form-data; filename=\"workflow.RD.txt\"; name=\"file\"");
         workflowService = new WorkflowServiceRestImpl();
-        workflowService.importWorkflowConfig(contentDispositionHeader, in,
-                projectId, authToken);
+        try (InputStream in = new FileInputStream(workflowFile)) {
+          FormDataContentDisposition contentDispositionHeader =
+              new FormDataContentDisposition(
+                  "form-data; filename=\"workflow.RD.txt\"; name=\"file\"");
+          workflowService.importWorkflowConfig(contentDispositionHeader, in,
+              projectId, authToken);
+        }
 
         // Clear bins
         LOGGER.info(" Clear and regenerate RD bins");
         workflowService = new WorkflowServiceRestImpl();
         workflowService.clearBins(projectId, "REPORT_DEFINITIONS", authToken);
-        in.close();
 
         // ComponentInfoRelationship resolves to nothing (auto-fix -> remove), need
         // algorithm?

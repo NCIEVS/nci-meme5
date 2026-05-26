@@ -253,135 +253,126 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		}
 
 		try {
-			FileWriter out = new FileWriter(getSrcDirFile() + File.separator + "new_sty_defaults");
-
-			FileWriter fw = new FileWriter(getSrcDirFile() + File.separator + "attributes.src", true);
-			BufferedWriter bw = new BufferedWriter(fw);
-			PrintWriter pw = new PrintWriter(bw);
-
 			/// for these walk through the context trees and assign stys.
 			final String contextsFile = getSrcDirFile() + File.separator + "contexts.src";
 
-			BufferedReader in = new BufferedReader(new FileReader(contextsFile));
-			String line;
-			int count = 0;
-			while ((line = in.readLine()) != null) {
-				String[] parts = line.split("\\|");
-				String said = parts[0];
-				rel = parts[1];
-				ptree = parts[7];
-				if (!rel.equals("PAR")) {
-					continue;
+			try (FileWriter out = new FileWriter(getSrcDirFile() + File.separator + "new_sty_defaults");
+					PrintWriter pw = new PrintWriter(new BufferedWriter(
+							new FileWriter(getSrcDirFile() + File.separator + "attributes.src", true)));
+					BufferedReader in = new BufferedReader(new FileReader(contextsFile))) {
+				String line;
+				int count = 0;
+				while ((line = in.readLine()) != null) {
+					String[] parts = line.split("\\|");
+					String said = parts[0];
+					rel = parts[1];
+					ptree = parts[7];
+					if (!rel.equals("PAR")) {
+						continue;
+					}
+					if (said2stys.containsKey(said)) {
+						continue;
+					}
+					// this said doesn't have any assigned stys. so walk the tree and assign
+					// one.
+					String[] psaids = ptree.split("\\.");
+					for (int i = psaids.length - 1; i >= 0; i--) {
+						psaid = psaids[i];
+						if (said2stys.containsKey(psaid)) {
+							said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
+							String ign = saidsNeedStys.get(said);
+							ttySdui2Said.put(ign, said);
+							saidsNeedStys.remove(said);
+							count++;
+							out.write("\t" + said + "|" + ign + " added(tree): " + said2stys.get(said) + "\n");
+							break;
+						}
+					}
 				}
-				if (said2stys.containsKey(said)) {
-					continue;
+				logInfo("Added(tree) count: " + count);
+
+				// now find stys via sdui for the missing ones.
+				// do it in two stages: first assign stys for LLT/OL and then for mth atoms.
+				count = 0;
+				for (String said : saidsNeedStys.keySet()) {
+					String[] parts = saidsNeedStys.get(said).split("\\|");
+					tty = parts[0];
+					sdui = parts[1];
+					if (tty.matches(".*MTH.*")) {
+						continue;
+					}
+					if (tty.equals("LLT") || tty.equals("OL")) {
+						psaid = ttySdui2Said.get("PT|" + sdui);
+						if (said2stys.containsKey(psaid)) {
+							said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
+							String ign = saidsNeedStys.get(said);
+							ttySdui2Said.put(ign, said);
+							saidsNeedStys.remove(said);
+							count++;
+							out.write("\t" + said + "|" + ign + " added(LLT/OL): " + said2stys.get(said) + "\n");
+						}
+					}
 				}
-				// this said doesn't have any assigned stys. so walk the tree and assign
-				// one.
-				String[] psaids = ptree.split("\\.");
-				for (int i = psaids.length - 1; i >= 0; i--) {
-					psaid = psaids[i];
+				logInfo("Added(LLT/OL) count: " + count);
+
+				// now assign stys for mth atoms via sdui
+				count = 0;
+				for (String said : saidsNeedStys.keySet()) {
+					String[] parts = saidsNeedStys.get(said).split("\\|");
+					tty = parts[0];
+					sdui = parts[1];
+					if (!tty.matches(".*MTH.*")) {
+						continue;
+					}
+					tty = tty.replace("MTH_", "");
+					psaid = ttySdui2Said.get(tty + "|" + sdui);
 					if (said2stys.containsKey(psaid)) {
 						said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
 						String ign = saidsNeedStys.get(said);
 						ttySdui2Said.put(ign, said);
 						saidsNeedStys.remove(said);
 						count++;
-						out.write("\t" + said + "|" + ign + " added(tree): " + said2stys.get(said) + "\n");
-						break;
+						out.write("\t" + said + "|" + ign + " added(MTH): " + said2stys.get(said) + "\n");
+
 					}
 				}
-			}
-			logInfo("Added(tree) count: " + count);
-			in.close();
+				logInfo("Added(MTH) count: " + count);
 
-			// now find stys via sdui for the missing ones.
-			// do it in two stages: first assign stys for LLT/OL and then for mth atoms.
-			count = 0;
-			for (String said : saidsNeedStys.keySet()) {
-				String[] parts = saidsNeedStys.get(said).split("\\|");
-				tty = parts[0];
-				sdui = parts[1];
-				if (tty.matches(".*MTH.*")) {
-					continue;
-				}
-				if (tty.equals("LLT") || tty.equals("OL")) {
-					psaid = ttySdui2Said.get("PT|" + sdui);
-					if (said2stys.containsKey(psaid)) {
-						said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
+				// add "Classification" as sty for all SMQ atoms
+				count = 0;
+				for (String said : smqSaids.keySet()) {
+					if (!said2stys.containsKey(said)) {
+						said2stys.put(said, new ArrayList<>());
+					}
+					said2stys.get(said).add("Classification");
+					if (saidsNeedStys.containsKey(said)) {
 						String ign = saidsNeedStys.get(said);
 						ttySdui2Said.put(ign, said);
 						saidsNeedStys.remove(said);
 						count++;
-						out.write("\t" + said + "|" + ign + " added(LLT/OL): " + said2stys.get(said) + "\n");
+						out.write("\t" + said + "|" + ign + " added(SMQ): " + said2stys.get(said) + "\n");
+
 					}
 				}
-			}
-			logInfo("Added(LLT/OL) count: " + count);
+				logInfo("Added(SMQ) count: " + count);
 
-			// now assign stys for mth atoms via sdui
-			count = 0;
-			for (String said : saidsNeedStys.keySet()) {
-				String[] parts = saidsNeedStys.get(said).split("\\|");
-				tty = parts[0];
-				sdui = parts[1];
-				if (!tty.matches(".*MTH.*")) {
-					continue;
+				// now append stys as attributes.
+				List<String> sortedSaids = new ArrayList<String>(said2stys.keySet());
+				Collections.sort(sortedSaids);
+				for (String said : sortedSaids) {
+					for (String sty : said2stys.get(said)) {
+						out.write(said + "|" + sty + "\n");
+						attAppender(pw, ++aid, said, sty);
+					}
 				}
-				tty = tty.replace("MTH_", "");
-				psaid = ttySdui2Said.get(tty + "|" + sdui);
-				if (said2stys.containsKey(psaid)) {
-					said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
-					String ign = saidsNeedStys.get(said);
-					ttySdui2Said.put(ign, said);
-					saidsNeedStys.remove(said);
-					count++;
-					out.write("\t" + said + "|" + ign + " added(MTH): " + said2stys.get(said) + "\n");
 
+				// whatever is remaining in saidsNeedStys, we need to do something.
+				int ct = saidsNeedStys.size();
+				logInfo("The " + ct + " saids are remaining without semantic types.");
+				for (String skey : saidsNeedStys.keySet()) {
+					logInfo("\t" + skey + "|" + saidsNeedStys.get(skey));
 				}
 			}
-			logInfo("Added(MTH) count: " + count);
-
-			// add "Classification" as sty for all SMQ atoms
-			count = 0;
-			for (String said : smqSaids.keySet()) {
-				if (!said2stys.containsKey(said)) {
-					said2stys.put(said, new ArrayList<>());
-				}
-				said2stys.get(said).add("Classification");
-				if (saidsNeedStys.containsKey(said)) {
-					String ign = saidsNeedStys.get(said);
-					ttySdui2Said.put(ign, said);
-					saidsNeedStys.remove(said);
-					count++;
-					out.write("\t" + said + "|" + ign + " added(SMQ): " + said2stys.get(said) + "\n");
-
-				}
-			}
-			logInfo("Added(SMQ) count: " + count);
-
-			// now append stys as attributes.
-			List<String> sortedSaids = new ArrayList<String>(said2stys.keySet());
-			Collections.sort(sortedSaids);
-			for (String said : sortedSaids) {
-				for (String sty : said2stys.get(said)) {
-					out.write(said + "|" + sty + "\n");
-					attAppender(pw, ++aid, said, sty);
-				}
-			}
-
-			// whatever is remaining in saidsNeedStys, we need to do something.
-			int ct = saidsNeedStys.size();
-			logInfo("The " + ct + " saids are remaining without semantic types.");
-			for (String skey : saidsNeedStys.keySet()) {
-				logInfo("\t" + skey + "|" + saidsNeedStys.get(skey));
-			}
-
-			pw.flush();
-			out.close();
-			fw.close();
-			pw.close();
-			bw.close();
 
 			// attributes.src was modified in the getSrcDir folder (inversion test
 			// directory)

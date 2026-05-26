@@ -61,6 +61,15 @@ Phase 1 cleanup completed:
 - kept the remaining non-phase-1 legacy SpotBugs backlog baselined by pattern
 - left the Phase 1 bug families unsuppressed so regressions fail the build
 
+Phase 2 cleanup completed:
+
+- closed the targeted file, process, ontology, XML, and properties resources
+  with try-with-resources or explicit closes
+- removed the resource-handling families from the SpotBugs baseline:
+  `OS_OPEN_STREAM`, `OBL_UNSATISFIED_OBLIGATION`, and
+  `OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE`
+- left the Phase 2 bug families unsuppressed so regressions fail the build
+
 ## First SpotBugs Baseline
 
 The first project-wide SpotBugs scan found a legacy backlog:

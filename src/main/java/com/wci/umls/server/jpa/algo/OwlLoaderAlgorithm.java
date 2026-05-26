@@ -195,12 +195,13 @@ public class OwlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
   /* see superclass */
   @Override
   public String getFileVersion() throws Exception {
-    final FileInputStream in = new FileInputStream(new File(inputFile));
     final OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
-    final OWLOntology directOntology =
-        manager.loadOntologyFromOntologyDocument(in);
-    // Determine version
-    return getReleaseVersion(directOntology);
+    try (FileInputStream in = new FileInputStream(new File(inputFile))) {
+      final OWLOntology directOntology =
+          manager.loadOntologyFromOntologyDocument(in);
+      // Determine version
+      return getReleaseVersion(directOntology);
+    }
   }
 
   /* see superclass */
@@ -235,9 +236,11 @@ public class OwlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     //
     // Load ontology into memory
-    final FileInputStream in = new FileInputStream(new File(inputFile));
     OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
-    OWLOntology directOntology = manager.loadOntologyFromOntologyDocument(in);
+    OWLOntology directOntology;
+    try (FileInputStream in = new FileInputStream(new File(inputFile))) {
+      directOntology = manager.loadOntologyFromOntologyDocument(in);
+    }
 
     //
     // Check compliance

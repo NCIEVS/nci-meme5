@@ -185,9 +185,11 @@ public class RunMetamorphoSysAlgorithm
 
     // Override user configuration settings
     Properties subsetConfig = new Properties();
-    subsetConfig.load(new FileInputStream(
+    try (FileInputStream in = new FileInputStream(
         new File(new File(new File(new File(pathRelease, "MMSYS"), "config"),
-            getProcess().getVersion()), "user.a.prop")));
+            getProcess().getVersion()), "user.a.prop"))) {
+      subsetConfig.load(in);
+    }
     subsetConfig.setProperty("mmsys_output_stream",
         "gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream");
     subsetConfig.setProperty("mmsys_input_stream",
@@ -199,10 +201,10 @@ public class RunMetamorphoSysAlgorithm
     subsetConfig.setProperty(
         "gov.nih.nlm.umls.mmsys.filter.SourceListFilter.selected_sources", "");
     // re-write config file
-    subsetConfig.store(
-        new FileOutputStream(
-            new File(new File(pathRelease, "log"), "mmsys.prop")),
-        "MRD configuration");
+    try (FileOutputStream out =
+        new FileOutputStream(new File(new File(pathRelease, "log"), "mmsys.prop"))) {
+      subsetConfig.store(out, "MRD configuration");
+    }
 
     // To run MetamorphoSys in batch subsetting mode,
     // it is now way easier to just invoke Java directly.
