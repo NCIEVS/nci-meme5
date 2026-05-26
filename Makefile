@@ -33,7 +33,7 @@ help:
 	@echo "  make migrate          Run Flyway migrations"
 	@echo "  make migrate-info     Show Flyway migration status"
 	@echo "  make migrate-validate Validate Flyway migrations"
-	@echo "  make scan             Run Trivy filesystem scan when Trivy is installed"
+	@echo "  make scan             Run strict Trivy dependency vulnerability scan"
 
 clean:
 	$(WITH_ENV); $(GRADLEW) clean
@@ -61,12 +61,12 @@ migrate-validate:
 	$(WITH_ENV); $(GRADLEW) adminFlywayValidate
 
 scan:
-	$(WITH_ENV); \
-	if ! command -v trivy >/dev/null 2>&1; then \
-		echo "Trivy is not installed. Skipping scan."; \
-	else \
-		trivy fs --severity HIGH,CRITICAL --exit-code 1 .; \
-	fi
+	set -e; $(WITH_ENV); $(WITHOUT_LOCAL_PATH_ENV); \
+	cleanup() { /bin/rm -rf gradle/dependency-locks gradle.lockfile; }; \
+	trap cleanup EXIT; \
+	$(GRADLEW) dependencies --write-locks; \
+	trivy fs gradle.lockfile --scanners vuln --severity HIGH,CRITICAL --exit-code 1 \
+		--format template -o report.html --template "@config/trivy/html.tpl"
 
 version:
 	@echo $(APP_VERSION)

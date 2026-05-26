@@ -226,3 +226,5 @@ pip-log.txt
 
 .gradle
 *.iml
+gradle.lockfile
+report.html
