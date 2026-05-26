@@ -24,7 +24,7 @@ import com.wci.umls.server.model.content.Subset;
 public class ContentServiceRestDegenerateUseIT extends ContentServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The test test id. */
   private String testId;

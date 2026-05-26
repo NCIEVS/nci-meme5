@@ -21,10 +21,10 @@ import com.wci.umls.server.jpa.services.rest.SecurityServiceRest;
 public class SecurityServiceRestRoleCheckIT extends SecurityServiceRestIT {
 
   /** The admin user auth token. */
-  private static String viewerUserAuthToken;
+  private String viewerUserAuthToken;
 
   /** The admin user auth token. */
-  private static String adminUserAuthToken;
+  private String adminUserAuthToken;
 
   /**
    * Create test fixtures per test.

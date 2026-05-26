@@ -19,7 +19,7 @@ import com.wci.umls.server.model.content.Relationship;
 public class GetDescriptorRelationshipsTest extends ExampleSupport {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /**
    * Create test fixtures per test.

@@ -176,6 +176,24 @@ public abstract class RootServiceJpa implements RootService {
 
   }
 
+  /**
+   * Opens the entity manager factory if it was previously closed.
+   *
+   * @throws Exception the exception
+   */
+  private static synchronized void openEntityManagerFactoryIfClosed()
+    throws Exception {
+    if (factory == null) {
+      throw new Exception("Factory is null, serious problem.");
+    }
+    if (!factory.isOpen()) {
+      Logger.getLogger(RootServiceJpa.class)
+          .info("Setting root service entity manager factory.");
+      final Properties config = PropertyUtility.getProperties();
+      factory = Persistence.createEntityManagerFactory("TermServiceDS", config);
+    }
+  }
+
   /** The manager. */
   protected EntityManager manager;
 
@@ -192,15 +210,7 @@ public abstract class RootServiceJpa implements RootService {
    */
   public RootServiceJpa() throws Exception {
     // created once or if the factory has closed
-    if (factory == null) {
-      throw new Exception("Factory is null, serious problem.");
-    }
-    if (!factory.isOpen()) {
-      Logger.getLogger(getClass())
-          .info("Setting root service entity manager factory.");
-      final Properties config = PropertyUtility.getProperties();
-      factory = Persistence.createEntityManagerFactory("TermServiceDS", config);
-    }
+    openEntityManagerFactoryIfClosed();
 
     validateInit();
 
@@ -217,15 +227,7 @@ public abstract class RootServiceJpa implements RootService {
   public void openFactory() throws Exception {
 
     // if factory has not been instantiated or has been closed, open it
-    if (factory == null) {
-      throw new Exception("Factory is null, serious problem.");
-    }
-    if (!factory.isOpen()) {
-      Logger.getLogger(getClass())
-          .info("Setting root service entity manager factory.");
-      final Properties config = PropertyUtility.getProperties();
-      factory = Persistence.createEntityManagerFactory("TermServiceDS", config);
-    }
+    openEntityManagerFactoryIfClosed();
   }
 
   /* see superclass */

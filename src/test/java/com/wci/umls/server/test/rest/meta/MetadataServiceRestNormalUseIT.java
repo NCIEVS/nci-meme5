@@ -39,10 +39,10 @@ import com.wci.umls.server.services.MetadataService.MetadataKeys;
 public class MetadataServiceRestNormalUseIT extends MetadataServiceRestIT{
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The admin token. */
-  private static String adminToken;
+  private String adminToken;
 
   /**
    * Create test fixtures per test.

@@ -57,7 +57,7 @@ public class TreePositionAlgorithm extends AbstractAlgorithm {
   private boolean computeSemanticTypes;
 
   /** The object ct. */
-  private static int objectCt = 0;
+  private int objectCt = 0;
 
   /**
    * Instantiates an empty {@link TreePositionAlgorithm}.

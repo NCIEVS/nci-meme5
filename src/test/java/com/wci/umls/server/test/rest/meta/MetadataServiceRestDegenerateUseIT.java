@@ -17,7 +17,7 @@ public class MetadataServiceRestDegenerateUseIT extends
     MetadataServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /**
    * Create test fixtures per test.

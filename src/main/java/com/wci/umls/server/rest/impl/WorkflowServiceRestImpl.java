@@ -148,7 +148,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class WorkflowServiceRestImpl extends RootServiceRestImpl implements WorkflowServiceRest {
 
   /** The lock. */
-  private static String lock = "LOCK";
+  private static final Object LOCK = new Object();
 
   /** The security service. */
   private SecurityService securityService;
@@ -1183,7 +1183,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /bin/regenerate/all " + type);
 
     // Only one user can regenerate bins at a time
-    synchronized (lock) {
+    synchronized (LOCK) {
       // Instantiate services
       final ProcessService processService = new ProcessServiceJpa();
       final RepartitionAlgorithm algorithm = new RepartitionAlgorithm();
@@ -1986,7 +1986,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /worklist ");
 
     // Only allow one user in here at a time.
-    synchronized (lock) {
+    synchronized (LOCK) {
       final WorkflowService workflowService = new WorkflowServiceJpa();
       try {
         final String userName = authorizeProject(workflowService, projectId, securityService,
@@ -2600,7 +2600,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     WorkflowBin bin = null;
     
     // Only one user can regenerate a bin at a time
-    synchronized (lock) {
+    synchronized (LOCK) {
 
       final WorkflowServiceJpa workflowService = new WorkflowServiceJpa();
       try {
@@ -2684,7 +2684,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /definition/regenerate " + name);
 
     // Only one user can regenerate a bin at a time
-    synchronized (lock) {
+    synchronized (LOCK) {
 
       final WorkflowServiceJpa workflowService = new WorkflowServiceJpa();
       try {
@@ -3823,7 +3823,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     Logger.getLogger(getClass()).info("RESTful call (Workflow): /runautofix ");
 
     // Only one user can autofix a bin at a time
-    synchronized (lock) {
+    synchronized (LOCK) {
 
       final WorkflowServiceJpa workflowService = new WorkflowServiceJpa();
       final ProcessServiceJpa processService = new ProcessServiceJpa();

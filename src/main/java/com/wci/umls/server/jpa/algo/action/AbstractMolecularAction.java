@@ -45,7 +45,7 @@ public abstract class AbstractMolecularAction extends AbstractAlgorithm
     implements MolecularActionAlgorithm {
 
   /** The Constant LOCK. */
-  private static final String LOCK = "lock";
+  private static final Object LOCK = new Object();
 
   /** The concept id. */
   private Long conceptId;

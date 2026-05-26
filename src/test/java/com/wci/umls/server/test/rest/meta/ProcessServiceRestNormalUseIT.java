@@ -40,10 +40,10 @@ import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
   /** The admin auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The project. */
-  private static Project project;
+  private Project project;
 
   /** The umls terminology. */
   private String umlsTerminology = "MTH";

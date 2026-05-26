@@ -35,10 +35,10 @@ public class MetaEditingServiceRestDegenerateUseIT
     extends MetaEditingServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The project. */
-  private static Project project;
+  private Project project;
 
   /** The umls terminology. */
   private String umlsTerminology = "NCIMTH";

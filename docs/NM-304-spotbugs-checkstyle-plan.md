@@ -70,6 +70,19 @@ Phase 2 cleanup completed:
   `OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE`
 - left the Phase 2 bug families unsuppressed so regressions fail the build
 
+Phase 3 cleanup completed:
+
+- replaced shared string lock monitors with private lock objects
+- synchronized lazy static initialization and factory refresh paths that remain
+  process-wide state
+- converted per-test fixtures from static fields to instance fields where setup
+  was already per-test
+- removed the static-state/threading families from the SpotBugs baseline:
+  `ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD`,
+  `DL_SYNCHRONIZATION_ON_SHARED_CONSTANT`, `LI_LAZY_INIT_STATIC`, and
+  `LI_LAZY_INIT_UPDATE_STATIC`
+- left the Phase 3 bug families unsuppressed so regressions fail the build
+
 ## First SpotBugs Baseline
 
 The first project-wide SpotBugs scan found a legacy backlog:
@@ -146,29 +159,30 @@ Goal:
 - verify with compile, quality checks, and focused loader/release tests when
   available
 
-### 3. Static State and Threading
+### 3. Static State and Threading (Completed)
 
-Then review static mutable state and synchronization warnings:
+Phase 3 addressed static mutable state and synchronization warnings:
 
 - `ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD`
 - `DL_SYNCHRONIZATION_ON_SHARED_CONSTANT`
 - `LI_LAZY_INIT_STATIC`
 - `LI_LAZY_INIT_UPDATE_STATIC`
 
-Likely first areas:
+Covered areas:
 
 - `RootServiceJpa`
 - `UmlsIdentityServiceJpa`
 - `NotificationWebsocketConfigurator`
 - `TreePositionAlgorithm`
 
-Goal:
+Outcome:
 
-- determine which static state is intentional process-wide state
-- document or encapsulate intentional shared state
-- replace unsafe synchronization targets
-- avoid behavior changes to transaction or identity assignment semantics without
-  dedicated tests
+- intentional process-wide state remains static and is protected behind
+  synchronized access where needed
+- unsafe shared-constant synchronization targets were replaced with private
+  lock objects
+- per-test fixture state now uses instance fields
+- transaction and identity-assignment semantics were preserved
 
 ### 4. Default Encoding
 

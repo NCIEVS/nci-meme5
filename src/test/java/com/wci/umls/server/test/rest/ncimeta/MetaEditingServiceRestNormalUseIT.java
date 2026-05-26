@@ -62,10 +62,10 @@ public class MetaEditingServiceRestNormalUseIT
     extends MetaEditingServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The project. */
-  private static Project project;
+  private Project project;
 
   /** The umls terminology. */
   private String umlsTerminology = "NCIMTH";
@@ -3410,33 +3410,28 @@ public class MetaEditingServiceRestNormalUseIT
   @After
   public void teardown() throws Exception {
 
+    final IntegrationTestClientRest cleanupService =
+            new IntegrationTestClientRest(PropertyUtility.getProperties());
+
     // Delete copies of concepts created during this test
     if (concept != null && contentService.getConcept(concept.getId(),
             project.getId(), authToken) != null) {
-      IntegrationTestClientRest testService =
-              new IntegrationTestClientRest(PropertyUtility.getProperties());
-      testService.removeConcept(concept.getId(), true, authToken);
+      cleanupService.removeConcept(concept.getId(), true, authToken);
     }
 
     if (concept2 != null && contentService.getConcept(concept2.getId(),
             project.getId(), authToken) != null) {
-      testService =
-              new IntegrationTestClientRest(PropertyUtility.getProperties());
-      testService.removeConcept(concept2.getId(), true, authToken);
+      cleanupService.removeConcept(concept2.getId(), true, authToken);
     }
 
     if (concept3 != null && contentService.getConcept(concept3.getId(),
             project.getId(), authToken) != null) {
-      testService =
-              new IntegrationTestClientRest(PropertyUtility.getProperties());
-      testService.removeConcept(concept3.getId(), true, authToken);
+      cleanupService.removeConcept(concept3.getId(), true, authToken);
     }
 
     if (concept4 != null && contentService.getConcept(concept4.getId(),
             project.getId(), authToken) != null) {
-      testService =
-              new IntegrationTestClientRest(PropertyUtility.getProperties());
-      testService.removeConcept(concept4.getId(), true, authToken);
+      cleanupService.removeConcept(concept4.getId(), true, authToken);
     }
 
     // Turn the standard validation checks back on

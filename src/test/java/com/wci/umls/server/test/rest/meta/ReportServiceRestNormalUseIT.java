@@ -23,10 +23,10 @@ import com.wci.umls.server.model.content.Concept;
 public class ReportServiceRestNormalUseIT extends ReportServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The project. */
-  private static Project project;
+  private Project project;
 
   /** The umls terminology. */
   private String umlsTerminology = "MTH";

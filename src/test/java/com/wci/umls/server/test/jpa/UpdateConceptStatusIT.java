@@ -42,7 +42,7 @@ import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 public class UpdateConceptStatusIT extends IntegrationUnitSupport {
 
   /** The service. */
-  protected static ContentServiceJpa contentService;
+  protected ContentServiceJpa contentService;
 
   /** The properties. */
   protected static Properties properties;
@@ -54,7 +54,7 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
   private Concept concept;
 
   /** The project. */
-  private static Project project;
+  private Project project;
 
   /** The umls terminology. */
   private String umlsTerminology = "MTH";
@@ -73,9 +73,6 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
     // instantiate properties
     properties = PropertyUtility.getProperties();
 
-    // instantiate services
-    contentService = new ContentServiceJpa();
-
   }
 
   /**
@@ -85,6 +82,8 @@ public class UpdateConceptStatusIT extends IntegrationUnitSupport {
    */
   @Before
   public void setup() throws Exception {
+
+    contentService = new ContentServiceJpa();
 
     // ensure there is a concept associated with the project
     ProjectList projects = contentService.getProjects();

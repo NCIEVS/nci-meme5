@@ -37,10 +37,10 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
     implements UmlsIdentityService {
 
   /** The uncommited id map. */
-  private static Map<Object, Long> uncommitedIdMap = new HashMap<>();
+  private static final Map<Object, Long> uncommitedIdMap = new HashMap<>();
 
   /** The max ids. */
-  private static Map<String, Long> maxIds = new HashMap<>();
+  private static final Map<String, Long> maxIds = new HashMap<>();
 
   /** The handler. */
   private SearchHandler handler = new DefaultSearchHandler();
@@ -742,7 +742,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
   public void commit() throws Exception {
     super.commit();
     if (!getTransactionPerOperation()) {
-      uncommitedIdMap = new HashMap<>();
+      uncommitedIdMap.clear();
     }
   }
 
@@ -751,7 +751,7 @@ public class UmlsIdentityServiceJpa extends MetadataServiceJpa
   public void rollback() throws Exception {
     super.rollback();
     if (!getTransactionPerOperation()) {
-      uncommitedIdMap = new HashMap<>();
+      uncommitedIdMap.clear();
     }
   }
 
