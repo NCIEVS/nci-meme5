@@ -1,9 +1,10 @@
-# NM-304 SpotBugs and Checkstyle Plan
+# NM-304 Static Analysis and Vulnerability Scan Plan
 
 ## Summary
 
-Add Gradle-backed SpotBugs and Checkstyle verification to MEME, using
-`workspace-evsrestapi/evsrestapi` as the local reference for SpotBugs wiring.
+Add Gradle-backed SpotBugs, Checkstyle, and Trivy verification to MEME, using
+`workspace-evsrestapi/evsrestapi` as the local reference for the quality and
+vulnerability-scan wiring.
 
 The initial implementation should make the quality gate useful without turning
 NM-304 into a broad legacy refactor. Checkstyle can enforce low-risk hygiene now.
@@ -20,7 +21,9 @@ Relevant reference files:
 
 - `/Users/deborahshapiro/Code/workspace-evsrestapi/evsrestapi/build.gradle`
 - `/Users/deborahshapiro/Code/workspace-evsrestapi/evsrestapi/config/spotbugs/excludeFilter.xml`
+- `/Users/deborahshapiro/Code/workspace-evsrestapi/evsrestapi/config/trivy/html.tpl`
 - `/Users/deborahshapiro/Code/workspace-evsrestapi/evsrestapi/Makefile`
+- `/Users/deborahshapiro/Code/workspace-evsrestapi/evsrestapi/.github/workflows/trivy-scan.yml`
 
 Important reference patterns:
 
@@ -28,6 +31,12 @@ Important reference patterns:
 - Configure HTML reports for `spotbugsMain` and `spotbugsTest`.
 - Keep `ignoreFailures = false`.
 - Use `config/spotbugs/excludeFilter.xml` for accepted baseline exclusions.
+- Add a `make scan` target for a Trivy dependency vulnerability scan.
+- Generate a temporary Gradle lockfile for the Trivy scan and clean it up
+  afterward so dependency-lock artifacts are not accidentally committed.
+- Use `config/trivy/html.tpl` for local HTML report output.
+- Add a GitHub Actions workflow that runs the Trivy scan on pull requests and
+  manual dispatch, failing on HIGH or CRITICAL vulnerabilities.
 
 ## Current Implementation
 
@@ -39,6 +48,7 @@ Implemented in the NM-304 branch:
   - adds SpotBugs annotations as compile-only dependencies
   - wires SpotBugs into Gradle `check`
   - enables HTML reports for Checkstyle and SpotBugs
+  - enables Gradle dependency locking so Trivy can scan a generated lockfile
 - `config/checkstyle/checkstyle.xml`
   - enables conservative import and modifier-order checks
 - `config/checkstyle/suppressions.xml`
@@ -47,6 +57,15 @@ Implemented in the NM-304 branch:
 - `config/spotbugs/excludeFilter.xml`
   - baselines legacy findings from the first project-wide scan
   - leaves SpotBugs strict for new unsuppressed patterns
+- `Makefile`
+  - includes a strict `make scan` target aligned with the reference Trivy
+    lockfile/report workflow
+  - creates a temporary Gradle lockfile, scans it for HIGH and CRITICAL
+    vulnerabilities, writes `report.html`, and removes temporary lock output
+- `config/trivy/html.tpl`
+  - adds the local Trivy HTML report template from the reference project
+- `.github/workflows/trivy-scan.yml`
+  - adds the CI Trivy vulnerability scan for pull requests and manual runs
 
 Initial cleanup completed:
 
@@ -69,6 +88,56 @@ Phase 2 cleanup completed:
   `OS_OPEN_STREAM`, `OBL_UNSATISFIED_OBLIGATION`, and
   `OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE`
 - left the Phase 2 bug families unsuppressed so regressions fail the build
+
+Phase 3 cleanup completed:
+
+- replaced shared string lock monitors with private lock objects
+- synchronized lazy static initialization and factory refresh paths that remain
+  process-wide state
+- converted per-test fixtures from static fields to instance fields where setup
+  was already per-test
+- removed the static-state/threading families from the SpotBugs baseline:
+  `ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD`,
+  `DL_SYNCHRONIZATION_ON_SHARED_CONSTANT`, `LI_LAZY_INIT_STATIC`, and
+  `LI_LAZY_INIT_UPDATE_STATIC`
+- left the Phase 3 bug families unsuppressed so regressions fail the build
+
+## Trivy Implementation
+
+Trivy is an NM-304 deliverable and is implemented as a strict dependency
+vulnerability scan.
+
+Implemented files:
+
+- `config/trivy/html.tpl`
+  - contains the Trivy HTML report template from the reference project
+- `Makefile`
+  - `make scan` creates a temporary Gradle lockfile with
+    `./gradlew dependencies --write-locks`
+  - scans `gradle.lockfile` with Trivy's vulnerability scanner instead of
+    scanning the whole repository
+  - emits `report.html` using `config/trivy/html.tpl`
+  - fails the target when Trivy is missing or HIGH or CRITICAL vulnerabilities
+    are present
+  - removes temporary `gradle/dependency-locks` and `gradle.lockfile` output
+- `.github/workflows/trivy-scan.yml`
+  - runs on pull requests to `develop`, `develop-*`, and `master`
+  - allows manual `workflow_dispatch` runs
+  - installs Java 17 and Trivy on the runner
+  - generates the temporary Gradle lockfile
+  - runs Trivy's vulnerability scanner with HIGH and CRITICAL severity filtering
+  - publishes a readable failure summary of vulnerable packages
+
+Dependency cleanup completed:
+
+- `commons-io` upgraded from `2.8.0` to `2.16.1`
+- `commons-vfs2` upgraded from `2.0` to `2.10.0`
+- `plexus-utils` made explicit and forced to `3.6.1`
+- `tomcat.version` temporarily overridden to `10.1.55` until Spring Boot
+  3.5.x manages Tomcat `10.1.55` or newer
+- MySQL Connector/J moved from legacy `mysql:mysql-connector-java:8.0.17`
+  to `com.mysql:mysql-connector-j:9.7.0`
+- default MySQL JDBC driver class updated to `com.mysql.cj.jdbc.Driver`
 
 ## First SpotBugs Baseline
 
@@ -146,29 +215,30 @@ Goal:
 - verify with compile, quality checks, and focused loader/release tests when
   available
 
-### 3. Static State and Threading
+### 3. Static State and Threading (Completed)
 
-Then review static mutable state and synchronization warnings:
+Phase 3 addressed static mutable state and synchronization warnings:
 
 - `ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD`
 - `DL_SYNCHRONIZATION_ON_SHARED_CONSTANT`
 - `LI_LAZY_INIT_STATIC`
 - `LI_LAZY_INIT_UPDATE_STATIC`
 
-Likely first areas:
+Covered areas:
 
 - `RootServiceJpa`
 - `UmlsIdentityServiceJpa`
 - `NotificationWebsocketConfigurator`
 - `TreePositionAlgorithm`
 
-Goal:
+Outcome:
 
-- determine which static state is intentional process-wide state
-- document or encapsulate intentional shared state
-- replace unsafe synchronization targets
-- avoid behavior changes to transaction or identity assignment semantics without
-  dedicated tests
+- intentional process-wide state remains static and is protected behind
+  synchronized access where needed
+- unsafe shared-constant synchronization targets were replaced with private
+  lock objects
+- per-test fixture state now uses instance fields
+- transaction and identity-assignment semantics were preserved
 
 ### 4. Default Encoding
 

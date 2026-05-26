@@ -69,7 +69,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
   private UmlsIdentityService service = null;
 
   /** The lock. */
-  private static String LOCK = "lock";
+  private static final Object LOCK = new Object();
 
   /** The ui prefixes. */
   private Map<String, String> prefixMap = new HashMap<>();

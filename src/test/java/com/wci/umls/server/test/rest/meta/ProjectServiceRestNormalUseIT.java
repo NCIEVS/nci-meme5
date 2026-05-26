@@ -25,7 +25,7 @@ import com.wci.umls.server.jpa.model.ProjectJpa;
 public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
 
   /** The admin auth token. */
-  private static String authToken;
+  private String authToken;
 
   /**
    * Create test fixtures per test.

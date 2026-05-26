@@ -20,15 +20,15 @@ public class NotificationWebsocketConfigurator extends
   /** The endpoint. */
   private static NotificationWebsocket endpoint = null;
 
-  /* see superclass */
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T> T getEndpointInstance(Class<T> endpointClass)
-    throws InstantiationException {
-
-    // Assumes only the one endpoint type will be expected
+  /**
+   * Returns the endpoint.
+   *
+   * @return the endpoint
+   */
+  private static synchronized NotificationWebsocket getEndpoint() {
     if (endpoint == null) {
-      Logger.getLogger(getClass()).info("Initializing Notification Websocket");
+      Logger.getLogger(NotificationWebsocketConfigurator.class)
+          .info("Initializing Notification Websocket");
       endpoint = new NotificationWebsocket();
 
       // Ensure root implementation of all services has access to this
@@ -37,8 +37,17 @@ public class NotificationWebsocketConfigurator extends
       // to all services that implement RootServiceRestImpl
       RootServiceRestImpl.setNotificationWebsocket(endpoint);
     }
+    return endpoint;
+  }
 
-    return (T) endpoint;
+  /* see superclass */
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T> T getEndpointInstance(Class<T> endpointClass)
+    throws InstantiationException {
+
+    // Assumes only the one endpoint type will be expected
+    return (T) getEndpoint();
 
   }
 

@@ -21,7 +21,7 @@ import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 public class FindDescriptorsByStringQueryTest extends ExampleSupport {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /**
    * Create test fixtures per test.

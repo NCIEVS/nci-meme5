@@ -195,7 +195,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
   /**
    * Inits the.
    */
-  private static void init() {
+  private static synchronized void init() {
     try {
       if (PropertyUtility.getProperties().containsKey("jakarta.persistence.query.timeout")) {
         queryTimeout = Integer.parseInt(

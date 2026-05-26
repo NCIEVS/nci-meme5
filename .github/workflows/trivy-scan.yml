@@ -1,0 +1,58 @@
+name: Trivy Vulnerability Scan
+
+on:
+  pull_request:
+    branches:
+      - dss/NM-291-migration-phase2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Trivy
+        run: |
+          TRIVY_LATEST_VERSION=$(curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | jq -r .tag_name)
+          wget https://github.com/aquasecurity/trivy/releases/download/${TRIVY_LATEST_VERSION}/trivy_${TRIVY_LATEST_VERSION#v}_Linux-64bit.deb
+          sudo dpkg -i trivy_${TRIVY_LATEST_VERSION#v}_Linux-64bit.deb
+
+      - name: Run Trivy scan
+        id: trivy-scan
+        run: |
+          set -euo pipefail
+          cleanup() { /bin/rm -rf gradle/dependency-locks gradle.lockfile; }
+          trap cleanup EXIT
+          ./gradlew dependencies --write-locks
+          trivy fs gradle.lockfile --scanners vuln --format json --output trivy_report.json --severity HIGH,CRITICAL
+        env:
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+
+      - name: Check vulnerabilities
+        id: check-vulns
+        run: |
+          vuln_count=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL")] | length' trivy_report.json)
+          echo "Vulnerability count: $vuln_count"
+          if [ "$vuln_count" -gt 0 ]; then
+            echo "High or Critical vulnerabilities found."
+            exit 1
+          fi
+          echo "No high or critical vulnerabilities found."
+
+      - name: Output vulnerabilities
+        if: failure()
+        run: |
+          jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH" or .Severity == "CRITICAL") | "\(.VulnerabilityID): \(.PkgName) - Severity: \(.Severity) - Installed Version: \(.InstalledVersion) - Fixed Version: \(.FixedVersion)"' trivy_report.json

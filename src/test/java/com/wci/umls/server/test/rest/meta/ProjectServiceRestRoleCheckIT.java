@@ -25,10 +25,10 @@ import com.wci.umls.server.jpa.model.ProjectJpa;
 public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
 
   /** The viewer auth token. */
-  private static String viewerAuthToken;
+  private String viewerAuthToken;
 
   /** The admin auth token. */
-  private static String adminAuthToken;
+  private String adminAuthToken;
 
   /**
    * Create test fixtures per test.

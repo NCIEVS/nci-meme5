@@ -60,22 +60,22 @@ import com.wci.umls.server.rest.client.MetadataClientRest;
 public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The project. */
-  private static Project project;
+  private Project project;
 
   /** The project. */
-  private static Long projectId;
+  private Long projectId;
 
   /** The config. */
-  private static WorkflowConfig config;
+  private WorkflowConfig config;
 
   /** The definition. */
-  private static WorkflowBinDefinition definition;
+  private WorkflowBinDefinition definition;
 
   /** The epoch. */
-  private static WorkflowEpoch epoch;
+  private WorkflowEpoch epoch;
 
   /** The umls terminology. */
   private String umlsTerminology = "MTH";

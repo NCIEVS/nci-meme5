@@ -54,6 +54,11 @@ tasks.withType(JavaCompile).configureEach {
 configurations.all {
     exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     exclude group: 'commons-logging', module: 'commons-logging'
+    resolutionStrategy.force 'org.codehaus.plexus:plexus-utils:3.6.1'
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 springBoot {
@@ -80,7 +85,11 @@ ext {
     jerseyVersion          = '3.1.11'
     luceneVersion          = '9.9.2'
     jacksonVersion         = '2.16.1'
+    mysqlConnectorVersion  = '9.7.0'
 }
+
+// Remove once Spring Boot 3.5.x manages Tomcat 10.1.55 or newer.
+ext['tomcat.version'] = '10.1.55'
 
 // ── Dependencies ───────────────────────────────────────────────────────────────
 dependencies {
@@ -107,7 +116,7 @@ dependencies {
     implementation "org.apache.lucene:lucene-suggest:${luceneVersion}"
 
     // MySQL
-    implementation 'mysql:mysql-connector-java:8.0.17'
+    implementation "com.mysql:mysql-connector-j:${mysqlConnectorVersion}"
 
     // Logging
     implementation 'org.slf4j:slf4j-log4j12:1.7.36'
@@ -191,10 +200,11 @@ dependencies {
 
     // Commons
     implementation 'org.apache.commons:commons-lang3:3.12.0'
-    implementation 'commons-io:commons-io:2.8.0'
-    implementation 'org.apache.commons:commons-vfs2:2.0'
+    implementation 'commons-io:commons-io:2.16.1'
+    implementation 'org.apache.commons:commons-vfs2:2.10.0'
     implementation 'commons-codec:commons-codec:1.10'
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    implementation 'org.codehaus.plexus:plexus-utils:3.6.1'
 
     // ANTLR (required by Hibernate Search 7.x)
     implementation 'org.antlr:antlr4-runtime:4.13.0'

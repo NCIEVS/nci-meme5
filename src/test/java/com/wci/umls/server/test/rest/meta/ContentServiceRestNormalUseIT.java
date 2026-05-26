@@ -55,10 +55,10 @@ import com.wci.umls.server.test.helpers.PfsParameterForComponentIT;
 public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /** The admin token. */
-  private static String adminToken;
+  private String adminToken;
 
   /** The snomed terminology. */
   private String snomedTerminology = "SNOMEDCT_US";

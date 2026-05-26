@@ -37,10 +37,10 @@ public class MetaEditingServiceRestEdgeCasesIT
     extends MetaEditingServiceRestIT {
 
   /** The auth tokens. */
-  static String authToken;
+  private String authToken;
 
   /** The project. */
-  static Project project;
+  private Project project;
 
   /** The umls terminology. */
   private String umlsTerminology = "NCIMTH";

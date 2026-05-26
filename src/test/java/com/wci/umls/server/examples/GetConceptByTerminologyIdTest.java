@@ -21,7 +21,7 @@ import com.wci.umls.server.services.helpers.ReportHelper;
 public class GetConceptByTerminologyIdTest extends ExampleSupport {
 
   /** The auth token. */
-  private static String authToken;
+  private String authToken;
 
   /**
    * Create test fixtures per test.

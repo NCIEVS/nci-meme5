@@ -100,7 +100,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
     implements ProcessServiceRest {
 
   /** The lock. */
-  static String lock = "LOCK";
+  private static final Object LOCK = new Object();
 
   /** The security service. */
   private SecurityService securityService;
@@ -726,7 +726,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       // Load processExecution object
       ProcessExecution processExecution = null;
-      synchronized (lock) {
+      synchronized (LOCK) {
         processExecution = processService.getProcessExecution(id);
       }
 
@@ -1767,7 +1767,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       processService.setLastModifiedBy(userName);
 
       ProcessExecution processExecution = null;
-      synchronized (lock) {
+      synchronized (LOCK) {
         processExecution = processService.getProcessExecution(id);
       }
       if (processExecution == null) {
@@ -2008,7 +2008,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
               algorithmExecution.setActivityId(UUID.randomUUID().toString());
               algorithmExecution.setStartDate(new Date());
 
-              synchronized (lock) {
+              synchronized (LOCK) {
                 algorithmExecution =
                     processService.addAlgorithmExecution(algorithmExecution);
                 // Add the execution to the process

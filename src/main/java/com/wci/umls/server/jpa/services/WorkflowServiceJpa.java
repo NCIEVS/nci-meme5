@@ -100,7 +100,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
   /**
    * Static initialization (used by refresh caches).
    */
-  private static void init() {
+  private static synchronized void init() {
     try {
       if (config == null)
         config = PropertyUtility.getProperties();
