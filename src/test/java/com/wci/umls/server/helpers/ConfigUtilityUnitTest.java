@@ -9,7 +9,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -154,7 +158,8 @@ public class ConfigUtilityUnitTest {
   @Test
   public void testApplicationPropertiesIgnoreLegacyRunConfig() throws Exception {
     final File tempFile = File.createTempFile("config", ".properties");
-    try (FileWriter writer = new FileWriter(tempFile)) {
+    try (Writer writer = Files.newBufferedWriter(tempFile.toPath(),
+        StandardCharsets.UTF_8)) {
       writer.write("base.url=http://legacy.example\n");
     }
     System.setProperty("app.dir", "/tmp/nm278-config-test");
@@ -164,6 +169,34 @@ public class ConfigUtilityUnitTest {
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
     assertEquals("/tmp/nm278-config-test", properties.getProperty("app.dir"));
+  }
+
+  /**
+   * Verifies merge sort reads and writes text with an explicit UTF-8 charset.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testMergeSortedFilesPreservesUtf8Text() throws Exception {
+    final File dir = Files.createTempDirectory("nm304-utf8-merge").toFile();
+    try {
+      final File file1 = new File(dir, "one.txt");
+      final File file2 = new File(dir, "two.txt");
+      Files.write(file1.toPath(), Arrays.asList("béta", "éclair"),
+          StandardCharsets.UTF_8);
+      Files.write(file2.toPath(), Arrays.asList("alpha", "delta"),
+          StandardCharsets.UTF_8);
+
+      final File merged = ConfigUtility.mergeSortedFiles(file1, file2,
+          String::compareTo, dir, "id|name");
+      final List<String> lines =
+          Files.readAllLines(merged.toPath(), StandardCharsets.UTF_8);
+
+      assertEquals(Arrays.asList("id|name", "alpha", "béta", "delta",
+          "éclair"), lines);
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
   }
 
   /**

@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,6 +20,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -551,42 +550,45 @@ public class ConfigUtility {
   public static File mergeSortedFiles(File files1, File files2,
     Comparator<String> comp, File dir, String headerLine) throws IOException {
 
-    final BufferedReader in1 = new BufferedReader(new FileReader(files1));
-    final BufferedReader in2 = new BufferedReader(new FileReader(files2));
     final File outFile = File.createTempFile("t+~", ".tmp", dir);
-    final BufferedWriter out = new BufferedWriter(new FileWriter(outFile));
-    String line1 = in1.readLine();
-    String line2 = in2.readLine();
-    String line = null;
-    if (!headerLine.isEmpty()) {
-      line = headerLine;
-      out.write(line);
-      out.newLine();
-    }
-    while (line1 != null || line2 != null) {
-      if (line1 == null) {
-        line = line2;
-        line2 = in2.readLine();
-      } else if (line2 == null) {
-        line = line1;
-        line1 = in1.readLine();
-      } else if (comp.compare(line1, line2) < 0) {
-        line = line1;
-        line1 = in1.readLine();
-      } else {
-        line = line2;
-        line2 = in2.readLine();
-      }
-      // if a header line, do not write
-      if (!line.startsWith("id")) {
+
+    try (BufferedReader in1 = Files.newBufferedReader(files1.toPath(),
+        StandardCharsets.UTF_8);
+        BufferedReader in2 = Files.newBufferedReader(files2.toPath(),
+            StandardCharsets.UTF_8);
+        BufferedWriter out = Files.newBufferedWriter(outFile.toPath(),
+            StandardCharsets.UTF_8)) {
+
+      String line1 = in1.readLine();
+      String line2 = in2.readLine();
+      String line = null;
+      if (!headerLine.isEmpty()) {
+        line = headerLine;
         out.write(line);
         out.newLine();
       }
+      while (line1 != null || line2 != null) {
+        if (line1 == null) {
+          line = line2;
+          line2 = in2.readLine();
+        } else if (line2 == null) {
+          line = line1;
+          line1 = in1.readLine();
+        } else if (comp.compare(line1, line2) < 0) {
+          line = line1;
+          line1 = in1.readLine();
+        } else {
+          line = line2;
+          line2 = in2.readLine();
+        }
+        // if a header line, do not write
+        if (!line.startsWith("id")) {
+          out.write(line);
+          out.newLine();
+        }
+      }
+      out.flush();
     }
-    out.flush();
-    out.close();
-    in1.close();
-    in2.close();
     return outFile;
   }
 
@@ -1148,12 +1150,9 @@ public class ConfigUtility {
       /* see superclass */
       @Override
       public int compare(String o1, String o2) {
-        try {
-          return UnsignedBytes.lexicographicalComparator()
-              .compare(o1.getBytes("UTF-8"), o2.getBytes("UTF-8"));
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+        return UnsignedBytes.lexicographicalComparator().compare(
+            o1.getBytes(StandardCharsets.UTF_8),
+            o2.getBytes(StandardCharsets.UTF_8));
       }
 
     };

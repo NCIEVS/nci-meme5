@@ -4,9 +4,11 @@
 package com.wci.umls.server.helpers;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -474,7 +476,8 @@ public class PropertyUtility {
   private static Properties loadLegacyConfigFile(String configFileName)
     throws Exception {
     final Properties props = new Properties();
-    try (FileReader in = new FileReader(new File(configFileName))) {
+    try (Reader in = Files.newBufferedReader(new File(configFileName).toPath(),
+        StandardCharsets.UTF_8)) {
       props.load(in);
     }
     return props;

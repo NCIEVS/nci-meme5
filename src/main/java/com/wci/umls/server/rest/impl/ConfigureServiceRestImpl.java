@@ -4,8 +4,9 @@
 package com.wci.umls.server.rest.impl;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -262,7 +263,8 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
         configFile.getParentFile().mkdirs();
       }
       
-      try (final Writer writer = new FileWriter(configFile)) {
+      try (final Writer writer = Files.newBufferedWriter(configFile.toPath(),
+          StandardCharsets.UTF_8)) {
         properties.store(writer, "User-configured settings");
       }
 
