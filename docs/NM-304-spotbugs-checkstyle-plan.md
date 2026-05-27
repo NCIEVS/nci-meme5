@@ -6,10 +6,18 @@ Add Gradle-backed SpotBugs, Checkstyle, and Trivy verification to MEME, using
 `workspace-evsrestapi/evsrestapi` as the local reference for the quality and
 vulnerability-scan wiring.
 
-The initial implementation should make the quality gate useful without turning
-NM-304 into a broad legacy refactor. Checkstyle can enforce low-risk hygiene now.
-SpotBugs should fail for new unsuppressed findings while the existing legacy
-backlog is cleaned up incrementally.
+The initial implementation makes the quality gate useful without turning NM-304
+into a broad legacy refactor. Checkstyle enforces low-risk hygiene now.
+SpotBugs fails for new unsuppressed findings while the existing legacy backlog
+is cleaned up incrementally.
+
+Current status:
+
+- the NM-304 quality and Trivy wiring has been merged into
+  `dss/NM-291-migration-phase2`
+- Checkstyle, SpotBugs, `make scan`, and the GitHub Trivy workflow are in place
+- the first SpotBugs cleanup passes are complete
+- the remaining SpotBugs baseline has been audited and documented
 
 ## Reference Project
 
@@ -40,7 +48,7 @@ Important reference patterns:
 
 ## Current Implementation
 
-Implemented in the NM-304 branch:
+Implemented in NM-304 and merged into `dss/NM-291-migration-phase2`:
 
 - `build.gradle`
   - applies `checkstyle`
@@ -57,6 +65,7 @@ Implemented in the NM-304 branch:
 - `config/spotbugs/excludeFilter.xml`
   - baselines legacy findings from the first project-wide scan
   - leaves SpotBugs strict for new unsuppressed patterns
+  - documents why the remaining broad suppression families are deferred
 - `Makefile`
   - includes a strict `make scan` target aligned with the reference Trivy
     lockfile/report workflow
@@ -102,6 +111,27 @@ Phase 3 cleanup completed:
   `LI_LAZY_INIT_UPDATE_STATIC`
 - left the Phase 3 bug families unsuppressed so regressions fail the build
 
+Step 5 cleanup completed:
+
+- removed dead local stores in validation checks, algorithm setup, release
+  helpers, and affected tests
+- replaced intentional lazy-loading getter/collection-size calls with
+  `ConfigUtility.initializeLazy(...)`
+- checked filesystem operation return values instead of discarding
+  `mkdir`, `delete`, `createNewFile`, and `renameTo` results
+- removed the ignored-return/dead-store families from the SpotBugs baseline:
+  `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT`, `DLS_DEAD_LOCAL_STORE`,
+  `RV_RETURN_VALUE_IGNORED_BAD_PRACTICE`, and `UC_USELESS_OBJECT`
+
+Baseline audit completed:
+
+- reran SpotBugs with an empty temporary exclude filter
+- confirmed the remaining suppressions still correspond to active findings,
+  except one stale entry
+- removed the stale `EI_EXPOSE_STATIC_REP` suppression
+- left 40 active legacy suppression patterns in
+  `config/spotbugs/excludeFilter.xml`
+
 ## Trivy Implementation
 
 Trivy is an NM-304 deliverable and is implemented as a strict dependency
@@ -121,12 +151,17 @@ Implemented files:
     are present
   - removes temporary `gradle/dependency-locks` and `gradle.lockfile` output
 - `.github/workflows/trivy-scan.yml`
-  - runs on pull requests to `develop`, `develop-*`, and `master`
+  - runs on pull requests to `dss/NM-291-migration-phase2`
   - allows manual `workflow_dispatch` runs
   - installs Java 17 and Trivy on the runner
   - generates the temporary Gradle lockfile
   - runs Trivy's vulnerability scanner with HIGH and CRITICAL severity filtering
   - publishes a readable failure summary of vulnerable packages
+
+The Trivy workflow is intentionally scoped to
+`dss/NM-291-migration-phase2` for now. It should not target `develop`,
+`develop-*`, or `master` until the Trivy config and template exist on those
+branches.
 
 Dependency cleanup completed:
 
@@ -146,7 +181,7 @@ The first project-wide SpotBugs scan found a legacy backlog:
 - `spotbugsMain`: 1,267 findings
 - `spotbugsTest`: 196 findings
 
-The largest current main-code families are:
+The largest initial main-code families were:
 
 - `EI_EXPOSE_REP` / `EI_EXPOSE_REP2`: exposed mutable model state
 - `CT_CONSTRUCTOR_THROW`: constructors that can throw
@@ -163,9 +198,47 @@ Because those findings span hundreds of legacy classes, the initial gate should
 not attempt a wholesale fix. The baseline exists so new work can ratchet quality
 forward while legacy cleanup is planned in smaller, reviewable slices.
 
+## Current SpotBugs Baseline Status
+
+The current `config/spotbugs/excludeFilter.xml` contains 40 active legacy
+suppression patterns. These were confirmed by running SpotBugs with an empty
+temporary exclude filter and comparing the reported bug patterns back to the
+checked-in filter.
+
+Completed and no longer suppressed:
+
+- Phase 1 targeted correctness/null families:
+  `RC_REF_COMPARISON`, `NP_NULL_ON_SOME_PATH`,
+  `NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE`,
+  `NP_NULL_ON_SOME_PATH_EXCEPTION`, `EC_UNRELATED_TYPES`, and
+  `RCN_REDUNDANT_NULLCHECK_*`
+- Phase 2 resource-handling families:
+  `OS_OPEN_STREAM`, `OBL_UNSATISFIED_OBLIGATION`, and
+  `OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE`
+- Phase 3 static/threading families:
+  `ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD`,
+  `DL_SYNCHRONIZATION_ON_SHARED_CONSTANT`, `LI_LAZY_INIT_STATIC`, and
+  `LI_LAZY_INIT_UPDATE_STATIC`
+- Step 5 ignored-return/dead-store families:
+  `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT`, `DLS_DEAD_LOCAL_STORE`,
+  `RV_RETURN_VALUE_IGNORED_BAD_PRACTICE`, and `UC_USELESS_OBJECT`
+
+Remaining backlog:
+
+- default encoding migration for file IO and generated artifacts
+- broad model/JPA encapsulation and mutable representation exposure
+- constructor/lifecycle cleanup for reflection-loaded algorithms
+- dynamic SQL/query execution review
+- remaining null/correctness edge cases that need focused behavior tests
+- legacy control-flow and exception-handling decisions
+- unused/unwritten fields that may be populated by frameworks or legacy
+  serialization paths
+- lower-priority modernization/noise such as boxing/string construction and map
+  iteration
+
 ## Cleanup Priorities
 
-### 1. Correctness and Null Handling
+### 1. Correctness and Null Handling (Completed Initial Cleanup)
 
 Start with findings most likely to represent real behavior bugs:
 
@@ -193,7 +266,13 @@ Goal:
 - remove redundant null checks only after verifying behavior
 - add focused tests around corrected branches when practical
 
-### 2. Resource Handling
+Status:
+
+- the targeted Phase 1 families are no longer suppressed
+- a smaller set of null/correctness remnants remains baselined because each
+  path needs focused behavior verification before changing legacy edge cases
+
+### 2. Resource Handling (Completed Initial Cleanup)
 
 Next address findings that can leak files, streams, readers, or writers:
 
@@ -214,6 +293,12 @@ Goal:
 - preserve current close/flush behavior where output file formats depend on it
 - verify with compile, quality checks, and focused loader/release tests when
   available
+
+Status:
+
+- the Phase 2 resource-handling families are no longer suppressed
+- future resource changes should be handled opportunistically when touching the
+  owning loader, release writer, or utility
 
 ### 3. Static State and Threading (Completed)
 
@@ -391,15 +476,25 @@ Recommended approach:
 
 ## Suggested Follow-Up Tickets
 
-Break the backlog into focused tickets:
+Completed in NM-304:
 
-- NM-304 follow-up: correctness/null SpotBugs cleanup
-- NM-304 follow-up: resource handling cleanup
-- NM-304 follow-up: static state and synchronization review
+- correctness/null SpotBugs initial cleanup
+- resource handling cleanup
+- static state and synchronization review
+- ignored return values and dead-store cleanup
+- SpotBugs baseline audit and suppression documentation
+
+Remaining follow-up tickets:
+
 - NM-304 follow-up: default encoding migration plan
-- NM-304 follow-up: ignored return values and dead-store cleanup
 - NM-304 follow-up: JPA model encapsulation strategy
 - NM-304 follow-up: constructor initialization strategy
+- NM-304 follow-up: dynamic SQL/query execution review
+- NM-304 follow-up: remaining null/correctness edge-case review
+- NM-304 follow-up: legacy exception and control-flow cleanup
+- NM-304 follow-up: unused/unwritten field framework-population review
+- NM-304 follow-up: remaining static/global state mutability review
+- NM-304 follow-up: low-risk modernization/noise cleanup
 
 ## Verification
 

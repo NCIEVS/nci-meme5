@@ -1,14 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Baseline the legacy findings surfaced when SpotBugs was introduced.
-  Keep SpotBugs failing the build for new, unsuppressed bug patterns while the
-  broader existing backlog is handled incrementally.
+  NM-304 SpotBugs legacy baseline.
+
+  This file intentionally suppresses legacy bug patterns that existed when
+  SpotBugs was introduced. The goal is to keep SpotBugs strict for new,
+  unsuppressed patterns while the existing backlog is cleaned up in focused
+  follow-up work.
+
+  Do not add a new pattern here just to make the build pass. Prefer fixing the
+  finding, or add a narrow class/method suppression with a comment if the
+  behavior is intentionally preserved. Before removing a pattern, run SpotBugs
+  without this filter and confirm the pattern is no longer reported.
+
+  Several broad families are deliberately deferred because a mechanical cleanup
+  would be riskier than the warning:
+  - model encapsulation changes can affect Hibernate, Jackson, XML binding, and
+    callers that expect live collections
+  - constructor/lifecycle changes can affect reflection-loaded algorithms
+  - default-encoding changes can alter terminology, release, and report files
+  - unused-field cleanup can remove fields populated by frameworks or legacy
+    serialization paths
+
+  See docs/NM-304-spotbugs-checkstyle-plan.md for the cleanup phases.
 
   Documentation: https://spotbugs.readthedocs.io/en/stable/filter.html
 -->
 <FindBugsFilter>
 
-  <!-- High-priority families already present before SpotBugs was enabled. -->
+  <!--
+    Low-risk modernization/noise. These are mostly boxing, string construction,
+    and string-buffer efficiency warnings. They are not ideal, but they are
+    lower priority than correctness, resource handling, and migration work.
+  -->
   <Match>
     <Bug pattern="DM_BOXED_PRIMITIVE_FOR_PARSING"/>
   </Match>
@@ -16,63 +39,50 @@
     <Bug pattern="DM_BOXED_PRIMITIVE_TOSTRING"/>
   </Match>
   <Match>
-    <Bug pattern="DM_DEFAULT_ENCODING"/>
-  </Match>
-  <Match>
-    <Bug pattern="DMI_INVOKING_TOSTRING_ON_ARRAY"/>
-  </Match>
-  <Match>
-    <Bug pattern="MS_SHOULD_BE_FINAL"/>
-  </Match>
-  <Match>
-    <Bug pattern="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE"/>
-  </Match>
-
-  <!-- Remaining non-phase-1 legacy backlog after correctness/null cleanup. -->
-  <Match>
     <Bug pattern="BX_UNBOXING_IMMEDIATELY_REBOXED"/>
-  </Match>
-  <Match>
-    <Bug pattern="CT_CONSTRUCTOR_THROW"/>
-  </Match>
-  <Match>
-    <Bug pattern="DB_DUPLICATE_BRANCHES"/>
-  </Match>
-  <Match>
-    <Bug pattern="DE_MIGHT_IGNORE"/>
   </Match>
   <Match>
     <Bug pattern="DM_STRING_CTOR"/>
   </Match>
   <Match>
-    <Bug pattern="EI_EXPOSE_REP"/>
+    <Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
   </Match>
   <Match>
-    <Bug pattern="EI_EXPOSE_REP2"/>
+    <Bug pattern="WMI_WRONG_MAP_ITERATOR"/>
   </Match>
+
+  <!--
+    Default encoding migration. These findings are real portability risks, but
+    MEME reads and writes config, source-data, release, and report files. The
+    intended charset must be chosen per file family and tested with non-ASCII
+    fixtures before replacing default-charset APIs broadly.
+  -->
   <Match>
-    <Bug pattern="EI_EXPOSE_STATIC_REP"/>
+    <Bug pattern="DM_DEFAULT_ENCODING"/>
   </Match>
+
+  <!--
+    Dynamic SQL/query execution. Existing paths include legacy configured
+    searches and admin/report queries. These need route-by-route review before
+    converting to parameterized APIs so query semantics are not changed.
+  -->
   <Match>
-    <Bug pattern="EI_EXPOSE_STATIC_REP2"/>
+    <Bug pattern="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE"/>
+  </Match>
+
+  <!--
+    Correctness/null remnants after the initial cleanup phases. Keep these
+    baselined until each call path has focused tests or verified data
+    assumptions; broad edits here can change legacy edge-case behavior.
+  -->
+  <Match>
+    <Bug pattern="DMI_INVOKING_TOSTRING_ON_ARRAY"/>
   </Match>
   <Match>
     <Bug pattern="ICAST_IDIV_CAST_TO_DOUBLE"/>
   </Match>
   <Match>
     <Bug pattern="INT_BAD_COMPARISON_WITH_NONNEGATIVE_VALUE"/>
-  </Match>
-  <Match>
-    <Bug pattern="MS_CANNOT_BE_FINAL"/>
-  </Match>
-  <Match>
-    <Bug pattern="MS_EXPOSE_REP"/>
-  </Match>
-  <Match>
-    <Bug pattern="MS_FINAL_PKGPROTECT"/>
-  </Match>
-  <Match>
-    <Bug pattern="MS_PKGPROTECT"/>
   </Match>
   <Match>
     <Bug pattern="NP_BOOLEAN_RETURN_NULL"/>
@@ -90,17 +100,85 @@
     <Bug pattern="NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS"/>
   </Match>
   <Match>
+    <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+  </Match>
+
+  <!--
+    Constructor/lifecycle warnings. Many algorithms and services perform setup
+    in constructors and are loaded by reflection. Moving that setup to explicit
+    initialization methods is worthwhile, but should happen per algorithm with
+    lifecycle tests rather than as a bulk edit.
+  -->
+  <Match>
+    <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+  </Match>
+
+  <!--
+    Mutable representation and public model state. These are mostly JPA/domain
+    objects and DTO-like classes. Defensive copying or visibility changes can
+    break persistence, JSON/XML serialization, and legacy callers that mutate
+    live collections returned by getters.
+  -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_STATIC_REP2"/>
+  </Match>
+  <Match>
+    <Bug pattern="MS_EXPOSE_REP"/>
+  </Match>
+  <Match>
     <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+  </Match>
+
+  <!--
+    Static/global state. Phase 3 fixed the unsafe synchronization/static-write
+    families. The remaining static mutability findings need semantic review:
+    some fields are process-wide state, constants, framework-visible values, or
+    legacy test fixtures.
+  -->
+  <Match>
+    <Bug pattern="MS_SHOULD_BE_FINAL"/>
+  </Match>
+  <Match>
+    <Bug pattern="MS_CANNOT_BE_FINAL"/>
+  </Match>
+  <Match>
+    <Bug pattern="MS_FINAL_PKGPROTECT"/>
+  </Match>
+  <Match>
+    <Bug pattern="MS_PKGPROTECT"/>
+  </Match>
+
+  <!--
+    Legacy control flow and exception handling. These require behavior
+    decisions before cleanup: whether an ignored exception should be logged,
+    rethrown, or intentionally swallowed; whether duplicate branches/default
+    cases represent real domain behavior.
+  -->
+  <Match>
+    <Bug pattern="DB_DUPLICATE_BRANCHES"/>
+  </Match>
+  <Match>
+    <Bug pattern="DE_MIGHT_IGNORE"/>
   </Match>
   <Match>
     <Bug pattern="REC_CATCH_EXCEPTION"/>
   </Match>
   <Match>
-    <Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
-  </Match>
-  <Match>
     <Bug pattern="SF_SWITCH_NO_DEFAULT"/>
   </Match>
+
+  <!--
+    Unused/unwritten fields and static-helper shape. These look easy, but some
+    fields are populated by Hibernate, Jackson, XML binding, reflection, or
+    legacy configuration. Remove only when the owning class has usage,
+    serialization, and persistence behavior covered.
+  -->
   <Match>
     <Bug pattern="SIC_INNER_SHOULD_BE_STATIC"/>
   </Match>
@@ -127,12 +205,6 @@
   </Match>
   <Match>
     <Bug pattern="UWF_UNWRITTEN_FIELD"/>
-  </Match>
-  <Match>
-    <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
-  </Match>
-  <Match>
-    <Bug pattern="WMI_WRONG_MAP_ITERATOR"/>
   </Match>
 
 </FindBugsFilter>
