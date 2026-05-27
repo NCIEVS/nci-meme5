@@ -9,7 +9,6 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -128,8 +127,7 @@ public class UpdateReleasabilityAlgorithm
       commitClearBegin();
 
       // Get all terminologies referenced in the sources.src file
-      Set<Terminology> referencedTerminologies = new HashSet<>();
-      referencedTerminologies = getReferencedTerminologies();
+      Set<Terminology> referencedTerminologies = getReferencedTerminologies();
 
       final List<Class> classList = new ArrayList<>(
           Arrays.asList(AtomJpa.class, AtomRelationshipJpa.class,

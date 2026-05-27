@@ -54,12 +54,12 @@ public class Rf2FileCopier {
     if (!outputDir.mkdirs()) {
       throw new Exception("Problem making output dir: " + outputDir);
     }
-    new File(outputDir, "Terminology").mkdirs();
-    new File(outputDir, "Refset").mkdirs();
-    new File(outputDir, "Refset/Content").mkdirs();
-    new File(outputDir, "Refset/Language").mkdirs();
-    new File(outputDir, "Refset/Map").mkdirs();
-    new File(outputDir, "Refset/Metadata").mkdirs();
+    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Terminology"));
+    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset"));
+    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Content"));
+    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Language"));
+    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Map"));
+    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Metadata"));
 
     // Check preconditions
     if (!inputDir.exists()) {

@@ -166,11 +166,10 @@ public class MolecularActionJpaUnitTest extends ModelUnitSupport {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
     // Test analyzed fields
-    IndexedFieldTester tester = new IndexedFieldTester(object);
     // assertTrue(tester.testAnalyzedIndexedFields());
 
     // Test non analyzed fields
-    tester = new IndexedFieldTester(object);
+    IndexedFieldTester tester = new IndexedFieldTester(object);
     tester.include("timestamp");
     tester.include("lastModified");
     tester.include("lastModifiedBy");

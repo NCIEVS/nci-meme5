@@ -1411,7 +1411,6 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
             .info("    totalCount = " + list.getTotalCount());
     assertEquals(128, list.getTotalCount());
     assertEquals(128, list.size());
-    fullList = list;
 
     // deep rels call with sorting and paging
     Logger.getLogger(getClass())

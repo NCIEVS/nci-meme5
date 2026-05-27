@@ -66,10 +66,6 @@ public class InversionServiceRestImpl extends RootServiceRestImpl
     securityService = new SecurityServiceJpa();
   }
 
-
-  static {
-    Logger.getLogger("InversionServiceRestImpl registered");
-  }
   /* see superclass */
   @Override
   @RequestMapping(value = "/range/{id}/{terminology}", method = RequestMethod.GET)

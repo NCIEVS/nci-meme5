@@ -465,7 +465,7 @@ public class Rf2DeltaLoaderAlgorithm
           concept2 = new ConceptJpa();
         } else {
           // Initialize attributes (for comparison)
-          concept.getAttributes().size();
+          ConfigUtility.initializeLazy(concept.getAttributes());
           concept2 = new ConceptJpa(concept, true);
         }
 
@@ -626,7 +626,7 @@ public class Rf2DeltaLoaderAlgorithm
           if (atom == null) {
             atom2 = new AtomJpa();
           } else {
-            atom.getAttributes().size();
+            ConfigUtility.initializeLazy(atom.getAttributes());
             atom2 = new AtomJpa(atom, true);
           }
 
@@ -806,7 +806,7 @@ public class Rf2DeltaLoaderAlgorithm
           if (def == null) {
             def2 = new AtomJpa();
           } else {
-            def.getAttributes().size();
+            ConfigUtility.initializeLazy(def.getAttributes());
             def2 = new AtomJpa(def, true);
           }
 
@@ -982,7 +982,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (member == null) {
           member2 = new AtomSubsetMemberJpa();
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           member2 = new AtomSubsetMemberJpa(member, true);
         }
@@ -1126,7 +1126,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (member == null) {
           member2 = new ConceptSubsetMemberJpa();
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           member2 = new ConceptSubsetMemberJpa(member, true);
         }
@@ -1247,7 +1247,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (member == null) {
           member2 = new ConceptSubsetMemberJpa();
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           member2 = new ConceptSubsetMemberJpa(member, true);
         }
@@ -1363,7 +1363,7 @@ public class Rf2DeltaLoaderAlgorithm
     for (final MapSet result : mapSetResults) {
       mapSetMap.put(result.getTerminologyId(), result);
       // lazy initialize
-      result.getAttributes().size();
+      ConfigUtility.initializeLazy(result.getAttributes());
     }
 
     // PushBackReader reader = readers.getReader(Rf2Readers.Keys.COMPLEX_MAP);
@@ -1417,7 +1417,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (mapping == null) {
           mapping2 = new MappingJpa();
         } else {
-          mapping.getAttributes().size();
+          ConfigUtility.initializeLazy(mapping.getAttributes());
           mapping2 = new MappingJpa(mapping, true);
         }
 
@@ -1507,7 +1507,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (member == null) {
           member2 = new ConceptSubsetMemberJpa();
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           member2 = new ConceptSubsetMemberJpa(member, true);
         }
@@ -1654,7 +1654,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (member == null) {
           member2 = new ConceptSubsetMemberJpa();
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           member2 = new ConceptSubsetMemberJpa(member, true);
         }
@@ -1813,7 +1813,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (member == null) {
           member2 = new ConceptSubsetMemberJpa();
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           member2 = new ConceptSubsetMemberJpa(member, true);
         }
@@ -1974,7 +1974,7 @@ public class Rf2DeltaLoaderAlgorithm
             member2 = new AtomSubsetMemberJpa();
           }
         } else {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
           member.getSubset().getName();
           if (isConcept) {
             member2 =
@@ -2194,7 +2194,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (rel == null) {
           rel2 = new ConceptRelationshipJpa();
         } else {
-          rel.getAttributes().size();
+          ConfigUtility.initializeLazy(rel.getAttributes());
           rel2 = new ConceptRelationshipJpa(rel, true);
         }
 
@@ -2390,7 +2390,7 @@ public class Rf2DeltaLoaderAlgorithm
         if (rel == null) {
           rel2 = new ConceptRelationshipJpa();
         } else {
-          rel.getAttributes().size();
+          ConfigUtility.initializeLazy(rel.getAttributes());
           rel2 = new ConceptRelationshipJpa(rel, true);
         }
 
@@ -2566,7 +2566,7 @@ public class Rf2DeltaLoaderAlgorithm
     for (final AtomSubset result : results) {
       atomSubsetMap.put(result.getTerminologyId(), result);
       // lazy initialize
-      result.getAttributes().size();
+      ConfigUtility.initializeLazy(result.getAttributes());
     }
 
     query = manager.createQuery("select a from ConceptSubsetJpa a "
@@ -2578,7 +2578,7 @@ public class Rf2DeltaLoaderAlgorithm
     for (ConceptSubset result : results2) {
       conceptSubsetMap.put(result.getTerminologyId(), result);
       // lazy initialize
-      result.getAttributes().size();
+      ConfigUtility.initializeLazy(result.getAttributes());
     }
 
     // Cache subset members

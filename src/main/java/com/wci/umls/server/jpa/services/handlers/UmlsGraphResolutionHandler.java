@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.services.handlers;
 import java.util.ArrayList;
 
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomSubsetMember;
 import com.wci.umls.server.model.content.Concept;
@@ -39,7 +40,7 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
         if (nullId) {
           sty.setId(null);
         }
-        sty.getSemanticType();
+        ConfigUtility.initializeLazy(sty.getSemanticType());
         resolve(sty);
       }
 
@@ -57,11 +58,11 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
       concept.setRelationships(new ArrayList<>(0));
       concept.setTreePositions(new ArrayList<>(0));
       // lazy initialization of user annotations
-      concept.getNotes().size();
-      concept.getLabels();
+      ConfigUtility.initializeLazy(concept.getNotes());
+      ConfigUtility.initializeLazy(concept.getLabels());
 
       // lazy initialization of component history
-      concept.getComponentHistory().size();
+      ConfigUtility.initializeLazy(concept.getComponentHistory());
 
     } else if (concept == null) {
       throw new Exception("Cannot resolve a null concept.");
@@ -75,9 +76,9 @@ public class UmlsGraphResolutionHandler extends DefaultGraphResolutionHandler {
       atom.setMembers(new ArrayList<AtomSubsetMember>(0));
 
       atom.getName();
-      atom.getConceptTerminologyIds().keySet();
-      atom.getAlternateTerminologyIds().keySet();
-      atom.getNotes().size();
+      ConfigUtility.initializeLazy(atom.getConceptTerminologyIds());
+      ConfigUtility.initializeLazy(atom.getAlternateTerminologyIds());
+      ConfigUtility.initializeLazy(atom.getNotes());
 
       // Attributes
       resolveAttributes(atom, nullId);

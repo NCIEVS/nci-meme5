@@ -170,13 +170,11 @@ public class ValidateContextsAlgorithm extends AbstractInsertMaintReleaseAlgorit
     // read in file sources.src
     in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "sources.src")));
     Map<String, String> sourcesToLatMap = new HashMap<>();
-    Set<String> rootSources = new HashSet<>();
     
     // cache sources
     while ((fileLine = in.readLine()) != null) {
       String[] fields = FieldedStringTokenizer.split(fileLine, "|");
       sourcesToLatMap.put(fields[0], fields[15]);
-      rootSources.add(fields[4]);
     } 
     in.close();
     

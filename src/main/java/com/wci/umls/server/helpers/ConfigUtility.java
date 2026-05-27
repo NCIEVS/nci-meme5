@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,6 +20,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -71,6 +70,7 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.hibernate.Hibernate;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
 import java.util.Collection;
@@ -551,42 +551,45 @@ public class ConfigUtility {
   public static File mergeSortedFiles(File files1, File files2,
     Comparator<String> comp, File dir, String headerLine) throws IOException {
 
-    final BufferedReader in1 = new BufferedReader(new FileReader(files1));
-    final BufferedReader in2 = new BufferedReader(new FileReader(files2));
     final File outFile = File.createTempFile("t+~", ".tmp", dir);
-    final BufferedWriter out = new BufferedWriter(new FileWriter(outFile));
-    String line1 = in1.readLine();
-    String line2 = in2.readLine();
-    String line = null;
-    if (!headerLine.isEmpty()) {
-      line = headerLine;
-      out.write(line);
-      out.newLine();
-    }
-    while (line1 != null || line2 != null) {
-      if (line1 == null) {
-        line = line2;
-        line2 = in2.readLine();
-      } else if (line2 == null) {
-        line = line1;
-        line1 = in1.readLine();
-      } else if (comp.compare(line1, line2) < 0) {
-        line = line1;
-        line1 = in1.readLine();
-      } else {
-        line = line2;
-        line2 = in2.readLine();
-      }
-      // if a header line, do not write
-      if (!line.startsWith("id")) {
+
+    try (BufferedReader in1 = Files.newBufferedReader(files1.toPath(),
+        StandardCharsets.UTF_8);
+        BufferedReader in2 = Files.newBufferedReader(files2.toPath(),
+            StandardCharsets.UTF_8);
+        BufferedWriter out = Files.newBufferedWriter(outFile.toPath(),
+            StandardCharsets.UTF_8)) {
+
+      String line1 = in1.readLine();
+      String line2 = in2.readLine();
+      String line = null;
+      if (!headerLine.isEmpty()) {
+        line = headerLine;
         out.write(line);
         out.newLine();
       }
+      while (line1 != null || line2 != null) {
+        if (line1 == null) {
+          line = line2;
+          line2 = in2.readLine();
+        } else if (line2 == null) {
+          line = line1;
+          line1 = in1.readLine();
+        } else if (comp.compare(line1, line2) < 0) {
+          line = line1;
+          line1 = in1.readLine();
+        } else {
+          line = line2;
+          line2 = in2.readLine();
+        }
+        // if a header line, do not write
+        if (!line.startsWith("id")) {
+          out.write(line);
+          out.newLine();
+        }
+      }
+      out.flush();
     }
-    out.flush();
-    out.close();
-    in1.close();
-    in2.close();
     return outFile;
   }
 
@@ -597,20 +600,99 @@ public class ConfigUtility {
    * @return true, if successful
    */
   public static boolean deleteDirectory(File path) {
-    if (path.exists()) {
+    if (path == null || !path.exists()) {
+      return true;
+    }
+    boolean success = true;
+    if (path.isDirectory()) {
       final File[] files = path.listFiles();
       if (files == null) {
         return false;
       }
       for (int i = 0; i < files.length; i++) {
         if (files[i].isDirectory()) {
-          deleteDirectory(files[i]);
+          success &= deleteDirectory(files[i]);
         } else {
-          files[i].delete();
+          success &= files[i].delete() || !files[i].exists();
         }
       }
     }
-    return (path.delete());
+    return (path.delete() || !path.exists()) && success;
+  }
+
+  /**
+   * Ensures the directory exists.
+   *
+   * @param dir the directory
+   * @throws IOException if the directory cannot be created
+   */
+  public static void ensureDirectoryExists(File dir) throws IOException {
+    if (dir == null) {
+      throw new IOException("Directory must not be null");
+    }
+    Files.createDirectories(dir.toPath());
+    if (!dir.isDirectory()) {
+      throw new IOException("Could not create directory " + dir);
+    }
+  }
+
+  /**
+   * Ensures the file exists.
+   *
+   * @param file the file
+   * @throws IOException if the file cannot be created
+   */
+  public static void ensureFileExists(File file) throws IOException {
+    if (file == null) {
+      throw new IOException("File must not be null");
+    }
+    final File parentFile = file.getParentFile();
+    if (parentFile != null) {
+      ensureDirectoryExists(parentFile);
+    }
+    if (!file.exists()) {
+      Files.createFile(file.toPath());
+    }
+    if (!file.isFile()) {
+      throw new IOException("Could not create file " + file);
+    }
+  }
+
+  /**
+   * Deletes the file if it exists.
+   *
+   * @param file the file
+   * @throws IOException if the file cannot be deleted
+   */
+  public static void deleteFileIfExists(File file) throws IOException {
+    if (file != null) {
+      Files.deleteIfExists(file.toPath());
+    }
+  }
+
+  /**
+   * Renames a file or directory.
+   *
+   * @param source the source
+   * @param target the target
+   * @throws IOException if the rename cannot be completed
+   */
+  public static void renameFile(File source, File target) throws IOException {
+    if (source == null || target == null) {
+      throw new IOException("Source and target must not be null");
+    }
+    Files.move(source.toPath(), target.toPath());
+  }
+
+  /**
+   * Explicitly initializes a Hibernate proxy or collection.
+   *
+   * @param value the value to initialize
+   */
+  public static void initializeLazy(Object value) {
+    if (value != null) {
+      Hibernate.initialize(value);
+    }
   }
 
   /**
@@ -927,7 +1009,7 @@ public class ConfigUtility {
     // create the directory structure
     File eclDir =
         new File(getExpressionIndexDirectoryName(terminology, version));
-    eclDir.mkdirs();
+    ensureDirectoryExists(eclDir);
   }
 
   /**
@@ -1148,12 +1230,9 @@ public class ConfigUtility {
       /* see superclass */
       @Override
       public int compare(String o1, String o2) {
-        try {
-          return UnsignedBytes.lexicographicalComparator()
-              .compare(o1.getBytes("UTF-8"), o2.getBytes("UTF-8"));
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
+        return UnsignedBytes.lexicographicalComparator().compare(
+            o1.getBytes(StandardCharsets.UTF_8),
+            o2.getBytes(StandardCharsets.UTF_8));
       }
 
     };
@@ -1193,7 +1272,7 @@ public class ConfigUtility {
     throws IOException {
     File destDir = new File(destDirectory);
     if (!destDir.exists()) {
-      destDir.mkdir();
+      ensureDirectoryExists(destDir);
     }
     ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath));
     ZipEntry entry = zipIn.getNextEntry();
@@ -1206,7 +1285,7 @@ public class ConfigUtility {
       } else {
         // if the entry is a directory, make the directory
         File dir = new File(filePath);
-        dir.mkdir();
+        ensureDirectoryExists(dir);
       }
       zipIn.closeEntry();
       entry = zipIn.getNextEntry();

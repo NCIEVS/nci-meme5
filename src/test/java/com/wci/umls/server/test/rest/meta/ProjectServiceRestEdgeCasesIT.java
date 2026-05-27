@@ -7,8 +7,6 @@
 package com.wci.umls.server.test.rest.meta;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -72,8 +70,6 @@ public class ProjectServiceRestEdgeCasesIT extends ProjectServiceRestIT {
 
     // Here, add new project from scratch
     ProjectJpa project2 = new ProjectJpa();
-    Set<String> values = new HashSet<>();
-    values.add("PUBLISHED");
 
     project2.setDescription("Sample " + new Date().getTime());
     project2.setName("Sample");

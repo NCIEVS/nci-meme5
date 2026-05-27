@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.SourceDataFile;
 import com.wci.umls.server.algo.Algorithm;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;
@@ -279,7 +280,7 @@ public class SourceDataServiceJpa extends RootServiceJpa
       final List<SourceData> sds = query.getResultList();
       // lazy initialization
       for (final SourceData sd : sds) {
-        sd.getSourceDataFiles().size();
+        ConfigUtility.initializeLazy(sd.getSourceDataFiles());
       }
       final SourceDataListJpa sourceDataList = new SourceDataListJpa();
       sourceDataList.setObjects(sds);

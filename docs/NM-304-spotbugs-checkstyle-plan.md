@@ -244,7 +244,17 @@ Outcome:
 
 Handle `DM_DEFAULT_ENCODING` as a controlled migration.
 
-Recommended approach:
+Why this matters:
+
+- APIs such as `FileReader`, `FileWriter`, `InputStreamReader(InputStream)`,
+  `OutputStreamWriter(OutputStream)`, `String.getBytes()`, and
+  `new String(byte[])` use the JVM default charset.
+- The default charset can differ between developer machines, GitHub runners,
+  servers, and JVM launch settings.
+- MEME reads and writes user-facing terminology files, release artifacts, and
+  config files, so default-charset behavior can create machine-specific output.
+
+Batching approach:
 
 - decide the intended encoding for each file family
 - use `UTF-8` for application/config/generated text unless legacy data proves a
@@ -252,15 +262,54 @@ Recommended approach:
 - treat RRF/RF2/source-data file IO carefully because external data formats may
   have release-specific expectations
 - convert in small batches by subsystem
+- keep the broad `DM_DEFAULT_ENCODING` baseline until a batch removes enough
+  findings to narrow or remove the suppression safely
 
-Likely first areas:
+Batch 1, internal/config text IO:
 
 - `ConfigUtility`
 - `PropertyUtility`
+- `ConfigureServiceRestImpl`
+- selected REST report/import paths
+- selected security handler request/response streams
+
+Batch 1 testing:
+
+- add or extend unit tests with non-ASCII content
+- read and write test fixtures with `StandardCharsets.UTF_8`
+- run targeted tests under the normal JVM charset
+- run the same tests with `-Dfile.encoding=ISO-8859-1` to catch accidental
+  default-charset use
+
+Batch 2, source-data readers:
+
 - `FileSorter`
 - `Rf2FileCopier`
 - insertion and validation algorithms
+
+Batch 2 testing:
+
+- create minimal `.src`, `.RRF`, and RF2 fixtures containing UTF-8 characters
+- assert parsed values, sorted output, and copied output bytes
+- keep the fixtures small and focused on the touched reader/writer path
+
+Batch 3, release writers:
+
 - release file writers
+
+Batch 3 testing:
+
+- use golden-file tests where practical for generated `.RRF` and report output
+- preserve append/truncate behavior exactly
+- compare generated UTF-8 bytes against expected output for representative
+  release files
+
+Final cleanup:
+
+- remove or narrow `<Bug pattern="DM_DEFAULT_ENCODING"/>` from
+  `config/spotbugs/excludeFilter.xml`
+- leave only file-specific suppressions with comments if any path intentionally
+  depends on the platform default charset
 
 ### 5. Ignored Return Values and Dead Stores
 
@@ -278,6 +327,30 @@ Goal:
 - remove genuinely dead assignments
 - avoid deleting assignments that exist for debugger visibility or old side
   effects until verified
+
+Status:
+
+- completed the initial cleanup of Step 5 main/test findings
+- removed dead local stores in validation checks, algorithm setup, release
+  helpers, and affected tests
+- replaced intentional lazy-loading getter/collection-size calls with
+  `ConfigUtility.initializeLazy(...)`
+- checked filesystem operation return values instead of discarding
+  `mkdir`, `delete`, `createNewFile`, and `renameTo` results
+- removed the Step 5 SpotBugs suppressions for:
+  `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT`, `DLS_DEAD_LOCAL_STORE`,
+  `RV_RETURN_VALUE_IGNORED_BAD_PRACTICE`, and `UC_USELESS_OBJECT`
+
+Verification:
+
+- `./gradlew compileJava compileTestJava`
+- `./gradlew spotbugsMain spotbugsTest`
+- `./gradlew check -x test`
+- `./gradlew test --tests org.ihtsdo.otf.ts.helpers.KeyValuesMapUnitTest`
+
+Note: the full `./gradlew test` task is not a clean local gate yet because it
+includes environment-coupled integration/example tests that expect REST services,
+database configuration, and populated data to be available.
 
 ### 6. Broad Model Encapsulation
 

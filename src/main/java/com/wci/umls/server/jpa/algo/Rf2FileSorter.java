@@ -270,7 +270,8 @@ public class Rf2FileSorter {
         sortRf2File(file, new File(outputDir + "/" + fileMap.get(key)), fields);
       } else {
         // otherwise just create an empty "sort" file
-        new File(outputDir + "/" + fileMap.get(key)).createNewFile();
+        ConfigUtility.ensureFileExists(
+            new File(outputDir + "/" + fileMap.get(key)));
       }
     }
 

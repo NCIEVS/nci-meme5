@@ -1181,7 +1181,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
     if (report == null) {
       return;
     }
-    report.getResults().size();
+    ConfigUtility.initializeLazy(report.getResults());
     for (ReportResult rr : report.getResults()) {
       rr.getCt();
     }

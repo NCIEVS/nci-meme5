@@ -9,6 +9,7 @@ import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -43,12 +44,13 @@ public class UtsSecurityServiceHandler extends AbstractConfigurable
     if (licenseCode == null) {
       throw new Exception("License code must be specified.");
     }
-    String data = URLEncoder.encode("licenseCode", "UTF-8") + "="
-        + URLEncoder.encode(licenseCode, "UTF-8");
-    data += "&" + URLEncoder.encode("user", "UTF-8") + "="
-        + URLEncoder.encode(username, "UTF-8");
-    data += "&" + URLEncoder.encode("password", "UTF-8") + "="
-        + URLEncoder.encode(password, "UTF-8");
+    final String charset = StandardCharsets.UTF_8.name();
+    String data = URLEncoder.encode("licenseCode", charset) + "="
+        + URLEncoder.encode(licenseCode, charset);
+    data += "&" + URLEncoder.encode("user", charset) + "="
+        + URLEncoder.encode(username, charset);
+    data += "&" + URLEncoder.encode("password", charset) + "="
+        + URLEncoder.encode(password, charset);
 
     final String urlProp = properties.getProperty("url");
     if (urlProp == null) {
@@ -58,21 +60,22 @@ public class UtsSecurityServiceHandler extends AbstractConfigurable
     URL url = new URL(urlProp);
     URLConnection conn = url.openConnection();
     conn.setDoOutput(true);
-    OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-    wr.write(data);
-    wr.flush();
-
-    BufferedReader rd =
-        new BufferedReader(new InputStreamReader(conn.getInputStream()));
-    String line;
     boolean authenticated = false;
-    while ((line = rd.readLine()) != null) {
-      if (line.toLowerCase().contains("true")) {
-        authenticated = true;
+    try (OutputStreamWriter wr =
+        new OutputStreamWriter(conn.getOutputStream(), StandardCharsets.UTF_8)) {
+      wr.write(data);
+      wr.flush();
+
+      try (BufferedReader rd = new BufferedReader(
+          new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = rd.readLine()) != null) {
+          if (line.toLowerCase().contains("true")) {
+            authenticated = true;
+          }
+        }
       }
     }
-    wr.close();
-    rd.close();
 
     if (!authenticated) {
       throw new LocalException("Username or password invalid.");

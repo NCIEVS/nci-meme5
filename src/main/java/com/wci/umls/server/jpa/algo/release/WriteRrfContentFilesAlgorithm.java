@@ -586,7 +586,7 @@ public class WriteRrfContentFilesAlgorithm
     final PrecedenceList list = getPrecedenceList(getProject().getTerminology(),
         getProject().getVersion());
     // Lazy init
-    list.getPrecedence().getKeyValuePairs().size();
+    ConfigUtility.initializeLazy(list.getPrecedence().getKeyValuePairs());
 
     // Atom -> AUI map
     // Load alternateTerminologyIds
@@ -1420,7 +1420,7 @@ public class WriteRrfContentFilesAlgorithm
       } else if (mapping.getFromIdType().toString().equals("CONCEPT")) {
         sb.append("SCUI");
       } else {
-        mapping.getFromIdType().toString();
+        sb.append(mapping.getFromIdType());
       }
       sb.append("|");
       // FROMRULE
@@ -1466,7 +1466,7 @@ public class WriteRrfContentFilesAlgorithm
       } else if (mapping.getToIdType().toString().equals("CONCEPT")) {
         sb.append("SCUI");
       } else {
-        mapping.getToIdType().toString();
+        sb.append(mapping.getToIdType());
       }
       sb.append("|");
       // TORULE

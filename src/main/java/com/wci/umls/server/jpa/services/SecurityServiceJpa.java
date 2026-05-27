@@ -390,11 +390,11 @@ public class SecurityServiceJpa extends RootServiceJpa
   @Override
   public void handleLazyInit(User user) {
     if (user.getProjectRoleMap() != null) {
-      user.getProjectRoleMap().size();
+      ConfigUtility.initializeLazy(user.getProjectRoleMap());
     }
     if (user.getUserPreferences() != null) {
-      user.getUserPreferences().getFavorites().size();
-      user.getUserPreferences().getProperties().size();
+      ConfigUtility.initializeLazy(user.getUserPreferences().getFavorites());
+      ConfigUtility.initializeLazy(user.getUserPreferences().getProperties());
     }
   }
 

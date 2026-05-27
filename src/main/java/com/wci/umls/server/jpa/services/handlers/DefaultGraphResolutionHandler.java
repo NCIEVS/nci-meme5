@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Properties;
 
 import com.wci.umls.server.helpers.ComponentInfo;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.jpa.model.AbstractConfigurable;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomRelationship;
@@ -77,7 +78,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
         if (nullId) {
           sty.setId(null);
         }
-        sty.getSemanticType();
+        ConfigUtility.initializeLazy(sty.getSemanticType());
         resolve(sty);
       }
 
@@ -104,8 +105,8 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
       concept.setTreePositions(new ArrayList<>(0));
 
       // user annotations -- lazy initialize
-      concept.getNotes().size();
-      concept.getLabels().size();
+      ConfigUtility.initializeLazy(concept.getNotes());
+      ConfigUtility.initializeLazy(concept.getLabels());
 
     } else if (concept == null) {
       throw new Exception("Cannot resolve a null concept.");
@@ -152,7 +153,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
 
       atom.getName();
       // BAC: setting this back to keep concept terminology ids
-      atom.getConceptTerminologyIds().keySet();
+      ConfigUtility.initializeLazy(atom.getConceptTerminologyIds());
       // atom.getAlternateTerminologyIds().keySet();
       // atom.setConceptTerminologyIds(new HashMap<>(0));
       atom.setAlternateTerminologyIds(new HashMap<>(0));
@@ -183,7 +184,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
       }
 
       atom.setTreePositions(new ArrayList<>(0));
-      atom.getNotes().size();
+      ConfigUtility.initializeLazy(atom.getNotes());
 
     } else if (atom == null) {
       throw new Exception("Cannot resolve a null atom.");
@@ -215,7 +216,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
   @Override
   public void resolve(TreePosition<?> treepos) throws Exception {
     if (treepos != null) {
-      treepos.getAncestorPath();
+      ConfigUtility.initializeLazy(treepos.getAncestorPath());
 
       // Tree positions don't have attributes yet.
       treepos.setAttributes(new ArrayList<Attribute>(0));
@@ -226,7 +227,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
   /* see superclass */
   @Override
   public void resolve(SemanticTypeComponent sty) {
-    sty.getSemanticType();
+      ConfigUtility.initializeLazy(sty.getSemanticType());
   }
 
   /* see superclass */
@@ -258,8 +259,8 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
       descriptor.setTreePositions(new ArrayList<>(0));
 
       // user annotations -- lazy initialize
-      descriptor.getNotes().size();
-      descriptor.getLabels().size();
+      ConfigUtility.initializeLazy(descriptor.getNotes());
+      ConfigUtility.initializeLazy(descriptor.getLabels());
 
     } else if (descriptor == null) {
       throw new Exception("Cannot resolve a null descriptor.");
@@ -289,8 +290,8 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
       code.setRelationships(new ArrayList<CodeRelationship>(0));
       code.setTreePositions(new ArrayList<>(0));
       // user annotations -- lazy initialize
-      code.getNotes().size();
-      code.getLabels().size();
+      ConfigUtility.initializeLazy(code.getNotes());
+      ConfigUtility.initializeLazy(code.getLabels());
 
     } else if (code == null) {
       throw new Exception("Cannot resolve a null code.");
@@ -432,7 +433,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
   @SuppressWarnings("static-method")
   protected void resolveAttributes(ComponentHasAttributes component,
     boolean nullId) throws Exception {
-    component.getAttributes().size();
+    ConfigUtility.initializeLazy(component.getAttributes());
     for (final Attribute att : component.getAttributes()) {
       att.getName();
       // no ATUI
@@ -451,9 +452,9 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
    */
   @SuppressWarnings("static-method")
   protected void resolveComponentHistory(Atom component, boolean nullId) {
-    component.getComponentHistory().size();
+    ConfigUtility.initializeLazy(component.getComponentHistory());
     for (final ComponentHistory history : component.getComponentHistory()) {
-      history.getReferencedTerminologyId();
+      ConfigUtility.initializeLazy(history.getReferencedTerminologyId());
       if (nullId) {
         history.setId(null);
       }
@@ -468,9 +469,9 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
    */
   @SuppressWarnings("static-method")
   protected void resolveComponentHistory(Concept component, boolean nullId) {
-    component.getComponentHistory().size();
+    ConfigUtility.initializeLazy(component.getComponentHistory());
     for (final ComponentHistory history : component.getComponentHistory()) {
-      history.getReferencedTerminologyId();
+      ConfigUtility.initializeLazy(history.getReferencedTerminologyId());
       if (nullId) {
         history.setId(null);
       }
@@ -486,7 +487,7 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
    */
   protected void resolveDefinition(Definition definition, boolean nullId)
     throws Exception {
-    definition.getValue();
+    ConfigUtility.initializeLazy(definition.getValue());
     // no ATUI
     definition.setAlternateTerminologyIds(new HashMap<>(0));
     if (nullId) {
@@ -500,16 +501,16 @@ public class DefaultGraphResolutionHandler extends AbstractConfigurable
   @Override
   public void resolve(Terminology terminology) {
     if (terminology != null) {
-      terminology.getSynonymousNames().size();
-      terminology.getRootTerminology().getTerminology();
-      terminology.getRelatedTerminologies().size();
+      ConfigUtility.initializeLazy(terminology.getSynonymousNames());
+      ConfigUtility.initializeLazy(terminology.getRootTerminology().getTerminology());
+      ConfigUtility.initializeLazy(terminology.getRelatedTerminologies());
     }
   }
 
   /* see superclass */
   @Override
   public void resolve(RootTerminology rootTerminology) {
-    rootTerminology.getSynonymousNames().size();
+    ConfigUtility.initializeLazy(rootTerminology.getSynonymousNames());
   }
 
   /* see superclass */

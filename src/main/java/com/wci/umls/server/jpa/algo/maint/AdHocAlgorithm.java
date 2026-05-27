@@ -2219,7 +2219,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
         for (Atom a : atoms) {
           Atom atom = getAtom(a.getId());
-          atom.getAttributes().size();
+          ConfigUtility.initializeLazy(atom.getAttributes());
           if (atom.getAttributeByName("RXCUI")!= null) {          
             atom.setRxcui(atom.getAttributeByName("RXCUI").getValue());
             updateAtom(atom);
@@ -2379,7 +2379,6 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     int updatedRelationships = 0;
 
     final List<ConceptSubsetJpa> conceptSubsets = new ArrayList<>();
-    final List<AtomSubsetJpa> atomSubsets = new ArrayList<>();
     try {
       Query query = getEntityManager().createNativeQuery(
           "select id from concept_subsets where terminology=:terminology and version=:version");
@@ -2494,7 +2493,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       // handle lazy init error
       for (final AtomSubsetJpa subset : atomSubsets) {
         for (final AtomSubsetMember member : subset.getMembers()) {
-          member.getAttributes().size();
+          ConfigUtility.initializeLazy(member.getAttributes());
         }
       }
 
@@ -2538,13 +2537,11 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
     int markedConcepts = 0;
 
-    List<ConceptSubsetJpa> conceptsWithoutAtoms = new ArrayList<>();
-
     try {
       Query query = getEntityManager().createQuery("select c1.id from "
           + "ConceptJpa c1 where c1.terminology = :terminology and c1.publishable=true and c1.id NOT IN (select c2.id from ConceptJpa c2 JOIN c2.atoms)");
       query.setParameter("terminology", "NCIMTH");
-      conceptsWithoutAtoms = query.getResultList();
+      final List<ConceptSubsetJpa> conceptsWithoutAtoms = query.getResultList();
       setSteps(conceptsWithoutAtoms.size());
 
       for (final Object entry : conceptsWithoutAtoms) {
@@ -2840,7 +2837,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
             relTypeMap.get(relationship.getAdditionalRelationshipType());
         final String relationshipRui =
             handler.getTerminologyId(relationship, inverseRelType, inverseAdditionalRelType);
-        relationship.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(relationship.getAlternateTerminologyIds());
         relationship.getAlternateTerminologyIds().put(getProject().getTerminology(),
             relationshipRui);
         updateRelationship(relationship);
@@ -2880,7 +2877,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
             relTypeMap.get(relationship.getAdditionalRelationshipType());
         final String relationshipRui =
             handler.getTerminologyId(relationship, inverseRelType, inverseAdditionalRelType);
-        relationship.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(relationship.getAlternateTerminologyIds());
         relationship.getAlternateTerminologyIds().put(getProject().getTerminology(),
             relationshipRui);
         updateRelationship(relationship);
@@ -2920,7 +2917,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
             relTypeMap.get(relationship.getAdditionalRelationshipType());
         final String relationshipRui =
             handler.getTerminologyId(relationship, inverseRelType, inverseAdditionalRelType);
-        relationship.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(relationship.getAlternateTerminologyIds());
         relationship.getAlternateTerminologyIds().put(getProject().getTerminology(),
             relationshipRui);
         updateRelationship(relationship);
@@ -3223,7 +3220,6 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     int updatedAdditionalRelationshipTypes = 0;
     int updatedRelationships = 0;
     List<AdditionalRelationshipTypeJpa> additionalRelationshipsTypes = new ArrayList<>();
-    List<AtomRelationshipJpa> atomRelationships = new ArrayList<>();
 
     try {
 
@@ -3992,9 +3988,9 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       final Long precedenceListId = (Long) query.getSingleResult();
       final PrecedenceList precedenceList = getPrecedenceList(precedenceListId);
       // Handle lazy init
-      precedenceList.getTermTypeRankMap().size();
-      precedenceList.getTerminologyRankMap().size();
-      precedenceList.getPrecedence().getName();
+      ConfigUtility.initializeLazy(precedenceList.getTermTypeRankMap());
+      ConfigUtility.initializeLazy(precedenceList.getTerminologyRankMap());
+      ConfigUtility.initializeLazy(precedenceList.getPrecedence());
       precedenceList.removeTerminologyTermType(source, termType);
 
       commitClearBegin();
@@ -4132,7 +4128,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     }
 
     // Add the checklist
-    final Checklist newChecklist = addChecklist(checklist);
+    addChecklist(checklist);
   }
 
   private void fixOverlappingBRORels() throws Exception {
@@ -5043,7 +5039,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
            
            for (final RootTerminology root : getRootTerminologies().getObjects()) {
              // lazy init
-             root.getSynonymousNames().size();
+             ConfigUtility.initializeLazy(root.getSynonymousNames());
              loadedRootTerminologies.put(root.getTerminology(), root);
            }
            
@@ -5131,7 +5127,6 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
 	           final String sourcesFile = inputDirFile + File.separator + "test.txt";
 
-	           final List<String> lines = new ArrayList<>();
 	           String line = null;
 
 	           final String fields[] = new String[3];
@@ -5165,7 +5160,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
            
            File maintDir = new File(getSrcDirFile(), "maint");
            if (! maintDir.exists()){
-             maintDir.mkdir();
+             ConfigUtility.ensureDirectoryExists(maintDir);
            }
            logInfo("maint dir:" + maintDir);
            BufferedWriter out = new BufferedWriter(new FileWriter(new File(maintDir, "dsstmp.txt")));
@@ -5259,8 +5254,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	            Concept concept = getConcept(conceptId);
 	            
 	            // Force initialization of lazy collections while session is active
-	            concept.getAtoms().size(); // Force loading
-	            concept.getRelationships().size(); // Force loading
+            ConfigUtility.initializeLazy(concept.getAtoms());
+            ConfigUtility.initializeLazy(concept.getRelationships());
 	            
 	            concepts.add(concept);
 	        }

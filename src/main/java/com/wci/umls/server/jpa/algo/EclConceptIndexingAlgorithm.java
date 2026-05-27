@@ -269,14 +269,11 @@ public class EclConceptIndexingAlgorithm extends AbstractAlgorithm {
     @SuppressWarnings("unchecked")
     final List<Object[]> rels = query.getResultList();
     final Map<Long, Set<Long>> parChd = new HashMap<>();
-    final Set<Long> allNodes = new HashSet<>();
     int ct = 0;
     for (final Object[] rel : rels) {
       ct++;
       final Long chd = Long.parseLong(rel[0].toString());
       final Long par = Long.parseLong(rel[1].toString());
-      allNodes.add(par);
-      allNodes.add(chd);
       if (!parChd.containsKey(par)) {
         parChd.put(par, new HashSet<Long>());
       }

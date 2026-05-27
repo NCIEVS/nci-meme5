@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.UserPreferences;
 import com.wci.umls.server.model.algo.UserRole;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.StringList;
 import com.wci.umls.server.helpers.UserList;
@@ -240,7 +241,7 @@ public class SecurityServiceRestImpl extends RootServiceRestImpl
           UserRole.VIEWER);
       UserList list = securityService.getUsers();
       for (User user : list.getObjects()) {
-        user.getProjectRoleMap().size();
+        ConfigUtility.initializeLazy(user.getProjectRoleMap());
       }
       return list;
     } catch (Exception e) {

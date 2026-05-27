@@ -149,7 +149,6 @@ public class AlgorithmParameterJpaUnitTest extends ModelUnitSupport {
     assertTrue(tester.testAnalyzedIndexedFields());
 
     // Test non analyzed fields - none
-    tester = new IndexedFieldTester(object);
     //assertTrue(tester.testNotAnalyzedIndexedFields());
 
   }

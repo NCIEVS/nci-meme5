@@ -157,6 +157,9 @@ public class OwlApiClassifier extends AbstractAlgorithm implements Classifier {
             .getEquivalentClasses(owlClass)) {
           group.add(getConceptForOwlClass(chdClass, service));
         }
+        if (!group.isEmpty()) {
+          equiv.add(group);
+        }
       }
     } catch (Exception e) {
       throw e;

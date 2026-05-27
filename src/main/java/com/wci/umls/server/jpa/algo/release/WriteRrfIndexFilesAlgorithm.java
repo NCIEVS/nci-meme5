@@ -248,7 +248,7 @@ public class WriteRrfIndexFilesAlgorithm
 
       File inputFile = new File(dir, writerName);
       File outputFile = new File(dir, writerName + ".sorted");
-      inputFile.delete();
+      ConfigUtility.deleteFileIfExists(inputFile);
       Files.move(outputFile.getAbsoluteFile(), inputFile.getAbsoluteFile());
     }
 

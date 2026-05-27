@@ -117,11 +117,7 @@ public class ContextLoaderAlgorithm
       final List<String> lines = loadFileIntoStringList(getSrcDirFile(),
           "contexts.src", null, "(.*)SIB(.*)", null);
 
-      // Scan the contexts.src file and see if HCD (hierarchical code)
-      // for a given terminology is populated.
-      final Set<String> withHcd = findTermsWithHcd(lines);
       final Set<String> computedTerminologies = new HashSet<>();
-      final Set<Terminology> allReferencedTerminologies = new HashSet<>();
 
       final String fields[] = new String[17];
       for (final String line : lines) {
@@ -135,8 +131,6 @@ public class ContextLoaderAlgorithm
               + ". Could not process the following line:\n\t" + line);
           continue;
         }
-
-        allReferencedTerminologies.add(terminology);
 
         // // If the specified terminology never has a populated HCD, the
         // // transitive relationships and tree positions can be computed.

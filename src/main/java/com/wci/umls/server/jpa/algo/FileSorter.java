@@ -17,6 +17,8 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.wci.umls.server.helpers.ConfigUtility;
+
 /**
  * Helper utility for sorting files.
  */
@@ -49,9 +51,9 @@ public class FileSorter {
 
       // remove last two elements of list
       String toRemove = splitFiles.remove(splitFiles.size() - 1);
-      new File(toRemove).delete();
+      ConfigUtility.deleteFileIfExists(new File(toRemove));
       toRemove = splitFiles.remove(splitFiles.size() - 1);
-      new File(toRemove).delete();
+      ConfigUtility.deleteFileIfExists(new File(toRemove));
 
       // add merged file to beginning of the list
       splitFiles.add(merged_file);
@@ -123,7 +125,7 @@ public class FileSorter {
    * 
    * @param file the file
    */
-  public static void deleteSortedFiles(File file) {
+  public static void deleteSortedFiles(File file) throws IOException {
     // Check if file is directory/folder
     if (file.isDirectory()) {
       // Get all files in the folder
@@ -137,10 +139,10 @@ public class FileSorter {
         deleteSortedFiles(files[i]);
       }
       // Delete the folder
-      file.delete();
+      ConfigUtility.deleteFileIfExists(file);
     } else {
       // Delete the file if it is not a folder
-      file.delete();
+      ConfigUtility.deleteFileIfExists(file);
     }
   }
 

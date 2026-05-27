@@ -89,9 +89,6 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 	        + "META");
     logInfo("  outputPath: " + outputPath.getAbsolutePath());
     logInfo("  dataDir: " + dataDir);
-    this.getProject();
-    PropertyUtility.getLocalConfigFolder();
-    
     updateMrsab();
     updateMrcols();
     updateMrfiles();
@@ -196,7 +193,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               // Rename modified to original
               if (!modified.renameTo(original)) {
                   // If second rename fails, try to restore original file
-                  backup.renameTo(original);
+                  ConfigUtility.renameFile(backup, original);
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
               
@@ -280,7 +277,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           // delete MRCOLS.RRF if it exists
           File file = new File(outputPath + File.separator + mrcolsFile);
           if (file.exists()) {
-              file.delete();
+              ConfigUtility.deleteFileIfExists(file);
           }
 
           // parse template MRCOLS.RRF and create new one with updated column averages
@@ -395,7 +392,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               // Rename modified to original
               if (!modified.renameTo(original)) {
                   // If second rename fails, try to restore original file
-                  backup.renameTo(original);
+                  ConfigUtility.renameFile(backup, original);
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
               

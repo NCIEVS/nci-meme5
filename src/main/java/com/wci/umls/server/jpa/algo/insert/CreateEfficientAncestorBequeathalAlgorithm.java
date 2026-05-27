@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -20,6 +19,7 @@ import jakarta.persistence.Query;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
@@ -88,7 +88,7 @@ public class CreateEfficientAncestorBequeathalAlgorithm extends AbstractInsertMa
       File srcDir = getSrcDirFile();
       File maintDir = new File(srcDir, "maint");
       if (! maintDir.exists()){
-        maintDir.mkdir();
+        ConfigUtility.ensureDirectoryExists(maintDir);
       }
       logInfo("maint dir:" + maintDir);
       BufferedWriter out = new BufferedWriter(new FileWriter(new File(maintDir, "bequeathal.ancestor.relationships.src." + terminologyParam)));
@@ -152,8 +152,8 @@ public class CreateEfficientAncestorBequeathalAlgorithm extends AbstractInsertMa
         final Long id = Long.valueOf(entry.toString());
         Concept c = getConcept(id);
         deletedCuis.add(c);
-        c.getAtoms().size();
-        c.getRelationships().size();
+        ConfigUtility.initializeLazy(c.getAtoms());
+        ConfigUtility.initializeLazy(c.getRelationships());
       } 
       
       // compute atom rels used in deletedCuis, for given terminology e.g. NCBI
@@ -191,7 +191,6 @@ public class CreateEfficientAncestorBequeathalAlgorithm extends AbstractInsertMa
         }
       }
       logInfo("relMap.size: " + relMap.size());
-      Entry<String, List<RelObject>> entry = relMap.entrySet().iterator().next();
       
       // determine potential bequeathals for each deleted cui
       for (Concept cpt : deletedCuis) {

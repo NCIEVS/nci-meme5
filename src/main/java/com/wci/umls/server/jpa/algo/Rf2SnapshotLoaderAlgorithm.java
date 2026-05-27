@@ -426,7 +426,10 @@ public class Rf2SnapshotLoaderAlgorithm
    */
   public void setReaders(Rf2Readers readers) {
     this.readers = readers;
-    readers.getReader(Keys.ASSOCIATION_REFERENCE);
+    if (readers.getReader(Keys.ASSOCIATION_REFERENCE) == null) {
+      throw new IllegalArgumentException(
+          "RF2 association reference reader is required");
+    }
   }
 
   /* see superclass */

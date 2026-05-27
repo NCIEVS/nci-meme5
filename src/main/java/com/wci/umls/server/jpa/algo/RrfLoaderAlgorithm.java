@@ -381,7 +381,7 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     // Load the content
     list = getPrecedenceList(getTerminology(), getVersion());
     // lazy initialize?
-    list.getPrecedence().getKeyValuePairs().size();
+    ConfigUtility.initializeLazy(list.getPrecedence().getKeyValuePairs());
     loadMrconso();
 
     // Loadable hierarchies, NOTE: only terminologies that cannot be
@@ -1031,13 +1031,13 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     for (final RootTerminology root : getRootTerminologies().getObjects()) {
       // lazy init
-      root.getSynonymousNames().size();
+      ConfigUtility.initializeLazy(root.getSynonymousNames());
       loadedRootTerminologies.put(root.getTerminology(), root);
     }
     for (final Terminology term : getTerminologies().getObjects()) {
       // lazy init
-      term.getSynonymousNames().size();
-      term.getRootTerminology().getTerminology();
+      ConfigUtility.initializeLazy(term.getSynonymousNames());
+      ConfigUtility.initializeLazy(term.getRootTerminology());
       // Add either the first one we've encountered, or the current one
       if (term.isCurrent()
           || !loadedTerminologies.containsKey(term.getTerminology())) {

@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.UserRole;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.content.ConceptList;
@@ -175,15 +176,17 @@ public class ProjectServiceJpa extends RootServiceJpa
     if (project == null) {
       return;
     }
-    project.getUserRoleMap().size();
-    project.getValidationChecks().size();
-    project.getSemanticTypeCategoryMap().size();
+    ConfigUtility.initializeLazy(project.getUserRoleMap());
+    ConfigUtility.initializeLazy(project.getValidationChecks());
+    ConfigUtility.initializeLazy(project.getSemanticTypeCategoryMap());
     if (project.getPrecedenceList() != null) {
-      project.getPrecedenceList().getName();
-      project.getPrecedenceList().getPrecedence().getKeyValuePairs();
+      ConfigUtility.initializeLazy(project.getPrecedenceList());
+      ConfigUtility.initializeLazy(project.getPrecedenceList().getPrecedence());
+      ConfigUtility.initializeLazy(
+          project.getPrecedenceList().getPrecedence().getKeyValuePairs());
     }
-    project.getValidCategories().size();
-    project.getValidationData().size();
+    ConfigUtility.initializeLazy(project.getValidCategories());
+    ConfigUtility.initializeLazy(project.getValidationData());
   }
 
   /**

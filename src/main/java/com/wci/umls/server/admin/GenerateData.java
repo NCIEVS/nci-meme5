@@ -613,18 +613,10 @@ public class GenerateData extends AbstractLoader {
         // Fake some data as needs review
         //
         LOGGER.info("Fake some needs review content");
-        @SuppressWarnings("unused")
-        ContentServiceRest contentService = new ContentServiceRestImpl();
-        @SuppressWarnings("unused")
-        IntegrationTestServiceRest testService =
-                new IntegrationTestServiceRestImpl();
-
         // //
         // // Demotions
         // //
         // LOGGER.info(" Add demotions");
-        @SuppressWarnings("unused")
-        PfsParameterJpa pfs = new PfsParameterJpa();
         // pfs.setStartIndex(1000);
         // pfs.setMaxResults(80);
         // contentService = new ContentServiceRestImpl();
@@ -2183,8 +2175,6 @@ public class GenerateData extends AbstractLoader {
 
     private void addDemotions(String authToken, Long projectId) throws Exception {
         ContentServiceRest contentService = new ContentServiceRestImpl();
-        IntegrationTestServiceRest testService =
-                new IntegrationTestServiceRestImpl();
 
         LOGGER.info("  Add demotions");
         PfsParameterJpa pfs = new PfsParameterJpa();

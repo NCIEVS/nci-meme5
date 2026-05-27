@@ -6,8 +6,6 @@ package com.wci.umls.server.test.rest.meta;
 import static org.junit.Assert.assertNull;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -53,8 +51,6 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     // Add a project
     Logger.getLogger(getClass()).info("  Add project");
     ProjectJpa project = new ProjectJpa();
-    Set<String> values = new HashSet<>();
-    values.add("PUBLISHED");
 
     project.setDescription("Sample");
     project.setName("Sample " + new Date().getTime());
@@ -99,8 +95,6 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     // Add a project
     Logger.getLogger(getClass()).info("  Add project");
     ProjectJpa project = new ProjectJpa();
-    Set<String> values = new HashSet<>();
-    values.add("PUBLISHED");
     project.setDescription("Sample");
     project.setName("Sample " + new Date().getTime());
     project.setTerminology("MTH");

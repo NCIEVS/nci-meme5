@@ -9,7 +9,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -114,8 +116,8 @@ public class ConfigureServiceRestImplUnitTest {
         new File(appDir, "indexes").getAbsolutePath());
     parameters.put("jakarta.persistence.jdbc.url",
         "jdbc:mysql://127.0.0.1:3306/testdb");
-    parameters.put("jakarta.persistence.jdbc.user", "testuser");
-    parameters.put("jakarta.persistence.jdbc.password", "testpass");
+    parameters.put("jakarta.persistence.jdbc.user", "téstuser");
+    parameters.put("jakarta.persistence.jdbc.password", "pässword");
 
     service.configure(parameters);
 
@@ -124,7 +126,8 @@ public class ConfigureServiceRestImplUnitTest {
     assertFalse(configFile.length() == 0L);
 
     final Properties writtenProperties = new Properties();
-    try (FileReader reader = new FileReader(configFile)) {
+    try (Reader reader = Files.newBufferedReader(configFile.toPath(),
+        StandardCharsets.UTF_8)) {
       writtenProperties.load(reader);
     }
 
@@ -136,7 +139,9 @@ public class ConfigureServiceRestImplUnitTest {
         writtenProperties.getProperty("jakarta.persistence.jdbc.url"));
     assertEquals("jdbc:mysql://127.0.0.1:3306/testdb",
         PropertyUtility.getProperties().getProperty("jakarta.persistence.jdbc.url"));
-    assertEquals("testuser", PropertyUtility.getProperties()
+    assertEquals("téstuser", PropertyUtility.getProperties()
         .getProperty("jakarta.persistence.jdbc.user"));
+    assertEquals("pässword", writtenProperties
+        .getProperty("jakarta.persistence.jdbc.password"));
   }
 }

@@ -131,7 +131,7 @@ public class CreateNciRxnormMappingsAlgorithm extends AbstractAlgorithm {
 
     mappingsDir = new File(pathMeta, "mappings");
     if (!mappingsDir.exists()) {
-      mappingsDir.mkdir();
+      ConfigUtility.ensureDirectoryExists(mappingsDir);
     }
     logInfo("mappings dir:" + mappingsDir);
 

@@ -4,7 +4,6 @@
 package com.wci.umls.server.jpa.algo.insert;
 
 import java.io.File;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -80,8 +79,7 @@ public class BequeathAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       commitClearBegin();
 
       // Get all terminologies referenced in the sources.src file
-      Set<Terminology> terminologies = new HashSet<>();
-      terminologies = getReferencedTerminologies();
+      Set<Terminology> terminologies = getReferencedTerminologies();
 
       setSteps(terminologies.size());
 

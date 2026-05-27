@@ -148,9 +148,8 @@ public class WriteRrfHistoryFilesAlgorithm
       final File inputFile = new File(fdir, writerName);
       final File outputFile = new File(fdir, writerName + ".sorted");
       if (outputFile.exists()) {
-        outputFile.delete();
+        ConfigUtility.deleteFileIfExists(outputFile);
       }
-      FileUtils.removePath(outputFile.getPath());
       FileSorter.sortFile(inputFile.getAbsolutePath(),
           outputFile.getAbsolutePath(), ConfigUtility.getByteComparator());
     }
@@ -164,7 +163,7 @@ public class WriteRrfHistoryFilesAlgorithm
       }
       final File inputFile = new File(fdir, writerName);
       final File outputFile = new File(fdir, writerName + ".sorted");
-      inputFile.delete();
+      ConfigUtility.deleteFileIfExists(inputFile);
       Files.move(outputFile.getAbsoluteFile(), inputFile.getAbsoluteFile());
     }
     fireProgressEvent(100, "Finished");
@@ -769,7 +768,7 @@ public class WriteRrfHistoryFilesAlgorithm
 
     // Make "CHANGE" directory
     final File changeDir = new File(dir, "CHANGE");
-    changeDir.mkdirs();
+    ConfigUtility.ensureDirectoryExists(changeDir);
     writerMap.put("MRAUI.RRF",
         new PrintWriter(new FileWriter(new File(dir, "MRAUI.RRF"))));
     writerMap.put("MRCUI.RRF",

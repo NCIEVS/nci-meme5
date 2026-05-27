@@ -104,7 +104,7 @@ public class PrepareMetamorphoSysAlgorithm extends AbstractAlgorithm {
     final File currentReleaseFolder = new File (pathConfig, "/" + getProcess().getVersion());
     
     //Rename the previous release directory to current release (e.g. % mv 201203 201209)
-    previousReleaseFolder.renameTo(currentReleaseFolder);
+    ConfigUtility.renameFile(previousReleaseFolder, currentReleaseFolder);
     
     //Edit mmsys.prop to refer to new current release version (e.g. 201209)
     //Edit contents of current release directory to refer to this as the release version
@@ -121,7 +121,7 @@ public class PrepareMetamorphoSysAlgorithm extends AbstractAlgorithm {
     replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "release.dat", previousRelease, currentReleaseFolder.getName());    
     
     //Delete original /local/content/MEME/MEME5/mr/META/mmsys.zip
-    new File(pathMeta.getPath() + "/mmsys.zip").delete();
+    ConfigUtility.deleteFileIfExists(new File(pathMeta.getPath() + "/mmsys.zip"));
     
     //Zip the contents of path/x into revised path/META/mmsys.zip 
 

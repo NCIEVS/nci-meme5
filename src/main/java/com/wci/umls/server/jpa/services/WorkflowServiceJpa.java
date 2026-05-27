@@ -236,23 +236,23 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
   /* see superclass */
   @Override
   public void handleLazyInit(TrackingRecord record) {
-    record.getOrigConceptIds().size();
-    record.getComponentIds().size();
+    ConfigUtility.initializeLazy(record.getOrigConceptIds());
+    ConfigUtility.initializeLazy(record.getComponentIds());
   }
 
   /* see superclass */
   @Override
   public void handleLazyInit(Worklist worklist) {
-    worklist.getReviewers().size();
-    worklist.getAuthors().size();
-    worklist.getWorkflowStateHistory().size();
-    worklist.getNotes().size();
+    ConfigUtility.initializeLazy(worklist.getReviewers());
+    ConfigUtility.initializeLazy(worklist.getAuthors());
+    ConfigUtility.initializeLazy(worklist.getWorkflowStateHistory());
+    ConfigUtility.initializeLazy(worklist.getNotes());
   }
 
   /* see superclass */
   @Override
   public void handleLazyInit(Checklist checklist) {
-    checklist.getNotes().size();
+    ConfigUtility.initializeLazy(checklist.getNotes());
   }
 
   /* see superclass */
@@ -266,7 +266,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
   /* see superclass */
   @Override
   public void handleLazyInit(WorkflowBinDefinition definition) {
-    definition.getWorkflowConfig().getType();
+    ConfigUtility.initializeLazy(definition.getWorkflowConfig().getType());
   }
 
   /* see superclass */
@@ -584,7 +584,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
     }
 
     // Remove the component
-    workflowBin = removeHasLastModified(id, WorkflowBinJpa.class);
+    removeHasLastModified(id, WorkflowBinJpa.class);
 
     // Manage transaction
     if (origTpo) {
@@ -867,7 +867,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
     }
 
     // Remove the component
-    worklist = removeHasLastModified(id, WorklistJpa.class);
+    removeHasLastModified(id, WorklistJpa.class);
 
     // Manage transaction
     if (origTpo) {
@@ -975,7 +975,7 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
     }
 
     // Remove the component
-    checklist = removeHasLastModified(id, ChecklistJpa.class);
+    removeHasLastModified(id, ChecklistJpa.class);
 
     // Manage transaction
     if (origTpo) {
