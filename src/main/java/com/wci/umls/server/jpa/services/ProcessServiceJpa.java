@@ -622,7 +622,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
       return;
     }
     processExecution.getProject().getId();
-    processExecution.getExecutionInfo().keySet();
+    ConfigUtility.initializeLazy(processExecution.getExecutionInfo());
     for (AlgorithmExecution algo : processExecution.getSteps()) {
       handleLazyInit(algo);
     }
@@ -639,8 +639,8 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     if (algorithmConfig == null) {
       return;
     }
-    algorithmConfig.getParameters().size();
-    algorithmConfig.getProperties().size();
+    ConfigUtility.initializeLazy(algorithmConfig.getParameters());
+    ConfigUtility.initializeLazy(algorithmConfig.getProperties());
     algorithmConfig.getProject().getId();
     algorithmConfig.getProcess().getId();
   }
@@ -655,8 +655,8 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     if (algorithmExecution == null) {
       return;
     }
-    algorithmExecution.getParameters().size();
-    algorithmExecution.getProperties().size();
+    ConfigUtility.initializeLazy(algorithmExecution.getParameters());
+    ConfigUtility.initializeLazy(algorithmExecution.getProperties());
     algorithmExecution.getProject().getId();
     algorithmExecution.getProcess().getId();
   }

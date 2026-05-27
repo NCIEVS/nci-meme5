@@ -70,6 +70,7 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.hibernate.Hibernate;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
 import java.util.Collection;
@@ -599,20 +600,99 @@ public class ConfigUtility {
    * @return true, if successful
    */
   public static boolean deleteDirectory(File path) {
-    if (path.exists()) {
+    if (path == null || !path.exists()) {
+      return true;
+    }
+    boolean success = true;
+    if (path.isDirectory()) {
       final File[] files = path.listFiles();
       if (files == null) {
         return false;
       }
       for (int i = 0; i < files.length; i++) {
         if (files[i].isDirectory()) {
-          deleteDirectory(files[i]);
+          success &= deleteDirectory(files[i]);
         } else {
-          files[i].delete();
+          success &= files[i].delete() || !files[i].exists();
         }
       }
     }
-    return (path.delete());
+    return (path.delete() || !path.exists()) && success;
+  }
+
+  /**
+   * Ensures the directory exists.
+   *
+   * @param dir the directory
+   * @throws IOException if the directory cannot be created
+   */
+  public static void ensureDirectoryExists(File dir) throws IOException {
+    if (dir == null) {
+      throw new IOException("Directory must not be null");
+    }
+    Files.createDirectories(dir.toPath());
+    if (!dir.isDirectory()) {
+      throw new IOException("Could not create directory " + dir);
+    }
+  }
+
+  /**
+   * Ensures the file exists.
+   *
+   * @param file the file
+   * @throws IOException if the file cannot be created
+   */
+  public static void ensureFileExists(File file) throws IOException {
+    if (file == null) {
+      throw new IOException("File must not be null");
+    }
+    final File parentFile = file.getParentFile();
+    if (parentFile != null) {
+      ensureDirectoryExists(parentFile);
+    }
+    if (!file.exists()) {
+      Files.createFile(file.toPath());
+    }
+    if (!file.isFile()) {
+      throw new IOException("Could not create file " + file);
+    }
+  }
+
+  /**
+   * Deletes the file if it exists.
+   *
+   * @param file the file
+   * @throws IOException if the file cannot be deleted
+   */
+  public static void deleteFileIfExists(File file) throws IOException {
+    if (file != null) {
+      Files.deleteIfExists(file.toPath());
+    }
+  }
+
+  /**
+   * Renames a file or directory.
+   *
+   * @param source the source
+   * @param target the target
+   * @throws IOException if the rename cannot be completed
+   */
+  public static void renameFile(File source, File target) throws IOException {
+    if (source == null || target == null) {
+      throw new IOException("Source and target must not be null");
+    }
+    Files.move(source.toPath(), target.toPath());
+  }
+
+  /**
+   * Explicitly initializes a Hibernate proxy or collection.
+   *
+   * @param value the value to initialize
+   */
+  public static void initializeLazy(Object value) {
+    if (value != null) {
+      Hibernate.initialize(value);
+    }
   }
 
   /**
@@ -929,7 +1009,7 @@ public class ConfigUtility {
     // create the directory structure
     File eclDir =
         new File(getExpressionIndexDirectoryName(terminology, version));
-    eclDir.mkdirs();
+    ensureDirectoryExists(eclDir);
   }
 
   /**
@@ -1192,7 +1272,7 @@ public class ConfigUtility {
     throws IOException {
     File destDir = new File(destDirectory);
     if (!destDir.exists()) {
-      destDir.mkdir();
+      ensureDirectoryExists(destDir);
     }
     ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath));
     ZipEntry entry = zipIn.getNextEntry();
@@ -1205,7 +1285,7 @@ public class ConfigUtility {
       } else {
         // if the entry is a directory, make the directory
         File dir = new File(filePath);
-        dir.mkdir();
+        ensureDirectoryExists(dir);
       }
       zipIn.closeEntry();
       entry = zipIn.getNextEntry();

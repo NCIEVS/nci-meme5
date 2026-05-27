@@ -117,7 +117,7 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     // open output writers
     statsDir = new File(pathMeta, "stats");
     if (!statsDir.exists()){
-      statsDir.mkdir();
+      ConfigUtility.ensureDirectoryExists(statsDir);
     }
     logInfo("stats dir:" + statsDir);
     
@@ -149,7 +149,7 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     // make reports subdirectory
     reportDir = new File(statsDir, "reports");
     if (!reportDir.exists()){
-    	reportDir.mkdir();
+      ConfigUtility.ensureDirectoryExists(reportDir);
     }
     logInfo("report dir:" + reportDir);
     
@@ -432,7 +432,7 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
       
       File srcDir = new File(statsDir, entry.getKey());
       if (!srcDir.exists()){
-        srcDir.mkdir();
+        ConfigUtility.ensureDirectoryExists(srcDir);
       }
       logInfo("src dir:" + srcDir);
       

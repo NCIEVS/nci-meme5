@@ -26,6 +26,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.log4j.Logger;
 
 import com.wci.umls.server.model.algo.SourceData;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
@@ -241,7 +242,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       // create the local application folder
       File localFolder = new File(PropertyUtility.getLocalConfigFolder());
       if (!localFolder.exists()) {
-        localFolder.mkdir();
+        ConfigUtility.ensureDirectoryExists(localFolder);
       } else if (!localFolder.isDirectory()) {
         throw new LocalException(
             "Could not create local directory " + PropertyUtility.getLocalConfigFolder());
@@ -260,7 +261,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
 
       // Make directories
       if (!configFile.getParentFile().exists()) {
-        configFile.getParentFile().mkdirs();
+        ConfigUtility.ensureDirectoryExists(configFile.getParentFile());
       }
       
       try (final Writer writer = Files.newBufferedWriter(configFile.toPath(),

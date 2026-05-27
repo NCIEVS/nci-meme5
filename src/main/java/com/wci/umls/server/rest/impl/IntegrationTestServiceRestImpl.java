@@ -347,7 +347,7 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
         return null;
       } else {
         // Handle lazy init
-        newAttribute.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(newAttribute.getAlternateTerminologyIds());
         return newAttribute;
       }
    } catch (Exception e) {

@@ -532,7 +532,7 @@ public class MetaEditingServiceRestNormalUseIT
     startDate = DateUtils.truncate(new Date(), Calendar.SECOND);
 
     // construct a second semantic type not present on concept (here, Enzyme)
-    SemanticTypeComponentJpa semanticType2 = new SemanticTypeComponentJpa();
+    SemanticTypeComponentJpa semanticType2 = null;
     /*
      * semanticType2.setBranch(Branch.ROOT);
      * semanticType2.setSemanticType("Enzyme");
@@ -552,7 +552,6 @@ public class MetaEditingServiceRestNormalUseIT
     c = contentService.getConcept(concept.getId(), project.getId(), authToken);
 
     semanticType = null;
-    semanticType2 = null;
     for (SemanticTypeComponent s : c.getSemanticTypes()) {
       if (s.getSemanticType().equals("Lipid")) {
         semanticType = (SemanticTypeComponentJpa) s;
@@ -1281,7 +1280,7 @@ public class MetaEditingServiceRestNormalUseIT
 
     boolean updateFailed = false;
     try {
-      v = metaEditingService.updateAtom(project.getId(), c.getId(),
+      metaEditingService.updateAtom(project.getId(), c.getId(),
               "activityId", c.getLastModified().getTime(), addedAtom, false,
               authToken);
     } catch (Exception e) {
@@ -1308,7 +1307,7 @@ public class MetaEditingServiceRestNormalUseIT
 
     boolean updateSucceded = true;
     try {
-      v = metaEditingService.updateAtom(project.getId(), c.getId(),
+      metaEditingService.updateAtom(project.getId(), c.getId(),
               "activityId", c.getLastModified().getTime(), addedAtom, false,
               authToken);
     } catch (Exception e) {

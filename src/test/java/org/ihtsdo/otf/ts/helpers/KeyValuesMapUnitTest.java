@@ -3,6 +3,7 @@
  */
 package org.ihtsdo.otf.ts.helpers;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -75,7 +76,7 @@ public class KeyValuesMapUnitTest {
 
   
 
-    map1.toString();
+    assertNotNull(map1.toString());
   }
 
   /**

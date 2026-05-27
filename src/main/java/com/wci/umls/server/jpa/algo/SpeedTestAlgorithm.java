@@ -85,6 +85,7 @@ public class SpeedTestAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     for (Long atomId : atomIdCache) {
       atomCache.add(getAtom(atomId));
     }
+    logInfo("  Loaded " + atomCache.size() + " atoms.");
     logInfo("  Finished atom load loop.");
 
   }

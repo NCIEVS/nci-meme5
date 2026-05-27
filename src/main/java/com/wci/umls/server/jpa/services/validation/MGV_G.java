@@ -6,17 +6,14 @@ package com.wci.umls.server.jpa.services.validation;
 import java.util.List;
 import java.util.Properties;
 
-import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.algo.action.MolecularActionAlgorithm;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
-import com.wci.umls.server.jpa.algo.action.AbstractMolecularAction;
 import com.wci.umls.server.jpa.algo.action.MergeMolecularAction;
 import com.wci.umls.server.jpa.algo.action.MoveMolecularAction;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.Code;
 import com.wci.umls.server.model.content.Concept;
-import com.wci.umls.server.services.ContentService;
 
 /**
  * Validates merges between two {@link Concept}s where one contains a previous
@@ -45,8 +42,6 @@ public class MGV_G extends AbstractValidationCheck {
       return result;
     }
 
-    final Project project = action.getProject();
-    final ContentService service = (AbstractMolecularAction) action;
     final Concept source = (action instanceof MergeMolecularAction
         ? action.getConcept2() : action.getConcept());
     final Concept target = (action instanceof MergeMolecularAction

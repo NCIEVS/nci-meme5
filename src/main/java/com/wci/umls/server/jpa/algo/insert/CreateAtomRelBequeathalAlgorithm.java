@@ -19,6 +19,7 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.SearchResultList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -85,7 +86,7 @@ public class CreateAtomRelBequeathalAlgorithm extends AbstractInsertMaintRelease
       File srcDir = getSrcDirFile();
       File maintDir = new File(srcDir, "maint");
       if (! maintDir.exists()){
-        maintDir.mkdir();
+        ConfigUtility.ensureDirectoryExists(maintDir);
       }
       logInfo("maint dir:" + maintDir);
       BufferedWriter out = new BufferedWriter(new FileWriter(new File(maintDir, "bequeathal.atom.relationships.src")));
@@ -146,9 +147,9 @@ public class CreateAtomRelBequeathalAlgorithm extends AbstractInsertMaintRelease
         final Long id = Long.valueOf(entry.toString());
         Concept c = getConcept(id);
         deletedCuis.add(c);
-        c.getAtoms().size();
-        c.getRelationships().size();
-        c.getInverseRelationships().size();
+        ConfigUtility.initializeLazy(c.getAtoms());
+        ConfigUtility.initializeLazy(c.getRelationships());
+        ConfigUtility.initializeLazy(c.getInverseRelationships());
       }
       for (Concept c : deletedCuis) {
         index++;

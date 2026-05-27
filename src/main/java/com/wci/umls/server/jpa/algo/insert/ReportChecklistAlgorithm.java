@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -102,8 +101,7 @@ public class ReportChecklistAlgorithm
       out.println("");
       
       // Get all terminologies referenced in the sources.src file
-      Set<Terminology> terminologies = new HashSet<>();
-      terminologies = getReferencedTerminologies();
+      Set<Terminology> terminologies = getReferencedTerminologies();
 
       setSteps(terminologies.size());
 

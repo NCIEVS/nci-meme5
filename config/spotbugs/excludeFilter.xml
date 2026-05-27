@@ -10,9 +10,6 @@
 
   <!-- High-priority families already present before SpotBugs was enabled. -->
   <Match>
-    <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
-  </Match>
-  <Match>
     <Bug pattern="DM_BOXED_PRIMITIVE_FOR_PARSING"/>
   </Match>
   <Match>
@@ -99,12 +96,6 @@
     <Bug pattern="REC_CATCH_EXCEPTION"/>
   </Match>
   <Match>
-    <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
-  </Match>
-  <Match>
-    <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
-  </Match>
-  <Match>
     <Bug pattern="SBSC_USE_STRINGBUFFER_CONCATENATION"/>
   </Match>
   <Match>
@@ -115,9 +106,6 @@
   </Match>
   <Match>
     <Bug pattern="SS_SHOULD_BE_STATIC"/>
-  </Match>
-  <Match>
-    <Bug pattern="UC_USELESS_OBJECT"/>
   </Match>
   <Match>
     <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>

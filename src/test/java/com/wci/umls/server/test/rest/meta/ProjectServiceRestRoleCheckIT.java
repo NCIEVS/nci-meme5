@@ -9,8 +9,6 @@ package com.wci.umls.server.test.rest.meta;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -58,8 +56,6 @@ public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
 
     // Attempt to add a project with viewer authorization level
     ProjectJpa project = new ProjectJpa();
-    Set<String> values = new HashSet<>();
-    values.add("PUBLISHED");
 
     project.setDescription("Sample " + new Date().getTime());
     project.setName("Sample");

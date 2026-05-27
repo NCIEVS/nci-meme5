@@ -98,7 +98,10 @@ public final class GeneratorApplication {
       base = System.getProperty("user.dir");
     }
     System.setProperty("catalina.base", base);
-    new File(base, "logs").mkdirs();
+    final File logsDir = new File(base, "logs");
+    if (!logsDir.isDirectory() && !logsDir.mkdirs() && !logsDir.isDirectory()) {
+      LOG.warning("Unable to create log directory: " + logsDir);
+    }
   }
 
   /**

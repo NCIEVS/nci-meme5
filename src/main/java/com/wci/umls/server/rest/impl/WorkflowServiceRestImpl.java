@@ -2795,7 +2795,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
       // Make dirs
       if (!reportsDir.exists()) {
-        reportsDir.mkdirs();
+        ConfigUtility.ensureDirectoryExists(reportsDir);
       }
 
       // Handle delay
@@ -2881,7 +2881,7 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
       final File dir = new File(filePath);
       if (!dir.exists()) {
         Logger.getLogger(getClass()).info("  create path = " + filePath);
-        dir.mkdirs();
+        ConfigUtility.ensureDirectoryExists(dir);
       }
       int i = 0;
       final String[] files = dir.list();

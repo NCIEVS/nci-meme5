@@ -20,6 +20,7 @@ import jakarta.persistence.Query;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -144,9 +145,9 @@ public class CreateConceptRelBequeathalAlgorithm extends AbstractInsertMaintRele
         final Long id = Long.valueOf(entry.toString());
         Concept c = getConcept(id);
         deletedCuis.add(c);
-        c.getAtoms().size();
-        c.getRelationships().size();
-        c.getInverseRelationships().size();
+        ConfigUtility.initializeLazy(c.getAtoms());
+        ConfigUtility.initializeLazy(c.getRelationships());
+        ConfigUtility.initializeLazy(c.getInverseRelationships());
       }
       
       // for each deleted cui concept, find potential bequeathal rels

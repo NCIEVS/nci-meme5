@@ -184,8 +184,8 @@ public class RrfFileSorter {
         sortRrfFile(file, new File(outputDir + "/" + fileMap.get(key)), fields);
       } else {
         // otherwise just create an empty "sort" file
-        new File(inputDir + dirMap.get(key) + "/" + fileMap.get(key))
-            .createNewFile();
+        ConfigUtility.ensureFileExists(
+            new File(inputDir + dirMap.get(key) + "/" + fileMap.get(key)));
       }
     }
 

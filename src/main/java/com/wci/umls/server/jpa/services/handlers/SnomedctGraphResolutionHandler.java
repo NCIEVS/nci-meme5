@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 
 import com.wci.umls.server.helpers.ComponentInfo;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.meta.GeneralMetadataEntryList;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.model.content.Atom;
@@ -65,7 +66,7 @@ public class SnomedctGraphResolutionHandler
     if (concept != null) {
 
       boolean nullId = concept.getId() == null;
-      concept.getLabels().size();
+      ConfigUtility.initializeLazy(concept.getLabels());
 
       // subset members
       for (final ConceptSubsetMember member : concept.getMembers()) {
@@ -89,7 +90,7 @@ public class SnomedctGraphResolutionHandler
         if (nullId) {
           sty.setId(null);
         }
-        sty.getSemanticType();
+        ConfigUtility.initializeLazy(sty.getSemanticType());
         resolve(sty);
       }
 
@@ -107,7 +108,7 @@ public class SnomedctGraphResolutionHandler
       concept.setRelationships(new ArrayList<ConceptRelationship>());
 
       // lazy initialization of user annotations
-      concept.getNotes().size();
+      ConfigUtility.initializeLazy(concept.getNotes());
 
     } else if (concept == null) {
       throw new Exception("Cannot resolve a null concept.");
@@ -129,8 +130,8 @@ public class SnomedctGraphResolutionHandler
       }
 
       atom.getName();
-      atom.getConceptTerminologyIds().keySet();
-      atom.getAlternateTerminologyIds().keySet();
+      ConfigUtility.initializeLazy(atom.getConceptTerminologyIds());
+      ConfigUtility.initializeLazy(atom.getAlternateTerminologyIds());
       if (prop.getProperty(atom.getTermType()) != null) {
         atom.setTermType(prop.getProperty(atom.getTermType()));
       }
@@ -148,7 +149,7 @@ public class SnomedctGraphResolutionHandler
 
       // skip rels
       atom.setRelationships(new ArrayList<AtomRelationship>());
-      atom.getNotes().size();
+      ConfigUtility.initializeLazy(atom.getNotes());
 
     } else if (atom == null) {
       throw new Exception("Cannot resolve a null atom.");
@@ -170,7 +171,7 @@ public class SnomedctGraphResolutionHandler
         relationship.getTo().getTerminology();
       }
       if (relationship.getAlternateTerminologyIds() != null) {
-        relationship.getAlternateTerminologyIds().keySet();
+        ConfigUtility.initializeLazy(relationship.getAlternateTerminologyIds());
       }
 
       if (prop
@@ -197,7 +198,7 @@ public class SnomedctGraphResolutionHandler
     cacheProperties();
     for (final Attribute att : component.getAttributes()) {
       att.getName();
-      att.getAlternateTerminologyIds().keySet();
+      ConfigUtility.initializeLazy(att.getAlternateTerminologyIds());
       if (nullId) {
         att.setId(null);
       }

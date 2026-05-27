@@ -236,9 +236,9 @@ public class MetadataServiceJpa extends ProjectServiceJpa
     final Long precedenceListId = results.get(0);
     final PrecedenceList precedenceList = getPrecedenceList(precedenceListId);
     // Handle lazy init
-    precedenceList.getTermTypeRankMap().size();
-    precedenceList.getTerminologyRankMap().size();
-    precedenceList.getPrecedence().getName();
+    ConfigUtility.initializeLazy(precedenceList.getTermTypeRankMap());
+    ConfigUtility.initializeLazy(precedenceList.getTerminologyRankMap());
+    ConfigUtility.initializeLazy(precedenceList.getPrecedence());
     return precedenceList;
   }
 

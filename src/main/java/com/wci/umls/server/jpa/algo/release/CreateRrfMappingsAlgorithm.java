@@ -76,7 +76,7 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
     // open output writers
     mappingsDir = new File(pathMeta, "mappings");
     if (!mappingsDir.exists()){
-      mappingsDir.mkdir();
+      ConfigUtility.ensureDirectoryExists(mappingsDir);
     }
     logInfo("mappings dir:" + mappingsDir);
 

@@ -194,7 +194,7 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
         + getProcess().getInputPath() + "/" + getProcess().getVersion());
     if (!releaseDir.exists()) {
       logInfo("  Make release directories = " + releaseDir);
-      releaseDir.mkdirs();
+      ConfigUtility.ensureDirectoryExists(releaseDir);
     }
 
     // Create directories
@@ -205,7 +205,7 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
       File lDir = new File(releaseDir, dir);
       if (!lDir.exists()) {
         logInfo("    " + dir);
-        lDir.mkdir();
+        ConfigUtility.ensureDirectoryExists(lDir);
       }
     }
 

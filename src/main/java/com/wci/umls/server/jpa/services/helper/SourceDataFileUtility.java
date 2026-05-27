@@ -15,6 +15,7 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.log4j.Logger;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
 
 /**
@@ -89,7 +90,7 @@ public class SourceDataFileUtility {
       } else if (!f.exists()) {
         Logger.getLogger(SourceDataFileUtility.class).info(
             "Creating folder " + cumPath);
-        f.mkdir();
+        ConfigUtility.ensureDirectoryExists(f);
       }
 
     }
@@ -142,7 +143,7 @@ public class SourceDataFileUtility {
 
           // create the directory
           File f = new File(destinationFolder + File.separator + shortName);
-          f.mkdir();
+          ConfigUtility.ensureDirectoryExists(f);
         }
 
         // if not a directory, simply extract the file

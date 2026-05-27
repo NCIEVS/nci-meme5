@@ -99,11 +99,6 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
   public ProjectServiceRestImpl() throws Exception {
     securityService = new SecurityServiceJpa();
   }
-
-  static {
-    Logger.getLogger("ProjectServiceRestImpl registered");
-  }
-
   /* see superclass */
   @Override
   @RequestMapping(value = "/", method = RequestMethod.PUT)

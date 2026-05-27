@@ -306,7 +306,7 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
 
         // physically remove the file
         final File file = new File(sourceDataFile.getPath());
-        file.delete();
+        ConfigUtility.deleteFileIfExists(file);
 
       } catch (Exception e) {
         Logger.getLogger(getClass())
@@ -524,7 +524,7 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
 
       // lazy initialize source data files
       for (final SourceData sd : list.getObjects()) {
-        sd.getSourceDataFiles().size();
+        ConfigUtility.initializeLazy(sd.getSourceDataFiles());
       }
       return list;
     } catch (Exception e) {
@@ -596,7 +596,7 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
       SourceData sourceData = service.getSourceData(id);
       // lazy initialize source data files
       if (sourceData != null) {
-        sourceData.getSourceDataFiles().size();
+        ConfigUtility.initializeLazy(sourceData.getSourceDataFiles());
       }
       return sourceData;
     } catch (Exception e) {

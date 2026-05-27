@@ -226,7 +226,6 @@ public class AlgorithmConfigJpaUnitTest extends ModelUnitSupport {
     assertTrue(tester.testAnalyzedIndexedFields());
 
     // Test non analyzed fields - none
-    tester = new IndexedFieldTester(object);
     // No indexed Fields
     // assertTrue(tester.testNotAnalyzedIndexedFields());
 

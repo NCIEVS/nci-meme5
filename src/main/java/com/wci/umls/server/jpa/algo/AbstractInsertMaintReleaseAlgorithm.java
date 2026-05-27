@@ -512,10 +512,6 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
 
     for (final TermType tty : getTermTypes(getProject().getTerminology(),
         getProject().getVersion()).getObjects()) {
-      // lazy init
-      tty.getNameVariantType().toString();
-      tty.getCodeVariantType().toString();
-      tty.getStyle().toString();
       cachedTermTypes.put(tty.getAbbreviation(), tty);
     }
   }
@@ -558,7 +554,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
 
     for (final RootTerminology root : getRootTerminologies().getObjects()) {
       // lazy init
-      root.getSynonymousNames().size();
+      ConfigUtility.initializeLazy(root.getSynonymousNames());
       cachedRootTerminologies.put(root.getTerminology(), root);
     }
   }
@@ -576,8 +572,8 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
 
     for (final Terminology term : getTerminologies().getObjects()) {
       // lazy init
-      term.getSynonymousNames().size();
-      term.getRootTerminology().getTerminology();
+      ConfigUtility.initializeLazy(term.getSynonymousNames());
+      ConfigUtility.initializeLazy(term.getRootTerminology());
       // Add the current version of this terminology to the map, with key=just
       // terminology
       if (term.isCurrent()) {
@@ -843,13 +839,13 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       final Atom atom = getComponent(componentId, AtomJpa.class);
       // Handle lazy init
       if (atom != null) {
-        atom.getAlternateTerminologyIds().size();
-        atom.getConceptTerminologyIds().size();
+        ConfigUtility.initializeLazy(atom.getAlternateTerminologyIds());
+        ConfigUtility.initializeLazy(atom.getConceptTerminologyIds());
         atom.setNotes(new ArrayList<>());
-        atom.getDefinitions().size();
+        ConfigUtility.initializeLazy(atom.getDefinitions());
         // NOTE: If above doesn't work, try the following
         for (final Definition definition : atom.getDefinitions()) {
-          definition.getValue();
+          ConfigUtility.initializeLazy(definition.getValue());
         }
       }
       return atom;
@@ -867,13 +863,13 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       final Atom atom = getComponent(componentId, AtomJpa.class);
       // Handle lazy init
       if (atom != null) {
-        atom.getAlternateTerminologyIds().size();
-        atom.getConceptTerminologyIds().size();
+        ConfigUtility.initializeLazy(atom.getAlternateTerminologyIds());
+        ConfigUtility.initializeLazy(atom.getConceptTerminologyIds());
         atom.setNotes(new ArrayList<>());
-        atom.getDefinitions().size();
+        ConfigUtility.initializeLazy(atom.getDefinitions());
         // NOTE: If above doesn't work, try the following
         for (final Definition definition : atom.getDefinitions()) {
-          definition.getValue();
+          ConfigUtility.initializeLazy(definition.getValue());
         }
       }
       return atom;
@@ -891,13 +887,13 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       final Atom atom = getComponent(componentId, AtomJpa.class);
       // Handle lazy init
       if (atom != null) {
-        atom.getAlternateTerminologyIds().size();
-        atom.getConceptTerminologyIds().size();
+        ConfigUtility.initializeLazy(atom.getAlternateTerminologyIds());
+        ConfigUtility.initializeLazy(atom.getConceptTerminologyIds());
         atom.setNotes(new ArrayList<>());
-        atom.getDefinitions().size();
+        ConfigUtility.initializeLazy(atom.getDefinitions());
         // NOTE: If above doesn't work, try the following
         for (final Definition definition : atom.getDefinitions()) {
-          definition.getValue();
+          ConfigUtility.initializeLazy(definition.getValue());
         }
       }
       return atom;
@@ -916,7 +912,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       final Attribute attribute = getComponent(componentId, AttributeJpa.class);
       // Handle lazy init
       if (attribute != null) {
-        attribute.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(attribute.getAlternateTerminologyIds());
       }
       return attribute;
     }
@@ -1018,7 +1014,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
           getComponent(componentId, DefinitionJpa.class);
       // Handle lazy init
       if (definition != null) {
-        definition.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(definition.getAlternateTerminologyIds());
       }
       return definition;
     }
@@ -1050,7 +1046,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       final Relationship relationship = getComponent(componentId, relClass);
       // Handle lazy init
       if (relationship != null) {
-        relationship.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(relationship.getAlternateTerminologyIds());
       }
       return relationship;
     }
@@ -1069,7 +1065,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
       final Relationship relationship = getComponent(componentId, relClass);
       // Handle lazy init
       if (relationship != null) {
-        relationship.getAlternateTerminologyIds().size();
+        ConfigUtility.initializeLazy(relationship.getAlternateTerminologyIds());
       }
       return relationship;
     }
@@ -1605,7 +1601,7 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
 
     final List<String> mergeSets = new ArrayList<>();
     final Set<String> mergeSetsUnique = new HashSet<>();
-    List<String> lines = new ArrayList<>();
+    final List<String> lines;
     //
     // Load the mergefacts.src file
     //

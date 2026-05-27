@@ -328,6 +328,30 @@ Goal:
 - avoid deleting assignments that exist for debugger visibility or old side
   effects until verified
 
+Status:
+
+- completed the initial cleanup of Step 5 main/test findings
+- removed dead local stores in validation checks, algorithm setup, release
+  helpers, and affected tests
+- replaced intentional lazy-loading getter/collection-size calls with
+  `ConfigUtility.initializeLazy(...)`
+- checked filesystem operation return values instead of discarding
+  `mkdir`, `delete`, `createNewFile`, and `renameTo` results
+- removed the Step 5 SpotBugs suppressions for:
+  `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT`, `DLS_DEAD_LOCAL_STORE`,
+  `RV_RETURN_VALUE_IGNORED_BAD_PRACTICE`, and `UC_USELESS_OBJECT`
+
+Verification:
+
+- `./gradlew compileJava compileTestJava`
+- `./gradlew spotbugsMain spotbugsTest`
+- `./gradlew check -x test`
+- `./gradlew test --tests org.ihtsdo.otf.ts.helpers.KeyValuesMapUnitTest`
+
+Note: the full `./gradlew test` task is not a clean local gate yet because it
+includes environment-coupled integration/example tests that expect REST services,
+database configuration, and populated data to be available.
+
 ### 6. Broad Model Encapsulation
 
 Defer the bulk of:

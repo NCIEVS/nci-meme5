@@ -23,6 +23,7 @@ import jakarta.persistence.NoResultException;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ProcessExecution;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
@@ -99,7 +100,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       out.close();
 
       // Remove test file
-      outputFile.delete();
+      ConfigUtility.deleteFileIfExists(outputFile);
     } catch (Exception e) {
       throw new LocalException("Unable to write files to " + srcFullPath
           + " - update permissions before continuing insertion.");

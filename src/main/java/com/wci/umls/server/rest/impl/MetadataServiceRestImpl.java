@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.log4j.Logger;
 
 import com.wci.umls.server.model.algo.UserRole;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.KeyValuePairLists;
@@ -316,7 +317,8 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
       final PrecedenceList precedenceList = metadataService.getPrecedenceList(terminology, version);
       // Lazy initialize
       if (precedenceList != null) {
-        precedenceList.getPrecedence().getKeyValuePairs().size();
+        ConfigUtility.initializeLazy(
+            precedenceList.getPrecedence().getKeyValuePairs());
       }
       return precedenceList;
 
@@ -353,8 +355,8 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
         return null;
       }
       // lazy initialize
-      list.getPrecedence().getKeyValuePairs().size();
-      list.getTermTypeRankMap().size();
+      ConfigUtility.initializeLazy(list.getPrecedence().getKeyValuePairs());
+      ConfigUtility.initializeLazy(list.getTermTypeRankMap());
       return list;
     } catch (Exception e) {
       handleException(e, "trying to get precedence list");

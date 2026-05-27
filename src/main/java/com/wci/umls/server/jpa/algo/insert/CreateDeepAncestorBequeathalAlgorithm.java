@@ -26,6 +26,7 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.content.RelationshipList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -92,7 +93,7 @@ public class CreateDeepAncestorBequeathalAlgorithm extends AbstractInsertMaintRe
       File srcDir = getSrcDirFile();
       File maintDir = new File(srcDir, "maint");
       if (! maintDir.exists()){
-        maintDir.mkdir();
+        ConfigUtility.ensureDirectoryExists(maintDir);
       }
       logInfo("maint dir:" + maintDir);
       BufferedWriter out = new BufferedWriter(new FileWriter(new File(maintDir, "bequeathal.deep.ancestor.relationships.src")));
@@ -150,8 +151,8 @@ public class CreateDeepAncestorBequeathalAlgorithm extends AbstractInsertMaintRe
         final Long id = Long.valueOf(entry.toString());
         Concept c = getConcept(id);
         deletedCuis.add(c);
-        c.getAtoms().size();
-        c.getRelationships().size();
+        ConfigUtility.initializeLazy(c.getAtoms());
+        ConfigUtility.initializeLazy(c.getRelationships());
       }
       for (Concept c : deletedCuis) {
         index++;

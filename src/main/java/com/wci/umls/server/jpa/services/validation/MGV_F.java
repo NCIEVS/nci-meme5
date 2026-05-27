@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.algo.action.MolecularActionAlgorithm;
 import com.wci.umls.server.helpers.Branch;
@@ -54,7 +53,6 @@ public class MGV_F extends AbstractValidationCheck {
       return result;
     }
 
-    final Project project = action.getProject();
     final ContentService service = (AbstractMolecularAction) action;
     final Concept source = (action instanceof MergeMolecularAction
         ? action.getConcept2() : action.getConcept());

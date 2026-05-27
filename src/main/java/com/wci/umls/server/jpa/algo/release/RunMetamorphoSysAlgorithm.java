@@ -106,7 +106,7 @@ public class RunMetamorphoSysAlgorithm
     // Unzip "path/META/mmsys.zip" into "path/$release/MMSYS"
     logInfo("  Unzip " + pathMeta.getPath() + "/mmsys.zip");
     commitClearBegin();
-    new File(pathRelease, "MMSYS").mkdirs();
+    ConfigUtility.ensureDirectoryExists(new File(pathRelease, "MMSYS"));
     ConfigUtility.unzip(pathMeta.getPath() + "/mmsys.zip",
         pathRelease.getPath() + "/MMSYS");
     updateProgress();
@@ -152,8 +152,8 @@ public class RunMetamorphoSysAlgorithm
     final File mmsysReleaseConfigVersion = new File(config.getProperty("source.data.dir")
         + "/" + getProcess().getInputPath() + "/" + getProcess().getVersion()
         + "/MMSYS/config/" + getProcess().getVersion());
-    mmsysReleaseConfigVersion.mkdirs();
-    mmsysReleaseConfigDat.createNewFile();
+    ConfigUtility.ensureDirectoryExists(mmsysReleaseConfigVersion);
+    ConfigUtility.ensureFileExists(mmsysReleaseConfigDat);
     FileUtils.fileWrite(mmsysReleaseConfigDat.getPath(), data.toString());
     updateProgress();
 

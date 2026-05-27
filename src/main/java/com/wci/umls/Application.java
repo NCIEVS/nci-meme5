@@ -17,7 +17,6 @@ import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 
@@ -47,13 +46,11 @@ public class Application extends SpringBootServletInitializer {
    * @param args command line arguments
    */
   public static void main(String[] args) {
-    ConfigurableApplicationContext app = null;
     try {
-      app = SpringApplication.run(Application.class, args);
+      SpringApplication.run(Application.class, args);
     } catch (Exception e) {
       logger.error("Unexpected exception", e);
-      int exitCode = SpringApplication.exit(app, () -> 1);
-      System.exit(exitCode);
+      System.exit(1);
     }
   }
 

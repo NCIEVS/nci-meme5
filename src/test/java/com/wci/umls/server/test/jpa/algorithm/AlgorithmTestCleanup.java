@@ -26,7 +26,6 @@ import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Code;
 import com.wci.umls.server.model.content.Concept;
-import com.wci.umls.server.model.content.ConceptSubsetMember;
 import com.wci.umls.server.model.content.Descriptor;
 import com.wci.umls.server.model.content.MapSet;
 import com.wci.umls.server.model.content.Mapping;
@@ -84,8 +83,6 @@ public class AlgorithmTestCleanup extends IntegrationUnitSupport {
     List<Integer> addedMapsetIds = new ArrayList<>(Arrays.asList());
     List<Integer> addedAtomSubsetIds = new ArrayList<>(Arrays.asList());
     List<Integer> addedConceptSubsetIds = new ArrayList<>(Arrays.asList());
-    List<Integer> addedConceptSubsetMemberIds =
-        new ArrayList<>(Arrays.asList());
     List<Pair<String, String>> addedTerminologyIds = new ArrayList<>(
         Arrays.asList(new ImmutablePair<>("SNOMEDCT_US", "Really Old")));
 
@@ -134,17 +131,6 @@ public class AlgorithmTestCleanup extends IntegrationUnitSupport {
           contentService.getSubset(idLong, ConceptSubsetJpa.class);
       if (conceptSubset != null) {
         addedSubsets.add(conceptSubset);
-      }
-    }
-
-    List<ConceptSubsetMember> addedConceptSubsetMembers = new ArrayList<>();
-    for (Integer id : addedConceptSubsetMemberIds) {
-      Long idLong = id.longValue();
-      ConceptSubsetMember conceptSubsetMember =
-          (ConceptSubsetMember) contentService.getSubsetMember(idLong,
-              ConceptSubsetMemberJpa.class);
-      if (conceptSubsetMember != null) {
-        addedConceptSubsetMembers.add(conceptSubsetMember);
       }
     }
 

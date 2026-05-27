@@ -15,13 +15,9 @@ import java.util.UUID;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.meta.AdditionalRelationshipTypeList;
-import com.wci.umls.server.helpers.meta.RelationshipTypeList;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
-import com.wci.umls.server.model.meta.AdditionalRelationshipType;
-import com.wci.umls.server.model.meta.RelationshipType;
 import com.wci.umls.server.model.meta.Terminology;
 import com.wci.umls.server.services.RootService;
 
@@ -63,23 +59,6 @@ public class ComputeContextTypeAlgorithm extends AbstractAlgorithm {
     // getIdentifierAssignmentHandler(getProject().getTerminology());
 
     // Collect metadata
-    logInfo("  Collect metadata");
-    final RelationshipTypeList relTypeList = getRelationshipTypes(
-        getProject().getTerminology(), getProject().getVersion());
-    final AdditionalRelationshipTypeList addRelTypeList =
-        getAdditionalRelationshipTypes(getProject().getTerminology(),
-            getProject().getVersion());
-    final Map<String, String> relToInverseMap = new HashMap<>();
-    for (final RelationshipType relType : relTypeList.getObjects()) {
-      relToInverseMap.put(relType.getAbbreviation(),
-          relType.getInverse().getAbbreviation());
-    }
-    for (final AdditionalRelationshipType relType : addRelTypeList
-        .getObjects()) {
-      relToInverseMap.put(relType.getAbbreviation(),
-          relType.getInverse().getAbbreviation());
-    }
-
     // Build a map of tree position poly-hierarchies
     final String[] types = new String[] {
         "Atom", "Code", "Concept", "Descriptor"

@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo.maint;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -75,7 +74,7 @@ public class StampingAlgorithm extends AbstractAlgorithm {
     try {
       // precollect records based on if checklistId or worklistId is set
       fireProgressEvent(0, "Starting...find tracking records");
-      List<TrackingRecord> records = new ArrayList<>();
+      final List<TrackingRecord> records;
       Worklist worklist = null;
       if (worklistId != null) {
         worklist = getWorklist(worklistId);

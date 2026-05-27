@@ -27,7 +27,6 @@ import com.wci.umls.server.model.content.ConceptTreePosition;
 import com.wci.umls.server.model.content.Definition;
 import com.wci.umls.server.model.content.SemanticTypeComponent;
 import com.wci.umls.server.model.meta.Terminology;
-import com.wci.umls.server.model.workflow.WorkflowEpoch;
 import com.wci.umls.server.services.WorkflowService;
 
 /**
@@ -120,9 +119,6 @@ public class ProdMidCleanupAlgorithm
 
       WorkflowService workflowService = new WorkflowServiceJpa();
       workflowService.setLastModifiedBy("admin");
-
-      WorkflowEpoch currentEpoch =
-          workflowService.getCurrentWorkflowEpoch(getProject());
 
       Set<Long> worklistIdsToRemove = new HashSet<>();
       Set<Long> checklistIdsToRemove = new HashSet<>();

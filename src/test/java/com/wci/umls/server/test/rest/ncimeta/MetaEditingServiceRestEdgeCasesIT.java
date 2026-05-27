@@ -19,7 +19,6 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
-import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.jpa.model.content.SemanticTypeComponentJpa;
 import com.wci.umls.server.model.content.Concept;
@@ -100,8 +99,6 @@ public class MetaEditingServiceRestEdgeCasesIT
   @Test
   public void testSynchronicity() throws Exception {
 
-    ValidationResult result = new ValidationResultJpa();
-
     // get the concept
     Concept c1 =
             contentService.getConcept(concept.getId(), project.getId(), authToken);
@@ -111,7 +108,7 @@ public class MetaEditingServiceRestEdgeCasesIT
     SemanticTypeComponent fullSty = new SemanticTypeComponentJpa();
 
     // add the sty
-    result = metaEditingService.addSemanticType(project.getId(), c1.getId(),
+    ValidationResult result = metaEditingService.addSemanticType(project.getId(), c1.getId(),
             "activityId", c1.getLastModified().getTime(),
             sty, false, authToken);
     assertTrue(result.isValid());
@@ -139,11 +136,7 @@ public class MetaEditingServiceRestEdgeCasesIT
     // runnable instanes
     final Thread[] threads = new Thread[nThreads[0]];
 
-    // accessible validation results from within runnables
-    final ValidationResult[] v = new ValidationResultJpa[nThreads[0]];
-
     // accessible index, success, and exception counters
-    int ct[] = new int[1];
     int completeCt[] = {
             0
     };
@@ -155,8 +148,6 @@ public class MetaEditingServiceRestEdgeCasesIT
     };
 
     for (int i = 0; i < nThreads[0]; i++) {
-      v[i] = new ValidationResultJpa();
-      ct[0] = i;
       threads[i] = new Thread(new Runnable() {
         @Override
         public void run() {
