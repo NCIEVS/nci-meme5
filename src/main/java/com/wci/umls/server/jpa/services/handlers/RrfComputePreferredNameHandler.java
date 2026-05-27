@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import com.wci.umls.server.helpers.PrecedenceList;
@@ -30,18 +31,26 @@ public class RrfComputePreferredNameHandler extends AbstractConfigurable
     implements ComputePreferredNameHandler {
 
   /** The precedenceList lastModifiedDate map. */
-  private static Map<Long, Date> precedenceListLastModifiedMap =
+  private static final Map<Long, Date> precedenceListLastModifiedMap =
       new HashMap<>();
 
   /** The tty rank map. */
-  private static Map<Long, Map<String, String>> ttyRankMap = new HashMap<>();
+  private static final Map<Long, Map<String, String>> ttyRankMap =
+      new HashMap<>();
 
   /** The terminology rank map. */
-  private static Map<Long, Map<String, String>> terminologyRankMap =
+  private static final Map<Long, Map<String, String>> terminologyRankMap =
       new HashMap<>();
 
   /** The terminology/versions -> current map. */
-  private static Map<String, Boolean> currentTerminologies = new HashMap<>();
+  private static final Map<String, Boolean> currentTerminologies =
+      new HashMap<>();
+
+  /** The cache lock. */
+  private static final Object CACHE_LOCK = new Object();
+
+  /** The current terminology cache lock. */
+  private static final Object CURRENT_TERMINOLOGY_LOCK = new Object();
 
   /**
    * Instantiates an empty {@link RrfComputePreferredNameHandler}.
@@ -122,32 +131,15 @@ public class RrfComputePreferredNameHandler extends AbstractConfigurable
       return "000000000000000000000000000";
     }
 
-    // Fail if list hasn't been cached
-    if (!ttyRankMap.containsKey(list.getId())) {
-      throw new Exception(
-          "Unexpected condition, list is not cached - " + list.getId());
-    }
-
-    // Add to currentTerminologies, if needed
-    if (!currentTerminologies
-        .containsKey(atom.getTerminology() + atom.getVersion())) {
-      MetadataService service = new MetadataServiceJpa();
-      final Terminology terminology =
-          service.getTerminology(atom.getTerminology(), atom.getVersion());
-      currentTerminologies.put(atom.getTerminology() + atom.getVersion(),
-          terminology.isCurrent());
-      service.close();
-    }
-
-    final Map<String, String> ttyRanks = ttyRankMap.get(list.getId());
+    final Map<String, String> ttyRanks = getTermTypeRanks(list);
+    final boolean current = isCurrentTerminology(atom);
     // Compute the rank as a fixed length string
     // [publishable][isCurrent][obsolete][suppressible][tty
     // rank][lrr][SUI][atomId]
     // Higher values are better.
     if (!atom.getStringClassId().isEmpty()) {
       return "" + (atom.isPublishable() ? 1 : 0)
-          + (currentTerminologies.get(atom.getTerminology() + atom.getVersion())
-              ? 1 : 0)
+          + (current ? 1 : 0)
           + (atom.isObsolete() ? 0 : 1) + (atom.isSuppressible() ? 0 : 1)
           + ttyRanks.get(atom.getTerminology() + "/" + atom.getTermType())
           + atom.getLastPublishedRank()
@@ -156,8 +148,7 @@ public class RrfComputePreferredNameHandler extends AbstractConfigurable
           + (100000000000L - atom.getId());
     } else {
       return "" + (atom.isPublishable() ? 1 : 0)
-          + (currentTerminologies.get(atom.getTerminology() + atom.getVersion())
-              ? 1 : 0)
+          + (current ? 1 : 0)
           + (atom.isObsolete() ? 0 : 1) + (atom.isSuppressible() ? 0 : 1)
           + ttyRanks.get(atom.getTerminology() + "/" + atom.getTermType())
           + atom.getLastPublishedRank() + (100000000000L - atom.getId());
@@ -182,17 +173,11 @@ public class RrfComputePreferredNameHandler extends AbstractConfigurable
       return "0000000000000000000";
     }
 
-    // Fail if list hasn't been cached
-    if (!terminologyRankMap.containsKey(list.getId())) {
-      throw new Exception(
-          "Unexpected condition, list is not cached - " + list.getId());
-    }
-
     // Compute the rank as a fixed length string
     // [SAB matching list, e.g. project][publishable][terminology_rank][id]
     // Higher values are better.
     final Map<String, String> terminologyRanks =
-        terminologyRankMap.get(list.getId());
+        getTerminologyRanks(list);
 
     // compute rank
     return ""
@@ -219,39 +204,152 @@ public class RrfComputePreferredNameHandler extends AbstractConfigurable
       return;
     }
 
-    // Bail if configured already and if precedence list hasn't changed since it
-    // was cached
-    if (precedenceListLastModifiedMap.containsKey(list.getId())) {
-      if (precedenceListLastModifiedMap.get(list.getId())
-          .equals(list.getLastModified())) {
-        return;
+    synchronized (CACHE_LOCK) {
+      // Bail if configured already and if precedence list hasn't changed since
+      // it was cached.
+      if (precedenceListLastModifiedMap.containsKey(list.getId())
+          && ttyRankMap.containsKey(list.getId())
+          && terminologyRankMap.containsKey(list.getId())) {
+        if (Objects.equals(precedenceListLastModifiedMap.get(list.getId()),
+            list.getLastModified())) {
+          return;
+        }
       }
+
       // If this list has been updated since it was last cached, clear its
-      // values
-      else {
-        removeListFromCaches(list.getId());
+      // values.
+      removeListFromCachesHelper(list.getId());
+
+      // Otherwise, build the TTY map.
+      final Map<String, String> ttyRanks =
+          new HashMap<>(list.getTermTypeRankMap());
+      ttyRankMap.put(list.getId(), ttyRanks);
+
+      // Otherwise, build the terminology map.
+      final Map<String, String> terminologyRanks =
+          new HashMap<>(list.getTerminologyRankMap());
+      terminologyRankMap.put(list.getId(), terminologyRanks);
+
+      // Publish the timestamp only after both rank maps are available. The
+      // timestamp is the marker that this list is fully cached.
+      precedenceListLastModifiedMap.put(list.getId(), list.getLastModified());
+
+    }
+
+  }
+
+  /**
+   * Returns the cached term type ranks.
+   *
+   * @param list the list
+   * @return the term type ranks
+   * @throws Exception the exception
+   */
+  private Map<String, String> getTermTypeRanks(final PrecedenceList list)
+    throws Exception {
+
+    synchronized (CACHE_LOCK) {
+      final Map<String, String> ranks = ttyRankMap.get(list.getId());
+      if (ranks != null) {
+        return ranks;
       }
     }
 
-    precedenceListLastModifiedMap.put(list.getId(), list.getLastModified());
+    cacheList(list);
 
-    // Otherwise, build the TTY map
-    final Map<String, String> ttyRanks = list.getTermTypeRankMap();
-    ttyRankMap.put(list.getId(), ttyRanks);
+    synchronized (CACHE_LOCK) {
+      final Map<String, String> ranks = ttyRankMap.get(list.getId());
+      if (ranks == null) {
+        throw new Exception(
+            "Unexpected condition, list is not cached - " + list.getId());
+      }
+      return ranks;
+    }
+  }
 
-    // Otherwise, build the terminology map
-    final Map<String, String> terminologyRanks = list.getTerminologyRankMap();
-    terminologyRankMap.put(list.getId(), terminologyRanks);
+  /**
+   * Returns the cached terminology ranks.
+   *
+   * @param list the list
+   * @return the terminology ranks
+   * @throws Exception the exception
+   */
+  private Map<String, String> getTerminologyRanks(final PrecedenceList list)
+    throws Exception {
 
+    synchronized (CACHE_LOCK) {
+      final Map<String, String> ranks = terminologyRankMap.get(list.getId());
+      if (ranks != null) {
+        return ranks;
+      }
+    }
+
+    cacheList(list);
+
+    synchronized (CACHE_LOCK) {
+      final Map<String, String> ranks = terminologyRankMap.get(list.getId());
+      if (ranks == null) {
+        throw new Exception(
+            "Unexpected condition, list is not cached - " + list.getId());
+      }
+      return ranks;
+    }
+  }
+
+  /**
+   * Indicates whether the atom's terminology/version is current.
+   *
+   * @param atom the atom
+   * @return true, if current
+   * @throws Exception the exception
+   */
+  private boolean isCurrentTerminology(final Atom atom) throws Exception {
+
+    final String key = atom.getTerminology() + atom.getVersion();
+    synchronized (CURRENT_TERMINOLOGY_LOCK) {
+      final Boolean current = currentTerminologies.get(key);
+      if (current != null) {
+        return current.booleanValue();
+      }
+    }
+
+    final MetadataService service = new MetadataServiceJpa();
+    try {
+      final Terminology terminology =
+          service.getTerminology(atom.getTerminology(), atom.getVersion());
+      final boolean current = terminology.isCurrent();
+      synchronized (CURRENT_TERMINOLOGY_LOCK) {
+        currentTerminologies.put(key, current);
+      }
+      return current;
+    } finally {
+      service.close();
+    }
+  }
+
+  /**
+   * Remove a single precedence list's content from the caches. The caller must
+   * hold {@link #CACHE_LOCK}.
+   *
+   * @param precedenceListId the list id
+   */
+  private static void removeListFromCachesHelper(final Long precedenceListId) {
+    ttyRankMap.remove(precedenceListId);
+    terminologyRankMap.remove(precedenceListId);
+    precedenceListLastModifiedMap.remove(precedenceListId);
   }
 
   /* see superclass */
   @Override
   public void clearCaches() throws Exception {
-    ttyRankMap.clear();
-    terminologyRankMap.clear();
-    currentTerminologies.clear();
-    precedenceListLastModifiedMap.clear();
+    synchronized (CACHE_LOCK) {
+      ttyRankMap.clear();
+      terminologyRankMap.clear();
+      precedenceListLastModifiedMap.clear();
+    }
+    synchronized (CURRENT_TERMINOLOGY_LOCK) {
+      currentTerminologies.clear();
+    }
   }
 
   /**
@@ -261,9 +359,9 @@ public class RrfComputePreferredNameHandler extends AbstractConfigurable
    * @throws Exception the exception
    */
   public void removeListFromCaches(Long precedenceListId) throws Exception {
-    ttyRankMap.remove(precedenceListId);
-    terminologyRankMap.remove(precedenceListId);
-    precedenceListLastModifiedMap.remove(precedenceListId);
+    synchronized (CACHE_LOCK) {
+      removeListFromCachesHelper(precedenceListId);
+    }
   }
 
   /* see superclass */
