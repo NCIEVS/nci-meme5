@@ -502,7 +502,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/descriptor" + "?query="
+        config.getProperty("base.url") + "/content/descriptor/" + "?query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20")
             + "&JPQL=" + URLEncoder.encode(JPQL == null ? "" : JPQL, "UTF-8")
@@ -1586,9 +1586,10 @@ public class ContentClientRest extends RootClientRest
     String terminology, String version, PfsParameterJpa pfs, String authToken)
     throws Exception {
     final Client client = ClientBuilder.newClient();
+    final String treesPath = "descriptor".equals(type) ? "/trees/" : "/trees";
     final WebTarget target =
         client.target(config.getProperty("base.url") + "/content/" + type + "/"
-            + terminology + "/" + version + "/" + terminologyId + "/trees");
+            + terminology + "/" + version + "/" + terminologyId + treesPath);
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
     final Response response = target.request(MediaType.APPLICATION_XML)

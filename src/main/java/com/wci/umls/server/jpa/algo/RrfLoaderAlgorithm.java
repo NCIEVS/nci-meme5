@@ -25,6 +25,7 @@ import com.google.common.io.Files;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ReleaseInfo;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
@@ -438,7 +439,8 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     // Clear concept cache
 
     logInfo("Log component stats");
-    final Map<String, Integer> stats = getComponentStats(null, null, null);
+    final Map<String, Integer> stats =
+        getComponentStats(null, null, Branch.ROOT);
     final List<String> statsList = new ArrayList<>(stats.keySet());
     Collections.sort(statsList);
     for (final String key : statsList) {

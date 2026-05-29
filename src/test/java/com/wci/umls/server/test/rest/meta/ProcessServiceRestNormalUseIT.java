@@ -17,6 +17,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.wci.umls.server.model.algo.AlgorithmConfig;
@@ -778,6 +779,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
    * @throws Exception the exception
    */
   @Test
+  @Ignore("Requires a reachable SMTP server; not suitable for local REST smoke")
   public void testFailOnceAndEmailProcess() throws Exception {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 

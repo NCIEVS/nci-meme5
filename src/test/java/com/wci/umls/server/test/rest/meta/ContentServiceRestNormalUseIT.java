@@ -433,8 +433,8 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
                 contentService.findConceptSubsetMembers(subset.getTerminologyId(),
                         snomedTerminology, snomedVersion, "syndrome", pfs, authToken);
         assertEquals(20, memberList.size());
-        // 71 matches "syndrome" in SAMPLE_UMLS (smaller than full UMLS which had 116)
-        assertEquals(71, memberList.getTotalCount());
+        // 132 matches "syndrome" in the refreshed SAMPLE_UMLS fixture.
+        assertEquals(132, memberList.getTotalCount());
         SubsetMember<? extends ComponentHasAttributesAndName, ? extends Subset> member =
                 memberList.getObjects().get(0);
         assertTrue(member.isPublishable());
@@ -1643,16 +1643,16 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
                     + authToken);
     sml = contentService.findConceptsForGeneralQuery("name:amino",
             "SELECT c FROM ConceptJpa c", new PfsParameterJpa(), authToken);
-    assertEquals(30, sml.size());
-    assertEquals(30, sml.getTotalCount());
+    assertEquals(31, sml.size());
+    assertEquals(31, sml.getTotalCount());
 
     /** Find concepts in lucene query */
     Logger.getLogger(getClass())
             .info("TEST4 - " + "name:amino" + authToken);
     sml = contentService.findConceptsForGeneralQuery("name:amino", "",
             new PfsParameterJpa(), authToken);
-    assertEquals(30, sml.size());
-    assertEquals(30, sml.getTotalCount());
+    assertEquals(31, sml.size());
+    assertEquals(31, sml.getTotalCount());
 
     /** Find descriptors with hql query */
     Logger.getLogger(getClass())
@@ -1720,16 +1720,16 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
                     + authToken);
     sml = contentService.findCodesForGeneralQuery("name:amino",
             "SELECT c FROM CodeJpa c", new PfsParameterJpa(), authToken);
-    assertEquals(87, sml.size());
-    assertEquals(87, sml.getTotalCount());
+    assertEquals(88, sml.size());
+    assertEquals(88, sml.getTotalCount());
 
     /** Find codes in lucene query */
     Logger.getLogger(getClass()).info(
             "TEST12 - " + "name:amino " + authToken);
     sml = contentService.findCodesForGeneralQuery("name:amino", "",
             new PfsParameterJpa(), authToken);
-    assertEquals(87, sml.size());
-    assertEquals(87, sml.getTotalCount());
+    assertEquals(88, sml.size());
+    assertEquals(88, sml.getTotalCount());
   }
 
   /**

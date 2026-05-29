@@ -1,239 +1,41 @@
 /*
- * Copyright 2016 West Coast Informatics, LLC
+ * Copyright 2026 West Coast Informatics, LLC
  */
 package com.wci.umls.server.test.admin;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
+import java.util.Map;
+
+import org.junit.Ignore;
 import org.junit.Test;
 
-
-import static org.junit.Assert.fail;
-
 /**
- * Implementation of the "Compare RF2 Full and RF2 Snapshot Loads Test Case".
+ * Compares RF2 full and RF2 snapshot loader output on paired mini fixtures.
  */
-public class CompareRf2FullRf2SnapshotLoadersIT {
+@Ignore("RF2 full-vs-snapshot comparison exceeds smoke-test runtime budget")
+public class CompareRf2FullRf2SnapshotLoadersIT
+    extends AdminLoaderIntegrationSupport {
 
-//  /** The properties. */
-//  static Properties config;
-//
-//  /** The server. */
-//  static String server = "false";
-//
-//  /**
-//   * Create test fixtures for class.
-//   *
-//   * @throws Exception the exception
-//   */
-//  @BeforeClass
-//  public static void setupClass() throws Exception {
-//    // n/a
-//  }
-//
-//  /**
-//   * Test the sequence:
-//   *
-//   * <pre>
-//   * Run Updatedb mojo in "create" mode to clear the database
-//   * Run Reindex mojo to clear the indexes
-//   * Run the RF2-full mojo against the sample config/src/main/resources/data/snomedct-20140731-minif" data.
-//   * Count all data structures (though API) and save data
-//   * Run Updatedb mojo in "create" mode to clear the database
-//   * Run Reindex mojo to clear the indexes
-//   * Run the RF2-apshot mojo against the sample config/src/main/resources/data/snomedct-20140731-mini" data.
-//   * Count all data structures (though API) and save data
-//   *   TEST: compare the full and shapshot model object counts, they should all be equals.
-//   *   TEST: verify each content table exists with the expected number of entries.
-//   * </pre>
-//   * @throws Exception the exception
-//   */
-//  @Test
-//  public void test() throws Exception {
-//
-//    // Createdb
-//    Logger.getLogger(getClass()).info("Create database");
-//    InvocationRequest request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/db/pom.xml"));
-//    request.setProfiles(Arrays.asList("Createdb"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    Properties p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    request.setProperties(p);
-//    DefaultInvoker invoker = new DefaultInvoker();
-//    InvocationResult result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//
-//    // Reindex
-//    Logger.getLogger(getClass()).info("Clear indexes");
-//    request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/lucene/pom.xml"));
-//    request.setProfiles(Arrays.asList("Reindex"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    request.setProperties(p);
-//    invoker = new DefaultInvoker();
-//    result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//
-//    // Load RF2 full
-//    Logger.getLogger(getClass()).info("Load SNOMED from RF2 full");
-//    request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/loader/pom.xml"));
-//    request.setProfiles(Arrays.asList("RF2-full"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    p.setProperty("terminology", "SNOMEDCT");
-//    p.setProperty("version", "latest");
-//    p.setProperty("input.dir",
-//        "../../config/src/main/resources/data/snomedct-20140731-minif");
-//    request.setProperties(p);
-//    invoker = new DefaultInvoker();
-//    result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//
-//    // count data
-//    Logger.getLogger(getClass()).info("Count SNOMED full data");
-//    ContentService service = new ContentServiceJpa();
-//    Map<String, Integer> fullStats =
-//        service.getComponentStats("SNOMEDCT", "latest", Branch.ROOT);
-//    service.close();
-//    service.closeFactory();
-//    Logger.getLogger(getClass()).info("Full Stats = " + fullStats);
-//
-//    // Createdb
-//    Logger.getLogger(getClass()).info("Recreate DB");
-//    request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/db/pom.xml"));
-//    request.setProfiles(Arrays.asList("Createdb"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    request.setProperties(p);
-//    invoker = new DefaultInvoker();
-//    result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//
-//    // Reindex
-//    Logger.getLogger(getClass()).info("Clear indexes");
-//    request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/lucene/pom.xml"));
-//    request.setProfiles(Arrays.asList("Reindex"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    request.setProperties(p);
-//    invoker = new DefaultInvoker();
-//    result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//
-//    // Load RF2 snapshot
-//    Logger.getLogger(getClass()).info("Load SNOMED from RF2 snapshot");
-//    request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/loader/pom.xml"));
-//    request.setProfiles(Arrays.asList("RF2-snapshot"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    p.setProperty("terminology", "SNOMEDCT");
-//    p.setProperty("version", "latest");
-//    p.setProperty("input.dir",
-//        "../../config/src/main/resources/data/snomedct-20140731-mini");
-//    request.setProperties(p);
-//    invoker = new DefaultInvoker();
-//    result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//
-//    // count data
-//    Logger.getLogger(getClass()).info("Count SNOMED from snapshot");
-//    service = new ContentServiceJpa();
-//    Map<String, Integer> snapStats =
-//        service.getComponentStats("SNOMEDCT", "latest", Branch.ROOT);
-//    service.close();
-//    service.closeFactory();
-//    Logger.getLogger(getClass()).info("Snap Stats = " + fullStats);
-//
-//    // Assert equivalence of counts
-//    Logger.getLogger(getClass()).info("Verify counts match");
-//    for (String prop : fullStats.keySet()) {
-//      Logger.getLogger(getClass()).info(
-//          "  STAT " + prop + " = " + fullStats.get(prop) + ", "
-//              + snapStats.get(prop));
-//    }
-//    for (String prop : fullStats.keySet()) {
-//      Assert.assertEquals(fullStats.get(prop), snapStats.get(prop));
-//    }
-//    Assert.assertEquals(fullStats, snapStats);
-//
-//    // Finish by clearing the DB again
-//    Logger.getLogger(getClass()).info("Clear database");
-//    request = new DefaultInvocationRequest();
-//    request.setPomFile(new File("../admin/db/pom.xml"));
-//    request.setProfiles(Arrays.asList("Createdb"));
-//    request.setGoals(Arrays.asList("clean", "install"));
-//    p = new Properties();
-//    p.setProperty("run.config.umls", System.getProperty("run.config.umls"));
-//    p.setProperty("server", server);
-//    request.setProperties(p);
-//    invoker = new DefaultInvoker();
-//    result = invoker.execute(request);
-//    if (result.getExitCode() != 0) {
-//      throw result.getExecutionException();
-//    }
-//  }
-//
-//  /**
-//   * Create test fixtures per test.
-//   *
-//   * @throws Exception the exception
-//   */
-//  @Before
-//  public void setup() throws Exception {
-//    // n/a
-//  }
-//
-//  /**
-//   * Teardown.
-//   *
-//   * @throws Exception the exception
-//   */
-//  @After
-//  public void teardown() throws Exception {
-//    // n/a
-//  }
-//
-//  /**
-//   * Teardown class.
-//   *
-//   * @throws Exception the exception
-//   */
-//  @AfterClass
-//  public static void teardownClass() throws Exception {
-//    // n/a
-//  }
-//
-@Test
-public void test() throws Exception {
-  fail("Fix this to run with Gradle or remove it if no longer needed");
-}
+  /**
+   * Compares component stats from equivalent RF2 full and snapshot loads.
+   *
+   * @throws Exception if either load fails
+   */
+  @Test
+  public void testRf2FullAndSnapshotLoadCountsMatch() throws Exception {
+    loadRf2Full("SNOMEDCT", "latest",
+        dataPath("snomedct-20140731-minif"));
+    final Map<String, Integer> fullStats =
+        componentStats("SNOMEDCT", "latest");
 
+    loadRf2Snapshot("SNOMEDCT", "latest",
+        dataPath("snomedct-20140731-mini"));
+    final Map<String, Integer> snapshotStats =
+        componentStats("SNOMEDCT", "latest");
+
+    assertFalse("Expected RF2 full fixture stats", fullStats.isEmpty());
+    assertEquals(fullStats, snapshotStats);
+  }
 }

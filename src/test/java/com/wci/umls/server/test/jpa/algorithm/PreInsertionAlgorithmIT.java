@@ -48,6 +48,12 @@ public class PreInsertionAlgorithmIT extends IntegrationUnitSupport {
   /** The project. */
   Project project = null;
 
+  /** Original project editing flag. */
+  private boolean originalEditingEnabled;
+
+  /** Original project automation flag. */
+  private boolean originalAutomationsEnabled;
+
   /**
    * Setup class.
    */
@@ -72,6 +78,11 @@ public class PreInsertionAlgorithmIT extends IntegrationUnitSupport {
     ProjectList projects = processService.getProjects();
     assertTrue(projects.size() > 0);
     project = projects.getObjects().get(0);
+    originalEditingEnabled = project.isEditingEnabled();
+    originalAutomationsEnabled = project.isAutomationsEnabled();
+    project.setEditingEnabled(false);
+    project.setAutomationsEnabled(false);
+    processService.updateProject(project);
 
     // Create a dummy process execution, to store some information the algorithm
     // needs (specifically input Path)
@@ -159,14 +170,34 @@ public class PreInsertionAlgorithmIT extends IntegrationUnitSupport {
   @After
   public void teardown() throws Exception {
 
-    processService = new ProcessServiceJpa();
-    processService.setLastModifiedBy("admin");
-    
-    processExecution = processService.getProcessExecution(processExecution.getId());
-    processService.removeProcessExecution(processExecution.getId());
-    
-    processService.close();
-    contentService.close();
+    if (processService == null) {
+      processService = new ProcessServiceJpa();
+      processService.setLastModifiedBy("admin");
+    }
+
+    if (processExecution != null && processExecution.getId() != null) {
+      processExecution =
+          processService.getProcessExecution(processExecution.getId());
+      if (processExecution != null) {
+        processService.removeProcessExecution(processExecution.getId());
+      }
+    }
+
+    if (project != null && project.getId() != null) {
+      project = processService.getProject(project.getId());
+      if (project != null) {
+        project.setEditingEnabled(originalEditingEnabled);
+        project.setAutomationsEnabled(originalAutomationsEnabled);
+        processService.updateProject(project);
+      }
+    }
+
+    if (processService != null) {
+      processService.close();
+    }
+    if (contentService != null) {
+      contentService.close();
+    }
   }
 
   /**

@@ -27,11 +27,12 @@ import com.wci.umls.server.jpa.model.ProcessExecutionJpa;
 import com.wci.umls.server.jpa.algo.insert.GeneratedMergeAlgorithm;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
+import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ProcessServiceRest;
-import com.wci.umls.server.rest.client.ProcessClientRest;
-import com.wci.umls.server.rest.client.SecurityClientRest;
+import com.wci.umls.server.rest.impl.ProcessServiceRestImpl;
 import com.wci.umls.server.services.ContentService;
 import com.wci.umls.server.services.ProcessService;
+import com.wci.umls.server.services.SecurityService;
 import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
 
 /**
@@ -55,7 +56,7 @@ public class GeneratedMergeAlgorithmIT extends IntegrationUnitSupport {
   ContentService contentService = null;
 
   /** The content service. */
-  SecurityClientRest securityService = null;
+  SecurityService securityService = null;
 
   /** The process service rest. */
   ProcessServiceRest processServiceRest = null;
@@ -86,11 +87,11 @@ public class GeneratedMergeAlgorithmIT extends IntegrationUnitSupport {
     final Properties properties = PropertyUtility.getProperties();
 
     // instantiate required services
-    processServiceRest = new ProcessClientRest(properties);
+    processServiceRest = new ProcessServiceRestImpl();
 
     processService = new ProcessServiceJpa();
     processService.setLastModifiedBy("admin");
-    securityService = new SecurityClientRest(properties);
+    securityService = new SecurityServiceJpa();
     contentService = new ContentServiceJpa();
 
     // authentication
@@ -215,13 +216,22 @@ public class GeneratedMergeAlgorithmIT extends IntegrationUnitSupport {
   @After
   public void teardown() throws Exception {
 
-    if (processConfig != null) {
+    if (processService != null && processConfig != null) {
       processService.removeProcessConfig(processConfig.getId());
     }
     // logout
-    securityService.logout(authToken);
-    processService.close();
-    contentService.close();
+    if (securityService != null && authToken != null) {
+      securityService.logout(authToken);
+    }
+    if (processService != null) {
+      processService.close();
+    }
+    if (securityService != null) {
+      securityService.close();
+    }
+    if (contentService != null) {
+      contentService.close();
+    }
   }
 
   /**

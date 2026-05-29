@@ -1830,7 +1830,8 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   /* see superclass */
 
   @Override
-  @RequestMapping(value = "/descriptor/", method = RequestMethod.POST)
+  @RequestMapping(value = { "/descriptor", "/descriptor/" },
+      method = RequestMethod.POST)
   @POST
   @Path("/descriptor/")
   @Operation(summary = "Find descriptors matching a lucene or JPQL search query",
@@ -2948,7 +2949,10 @@ public class ContentServiceRestImpl extends RootServiceRestImpl
   /* see superclass */
 
   @Override
-  @RequestMapping(value = "/descriptor/{terminology}/{version}/{terminologyId}/trees/", method = RequestMethod.POST)
+  @RequestMapping(value = {
+      "/descriptor/{terminology}/{version}/{terminologyId}/trees",
+      "/descriptor/{terminology}/{version}/{terminologyId}/trees/" },
+      method = RequestMethod.POST)
   @POST
   @Path("/descriptor/{terminology}/{version}/{terminologyId}/trees/")
   @Operation(summary = "Get trees with this terminologyId",

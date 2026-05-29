@@ -363,6 +363,219 @@ tasks.register('integrationTest', Test) {
     }
 }
 
+def registerIntegrationPreflight = { taskName, profileName, descriptionText ->
+    tasks.register(taskName, JavaExec) {
+        description = descriptionText
+        group = 'verification'
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = 'com.wci.umls.server.test.helpers.IntegrationTestPreflight'
+        args = [profileName]
+        dependsOn tasks.named('testClasses')
+
+        System.getProperties().each { key, value ->
+            if (key.toString().startsWith('flyway.it.') ||
+                    key.toString().startsWith('integration.it.')) {
+                systemProperty key.toString(), value.toString()
+            }
+        }
+    }
+}
+
+registerIntegrationPreflight('integrationPreflight', 'sample-jpa',
+        'Checks local prerequisites for the default sample JPA integration profile.')
+registerIntegrationPreflight('flywayIntegrationPreflight', 'flyway',
+        'Checks disposable-schema prerequisites for Flyway integration tests.')
+registerIntegrationPreflight('sampleJpaIntegrationPreflight', 'sample-jpa',
+        'Checks local prerequisites for sample JPA integration tests.')
+registerIntegrationPreflight('nciMetaJpaIntegrationPreflight', 'nci-meta-jpa',
+        'Checks local prerequisites for NCI-META JPA integration tests.')
+registerIntegrationPreflight('restIntegrationPreflight', 'rest',
+        'Checks local prerequisites for REST integration tests.')
+registerIntegrationPreflight('insertionIntegrationPreflight', 'insertion',
+        'Checks local prerequisites for insertion integration tests.')
+registerIntegrationPreflight('adminLoaderIntegrationPreflight', 'admin-loader',
+        'Checks local prerequisites for admin/load integration tests.')
+
+tasks.register('prepareFlywayIntegrationSchemas', JavaExec) {
+    description = 'Creates missing empty disposable schemas for Flyway integration tests.'
+    group = 'verification'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.wci.umls.server.test.helpers.FlywayIntegrationSchemaSetup'
+    dependsOn tasks.named('testClasses')
+
+    System.getProperties().each { key, value ->
+        if (key.toString().startsWith('flyway.it.')) {
+            systemProperty key.toString(), value.toString()
+        }
+    }
+}
+
+tasks.register('dropFlywayIntegrationSchemas', JavaExec) {
+    description = 'Drops generated ephemeral schemas for Flyway integration tests.'
+    group = 'verification'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.wci.umls.server.test.helpers.FlywayIntegrationSchemaSetup'
+    args = ['drop']
+    dependsOn tasks.named('testClasses')
+
+    System.getProperties().each { key, value ->
+        if (key.toString().startsWith('flyway.it.')) {
+            systemProperty key.toString(), value.toString()
+        }
+    }
+}
+
+def integrationItSystemProperties = { JavaForkOptions forkOptions ->
+    System.getProperties().each { key, value ->
+        if (key.toString().startsWith('integration.it.')) {
+            forkOptions.systemProperty key.toString(), value.toString()
+        }
+    }
+}
+
+tasks.register('prepareAdminLoaderIntegrationSchema', JavaExec) {
+    description = 'Creates the missing disposable schema for admin/load integration tests.'
+    group = 'verification'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.wci.umls.server.test.helpers.DisposableIntegrationSchemaSetup'
+    args = ['admin-loader']
+    dependsOn tasks.named('testClasses')
+    integrationItSystemProperties(delegate)
+}
+
+tasks.register('dropAdminLoaderIntegrationSchema', JavaExec) {
+    description = 'Drops a generated disposable schema for admin/load integration tests.'
+    group = 'verification'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.wci.umls.server.test.helpers.DisposableIntegrationSchemaSetup'
+    args = ['admin-loader', 'drop']
+    dependsOn tasks.named('testClasses')
+    integrationItSystemProperties(delegate)
+}
+
+def flywayItSystemProperties = { Test testTask ->
+    System.getProperties().each { key, value ->
+        if (key.toString().startsWith('flyway.it.')) {
+            testTask.systemProperty key.toString(), value.toString()
+        }
+    }
+}
+
+def registerIntegrationTestProfile = {
+    taskName, descriptionText, preflightTaskName, testPatterns ->
+        tasks.register(taskName, Test) {
+            description = descriptionText
+            group = 'verification'
+            testClassesDirs = sourceSets.test.output.classesDirs
+            classpath = sourceSets.test.runtimeClasspath
+            include '**/*IT.class'
+            dependsOn tasks.named(preflightTaskName)
+            shouldRunAfter tasks.named('test')
+
+            testPatterns.each { pattern ->
+                filter.includeTestsMatching(pattern)
+            }
+            filter.failOnNoMatchingTests = true
+            flywayItSystemProperties(delegate)
+            integrationItSystemProperties(delegate)
+        }
+}
+
+registerIntegrationTestProfile('flywayIntegrationTest',
+        'Runs opt-in Flyway integration tests against disposable schemas.',
+        'flywayIntegrationPreflight', [
+        'com.wci.umls.server.test.jpa.FlywayMigrationIT'
+])
+
+def ephemeralFlywayIntegrationTest = registerIntegrationTestProfile(
+        'ephemeralFlywayIntegrationTest',
+        'Creates, tests, and drops generated Flyway integration schemas.',
+        'prepareFlywayIntegrationSchemas', [
+        'com.wci.umls.server.test.jpa.FlywayMigrationIT'
+])
+ephemeralFlywayIntegrationTest.configure {
+    finalizedBy tasks.named('dropFlywayIntegrationSchemas')
+}
+
+registerIntegrationTestProfile('sampleJpaIntegrationTest',
+        'Runs sample JPA integration tests.',
+        'sampleJpaIntegrationPreflight', [
+        'com.wci.umls.server.test.jpa.integrity.*',
+        'com.wci.umls.server.test.jpa.search.*',
+        'com.wci.umls.server.test.jpa.AddDemotionIT',
+        'com.wci.umls.server.test.jpa.ComponentStatsIT',
+        'com.wci.umls.server.test.jpa.ContentDeepRelsIT',
+        'com.wci.umls.server.test.jpa.ContentServiceAutocompleteIT',
+        'com.wci.umls.server.test.jpa.ContentServiceFindRelationshipsIT',
+        'com.wci.umls.server.test.jpa.ProjectJpaIT',
+        'com.wci.umls.server.test.jpa.UpdateConceptStatusIT',
+        'com.wci.umls.server.test.jpa.algorithm.FailOnceAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.MatrixInitializerAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.QueryActionAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.SemanticTypeResolverAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.WaitAlgorithmIT'
+])
+
+registerIntegrationTestProfile('nciMetaJpaIntegrationTest',
+        'Runs NCI-META JPA integration tests.',
+        'nciMetaJpaIntegrationPreflight', [
+        'com.wci.umls.server.test.jpa.CloseReopenFactoryIT',
+        'com.wci.umls.server.test.jpa.ComputePreferredNameHandlerIT',
+        'com.wci.umls.server.test.jpa.ConfigUtilityIT',
+        'com.wci.umls.server.test.jpa.ContentServiceGeneralQueryTimeoutIT',
+        'com.wci.umls.server.test.jpa.ContentServiceTreePositionFromTreeIT',
+        'com.wci.umls.server.test.jpa.DefaultValidationCheckIT',
+        'com.wci.umls.server.test.jpa.GraphResolutionHandlerIT',
+        'com.wci.umls.server.test.jpa.IdentifierAssignmentHandlerIT',
+        'com.wci.umls.server.test.jpa.MappingIT',
+        'com.wci.umls.server.test.jpa.ProgressEventIT',
+        'com.wci.umls.server.test.jpa.ReportHelperIT',
+        'com.wci.umls.server.test.jpa.SemanticCategorySearchIT',
+        'com.wci.umls.server.test.jpa.UmlsIdentifierAssignmentHandlerIT',
+        'com.wci.umls.server.test.jpa.algorithm.AddRemoveIntegrityCheckAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.ComponentInfoRelRemapperAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.LexicalClassAssignmentAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.MapSetLoaderAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.SubsetLoaderAlgorithmIT',
+        'com.wci.umls.server.test.algo.ComputePreferredNamesAlgorithmIT',
+        'com.wci.umls.server.test.helpers.PfsParameterForComponentIT',
+        'com.wci.umls.server.test.helpers.PfsParameterForConceptIT',
+        'com.wci.umls.server.test.helpers.SearchHandlerIT'
+])
+
+registerIntegrationTestProfile('restIntegrationTest',
+        'Runs REST integration tests; requires the app to be running.',
+        'restIntegrationPreflight', [
+        'com.wci.umls.server.test.rest.SecurityServiceRest*',
+        'com.wci.umls.server.test.rest.WorkflowServiceRestNormalUseIT',
+        'com.wci.umls.server.test.rest.meta.*'
+])
+
+registerIntegrationTestProfile('insertionIntegrationTest',
+        'Runs insertion integration tests.',
+        'insertionIntegrationPreflight', [
+        'com.wci.umls.server.test.jpa.algorithm.InsertionLoaderAlgorithmsIT',
+        'com.wci.umls.server.test.jpa.algorithm.PreInsertionAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.BequeathAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.GeneratedMergeAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.PrecomputedMergeAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.ProdMidCleanupAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.UpdateReleasibilityAlgorithmIT',
+        'com.wci.umls.server.test.jpa.algorithm.SafeReplaceAlgorithmIT'
+])
+
+def adminLoaderIntegrationTest = registerIntegrationTestProfile(
+        'adminLoaderIntegrationTest',
+        'Runs admin/load/unload integration tests against the selected DB.',
+        'adminLoaderIntegrationPreflight', [
+        'com.wci.umls.server.test.admin.RrfSingleLoadAndUnloadIT',
+        'com.wci.umls.server.test.admin.RrfUmlsLoadAndUnloadIT'
+])
+adminLoaderIntegrationTest.configure {
+    maxHeapSize = '2g'
+    forkEvery = 1
+}
+
 // ── Shared admin classpath helper ─────────────────────────────────────────────
 // Admin tasks run classes from the compiled main source set.
 // Pass system properties from Gradle project properties on the command line,
@@ -370,26 +583,24 @@ tasks.register('integrationTest', Test) {
 // Preferred local usage is to source config/local/setenv.sh first so the
 // Spring-style application properties resolve from environment variables.
 def adminJvmArgs(Map<String, String> propNames) {
-    def args = propNames.collect { key, _ ->
+    def args = propNames.collect { key, defaultValue ->
         def val = project.findProperty(key)
-        //
         if (key == 'version' && val == ext.artifactVersion) {
-            null
-        } else {
-            val != null ? "-D${key}=${val}" : null
+            val = null
         }
-    }.findAll { it != null }
-
-    // Forward any propName keys provided as -D system properties that aren't
-    // already covered by the -P project-property path above.
-    propNames.keySet().each { propKey ->
-        if (!args.any { it.toString().startsWith("-D${propKey}=") }) {
-            def sysPropVal = System.getProperty(propKey)
+        if (val != null) {
+            "-D${key}=${val}"
+        } else {
+            def sysPropVal = System.getProperty(key)
             if (sysPropVal != null) {
-                args.add("-D${propKey}=${sysPropVal}")
+                "-D${key}=${sysPropVal}"
+            } else if (defaultValue != null && !defaultValue.toString().trim().isEmpty()) {
+                "-D${key}=${defaultValue}"
+            } else {
+                null
             }
         }
-    }
+    }.findAll { it != null }
 
     return args
 }
@@ -478,6 +689,14 @@ task adminReindex(type: JavaExec, group: 'Admin',
     jvmArgs = adminJvmArgs(['indexed.objects': '', 'server': ''])
 }
 
+task adminReindexSample(type: JavaExec, group: 'Admin',
+        description: 'Rebuild Lucene indexes for the local sample integration fixture with Tomcat stopped.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['reindex']
+    jvmArgs = adminJvmArgs(['indexed.objects': '', 'server': 'false'])
+}
+
 task adminReindexEcl(type: JavaExec, group: 'Admin',
         description: 'Rebuild ECL (Expression Constraint Language) indexes. Pass -Pterminology, -Pversion, -Pserver.') {
     classpath = sourceSets.main.runtimeClasspath
@@ -512,6 +731,38 @@ task adminLoadRrfUmls(type: JavaExec, group: 'Admin',
     mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
     args = ['loadRrfUmls']
     jvmArgs = adminJvmArgs(['terminology': '', 'version': '', 'prefix': '', 'input.dir': '', 'edit.mode': '', 'server': '', 'mode': ''])
+}
+
+task adminLoadSampleRrfUmls(type: JavaExec, group: 'Admin',
+        description: 'Load the SAMPLE_UMLS RRF fixture for sample integration tests. Override defaults with -P flags when needed.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfUmls']
+    jvmArgs = adminJvmArgs([
+            'terminology': 'MTH',
+            'version': '',
+            'prefix': 'MR',
+            'input.dir': 'config/src/main/resources/data/SAMPLE_UMLS',
+            'edit.mode': 'false',
+            'server': 'false',
+            'mode': ''
+    ])
+}
+
+task adminLoadNciMetaRrfUmls(type: JavaExec, group: 'Admin',
+        description: 'Load the SAMPLE_NCI RRF fixture for NCI-META integration tests. Override defaults with -P flags when needed.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfUmls']
+    jvmArgs = adminJvmArgs([
+            'terminology': 'NCIMTH',
+            'version': 'latest',
+            'prefix': 'MR',
+            'input.dir': 'config/src/main/resources/data/SAMPLE_NCI',
+            'edit.mode': 'true',
+            'server': 'false',
+            'mode': 'create'
+    ])
 }
 
 task adminLoadRf2Full(type: JavaExec, group: 'Admin',
@@ -590,12 +841,220 @@ task adminGenerateSampleData(type: JavaExec, group: 'Admin',
     jvmArgs = ['-Dtype=sample'] + adminJvmArgs(['mode': '', 'terminology': '', 'version': ''])
 }
 
+task adminGenerateSampleIntegrationData(type: JavaExec, group: 'Admin',
+        description: 'Generate the local sample integration fixture data after SAMPLE_UMLS load.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['generateData']
+    jvmArgs = ['-Dtype=sample'] + adminJvmArgs(['mode': '', 'terminology': 'MTH', 'version': ''])
+}
+
+tasks.named('adminLoadSampleRrfUmls') {
+    mustRunAfter tasks.named('adminCreateDb')
+}
+
+tasks.named('adminReindexSample') {
+    mustRunAfter tasks.named('adminLoadSampleRrfUmls')
+}
+
+tasks.named('adminGenerateSampleIntegrationData') {
+    mustRunAfter tasks.named('adminReindexSample')
+}
+
+tasks.register('prepareSampleIntegrationData') {
+    group = 'Integration'
+    description = 'Create, load, reindex, and generate the local sample integration fixture.'
+    dependsOn tasks.named('adminCreateDb')
+    dependsOn tasks.named('adminLoadSampleRrfUmls')
+    dependsOn tasks.named('adminReindexSample')
+    dependsOn tasks.named('adminGenerateSampleIntegrationData')
+}
+
 task adminGenerateNciMetaData(type: JavaExec, group: 'Admin',
         description: 'Generate NCI Metathesaurus data. Params: -Pmode -Pterminology -Pversion -Pinput.dir') {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
     args = ['generateData']
     jvmArgs = ['-Dtype=nci'] + adminJvmArgs(['mode': '', 'terminology': '', 'version': '', 'input.dir': ''])
+}
+
+task adminGenerateNciMetaIntegrationData(type: JavaExec, group: 'Admin',
+        description: 'Generate the local NCI-META integration fixture data after SAMPLE_NCI load.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['generateData']
+    jvmArgs = ['-Dtype=nci'] + adminJvmArgs([
+            'mode': 'update',
+            'terminology': 'NCIMTH',
+            'version': 'latest',
+            'input.dir': 'config/src/main/resources/data/SAMPLE_NCI'
+    ])
+}
+
+task adminReindexNciMeta(type: JavaExec, group: 'Admin',
+        description: 'Rebuild Lucene indexes for the local NCI-META integration fixture with Tomcat stopped.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['reindex']
+    jvmArgs = adminJvmArgs(['indexed.objects': '', 'server': 'false'])
+}
+
+tasks.named('adminLoadNciMetaRrfUmls') {
+    mustRunAfter tasks.named('adminCreateDb')
+}
+
+tasks.named('adminGenerateNciMetaIntegrationData') {
+    mustRunAfter tasks.named('adminLoadNciMetaRrfUmls')
+}
+
+tasks.named('adminReindexNciMeta') {
+    mustRunAfter tasks.named('adminGenerateNciMetaIntegrationData')
+}
+
+tasks.register('prepareNciMetaIntegrationData') {
+    group = 'Integration'
+    description = 'Create, load, generate, and reindex the local NCI-META integration fixture.'
+    dependsOn tasks.named('adminCreateDb')
+    dependsOn tasks.named('adminLoadNciMetaRrfUmls')
+    dependsOn tasks.named('adminGenerateNciMetaIntegrationData')
+    dependsOn tasks.named('adminReindexNciMeta')
+}
+
+tasks.register('prepareInsertionIntegrationDirectories') {
+    group = 'Integration'
+    description = 'Create local filesystem directories expected by insertion integration tests.'
+    doLast {
+        def dataDir = System.getenv('DATA_DIR')
+        def indexDir = System.getenv('INDEX_DIR')
+        def sourceDataDir = System.getenv('SOURCE_DATA_DIR') ?: dataDir
+        def lvgDir = System.getenv('LVG_DIR')
+
+        [dataDir, indexDir, sourceDataDir, lvgDir].findAll {
+            it != null && !it.trim().isEmpty()
+        }.each {
+            file(it).mkdirs()
+        }
+
+        if (sourceDataDir != null && !sourceDataDir.trim().isEmpty()) {
+            file("${sourceDataDir}/terminologies/NCI_INSERT/src").mkdirs()
+        }
+    }
+}
+
+task adminLoadInsertionRrfUmls(type: JavaExec, group: 'Admin',
+        description: 'Load the SAMPLE_NCI RRF fixture for insertion integration tests. Override defaults with -P flags when needed.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['loadRrfUmls']
+    jvmArgs = adminJvmArgs([
+            'terminology': 'NCIMTH',
+            'version': 'latest',
+            'prefix': 'MR',
+            'input.dir': 'config/src/main/resources/data/SAMPLE_NCI',
+            'edit.mode': 'true',
+            'server': 'false',
+            'mode': 'create'
+    ])
+}
+
+task adminGenerateInsertionIntegrationData(type: JavaExec, group: 'Admin',
+        description: 'Generate the local insertion integration fixture data after SAMPLE_NCI load.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['generateData']
+    jvmArgs = ['-Dtype=nci'] + adminJvmArgs([
+            'mode': 'update',
+            'terminology': 'NCIMTH',
+            'version': 'latest',
+            'input.dir': 'config/src/main/resources/data/SAMPLE_NCI'
+    ])
+}
+
+task adminReindexInsertion(type: JavaExec, group: 'Admin',
+        description: 'Rebuild Lucene indexes for the local insertion integration fixture with Tomcat stopped.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['reindex']
+    jvmArgs = adminJvmArgs(['indexed.objects': '', 'server': 'false'])
+}
+
+tasks.named('adminCreateDb') {
+    mustRunAfter tasks.named('prepareInsertionIntegrationDirectories')
+}
+
+tasks.named('adminLoadInsertionRrfUmls') {
+    mustRunAfter tasks.named('adminCreateDb')
+    mustRunAfter tasks.named('prepareInsertionIntegrationDirectories')
+}
+
+tasks.named('adminGenerateInsertionIntegrationData') {
+    mustRunAfter tasks.named('adminLoadInsertionRrfUmls')
+}
+
+tasks.named('adminReindexInsertion') {
+    mustRunAfter tasks.named('adminGenerateInsertionIntegrationData')
+}
+
+tasks.register('prepareInsertionIntegrationData') {
+    group = 'Integration'
+    description = 'Create, load, generate, and reindex the local insertion integration fixture.'
+    dependsOn tasks.named('prepareInsertionIntegrationDirectories')
+    dependsOn tasks.named('adminCreateDb')
+    dependsOn tasks.named('adminLoadInsertionRrfUmls')
+    dependsOn tasks.named('adminGenerateInsertionIntegrationData')
+    dependsOn tasks.named('adminReindexInsertion')
+}
+
+tasks.register('prepareAdminLoaderIntegrationDirectories') {
+    group = 'Integration'
+    description = 'Create local filesystem directories expected by admin/load integration tests.'
+    doLast {
+        def dataDir = System.getenv('DATA_DIR')
+        def indexDir = System.getenv('INDEX_DIR')
+        def sourceDataDir = System.getenv('SOURCE_DATA_DIR') ?: dataDir
+        def lvgDir = System.getenv('LVG_DIR')
+
+        [dataDir, indexDir, sourceDataDir, lvgDir].findAll {
+            it != null && !it.trim().isEmpty()
+        }.each {
+            file(it).mkdirs()
+        }
+
+        if (dataDir != null && !dataDir.trim().isEmpty()) {
+            copy {
+                from 'config/src/main/resources/data'
+                into dataDir
+                include 'acronyms.txt'
+                include 'spelling.txt'
+            }
+        }
+    }
+}
+
+task adminReindexAdminLoader(type: JavaExec, group: 'Admin',
+        description: 'Rebuild Lucene indexes for the disposable admin/load integration fixture with Tomcat stopped.') {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wci.umls.server.admin.GeneratorApplication'
+    args = ['reindex']
+    jvmArgs = adminJvmArgs(['indexed.objects': '', 'server': 'false'])
+}
+
+tasks.named('adminCreateDb') {
+    mustRunAfter tasks.named('prepareAdminLoaderIntegrationSchema')
+    mustRunAfter tasks.named('prepareAdminLoaderIntegrationDirectories')
+}
+
+tasks.named('adminReindexAdminLoader') {
+    mustRunAfter tasks.named('adminCreateDb')
+}
+
+tasks.register('prepareAdminLoaderIntegrationData') {
+    group = 'Integration'
+    description = 'Create an empty disposable admin/load integration fixture.'
+    dependsOn tasks.named('prepareAdminLoaderIntegrationSchema')
+    dependsOn tasks.named('prepareAdminLoaderIntegrationDirectories')
+    dependsOn tasks.named('adminCreateDb')
+    dependsOn tasks.named('adminReindexAdminLoader')
 }
 
 task adminGenerateDemoData(type: JavaExec, group: 'Admin',

@@ -526,8 +526,8 @@ public class ProcessClientRest extends RootClientRest
     final WebTarget target = client.target(config.getProperty("base.url")
         + "/process/execution/" + id + "/execute?projectId=" + projectId
         + (background ? "&background=true" : ""));
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -556,8 +556,8 @@ public class ProcessClientRest extends RootClientRest
         + "/process/execution/" + id + "/step?projectId=" + projectId
         + (background ? "&background=true" : "")
         + (step == null ? "&step=" + step : ""));
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -583,8 +583,8 @@ public class ProcessClientRest extends RootClientRest
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(config.getProperty("base.url")
         + "/process/config/" + id + "/prepare?projectId=" + projectId);
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -627,8 +627,8 @@ public class ProcessClientRest extends RootClientRest
     WebTarget target = client.target(config.getProperty("base.url")
         + "/process/execution/" + id + "/cancel" + "?projectId=" + projectId);
 
-    Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    Response response =
+        target.request().header("Authorization", authToken).get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -655,8 +655,8 @@ public class ProcessClientRest extends RootClientRest
     final WebTarget target = client.target(config.getProperty("base.url")
         + "/process/execution/" + id + "/restart?projectId=" + projectId
         + (background ? "&background=true" : ""));
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -683,8 +683,8 @@ public class ProcessClientRest extends RootClientRest
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(config.getProperty("base.url")
         + "/process/" + id + "/progress?projectId=" + projectId);
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -711,8 +711,8 @@ public class ProcessClientRest extends RootClientRest
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(config.getProperty("base.url")
         + "/process/algo/" + id + "/progress?projectId=" + projectId);
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -740,8 +740,8 @@ public class ProcessClientRest extends RootClientRest
         + "/process/" + processExecutionId + "/log?projectId=" + projectId
         + "&query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
-    final Response response = target.request(MediaType.APPLICATION_XML)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -769,8 +769,8 @@ public class ProcessClientRest extends RootClientRest
             + algorithmExecutionId + "/log?projectId=" + projectId + "&query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
-    final Response response = target.request(MediaType.APPLICATION_XML)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -863,8 +863,8 @@ public class ProcessClientRest extends RootClientRest
         + processId + "&queryType=" + queryType + "&queryStyle=" + queryStyle
         + "&query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
         + (objectTypeName == null ? "" : "&objectTypeName=" + objectTypeName));
-    final Response response = target.request(MediaType.TEXT_PLAIN)
-        .header("Authorization", authToken).get();
+    final Response response = target.request().header("Authorization", authToken)
+        .get();
 
     final String resultString = response.readEntity(String.class);
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
