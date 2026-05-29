@@ -76,7 +76,7 @@ public class TrackingRecordSearchIntegrationIT extends IntegrationUnitSupport {
     workflowService.setLastModifiedBy("admin");
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueNumericToken();
 
     projectService.setTransactionPerOperation(false);
     projectService.beginTransaction();

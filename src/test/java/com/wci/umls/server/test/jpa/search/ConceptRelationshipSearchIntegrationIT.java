@@ -70,7 +70,7 @@ public class ConceptRelationshipSearchIntegrationIT extends IntegrationUnitSuppo
     service.setMolecularActionFlag(false);
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueNumericToken();
 
     service.setTransactionPerOperation(false);
     service.beginTransaction();

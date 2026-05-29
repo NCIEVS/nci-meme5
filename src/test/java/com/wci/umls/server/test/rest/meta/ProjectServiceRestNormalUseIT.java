@@ -5,8 +5,6 @@ package com.wci.umls.server.test.rest.meta;
 
 import static org.junit.Assert.assertNull;
 
-import java.util.Date;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
@@ -53,7 +51,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     ProjectJpa project = new ProjectJpa();
 
     project.setDescription("Sample");
-    project.setName("Sample " + new Date().getTime());
+    project.setName(uniqueTestName("Sample"));
     project.setTerminology("MTH");
     project.setVersion("latest");
     project.setLanguage("ENG");
@@ -66,7 +64,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
 
     // Update that newly added project
     Logger.getLogger(getClass()).info("  Update project");
-    project2.setName("Sample 2 " + new Date().getTime());
+    project2.setName(uniqueTestName("Sample 2"));
     projectService.updateProject(project2, authToken);
     Project project3 =
             projectService.getProject(project2.getId(), authToken);
@@ -96,7 +94,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     Logger.getLogger(getClass()).info("  Add project");
     ProjectJpa project = new ProjectJpa();
     project.setDescription("Sample");
-    project.setName("Sample " + new Date().getTime());
+    project.setName(uniqueTestName("Sample"));
     project.setTerminology("MTH");
     project.setVersion("latest");
     project.setLanguage("ENG");
@@ -106,7 +104,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
 
     // Add a second project
     Logger.getLogger(getClass()).info("  Add second project");
-    project2.setName("Sample 2 " + new Date().getTime());
+    project2.setName(uniqueTestName("Sample 2"));
     project2.setDescription("Sample 2");
     project2.setTerminology("MTH");
     project2.setVersion("latest");
@@ -144,8 +142,7 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
   @After
   public void teardown() throws Exception {
 
-    // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
   }
 
 }

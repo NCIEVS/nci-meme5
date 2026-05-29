@@ -6,8 +6,6 @@
  */
 package com.wci.umls.server.test.rest.meta;
 
-import java.util.Date;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
@@ -71,8 +69,8 @@ public class ProjectServiceRestEdgeCasesIT extends ProjectServiceRestIT {
     // Here, add new project from scratch
     ProjectJpa project2 = new ProjectJpa();
 
-    project2.setDescription("Sample " + new Date().getTime());
-    project2.setName("Sample");
+    project2.setDescription(uniqueTestName("Sample"));
+    project2.setName(uniqueTestName("Sample"));
     project2.setTerminology("MTH");
     project2.setVersion("latest");
     project2.setLanguage("ENG");
@@ -98,9 +96,8 @@ public class ProjectServiceRestEdgeCasesIT extends ProjectServiceRestIT {
   @After
   public void teardown() throws Exception {
 
-    // logout
-    securityService.logout(viewerAuthToken);
-    securityService.logout(adminAuthToken);
+    logoutIfAuthenticated(securityService, viewerAuthToken);
+    logoutIfAuthenticated(securityService, adminAuthToken);
   }
 
 }

@@ -88,7 +88,7 @@ public class ChecklistSearchIntegrationIT extends IntegrationUnitSupport {
     workflowService.setLastModifiedBy("admin");
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueSearchToken("");
 
     // Create test user first
     securityService.setTransactionPerOperation(false);
@@ -132,7 +132,7 @@ public class ChecklistSearchIntegrationIT extends IntegrationUnitSupport {
     workflowService.beginTransaction();
 
     final Checklist checklist = new ChecklistJpa();
-    // Name with underscores - SplitUnderscoreBridge will index this as "test checklist alpha beta <uniqueSuffix>"
+    // Name with underscores - SplitUnderscoreBridge indexes suffix as one term.
     checklist.setName("test_checklist_alpha_beta_" + uniqueSuffix);
     checklist.setDescription("Test checklist description for search test desc" + uniqueSuffix);
     checklist.setProject(addedProject);

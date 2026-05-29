@@ -71,7 +71,7 @@ public class WorklistSearchIntegrationIT extends IntegrationUnitSupport {
     workflowService.setLastModifiedBy("admin");
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueSearchToken("");
 
     projectService.setTransactionPerOperation(false);
     projectService.beginTransaction();

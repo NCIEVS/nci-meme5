@@ -77,7 +77,7 @@ public class UserSearchIntegrationIT extends IntegrationUnitSupport {
     securityService.setLastModifiedBy("admin");
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueSearchToken("");
 
     // Create test project first (needed for projectRoleMap)
     projectService.setTransactionPerOperation(false);

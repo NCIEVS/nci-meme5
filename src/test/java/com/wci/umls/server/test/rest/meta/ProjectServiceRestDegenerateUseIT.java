@@ -160,8 +160,8 @@ public class ProjectServiceRestDegenerateUseIT extends ProjectServiceRestIT {
   public void teardown() throws Exception {
 
     // logout
-    securityService.logout(viewerAuthToken);
-    securityService.logout(adminAuthToken);
+    logoutIfAuthenticated(securityService, viewerAuthToken);
+    logoutIfAuthenticated(securityService, adminAuthToken);
   }
 
 }

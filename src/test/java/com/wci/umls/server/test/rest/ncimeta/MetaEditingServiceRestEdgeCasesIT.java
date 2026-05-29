@@ -17,21 +17,19 @@ import org.junit.Test;
 
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.jpa.model.content.SemanticTypeComponentJpa;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.SemanticTypeComponent;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
-import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 
 import java.util.stream.Collectors;
 
 /**
  * Implementation of the "MetaEditing Service REST Edge Cases" Test Cases.
  */
-@Ignore
+@Ignore("NCI-META REST editing tests need a separate fixture/profile decision")
 public class MetaEditingServiceRestEdgeCasesIT
     extends MetaEditingServiceRestIT {
 
@@ -214,12 +212,8 @@ public class MetaEditingServiceRestEdgeCasesIT
   @Override
   @After
   public void teardown() throws Exception {
-    // Copy existing concept to avoid messing with actual database data.
-    IntegrationTestClientRest testService =
-            new IntegrationTestClientRest(PropertyUtility.getProperties());
-    testService.removeConcept(concept.getId(), true, authToken);
-    // logout
-    securityService.logout(authToken);
+    removeCopiedConcept(concept, project, authToken);
+    logoutIfAuthenticated(authToken);
 
   }
 

@@ -9,15 +9,14 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.rest.client.SecurityClientRest;
-import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
+import com.wci.umls.server.test.helpers.RestIntegrationSupport;
 
 /**
  * The Class SecurityServiceRestIT.
  */
-@Ignore
-public class SecurityServiceRestIT extends IntegrationUnitSupport {
+@Ignore("Base REST fixture; subclasses provide runnable tests")
+public class SecurityServiceRestIT extends RestIntegrationSupport {
   /** The service. */
   protected static SecurityClientRest service;
 
@@ -51,7 +50,7 @@ public class SecurityServiceRestIT extends IntegrationUnitSupport {
   public static void setupClass() throws Exception {
 
     // get the properties
-    properties = PropertyUtility.getProperties();
+    properties = loadRestProperties();
 
     // instantiate the service
     service = new SecurityClientRest(properties);
@@ -60,41 +59,15 @@ public class SecurityServiceRestIT extends IntegrationUnitSupport {
      * Prerequisites
      */
 
-    // test.user and test.password must be set
-    viewerUserName = properties.getProperty("viewer.user");
-    viewerUserPassword = properties.getProperty("viewer.password");
-
-    if (viewerUserName == null || viewerUserName.isEmpty()) {
-      throw new Exception(
-          "Test prerequisite:  viewer.user must be set in config properties file");
-    }
-
-    if (viewerUserPassword == null || viewerUserPassword.isEmpty()) {
-      throw new Exception(
-          "Test prerequisite:  viewer.password must be set in config properties file");
-    }
-
-    // admin.user and admin.password must be set
-    adminUserName = properties.getProperty("admin.user");
-    adminUserPassword = properties.getProperty("admin.password");
-
-    if (adminUserName == null || adminUserName.isEmpty()) {
-      throw new Exception(
-          "Test prerequisite:  admin.user must be set in config properties file");
-    }
-
-    if (adminUserPassword == null || adminUserPassword.isEmpty()) {
-      throw new Exception(
-          "Test prerequisite:  admin.password must be set in config properties file");
-    }
+    final RestCredentials credentials = restCredentials(properties);
+    viewerUserName = credentials.getViewerUser();
+    viewerUserPassword = credentials.getViewerPassword();
+    adminUserName = credentials.getAdminUser();
+    adminUserPassword = credentials.getAdminPassword();
 
     // bad user must be specified
-    badUserName = properties.getProperty("bad.user");
-
-    if (badUserName == null || badUserName.isEmpty()) {
-      throw new Exception(
-          "Test prerequisite:  A non-existent (bad) user must be specified in config properties file");
-    }
+    badUserName = requireProperty(properties, "bad.user");
+    badUserPassword = requireProperty(properties, "bad.password");
 
   }
 

@@ -124,7 +124,7 @@ public class ContentServiceAutocompleteIT extends IntegrationUnitSupport {
         service.autocompleteConcepts("SNOMEDCT_US", "2016_03_01", "le");
     assertTrue(results.getObjects().isEmpty());
     results = service.autocompleteConcepts("SNOMEDCT_US", "2016_03_01", "l");
-    assertEquals(2, results.getObjects().size());
+    assertEquals(3, results.getObjects().size());
     results = service.autocompleteConcepts("MTH", "latest", "le");
     assertTrue(results.getObjects().size()>10);
     results = service.autocompleteConcepts("MTH", "latest", "l");

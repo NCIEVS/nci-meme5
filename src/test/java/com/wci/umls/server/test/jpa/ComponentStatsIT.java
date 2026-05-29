@@ -215,7 +215,7 @@ public class ComponentStatsIT extends IntegrationUnitSupport {
     cmpStats.put("Total PropertyChainJpa", 0);
     cmpStats.put("Total RelationshipTypeJpa", 7);
     cmpStats.put("Total SemanticTypeComponentJpa", 929);
-    cmpStats.put("Total SemanticTypeJpa", 196);
+    cmpStats.put("Total SemanticTypeJpa", 193);
     cmpStats.put("Total StringClassJpa", 0);
     cmpStats.put("Total TermTypeJpa", 18);
     cmpStats.put("Total AtomTransitiveRelationshipJpa", 0);

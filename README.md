@@ -78,6 +78,63 @@ Run Gradle verification checks:
 make quality
 ```
 
+Check integration-test prerequisites before running a profile:
+
+```sh
+make preflight-sample
+make preflight-ncimeta
+make preflight-rest
+make preflight-insertion
+make preflight-admin
+```
+
+The sample, REST, NCI-META, insertion, and admin-loader preflights verify that
+the selected database matches the documented fixture schema. For example,
+`sample-jpa` and `rest` expect `ncimdbmeta`, not the default `ncimdb`; the
+admin-loader profile expects disposable `ncimdbadminload`. REST preflight also
+probes the running server for sample fixture data so an app started against the
+wrong database fails before the REST test classes run.
+
+Prepare the sample integration-test database fixture:
+
+```sh
+make prepare-sample
+```
+
+Prepare the NCI-META integration-test database fixture:
+
+```sh
+make prepare-ncimeta
+```
+
+Prepare the insertion integration-test database fixture:
+
+```sh
+make prepare-insertion
+```
+
+Prepare the disposable admin/load integration-test database fixture:
+
+```sh
+make prepare-admin
+```
+
+Run named integration-test profiles from the same sourced environment:
+
+```sh
+make integration-sample
+make integration-ncimeta
+make integration-rest
+make integration-insertion
+make integration-admin
+```
+
+Run Flyway integration tests with generated disposable schemas:
+
+```sh
+make integration-flyway-ephemeral
+```
+
 Start the application locally with Spring Boot:
 
 ```sh
@@ -148,6 +205,7 @@ source config/local/setenv.sh
 Fresh database loading, sample data, NCI-META data, and integration test
 recipes are documented in
 [docs/database-load-and-test-instructions.md](docs/database-load-and-test-instructions.md).
+That runbook also contains the known-good NM-306 smoke-test command sequence.
 The Flyway rollout details are in
 [docs/NM-280-flyway-migration-plan.md](docs/NM-280-flyway-migration-plan.md).
 
@@ -158,6 +216,7 @@ The Flyway rollout details are in
 - [Flyway migration plan](docs/NM-280-flyway-migration-plan.md)
 - [Spring Boot integration plan](docs/NM-300-spring-boot-integration-plan.md)
 - [Swagger upgrade plan](docs/NM-303-swagger-upgrade-plan.md)
+- [Integration test modernization plan](docs/NM-306-integration-test-modernization-plan.md)
 - [Database load and test instructions](docs/database-load-and-test-instructions.md)
 
 ## License

@@ -717,7 +717,7 @@ public class ContentServiceRestEdgeCasesIT extends ContentServiceRestIT {
   public void teardown() throws Exception {
 
     // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
   }
 
   /**

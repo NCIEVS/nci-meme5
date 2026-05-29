@@ -25,6 +25,58 @@ public class IntegrationUnitSupport {
   public TestName name = new TestName();
 
   /**
+   * Returns a unique display name for data created by a test.
+   *
+   * @param prefix the readable prefix
+   * @return the unique name
+   */
+  protected String uniqueTestName(String prefix) {
+    return prefix + " " + uniqueTestToken("");
+  }
+
+  /**
+   * Returns a compact unique token for test data identifiers.
+   *
+   * @param prefix the token prefix
+   * @return the unique token
+   */
+  protected String uniqueTestToken(String prefix) {
+    final String method =
+        name == null || name.getMethodName() == null ? "unknown"
+            : name.getMethodName();
+    final String safePrefix = prefix == null ? "" : prefix;
+    return safePrefix + getClass().getSimpleName() + "_" + method + "_"
+        + System.currentTimeMillis();
+  }
+
+  /**
+   * Returns a numeric unique token for test data identifiers.
+   *
+   * @return the unique token
+   */
+  @SuppressWarnings("static-method")
+  protected String uniqueNumericToken() {
+    return Long.toString(System.currentTimeMillis());
+  }
+
+  /**
+   * Returns a unique token that remains one term in search analyzers.
+   *
+   * @param prefix the token prefix
+   * @return the unique token
+   */
+  protected String uniqueSearchToken(String prefix) {
+    final String method =
+        name == null || name.getMethodName() == null ? "unknown"
+            : name.getMethodName();
+    final String safePrefix = prefix == null ? "" : prefix;
+    final String raw =
+        safePrefix + getClass().getSimpleName() + method
+            + System.currentTimeMillis();
+    return raw.replaceAll("[^A-Za-z0-9]", "");
+  }
+
+  /**
    * Returns the method.
    *
    * @param match the match

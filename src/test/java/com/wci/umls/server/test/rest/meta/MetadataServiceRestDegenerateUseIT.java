@@ -131,7 +131,7 @@ public class MetadataServiceRestDegenerateUseIT extends
   public void teardown() throws Exception {
 
     // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
   }
 
 }

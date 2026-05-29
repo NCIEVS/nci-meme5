@@ -10,18 +10,17 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 import com.wci.umls.server.rest.client.ProjectClientRest;
 import com.wci.umls.server.rest.client.ReportClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
-import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
+import com.wci.umls.server.test.helpers.RestIntegrationSupport;
 
 /**
  * Integration test for REST report service.
  */
-public class ReportServiceRestIT extends IntegrationUnitSupport {
+public class ReportServiceRestIT extends RestIntegrationSupport {
 
   /** The service. */
   protected static ContentClientRest contentService;
@@ -62,7 +61,7 @@ public class ReportServiceRestIT extends IntegrationUnitSupport {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = PropertyUtility.getProperties();
+    properties = loadRestProperties();
 
     // instantiate required services
     reportService = new ReportClientRest(properties);
@@ -71,27 +70,11 @@ public class ReportServiceRestIT extends IntegrationUnitSupport {
     securityService = new SecurityClientRest(properties);
     integrationTestService = new IntegrationTestClientRest(properties);
 
-    // test run.config.ts has viewer user
-    testUser = properties.getProperty("viewer.user");
-    testPassword = properties.getProperty("viewer.password");
-
-    // test run.config.ts has admin user
-    adminUser = properties.getProperty("admin.user");
-    adminPassword = properties.getProperty("admin.password");
-
-    if (testUser == null || testUser.isEmpty()) {
-      throw new Exception("Test prerequisite: viewer.user must be specified");
-    }
-    if (testPassword == null || testPassword.isEmpty()) {
-      throw new Exception(
-              "Test prerequisite: viewer.password must be specified");
-    }
-    if (adminUser == null || adminUser.isEmpty()) {
-      throw new Exception("Test prerequisite: admin.user must be specified");
-    }
-    if (adminPassword == null || adminPassword.isEmpty()) {
-      throw new Exception("Test prerequisite: admin.password must be specified");
-    }
+    final RestCredentials credentials = restCredentials(properties);
+    testUser = credentials.getViewerUser();
+    testPassword = credentials.getViewerPassword();
+    adminUser = credentials.getAdminUser();
+    adminPassword = credentials.getAdminPassword();
 
   }
 
