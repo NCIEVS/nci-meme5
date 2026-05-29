@@ -21,13 +21,121 @@ source config/local/setenv.sh
 Use a different `DB_NAME`, `APP_DIR`, `DATA_DIR`, `INDEX_DIR`, or
 `SOURCE_DATA_DIR` before sourcing the script when a flow needs a separate
 database or filesystem layout. If `DATA_DIR` is changed, set `INDEX_DIR` too.
-Set `APP_DIR` before deriving any other paths from it.
+Set `APP_DIR` before deriving any other paths from it. Preflight expects
+`INDEX_DIR` to live under the profile-specific `DATA_DIR`; override only
+deliberately with `-Dintegration.it.allowExternalIndexDir=true`.
 
 ## Build The Code
 
 ```sh
 source config/local/setenv.sh
 ./gradlew explodeWar
+```
+
+## Known Good NM-306 Smoke Baseline
+
+These commands were verified locally on May 29, 2026. Run them from the
+repository root. The JPA/admin profiles expect Tomcat or Spring Boot to be
+stopped. The REST profile expects the app to be running from the same
+environment.
+
+Run the repeatable Flyway smoke first. It creates generated disposable schemas,
+runs the Flyway integration test, and drops those same schemas afterward:
+
+```sh
+make integration-flyway-ephemeral
+```
+
+For the sample JPA smoke:
+
+```sh
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DB_NAME=ncimdbmeta
+export DATA_DIR="$APP_DIR/data_sample"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export SOURCE_DATA_DIR="$APP_DIR/data"
+source config/local/setenv.sh
+
+make prepare-sample
+make preflight-sample
+make integration-sample
+```
+
+For the NCI-META JPA smoke:
+
+```sh
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DB_NAME=ncimdbncimeta
+export DATA_DIR="$APP_DIR/data_ncimeta"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export SOURCE_DATA_DIR="$APP_DIR/data"
+source config/local/setenv.sh
+
+make prepare-ncimeta
+make preflight-ncimeta
+make integration-ncimeta
+```
+
+For the REST smoke, start the app in one terminal:
+
+```sh
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DB_NAME=ncimdbmeta
+export DATA_DIR="$APP_DIR/data_sample"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export SOURCE_DATA_DIR="$APP_DIR/data"
+export SERVER_PORT=18080
+export BASE_URL=http://localhost:18080/umls-server-rest
+source config/local/setenv.sh
+
+./gradlew bootRun
+```
+
+Then run the REST checks from a second terminal with the same database, data,
+and `BASE_URL` values:
+
+```sh
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DB_NAME=ncimdbmeta
+export DATA_DIR="$APP_DIR/data_sample"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export SOURCE_DATA_DIR="$APP_DIR/data"
+export BASE_URL=http://localhost:18080/umls-server-rest
+source config/local/setenv.sh
+
+make preflight-rest
+make integration-rest
+```
+
+For the insertion smoke:
+
+```sh
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DB_NAME=ncimdbinsert
+export DATA_DIR="$APP_DIR/data_insert"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export SOURCE_DATA_DIR="$DATA_DIR"
+source config/local/setenv.sh
+
+make prepare-insertion
+make preflight-insertion
+make integration-insertion
+```
+
+For the bounded admin/load smoke:
+
+```sh
+export APP_DIR="$(cd .. && pwd)/meme-jdk17"
+export DB_NAME=ncimdbadminload
+export DATA_DIR="$APP_DIR/data_adminload"
+export INDEX_DIR="$DATA_DIR/indexes-jdk17"
+export SOURCE_DATA_DIR="$APP_DIR/data"
+export LVG_DIR="$APP_DIR/data_sample/lvg2020"
+source config/local/setenv.sh
+
+make prepare-admin
+make preflight-admin
+make integration-admin
 ```
 
 ## Run The Application With Spring Boot
@@ -296,16 +404,20 @@ source config/local/setenv.sh
 
 Verify the insertion profile prerequisites before running insertion tests. The
 insertion preflight expects the documented `ncimdbinsert` schema unless it is
-explicitly overridden:
-
-```sh
-make preflight-insertion
-```
+explicitly overridden. If this schema has not already been prepared, this
+preflight will fail because the required `NCIMTH/latest` and baseline
+`NCI/2016_04D` data are not present yet.
 
 Create, load, generate, and reindex the insertion fixture with one target:
 
 ```sh
 make prepare-insertion
+```
+
+Then verify the prepared fixture:
+
+```sh
+make preflight-insertion
 ```
 
 Direct Gradle equivalent:

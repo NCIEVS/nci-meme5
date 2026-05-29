@@ -60,7 +60,7 @@ public class AtomSearchIntegrationIT extends IntegrationUnitSupport {
     service.setMolecularActionFlag(false);
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueSearchToken("");
 
     // Create test atom with specific searchable values
     final Atom atom = new AtomJpa();

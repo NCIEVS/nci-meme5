@@ -2,13 +2,11 @@
 
 ## Purpose
 
-Initial Phase 1 inventory of the current MEME integration test surface. This
-document classifies the existing `*IT.java` classes by the environment they
-appear to require, using the package layout and
-`docs/database-load-and-test-instructions.md` as the starting point.
-
-This is a triage inventory, not a green-list. Each profile still needs to be run
-and annotated with actual pass/fail/skip results.
+Inventory of the current MEME integration test surface after the NM-306
+modernization pass. This document classifies the existing `*IT.java` classes by
+the environment they require and records the current smoke-baseline status from
+the locally verified profile commands in
+`docs/database-load-and-test-instructions.md`.
 
 ## Counts
 
@@ -43,7 +41,7 @@ method-level review before treating the whole class as disabled.
 
 | Class | Dataset | Server | Mutates DB | Status |
 | --- | --- | --- | --- | --- |
-| `com.wci.umls.server.test.jpa.FlywayMigrationIT` | disposable empty schemas | no | yes | passed 2026-05-28 |
+| `com.wci.umls.server.test.jpa.FlywayMigrationIT` | disposable empty schemas | no | yes | passed 2026-05-29 |
 
 Notes:
 
@@ -55,52 +53,53 @@ Notes:
   choose fresh disposable schemas before rerunning the same profile.
 - Preferred repeatable command is now `make integration-flyway-ephemeral`,
   which creates and drops generated disposable schemas for each run.
-- The ephemeral command passed locally on 2026-05-28.
+- The ephemeral command passed locally on 2026-05-29 and dropped its generated
+  schemas afterward.
 
 ### Sample JPA
 
 | Class | Dataset | Server | Mutates DB | Status |
 | --- | --- | --- | --- | --- |
-| `com.wci.umls.server.test.jpa.AddDemotionIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.ComponentStatsIT` | sample | no | likely | unverified |
-| `com.wci.umls.server.test.jpa.ContentDeepRelsIT` | sample | no | likely | unverified |
-| `com.wci.umls.server.test.jpa.ContentServiceAutocompleteIT` | sample | no | likely | unverified |
-| `com.wci.umls.server.test.jpa.ContentServiceFindRelationshipsIT` | sample | no | likely | unverified |
-| `com.wci.umls.server.test.jpa.ProjectJpaIT` | sample | no | likely | unverified |
-| `com.wci.umls.server.test.jpa.UpdateConceptStatusIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.algorithm.FailOnceAlgorithmIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.algorithm.MatrixInitializerAlgorithmIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.algorithm.QueryActionAlgorithmIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.algorithm.SemanticTypeResolverAlgorithmIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.algorithm.WaitAlgorithmIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.integrity.DT_I2IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.DT_I3BIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.DT_I3IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.DT_M1IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.DT_PN2IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_A4IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_BIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_CIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_E2IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_EIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_FIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_GIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_H1IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_H2IT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_IIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_MIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_NCIPNIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_SCUIIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.integrity.MGV_SDUIIT` | sample | no | no | unverified |
-| `com.wci.umls.server.test.jpa.search.AtomRelationshipSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.AtomSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.ChecklistSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.ConceptRelationshipSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.ConceptSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.ProjectSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.TrackingRecordSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.UserSearchIntegrationIT` | sample | no | yes | unverified |
-| `com.wci.umls.server.test.jpa.search.WorklistSearchIntegrationIT` | sample | no | yes | unverified |
+| `com.wci.umls.server.test.jpa.AddDemotionIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.ComponentStatsIT` | sample | no | likely | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.ContentDeepRelsIT` | sample | no | likely | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.ContentServiceAutocompleteIT` | sample | no | likely | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.ContentServiceFindRelationshipsIT` | sample | no | likely | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.ProjectJpaIT` | sample | no | likely | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.UpdateConceptStatusIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.algorithm.FailOnceAlgorithmIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.algorithm.MatrixInitializerAlgorithmIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.algorithm.QueryActionAlgorithmIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.algorithm.SemanticTypeResolverAlgorithmIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.algorithm.WaitAlgorithmIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.DT_I2IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.DT_I3BIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.DT_I3IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.DT_M1IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.DT_PN2IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_A4IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_BIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_CIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_E2IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_EIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_FIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_GIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_H1IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_H2IT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_IIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_MIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_NCIPNIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_SCUIIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.integrity.MGV_SDUIIT` | sample | no | no | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.AtomRelationshipSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.AtomSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.ChecklistSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.ConceptRelationshipSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.ConceptSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.ProjectSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.TrackingRecordSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.UserSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
+| `com.wci.umls.server.test.jpa.search.WorklistSearchIntegrationIT` | sample | no | yes | passed 2026-05-29 |
 
 Notes:
 
@@ -115,16 +114,14 @@ Notes:
   expected sample baseline.
 - The sample preflight now expects the documented `ncimdbmeta` schema by default
   and checks for core MTH/latest fixture rows before the full profile runs.
-- After refreshing `ncimdbmeta` on 2026-05-28, `make integration-sample`
-  passed locally with all 163 tests green.
+- After refreshing `ncimdbmeta`, `make integration-sample` passed locally on
+  2026-05-29 with all 163 tests green.
 
 ### NCI-META JPA
 
 | Class | Dataset | Server | Mutates DB | Status |
 | --- | --- | --- | --- | --- |
 | `com.wci.umls.server.test.algo.ComputePreferredNamesAlgorithmIT` | NCI-META | no | yes | passed 2026-05-28 |
-| `com.wci.umls.server.test.helpers.PfsParameterForComponentIT` | NCI-META | no | no | helper only; no `@Test` methods |
-| `com.wci.umls.server.test.helpers.PfsParameterForConceptIT` | NCI-META | no | no | helper only; no `@Test` methods |
 | `com.wci.umls.server.test.helpers.SearchHandlerIT` | NCI-META | no | likely | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.CloseReopenFactoryIT` | NCI-META | no | no | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.ComputePreferredNameHandlerIT` | NCI-META | no | likely | passed 2026-05-28 |
@@ -155,6 +152,11 @@ Notes:
 - `make prepare-ncimeta`, `make preflight-ncimeta`, and
   `make integration-ncimeta` passed locally on 2026-05-28. The JPA profile
   emitted 20 runnable suites and 37 tests.
+- `PfsParameterForComponentTestSupport` and
+  `PfsParameterForConceptTestSupport` remain helper classes in the test tree.
+  They were renamed away from the `*IT` convention and are no longer selected
+  by the NCI-META integration profile because they have no runnable `@Test`
+  methods.
 - Several tests exercise algorithm execution or identifier assignment and should
   be run against disposable or resettable NCI-META data.
 
@@ -273,18 +275,25 @@ Notes:
 
 - `docs/database-load-and-test-instructions.md` already notes the NCI-META REST
   editing classes are currently skipped.
+- The ignored editing subclasses now share base teardown helpers for copied
+  concept cleanup and guarded logout, but their behavior is still unverified
+  because they remain outside the runnable REST smoke profile.
+- The ignore annotations now document that these classes need a separate
+  NCI-META REST editing fixture/profile decision.
 - NM-306 should decide whether to repair, split, or keep these explicitly
   ignored.
 
-## Next Phase 1 Tasks
+## Remaining Follow-Up
 
-- Run each documented profile command with `--dry-run` where helpful to verify
-  selection patterns.
-- Add actual result columns after the first real execution:
-  `last-run`, `result`, `failure-category`, and `notes`.
-- Confirm whether every `base/unverified` class has test methods or is only a
-  superclass selected by naming convention.
-- Compare this classification with any team knowledge about which databases are
-  safe to mutate.
-- Update `docs/database-load-and-test-instructions.md` once a profile command is
-  confirmed green or intentionally partial.
+- Decide whether `UpdatePublishedAlgorithmIT` should be restored to the
+  insertion profile or kept dormant with a stronger source-level reason.
+- Keep the NCI-META REST editing classes explicitly ignored until there is a
+  separate fixture/profile decision for REST editing workflows.
+- Split the RF2, OWL, and ClaML admin-loader tests into heavier/manual profiles
+  before trying to make them part of an automated smoke baseline.
+- Investigate the secondary `SNOMEDCT_US/2014_09_01` unload path in
+  `RrfUmlsLoadAndUnloadIT`; it currently exposes a `root_terminologies`
+  foreign-key constraint issue after the primary MTH unload succeeds.
+- Treat the known-good command sequence in
+  `docs/database-load-and-test-instructions.md` as the NM-306 local baseline
+  before resuming behavior-sensitive NM-304 SpotBugs cleanup.

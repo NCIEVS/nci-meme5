@@ -110,6 +110,7 @@ public final class IntegrationTestPreflight {
 
       if (DIRECTORY_PROFILES.contains(profile)) {
         checkDirectories(properties, failures);
+        checkIndexIsolation(profile, properties, failures);
       }
       checkDatabase(properties, failures);
       checkProfileSchema(profile, properties, failures);
@@ -208,6 +209,40 @@ public final class IntegrationTestPreflight {
         failures.add("required directory does not exist: " + key + "="
             + dir.getAbsolutePath());
       }
+    }
+  }
+
+  /**
+   * Checks that Hibernate Search indexes are isolated with the fixture data.
+   *
+   * @param profile the profile
+   * @param properties the properties
+   * @param failures failures
+   */
+  private static void checkIndexIsolation(final String profile,
+    final Properties properties, final List<String> failures) {
+
+    final File dataDir = new File(property(properties, "data.dir"));
+    final File indexDir = new File(property(properties, "index.dir"));
+    try {
+      final File canonicalData = dataDir.getCanonicalFile();
+      final File canonicalIndex = indexDir.getCanonicalFile();
+      if (canonicalData.equals(canonicalIndex)) {
+        failures.add("profile " + profile
+            + " must not use data.dir itself as index.dir: "
+            + canonicalIndex.getAbsolutePath());
+      } else if (!Boolean.getBoolean(
+          "integration.it.allowExternalIndexDir")
+          && !isUnderDirectory(canonicalIndex, canonicalData)) {
+        failures.add("profile " + profile
+            + " should isolate index.dir under data.dir. Found index.dir="
+            + canonicalIndex.getAbsolutePath() + ", data.dir="
+            + canonicalData.getAbsolutePath()
+            + ". Override only deliberately with "
+            + "-Dintegration.it.allowExternalIndexDir=true.");
+      }
+    } catch (Exception e) {
+      failures.add("index isolation check failed: " + e.getMessage());
     }
   }
 
@@ -901,6 +936,25 @@ public final class IntegrationTestPreflight {
       return value.substring(0, value.length() - 1);
     }
     return value;
+  }
+
+  /**
+   * Indicates whether a path is contained by a directory.
+   *
+   * @param path the path
+   * @param directory the directory
+   * @return true if the path is under the directory
+   */
+  private static boolean isUnderDirectory(final File path,
+    final File directory) {
+    File current = path;
+    while (current != null) {
+      if (current.equals(directory)) {
+        return true;
+      }
+      current = current.getParentFile();
+    }
+    return false;
   }
 
   /**

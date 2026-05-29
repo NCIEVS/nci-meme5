@@ -29,7 +29,6 @@ import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.helpers.StringList;
@@ -100,7 +99,7 @@ public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
     project.setBranch(Branch.ROOT);
     project.setDescription("Test project");
     project.setFeedbackEmail("info@westcoastinformatics.com");
-    project.setName("Test Project " + new Date().getTime());
+    project.setName(uniqueTestName("Test Project"));
     project.setPublic(true);
     project.setTerminology(umlsTerminology);
     project.setVersion(umlsVersion);
@@ -1094,8 +1093,7 @@ public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
         Logger.getLogger(getClass()).warn("Could not remove project", e);
       }
     }
-    // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
   }
 
   /**
@@ -1107,7 +1105,7 @@ public class WorkflowServiceRestNormalUseIT extends WorkflowServiceRestIT {
   private Map<String, String> getSemanticTypeCategoryMap() throws Exception {
     final Map<String, String> map = new HashMap<>();
     final MetadataServiceRest service =
-        new MetadataClientRest(PropertyUtility.getProperties());
+        new MetadataClientRest(properties);
     final SemanticTypeList styList =
         service.getSemanticTypes(umlsTerminology, umlsVersion, authToken);
 

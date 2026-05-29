@@ -47,7 +47,7 @@ import com.wci.umls.server.model.content.Subset;
 import com.wci.umls.server.model.content.SubsetMember;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
 import com.wci.umls.server.rest.client.ProjectClientRest;
-import com.wci.umls.server.test.helpers.PfsParameterForComponentIT;
+import com.wci.umls.server.test.helpers.PfsParameterForComponentTestSupport;
 
 /**
  * Implementation of the "Content Service REST Normal Use" Test Cases.
@@ -514,7 +514,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
     assertEquals(19, searchResults.size());
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             ConceptJpa.class));
 
     // Simple query, sorted on name, descending order
@@ -530,7 +530,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
     assertEquals(19, searchResults.size());
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             ConceptJpa.class));
 
     // store the sorted results for later comparison
@@ -550,9 +550,9 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
     for (SearchResult sr : searchResults.getObjects()) {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             ConceptJpa.class));
-    assertTrue(PfsParameterForComponentIT.testPaging(searchResults,
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(searchResults,
             sortedResults, pfs));
 
     // Simple query, paged and sorted results, second page
@@ -569,9 +569,9 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
     for (SearchResult sr : searchResults.getObjects()) {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
-    assertTrue(PfsParameterForComponentIT.testPaging(searchResults,
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(searchResults,
             sortedResults, pfs));
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             ConceptJpa.class));
 
     // Simple query, query restriction
@@ -712,7 +712,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
     assertEquals(21, searchResults.size());
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             DescriptorJpa.class));
 
     // Simple query, sort by name descending
@@ -728,7 +728,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
     assertEquals(21, searchResults.size());
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             DescriptorJpa.class));
 
     // store the sorted results
@@ -748,9 +748,9 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
     for (SearchResult sr : searchResults.getObjects()) {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             DescriptorJpa.class));
-    assertTrue(PfsParameterForComponentIT.testPaging(searchResults,
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(searchResults,
             sortedResults, pfs));
 
     // Simple query, sort by name, page
@@ -767,9 +767,9 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
     for (SearchResult sr : searchResults.getObjects()) {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
-    assertTrue(PfsParameterForComponentIT.testPaging(searchResults,
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(searchResults,
             sortedResults, pfs));
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             DescriptorJpa.class));
 
     // More complex query using query restriction
@@ -912,7 +912,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
     assertEquals(21, searchResults.size());
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             CodeJpa.class));
 
     // Simple query, sort by name descending
@@ -928,7 +928,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
     assertEquals(21, searchResults.size());
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             CodeJpa.class));
 
     // store the sorted results
@@ -948,9 +948,9 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
     for (SearchResult sr : searchResults.getObjects()) {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
-    assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
             CodeJpa.class));
-    assertTrue(PfsParameterForComponentIT.testPaging(searchResults,
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(searchResults,
             sortedResults, pfs));
 
     // Simple query, sort by name, page
@@ -967,9 +967,9 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
     for (SearchResult sr : searchResults.getObjects()) {
       Logger.getLogger(getClass()).info("    Result: " + sr.getTerminologyId());
     }
-    // assertTrue(PfsParameterForComponentIT.testPaging(searchResults,
+    // assertTrue(PfsParameterForComponentTestSupport.testPaging(searchResults,
     // sortedResults, pfs));
-    // assertTrue(PfsParameterForComponentIT.testSort(searchResults, pfs,
+    // assertTrue(PfsParameterForComponentTestSupport.testSort(searchResults, pfs,
     // CodeJpa.class));
 
     // More complex query using query restriction
@@ -1372,8 +1372,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
    * @throws Exception the exception
    */
   @Test
-  @Ignore
-  // deep relationships now get calculated weekly, not loaded
+  @Ignore("Deep relationships are calculated weekly and not loaded by the sample fixture")
   public void testGetDeepRelationships() throws Exception {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
@@ -1399,7 +1398,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
             .info("    totalCount = " + list.getTotalCount());
     assertEquals(128, list.getTotalCount());
     assertEquals(10, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
 
     // deep rels call with sorting
     Logger.getLogger(getClass()).info("  Test deep relationships with paging");
@@ -1424,8 +1423,8 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
             .info("    totalCount = " + list.getTotalCount());
     assertEquals(128, list.getTotalCount());
     assertEquals(10, list.size());
-    // assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
-    // assertTrue(PfsParameterForComponentIT.testSort(list, pfs,
+    // assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
+    // assertTrue(PfsParameterForComponentTestSupport.testSort(list, pfs,
     // AbstractRelationship.class));
 
     // deep rels call with sorting and paging, page 2
@@ -1440,8 +1439,8 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
             .info("    totalCount = " + list.getTotalCount());
     assertEquals(128, list.getTotalCount());
     assertEquals(10, list.size());
-    // assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
-    // assertTrue(PfsParameterForComponentIT.testSort(list, pfs,
+    // assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
+    // assertTrue(PfsParameterForComponentTestSupport.testSort(list, pfs,
     // AbstractRelationship.class));
 
   }
@@ -1483,7 +1482,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + tree);
     }
     assertEquals(2, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
 
     // tree lookup, second page
     Logger.getLogger(getClass()).info("  Tree lookup, second page");
@@ -1498,7 +1497,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + tree);
     }
     assertEquals(2, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
 
     // tree lookup, first page and sort order
     Logger.getLogger(getClass()).info("  Tree lookup, first page");
@@ -1514,7 +1513,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + tree);
     }
     assertEquals(2, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
     // hard to verify sort order because it's based on the lowest-level node
     // information
 
@@ -1557,7 +1556,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + tree);
     }
     assertEquals(1, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
 
     // tree lookup, second page
     Logger.getLogger(getClass()).info("  Tree lookup, second page");
@@ -1572,7 +1571,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + tree);
     }
     assertEquals(1, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
 
     // tree lookup, first page and sort order
     Logger.getLogger(getClass()).info("  Tree lookup, first page");
@@ -1588,7 +1587,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
       Logger.getLogger(getClass()).info("    Result: " + tree);
     }
     assertEquals(1, list.size());
-    assertTrue(PfsParameterForComponentIT.testPaging(list, fullList, pfs));
+    assertTrue(PfsParameterForComponentTestSupport.testPaging(list, fullList, pfs));
     // hard to verify sort order because it's based on the lowest-level node
     // information
 
@@ -2109,7 +2108,7 @@ public class ContentServiceRestNormalUseIT extends ContentServiceRestIT {
   public void teardown() throws Exception {
 
     // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
 
   }
 

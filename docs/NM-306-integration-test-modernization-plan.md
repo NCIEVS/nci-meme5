@@ -325,6 +325,10 @@ Status:
   same generated schemas afterward.
 - `make integration-flyway-ephemeral` passed locally on 2026-05-28 and the
   generated schemas were dropped by the finalizer.
+- `make integration-flyway-ephemeral` was rerun on 2026-05-29 with generated
+  schemas `ncimdb_nm306_flyway_it_20260529155155` and
+  `ncimdb_nm306_flyway_base_it_20260529155155`; the smoke passed and both
+  schemas were dropped by the finalizer.
 - Flyway smoke passed locally on 2026-05-28 using the fixed-schema path:
   `make integration-flyway
   FLYWAY_IT_JDBC_URL=jdbc:mysql://127.0.0.1:3306/ncimdb_nm306_flyway_it
@@ -356,10 +360,9 @@ Status:
   fixture on 2026-05-28.
 - `make integration-ncimeta` passed locally on 2026-05-28 with 20 runnable
   suites and 37 tests.
-- `PfsParameterForComponentIT` and `PfsParameterForConceptIT` are named like
-  integration tests but currently contain helper methods only and emit no
-  runnable test cases; Phase 5 should rename, exclude, or convert them so the
-  profile inventory matches the executed suite.
+- The PFS helper classes that were previously named
+  `PfsParameterForComponentIT` and `PfsParameterForConceptIT` contained helper
+  methods only and emitted no runnable test cases.
 - REST preflight now guards against accidentally running the REST smoke against
   the default `ncimdb` schema: `rest` expects `ncimdbmeta` by default, reuses the
   sample fixture probes, and verifies the running server can return MTH/latest
@@ -392,6 +395,10 @@ Status:
   implementation instead of requiring a running webapp, and
   `PreInsertionAlgorithmIT` now turns editing/automation off for its
   normal-use precondition check and restores the original project flags.
+- Clarified the insertion runbook so `make prepare-insertion` comes before
+  `make preflight-insertion` for a fresh `ncimdbinsert` schema. The preflight
+  is intentionally strict and reports missing `NCI/2016_04D` data until the
+  disposable fixture has been rebuilt.
 - `UpdatePublishedAlgorithmIT` is listed in the source tree but still has its
   JUnit `@Test` annotation commented out, so it is not part of the current
   13-test insertion baseline. Phase 5 should either restore it deliberately or
@@ -419,20 +426,59 @@ Status:
   Removing secondary `SNOMEDCT_US/2014_09_01` after MTH removal exposes an
   existing `root_terminologies` foreign-key constraint failure and remains
   follow-up work.
+- Phase 5 cleanup is now implemented for the active smoke harnesses. REST base
+  fixtures use `RestIntegrationSupport` for common property loading,
+  `base.url` validation, viewer/admin credential validation, and guarded
+  logout.
+- REST subclasses that create short-lived cleanup/helper clients now reuse the
+  inherited REST fixture `properties` instead of rereading the property file.
+- NCI-META REST editing subclasses now use base helpers for copied-concept
+  cleanup and guarded logout instead of repeating ad hoc teardown client
+  construction.
+- REST and JPA search tests now use shared unique test-data helpers instead of
+  bare timestamp suffixes for names and identifiers.
+- Integration preflight now verifies that `index.dir` is isolated under the
+  profile's `data.dir`, unless deliberately overridden with
+  `-Dintegration.it.allowExternalIndexDir=true`.
+- Ignored REST fixtures/tests now carry explicit reasons.
+- The PFS helper classes have been renamed to
+  `PfsParameterForComponentTestSupport` and
+  `PfsParameterForConceptTestSupport`, and `nciMetaJpaIntegrationTest` no
+  longer selects either helper-only class.
+- The Phase 5 cleanup pass was verified on 2026-05-29 with
+  `./gradlew compileTestJava`, `./gradlew checkstyleTest`, Gradle dry-runs for
+  sample JPA, NCI-META JPA, REST, insertion, admin/load, and ephemeral Flyway
+  profiles, and `git diff --check`.
+- `docs/database-load-and-test-instructions.md` now contains the known-good
+  NM-306 command sequence for Flyway, sample JPA, NCI-META JPA, REST,
+  insertion, and bounded admin/load smoke profiles.
 
 ### Phase 5: Test Harness Modernization
 
 Once the smoke profiles are reproducible:
 
 - centralize common setup currently repeated across REST/JPA tests
+  - done for REST with `RestIntegrationSupport` and inherited `properties`
+    reuse in REST subclasses; JPA search now shares unique-name helpers
 - reduce static mutable fixture state where it causes order dependence
+  - addressed where the smoke harness was carrying avoidable static-style
+    setup or timestamp-only identifiers
 - prefer unique test data names/ids to avoid cross-test collisions
+  - done for REST-created names and JPA search-test suffixes
 - add deterministic cleanup helpers for rows created by tests
+  - done for copied concepts in the ignored NCI-META REST editing tests and
+    guarded REST logouts
 - isolate Hibernate Search index directories per profile or per disposable data
   directory
+  - enforced by preflight unless intentionally overridden
 - make REST client setup consistently use the env-backed `BASE_URL`
+  - done by validating `base.url` in the shared REST fixture loader
 - decide whether ignored REST/NCI-META classes should be repaired, split, or
   kept explicitly ignored with comments
+  - documented as explicit skips/fixtures; behavioral repair remains a later
+    profile decision
+- keep helper-only classes out of runnable integration profiles
+  - done for the two renamed PFS helper classes in the NCI-META profile
 
 JUnit modernization should be incremental. Keep JUnit 4 until the suite is
 stable, then consider a later migration to JUnit 5 tags for profile selection.

@@ -247,7 +247,7 @@ public class MetadataServiceRestNormalUseIT extends MetadataServiceRestIT{
   public void teardown() throws Exception {
 
     // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
   }
 
   /**

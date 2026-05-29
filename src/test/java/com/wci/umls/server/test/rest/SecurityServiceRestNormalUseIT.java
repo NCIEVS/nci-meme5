@@ -7,8 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Date;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -80,7 +78,7 @@ public class SecurityServiceRestNormalUseIT extends SecurityServiceRestIT {
     user.setApplicationRole(UserRole.VIEWER);
     user.setEmail("none");
     user.setName(badUserName);
-    user.setUserName(badUserName + new Date().getTime());
+    user.setUserName(uniqueTestToken(badUserName));
 
     // add the user and verify that hibernate id has been set
     user = service.addUser((UserJpa) user, adminAuthToken);

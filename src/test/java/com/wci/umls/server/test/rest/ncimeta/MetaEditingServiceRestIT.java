@@ -9,19 +9,22 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 
-import com.wci.umls.server.helpers.PropertyUtility;
+import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.rest.client.ContentClientRest;
 import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 import com.wci.umls.server.rest.client.MetaEditingClientRest;
 import com.wci.umls.server.rest.client.ProjectClientRest;
 import com.wci.umls.server.rest.client.SecurityClientRest;
-import com.wci.umls.server.test.helpers.IntegrationUnitSupport;
+import com.wci.umls.server.test.helpers.RestIntegrationSupport;
 
 /**
  * Integration test for REST content service.
  */
-public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
+@Ignore("Base NCI-META REST editing fixture; subclasses are explicit")
+public class MetaEditingServiceRestIT extends RestIntegrationSupport  {
 
   /** The service. */
   protected static ContentClientRest contentService;
@@ -62,7 +65,7 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
   public static void setupClass() throws Exception {
 
     // instantiate properties
-    properties = PropertyUtility.getProperties();
+    properties = loadRestProperties();
 
     // instantiate required services
     metaEditingService = new MetaEditingClientRest(properties);
@@ -71,28 +74,11 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
     contentService = new ContentClientRest(properties);
     securityService = new SecurityClientRest(properties);
 
-    // test run.config.ts has viewer user
-    testUser = properties.getProperty("viewer.user");
-    testPassword = properties.getProperty("viewer.password");
-
-    // test run.config.ts has admin user
-    adminUser = properties.getProperty("admin.user");
-    adminPassword = properties.getProperty("admin.password");
-
-    if (testUser == null || testUser.isEmpty()) {
-      throw new Exception("Test prerequisite: viewer.user must be specified");
-    }
-    if (testPassword == null || testPassword.isEmpty()) {
-      throw new Exception(
-              "Test prerequisite: viewer.password must be specified");
-    }
-    if (adminUser == null || adminUser.isEmpty()) {
-      throw new Exception("Test prerequisite: admin.user must be specified");
-    }
-    if (adminPassword == null || adminPassword.isEmpty()) {
-      throw new Exception("Test prerequisite: admin.password must be specified");
-    }
-
+    final RestCredentials credentials = restCredentials(properties);
+    testUser = credentials.getViewerUser();
+    testPassword = credentials.getViewerPassword();
+    adminUser = credentials.getAdminUser();
+    adminPassword = credentials.getAdminPassword();
 
   }
 
@@ -118,6 +104,35 @@ public class MetaEditingServiceRestIT extends IntegrationUnitSupport  {
   @After
   public void teardown() throws Exception {
     // do nothing
+  }
+
+  /**
+   * Remove a copied concept if it was created by a test.
+   *
+   * @param concept the concept
+   * @param project the project
+   * @param authToken the auth token
+   * @throws Exception the exception
+   */
+  protected void removeCopiedConcept(Concept concept, Project project,
+    String authToken) throws Exception {
+    if (concept == null || project == null || authToken == null) {
+      return;
+    }
+    if (contentService.getConcept(concept.getId(), project.getId(),
+        authToken) != null) {
+      testService.removeConcept(concept.getId(), true, authToken);
+    }
+  }
+
+  /**
+   * Logout only when authentication reached the point of creating a token.
+   *
+   * @param authToken the auth token
+   * @throws Exception the exception
+   */
+  protected void logoutIfAuthenticated(String authToken) throws Exception {
+    logoutIfAuthenticated(securityService, authToken);
   }
 
   /**

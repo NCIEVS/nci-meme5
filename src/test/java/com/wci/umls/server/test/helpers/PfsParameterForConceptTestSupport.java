@@ -22,7 +22,7 @@ import com.wci.umls.server.services.ContentService;
 /**
  * Helper testing class for PfsParameter concept tests.
  */
-public class PfsParameterForConceptIT {
+public class PfsParameterForConceptTestSupport {
 
   /**
    * Test sort.
@@ -98,7 +98,7 @@ public class PfsParameterForConceptIT {
 
         break;
       default:
-        Logger.getLogger(PfsParameterForConceptIT.class).info(
+        Logger.getLogger(PfsParameterForConceptTestSupport.class).info(
             "  Concept does not support testing sorting on field type "
                 + field.getType().getSimpleName());
         return false;

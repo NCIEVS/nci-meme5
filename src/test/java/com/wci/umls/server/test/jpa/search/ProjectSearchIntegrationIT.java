@@ -70,7 +70,7 @@ public class ProjectSearchIntegrationIT extends IntegrationUnitSupport {
     projectService.setLastModifiedBy("admin");
 
     // Generate unique suffix for this test run
-    uniqueSuffix = String.valueOf(System.currentTimeMillis());
+    uniqueSuffix = uniqueSearchToken("");
 
     // Create test user first (needed for userRoleMap)
     securityService.setTransactionPerOperation(false);

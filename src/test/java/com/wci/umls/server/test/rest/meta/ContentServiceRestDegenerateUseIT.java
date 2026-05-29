@@ -1447,7 +1447,7 @@ public class ContentServiceRestDegenerateUseIT extends ContentServiceRestIT {
   public void teardown() throws Exception {
 
     // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(securityService, authToken);
   }
 
   /**

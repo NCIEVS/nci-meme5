@@ -31,7 +31,6 @@ import org.junit.Test;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.content.RelationshipList;
 import com.wci.umls.server.jpa.model.ProjectJpa;
@@ -52,12 +51,11 @@ import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.Relationship;
 import com.wci.umls.server.model.content.SemanticTypeComponent;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
-import com.wci.umls.server.rest.client.IntegrationTestClientRest;
 
 /**
  * Implementation of the "MetaEditing Service REST Normal Use" Test Cases.
  */
-@Ignore
+@Ignore("NCI-META REST editing tests need a separate fixture/profile decision")
 public class MetaEditingServiceRestNormalUseIT
     extends MetaEditingServiceRestIT {
 
@@ -3408,30 +3406,10 @@ public class MetaEditingServiceRestNormalUseIT
   @Override
   @After
   public void teardown() throws Exception {
-
-    final IntegrationTestClientRest cleanupService =
-            new IntegrationTestClientRest(PropertyUtility.getProperties());
-
-    // Delete copies of concepts created during this test
-    if (concept != null && contentService.getConcept(concept.getId(),
-            project.getId(), authToken) != null) {
-      cleanupService.removeConcept(concept.getId(), true, authToken);
-    }
-
-    if (concept2 != null && contentService.getConcept(concept2.getId(),
-            project.getId(), authToken) != null) {
-      cleanupService.removeConcept(concept2.getId(), true, authToken);
-    }
-
-    if (concept3 != null && contentService.getConcept(concept3.getId(),
-            project.getId(), authToken) != null) {
-      cleanupService.removeConcept(concept3.getId(), true, authToken);
-    }
-
-    if (concept4 != null && contentService.getConcept(concept4.getId(),
-            project.getId(), authToken) != null) {
-      cleanupService.removeConcept(concept4.getId(), true, authToken);
-    }
+    removeCopiedConcept(concept, project, authToken);
+    removeCopiedConcept(concept2, project, authToken);
+    removeCopiedConcept(concept3, project, authToken);
+    removeCopiedConcept(concept4, project, authToken);
 
     // Turn the standard validation checks back on
     final List<String> validationChecks = project.getValidationChecks();
@@ -3443,8 +3421,7 @@ public class MetaEditingServiceRestNormalUseIT
 
     projectService.updateProject((ProjectJpa) project, authToken);
 
-    // logout
-    securityService.logout(authToken);
+    logoutIfAuthenticated(authToken);
 
   }
 

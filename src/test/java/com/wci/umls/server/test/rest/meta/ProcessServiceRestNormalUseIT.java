@@ -94,7 +94,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     ProcessConfigJpa processConfigJpa = new ProcessConfigJpa();
 
     processConfigJpa.setDescription("Sample");
-    processConfigJpa.setName("Sample " + new Date().getTime());
+    processConfigJpa.setName(uniqueTestName("Sample"));
     processConfigJpa.setProject(project);
     processConfigJpa.setTerminology(umlsTerminology);
     processConfigJpa.setVersion(umlsVersion);
@@ -179,7 +179,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     ProcessConfigJpa processConfig1 = new ProcessConfigJpa();
 
     processConfig1.setDescription("Sample");
-    processConfig1.setName("Sample " + new Date().getTime());
+    processConfig1.setName(uniqueTestName("Sample"));
     processConfig1.setProject(project);
     processConfig1.setTerminology(umlsTerminology);
     processConfig1.setVersion(umlsVersion);
@@ -192,7 +192,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Update that newly added processConfig
     Logger.getLogger(getClass()).info("  Update processConfig");
-    addedProcessConfig1.setName("Sample 2 " + new Date().getTime());
+    addedProcessConfig1.setName(uniqueTestName("Sample 2"));
     processService.updateProcessConfig(project.getId(), addedProcessConfig1,
             authToken);
     ProcessConfig updatedProcessConfig1 = processService.getProcessConfig(
@@ -205,7 +205,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     ProcessConfigJpa processConfig2 = new ProcessConfigJpa();
 
     processConfig2.setDescription("Sample 2");
-    processConfig2.setName("Sample 2 " + new Date().getTime());
+    processConfig2.setName(uniqueTestName("Sample 2"));
     processConfig2.setProject(project);
     processConfig2.setTerminology(umlsTerminology);
     processConfig2.setVersion(umlsVersion);
@@ -264,7 +264,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     AlgorithmConfigJpa algorithmConfig1 = new AlgorithmConfigJpa();
 
     algorithmConfig1.setDescription("Sample");
-    algorithmConfig1.setName("Sample " + new Date().getTime());
+    algorithmConfig1.setName(uniqueTestName("Sample"));
     algorithmConfig1.setProject(project);
     algorithmConfig1.setProcess(processConfig);
     algorithmConfig1.setAlgorithmKey("WAIT");
@@ -277,7 +277,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Update that newly added algorithmConfig
     Logger.getLogger(getClass()).info("  Update algorithmConfig");
-    addedAlgorithmConfig1.setName("Sample 2 " + new Date().getTime());
+    addedAlgorithmConfig1.setName(uniqueTestName("Sample 2"));
     processService.updateAlgorithmConfig(project.getId(), processConfig.getId(),
             addedAlgorithmConfig1, authToken);
     AlgorithmConfig updatedAlgorithmConfig1 = processService.getAlgorithmConfig(
@@ -290,7 +290,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     AlgorithmConfigJpa algorithmConfig2 = new AlgorithmConfigJpa();
 
     algorithmConfig2.setDescription("Sample 2");
-    algorithmConfig2.setName("Sample 2 " + new Date().getTime());
+    algorithmConfig2.setName(uniqueTestName("Sample 2"));
     algorithmConfig2.setProject(project);
     algorithmConfig2.setProcess(processConfig);
     algorithmConfig2.setAlgorithmKey("WAIT");
@@ -366,7 +366,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
     processConfig = createWaitProcessConfig(
-        "Execute Test Process " + new Date().getTime(), 5, 1);
+        uniqueTestName("Execute Test Process"), 5, 1);
     assertNotNull(processConfig);
 
     // Execute the process
@@ -427,7 +427,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig = new ProcessConfigJpa();
     processConfig.setDescription("Process for testing use - short");
     processConfig.setFeedbackEmail(null);
-    processConfig.setName("Short Test Process");
+    processConfig.setName(uniqueTestName("Short Test Process"));
     processConfig.setProject(project);
     processConfig.setTerminology(umlsTerminology);
     processConfig.setVersion(umlsVersion);
@@ -441,7 +441,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setAlgorithmKey("WAIT");
     algorithmConfig.setDescription("Algorithm for testing use");
     algorithmConfig.setEnabled(true);
-    algorithmConfig.setName("Test WAIT algorithm - Short");
+    algorithmConfig.setName(uniqueTestName("Test WAIT algorithm - Short"));
     algorithmConfig.setProcess(processConfig);
     algorithmConfig.setProject(project);
     algorithmConfig.setTimestamp(new Date());
@@ -465,7 +465,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig2.setAlgorithmKey("WAIT");
     algorithmConfig2.setDescription("Algorithm for testing use");
     algorithmConfig2.setEnabled(true);
-    algorithmConfig2.setName("Test WAIT algorithm - Short2");
+    algorithmConfig2.setName(uniqueTestName("Test WAIT algorithm - Short2"));
     algorithmConfig2.setProcess(processConfig);
     algorithmConfig2.setProject(project);
     algorithmConfig2.setTimestamp(new Date());
@@ -518,7 +518,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
 
     // Start another process while this one is going in the background
     processConfig2 = createWaitProcessConfig(
-        "Concurrent Test Process " + new Date().getTime(), 5, 1);
+        uniqueTestName("Concurrent Test Process"), 5, 1);
     assertNotNull(processConfig2);
 
     // Execute the process
@@ -559,7 +559,8 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig2 = new ProcessConfigJpa();
     processConfig2.setDescription("Process for testing use - long");
     processConfig2.setFeedbackEmail(null);
-    processConfig2.setName("Long Test Process for Cancel and Restart");
+    processConfig2.setName(uniqueTestName(
+        "Long Test Process for Cancel and Restart"));
     processConfig2.setProject(project);
     processConfig2.setTerminology(umlsTerminology);
     processConfig2.setVersion(umlsVersion);
@@ -573,7 +574,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setAlgorithmKey("WAIT");
     algorithmConfig.setDescription("Algorithm for testing use");
     algorithmConfig.setEnabled(true);
-    algorithmConfig.setName("Test WAIT algorithm - Short");
+    algorithmConfig.setName(uniqueTestName("Test WAIT algorithm - Short"));
     algorithmConfig.setProcess(processConfig2);
     algorithmConfig.setProject(project);
     algorithmConfig.setTimestamp(new Date());
@@ -598,7 +599,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig2.setAlgorithmKey("WAIT");
     algorithmConfig2.setDescription("Algorithm for testing use");
     algorithmConfig2.setEnabled(true);
-    algorithmConfig2.setName("Test WAIT algorithm - Short2");
+    algorithmConfig2.setName(uniqueTestName("Test WAIT algorithm - Short2"));
     algorithmConfig2.setProcess(processConfig2);
     algorithmConfig2.setProject(project);
     algorithmConfig2.setTimestamp(new Date());
@@ -707,7 +708,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
     processConfig = createWaitProcessConfig(
-        "Progress Test Process " + new Date().getTime(), 5, 1);
+        uniqueTestName("Progress Test Process"), 5, 1);
     assertNotNull(processConfig);
 
     // Execute the process
@@ -787,7 +788,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig = new ProcessConfigJpa();
     processConfig.setDescription("Process for testing failOnce");
     processConfig.setFeedbackEmail("rwood@westcoastinformatics.com");
-    processConfig.setName("FailOnce Test Process");
+    processConfig.setName(uniqueTestName("FailOnce Test Process"));
     processConfig.setProject(project);
     processConfig.setTerminology(umlsTerminology);
     processConfig.setVersion(umlsVersion);
@@ -801,7 +802,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setAlgorithmKey("FAILONCE");
     algorithmConfig.setDescription("Algorithm for testing FailOnce");
     algorithmConfig.setEnabled(true);
-    algorithmConfig.setName("Test FAILONCE algorithm");
+    algorithmConfig.setName(uniqueTestName("Test FAILONCE algorithm"));
     algorithmConfig.setProcess(processConfig);
     algorithmConfig.setProject(project);
     algorithmConfig.setTimestamp(new Date());
@@ -879,7 +880,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     processConfig = new ProcessConfigJpa();
     processConfig.setDescription("Process for testing use - short");
     processConfig.setFeedbackEmail(null);
-    processConfig.setName("Short Test Process");
+    processConfig.setName(uniqueTestName("Short Test Process"));
     processConfig.setProject(project);
     processConfig.setTerminology(umlsTerminology);
     processConfig.setVersion(umlsVersion);
@@ -893,7 +894,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig.setAlgorithmKey("WAIT");
     algorithmConfig.setDescription("Algorithm for testing use");
     algorithmConfig.setEnabled(true);
-    algorithmConfig.setName("Test WAIT algorithm - Short");
+    algorithmConfig.setName(uniqueTestName("Test WAIT algorithm - Short"));
     algorithmConfig.setProcess(processConfig);
     algorithmConfig.setProject(project);
     algorithmConfig.setTimestamp(new Date());
@@ -917,7 +918,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     algorithmConfig2.setAlgorithmKey("WAIT");
     algorithmConfig2.setDescription("Algorithm for testing use");
     algorithmConfig2.setEnabled(true);
-    algorithmConfig2.setName("Test WAIT algorithm - Short2");
+    algorithmConfig2.setName(uniqueTestName("Test WAIT algorithm - Short2"));
     algorithmConfig2.setProcess(processConfig);
     algorithmConfig2.setProject(project);
     algorithmConfig2.setTimestamp(new Date());
@@ -986,24 +987,47 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
   public void teardown() throws Exception {
 
     // Teardown any objects created during testing
-    if (algorithmConfig != null) {
-      processService.removeAlgorithmConfig(project.getId(),
-              algorithmConfig.getId(), authToken);
+    removeAlgorithmConfigIfPresent(algorithmConfig);
+    removeAlgorithmConfigIfPresent(algorithmConfig2);
+    removeProcessConfigIfPresent(processConfig);
+    removeProcessConfigIfPresent(processConfig2);
+    logoutIfAuthenticated(securityService, authToken);
+  }
+
+  /**
+   * Remove an algorithm config if the test left it behind.
+   *
+   * @param config the config
+   */
+  private void removeAlgorithmConfigIfPresent(AlgorithmConfig config) {
+    if (config == null || config.getId() == null || project == null
+        || authToken == null) {
+      return;
     }
-    if (algorithmConfig2 != null) {
-      processService.removeAlgorithmConfig(project.getId(),
-              algorithmConfig2.getId(), authToken);
+    try {
+      processService.removeAlgorithmConfig(project.getId(), config.getId(),
+          authToken);
+    } catch (Exception e) {
+      Logger.getLogger(getClass()).warn("Could not remove algorithm config", e);
     }
-    if (processConfig != null) {
-      processService.removeProcessConfig(project.getId(), processConfig.getId(),
-              true, authToken);
+  }
+
+  /**
+   * Remove a process config if the test left it behind.
+   *
+   * @param config the config
+   */
+  private void removeProcessConfigIfPresent(ProcessConfig config) {
+    if (config == null || config.getId() == null || project == null
+        || authToken == null) {
+      return;
     }
-    if (processConfig2 != null && processConfig2.getId() != null) {
-      processService.removeProcessConfig(project.getId(),
-              processConfig2.getId(), true, authToken);
+    try {
+      processService.removeProcessConfig(project.getId(), config.getId(), true,
+          authToken);
+    } catch (Exception e) {
+      Logger.getLogger(getClass()).warn("Could not remove process config", e);
     }
-    // logout
-    securityService.logout(authToken);
   }
 
   /**
@@ -1016,7 +1040,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
     Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
 
     processConfig = createWaitProcessConfig(
-        "Remove Process Execution Test " + new Date().getTime(), 1, 1);
+        uniqueTestName("Remove Process Execution Test"), 1, 1);
     assertNotNull(processConfig);
 
     // Execute the process
@@ -1058,7 +1082,7 @@ public class ProcessServiceRestNormalUseIT extends ProcessServiceRestIT {
   // 17800L, true, authToken);
   //
   // // logout
-  // securityService.logout(authToken);
+  // logoutIfAuthenticated(securityService, authToken);
   // }
 
 }

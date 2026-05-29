@@ -8,8 +8,6 @@ package com.wci.umls.server.test.rest.meta;
 
 import static org.junit.Assert.fail;
 
-import java.util.Date;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -57,8 +55,8 @@ public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
     // Attempt to add a project with viewer authorization level
     ProjectJpa project = new ProjectJpa();
 
-    project.setDescription("Sample " + new Date().getTime());
-    project.setName("Sample");
+    project.setDescription(uniqueTestName("Sample"));
+    project.setName(uniqueTestName("Sample"));
     project.setTerminology("MTH");
     project.setVersion("latest");
     project.setLanguage("ENG");
@@ -104,9 +102,8 @@ public class ProjectServiceRestRoleCheckIT extends ProjectServiceRestIT {
   @After
   public void teardown() throws Exception {
 
-    // logout
-    securityService.logout(viewerAuthToken);
-    securityService.logout(adminAuthToken);
+    logoutIfAuthenticated(securityService, viewerAuthToken);
+    logoutIfAuthenticated(securityService, adminAuthToken);
   }
 
 }

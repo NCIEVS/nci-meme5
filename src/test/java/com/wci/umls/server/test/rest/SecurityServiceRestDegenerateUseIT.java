@@ -7,8 +7,6 @@ import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Date;
-
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
@@ -82,7 +80,7 @@ public class SecurityServiceRestDegenerateUseIT extends
     User user = new UserJpa();
     user.setApplicationRole(UserRole.ADMINISTRATOR);
     user.setName("Bad User");
-    user.setUserName(badUserName + new Date().getTime());
+    user.setUserName(uniqueTestToken(badUserName));
     user.setEmail("baduser@example.com");
 
     // PROCEDURE 1
@@ -107,8 +105,7 @@ public class SecurityServiceRestDegenerateUseIT extends
       // construct the user
       user.setName(properties.getProperty("bad.user"));
       user.setEmail("no email");
-      user.setUserName(properties.getProperty("bad.user")
-          + new Date().getTime());
+      user.setUserName(uniqueTestToken(properties.getProperty("bad.user")));
       user.setApplicationRole(UserRole.VIEWER);
 
       // set the current iterated field to null and add it
@@ -206,8 +203,7 @@ public class SecurityServiceRestDegenerateUseIT extends
     // // construct the user user = new UserJpa();
     // user.setName(properties.getProperty("bad.user"));
     // user.setEmail("no email");
-    // user.setUserName(properties.getProperty("bad.user")
-    // + new Date().getTime());
+    // user.setUserName(uniqueTestToken(properties.getProperty("bad.user")));
     // user.setApplicationRole(UserRole.VIEWER);
     //
     // // add the user
@@ -272,7 +268,7 @@ public class SecurityServiceRestDegenerateUseIT extends
    */
   @After
   public void teardown() throws Exception {
-    // n/a
+    logoutIfAuthenticated(service, authToken);
   }
 
 }

@@ -205,6 +205,7 @@ source config/local/setenv.sh
 Fresh database loading, sample data, NCI-META data, and integration test
 recipes are documented in
 [docs/database-load-and-test-instructions.md](docs/database-load-and-test-instructions.md).
+That runbook also contains the known-good NM-306 smoke-test command sequence.
 The Flyway rollout details are in
 [docs/NM-280-flyway-migration-plan.md](docs/NM-280-flyway-migration-plan.md).
 
@@ -215,6 +216,7 @@ The Flyway rollout details are in
 - [Flyway migration plan](docs/NM-280-flyway-migration-plan.md)
 - [Spring Boot integration plan](docs/NM-300-spring-boot-integration-plan.md)
 - [Swagger upgrade plan](docs/NM-303-swagger-upgrade-plan.md)
+- [Integration test modernization plan](docs/NM-306-integration-test-modernization-plan.md)
 - [Database load and test instructions](docs/database-load-and-test-instructions.md)
 
 ## License

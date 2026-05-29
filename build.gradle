@@ -538,8 +538,6 @@ registerIntegrationTestProfile('nciMetaJpaIntegrationTest',
         'com.wci.umls.server.test.jpa.algorithm.MapSetLoaderAlgorithmIT',
         'com.wci.umls.server.test.jpa.algorithm.SubsetLoaderAlgorithmIT',
         'com.wci.umls.server.test.algo.ComputePreferredNamesAlgorithmIT',
-        'com.wci.umls.server.test.helpers.PfsParameterForComponentIT',
-        'com.wci.umls.server.test.helpers.PfsParameterForConceptIT',
         'com.wci.umls.server.test.helpers.SearchHandlerIT'
 ])
 
