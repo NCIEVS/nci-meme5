@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.invert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -153,7 +154,9 @@ public class ValidateAttributesAlgorithm
     ValidationResult result = new ValidationResultJpa();
 
     // read in file classes_atoms.src
-    BufferedReader in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "classes_atoms.src")));
+    BufferedReader in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "classes_atoms.src"),
+        StandardCharsets.UTF_8));
     String fileLine = "";
     Set<String> sauis = new HashSet<>();
     Set<String> scuis = new HashSet<>();
@@ -170,7 +173,8 @@ public class ValidateAttributesAlgorithm
     
     // read in file attributes.src
     in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "attributes.src")));
+        new File(srcFullPath + File.separator + "attributes.src"),
+        StandardCharsets.UTF_8));
     fileLine = "";
 
     Set<String> uniqueAtuiFields = new HashSet<>();

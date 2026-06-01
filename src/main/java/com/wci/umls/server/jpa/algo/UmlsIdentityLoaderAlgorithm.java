@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Properties;
 
@@ -68,7 +69,8 @@ public class UmlsIdentityLoaderAlgorithm
         logInfo("  Load attribute identity");
 
         final BufferedReader in = new BufferedReader(
-            new FileReader(new File(getInputPath(), "attributeIdentity.txt")));
+            new FileReader(new File(getInputPath(), "attributeIdentity.txt"),
+                StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -105,7 +107,8 @@ public class UmlsIdentityLoaderAlgorithm
         logInfo("  Load semanticType identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "semanticTypeComponentIdentity.txt")));
+            new File(getInputPath(), "semanticTypeComponentIdentity.txt"),
+            StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -138,7 +141,8 @@ public class UmlsIdentityLoaderAlgorithm
         logInfo("  Load atom identity");
 
         final BufferedReader in = new BufferedReader(
-            new FileReader(new File(getInputPath(), "atomIdentity.txt")));
+            new FileReader(new File(getInputPath(), "atomIdentity.txt"),
+                StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -174,7 +178,8 @@ public class UmlsIdentityLoaderAlgorithm
         logInfo("  Load string identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "stringClassIdentity.txt")));
+            new File(getInputPath(), "stringClassIdentity.txt"),
+            StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -205,7 +210,8 @@ public class UmlsIdentityLoaderAlgorithm
         logInfo("  Load lexicalClass identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "lexicalClassIdentity.txt")));
+            new File(getInputPath(), "lexicalClassIdentity.txt"),
+            StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -236,7 +242,8 @@ public class UmlsIdentityLoaderAlgorithm
         logInfo("  Load relationship identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "relationshipIdentity.txt")));
+            new File(getInputPath(), "relationshipIdentity.txt"),
+            StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {

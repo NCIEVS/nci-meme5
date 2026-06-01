@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.services.handlers;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,17 +61,17 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
 
     // Initialize acronyms map
     if (p.containsKey("acronymsFile")) {
-      final BufferedReader in =
-          new BufferedReader(new FileReader(new File(p.getProperty("acronymsFile"))));
-      String line;
-      while ((line = in.readLine()) != null) {
-        String[] tokens = FieldedStringTokenizer.split(line, "\t");
-        if (!acronymExpansionMap.containsKey(tokens[0])) {
-          acronymExpansionMap.put(tokens[0], new HashSet<String>(2));
+      try (BufferedReader in = new BufferedReader(new FileReader(
+          new File(p.getProperty("acronymsFile")), StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = in.readLine()) != null) {
+          final String[] tokens = FieldedStringTokenizer.split(line, "\t");
+          if (!acronymExpansionMap.containsKey(tokens[0])) {
+            acronymExpansionMap.put(tokens[0], new HashSet<String>(2));
+          }
+          acronymExpansionMap.get(tokens[0]).add(tokens[1]);
         }
-        acronymExpansionMap.get(tokens[0]).add(tokens[1]);
       }
-      in.close();
     } else {
       throw new Exception("Required property acronymsFile not present.");
     }

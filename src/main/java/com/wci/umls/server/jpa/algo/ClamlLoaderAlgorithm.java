@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PushbackInputStream;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -122,7 +123,8 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
   /* see superclass */
   @Override
   public String getFileVersion() throws Exception {
-    BufferedReader br = new BufferedReader(new FileReader(getInputPath()));
+    BufferedReader br = new BufferedReader(
+        new FileReader(getInputPath(), StandardCharsets.UTF_8));
     String line = null;
     String releaseVersion = null;
     while ((line = br.readLine()) != null) {
@@ -186,7 +188,7 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
       File file = new File(getInputPath());
       fis = new FileInputStream(file);
       inputStream = checkForUtf8BOM(fis);
-      reader = new InputStreamReader(inputStream, "UTF-8");
+      reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
       InputSource is = new InputSource(reader);
       is.setEncoding("UTF-8");
       saxParser.parse(is, handler);
@@ -1761,7 +1763,8 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
    * @throws Exception the exception
    */
   public void findLanguage() throws Exception {
-    BufferedReader br = new BufferedReader(new FileReader(getInputPath()));
+    BufferedReader br = new BufferedReader(
+        new FileReader(getInputPath(), StandardCharsets.UTF_8));
     String line = null;
     while ((line = br.readLine()) != null) {
       // <Meta name="lang" value="en"/>

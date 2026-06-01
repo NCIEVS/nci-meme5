@@ -16,6 +16,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -121,10 +122,14 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     }
     logInfo("stats dir:" + statsDir);
     
-    relStatsWriter = new BufferedWriter(new FileWriter(new File(statsDir, "relStats.txt")));
-    ttyStatsWriter = new BufferedWriter(new FileWriter(new File(statsDir, "ttyStats.txt")));
-    styStatsWriter = new BufferedWriter(new FileWriter(new File(statsDir, "styStats.txt")));
-    attributeStatsWriter = new BufferedWriter(new FileWriter(new File(statsDir, "attributeStats.txt")));
+    relStatsWriter = new BufferedWriter(new FileWriter(
+        new File(statsDir, "relStats.txt"), StandardCharsets.UTF_8));
+    ttyStatsWriter = new BufferedWriter(new FileWriter(
+        new File(statsDir, "ttyStats.txt"), StandardCharsets.UTF_8));
+    styStatsWriter = new BufferedWriter(new FileWriter(
+        new File(statsDir, "styStats.txt"), StandardCharsets.UTF_8));
+    attributeStatsWriter = new BufferedWriter(new FileWriter(
+        new File(statsDir, "attributeStats.txt"), StandardCharsets.UTF_8));
    
     // create source overlap statistics
     createMRCONSOSourceOverlapStatistics();
@@ -153,8 +158,10 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     }
     logInfo("report dir:" + reportDir);
     
-    countsWriter = new BufferedWriter(new FileWriter(new File(reportDir, "counts.txt")));
-    sourceCountsWriter = new BufferedWriter(new FileWriter(new File(reportDir, "sourceCounts.txt")));
+    countsWriter = new BufferedWriter(new FileWriter(
+        new File(reportDir, "counts.txt"), StandardCharsets.UTF_8));
+    sourceCountsWriter = new BufferedWriter(new FileWriter(
+        new File(reportDir, "sourceCounts.txt"), StandardCharsets.UTF_8));
     
     // create counts reports
     createCountReports();
@@ -191,7 +198,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     final String attributesFile = pathMeta + File.separator + "MRSAT.RRF";
     BufferedReader attributes = null;
     try {
-      attributes = new BufferedReader(new FileReader(attributesFile));
+      attributes = new BufferedReader(
+          new FileReader(attributesFile, StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + attributesFile);
     }
@@ -236,7 +244,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
 	    final String sourcesFile = pathMeta + File.separator + "MRSAB.RRF";
 	    BufferedReader sources = null;
 	    try {
-	      sources = new BufferedReader(new FileReader(sourcesFile));
+	      sources = new BufferedReader(
+	          new FileReader(sourcesFile, StandardCharsets.UTF_8));
 	    } catch (Exception e) {
 	      throw new Exception("File not found: " + sourcesFile);
 	    }
@@ -285,7 +294,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     final String relationshipsFile = pathMeta + File.separator + "MRREL.RRF";
     BufferedReader relationships = null;
     try {
-      relationships = new BufferedReader(new FileReader(relationshipsFile));
+      relationships = new BufferedReader(
+          new FileReader(relationshipsFile, StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + relationshipsFile);
     }
@@ -335,7 +345,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     final String atomsFile = pathMeta + File.separator + "MRCONSO.RRF";
     BufferedReader atoms = null;
     try {
-      atoms = new BufferedReader(new FileReader(atomsFile));
+      atoms = new BufferedReader(
+          new FileReader(atomsFile, StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + atomsFile);
     }
@@ -437,7 +448,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
       logInfo("src dir:" + srcDir);
       
       BufferedWriter overlapStatsWriter =
-          new BufferedWriter(new FileWriter(new File(srcDir, entry.getKey() + ".txt")));
+          new BufferedWriter(new FileWriter(
+              new File(srcDir, entry.getKey() + ".txt"), StandardCharsets.UTF_8));
 
       List<Pair<String, Integer>> sortedResults = entry.getValue().stream()
           .sorted(reverseOrder(Map.Entry.comparingByValue()))
@@ -492,7 +504,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     final String atomsFile = pathMeta + File.separator + "MRCONSO.RRF";
     BufferedReader atoms = null;
     try {
-      atoms = new BufferedReader(new FileReader(atomsFile));
+      atoms = new BufferedReader(
+          new FileReader(atomsFile, StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + atomsFile);
     }
@@ -575,7 +588,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     final String stysFile = pathMeta + File.separator + "MRSTY.RRF";
     BufferedReader stys = null;
     try {
-      stys = new BufferedReader(new FileReader(stysFile));
+      stys = new BufferedReader(
+          new FileReader(stysFile, StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + stysFile);
     }

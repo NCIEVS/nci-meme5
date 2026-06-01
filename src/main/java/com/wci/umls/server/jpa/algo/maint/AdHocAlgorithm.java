@@ -12,6 +12,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -5132,7 +5133,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	           final String fields[] = new String[3];
 
 	           try (BufferedReader sources =
-	               new BufferedReader(new FileReader(sourcesFile))) {
+	               new BufferedReader(new FileReader(sourcesFile,
+	                   StandardCharsets.UTF_8))) {
 	             while ((line = sources.readLine()) != null) {
 
 	               FieldedStringTokenizer.split(line, "\t", 3, fields);
@@ -5163,7 +5165,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
              ConfigUtility.ensureDirectoryExists(maintDir);
            }
            logInfo("maint dir:" + maintDir);
-           BufferedWriter out = new BufferedWriter(new FileWriter(new File(maintDir, "dsstmp.txt")));
+           BufferedWriter out = new BufferedWriter(new FileWriter(
+               new File(maintDir, "dsstmp.txt"), StandardCharsets.UTF_8));
            
            
            for (String code : ncimCodesWithMeddra) {

@@ -12,6 +12,7 @@ package com.wci.umls.server.jpa.algo.insert;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -96,7 +97,9 @@ public class CreateDeepAncestorBequeathalAlgorithm extends AbstractInsertMaintRe
         ConfigUtility.ensureDirectoryExists(maintDir);
       }
       logInfo("maint dir:" + maintDir);
-      BufferedWriter out = new BufferedWriter(new FileWriter(new File(maintDir, "bequeathal.deep.ancestor.relationships.src")));
+      BufferedWriter out = new BufferedWriter(new FileWriter(
+          new File(maintDir, "bequeathal.deep.ancestor.relationships.src"),
+          StandardCharsets.UTF_8));
       
       Query query = getEntityManager().createNativeQuery(
           "SELECT   DISTINCT c.id conceptId FROM   concepts c,   "

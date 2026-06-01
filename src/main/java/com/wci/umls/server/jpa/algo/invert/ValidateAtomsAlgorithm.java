@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.invert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -134,7 +135,9 @@ public class ValidateAtomsAlgorithm extends AbstractInsertMaintReleaseAlgorithm 
     setMolecularActionFlag(false);
     
     // read in file termgroups.src
-    BufferedReader in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "termgroups.src")));
+    BufferedReader in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "termgroups.src"),
+        StandardCharsets.UTF_8));
     String fileLine = "";
     Map<String, String> termgroupToSuppressMap = new HashMap<>();
     
@@ -146,7 +149,9 @@ public class ValidateAtomsAlgorithm extends AbstractInsertMaintReleaseAlgorithm 
     in.close();
     
     // read in file sources.src
-    in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "sources.src")));
+    in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "sources.src"),
+        StandardCharsets.UTF_8));
     Map<String, String> sourcesToLatMap = new HashMap<>();
     Set<String> rootSources = new HashSet<>();
     
@@ -174,7 +179,9 @@ public class ValidateAtomsAlgorithm extends AbstractInsertMaintReleaseAlgorithm 
     } 
     
     // read in file attributes.src
-    in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "attributes.src")));
+    in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "attributes.src"),
+        StandardCharsets.UTF_8));
     Set<String> styIntelProds = new HashSet<>();
     
     // cache sources
@@ -213,7 +220,9 @@ public class ValidateAtomsAlgorithm extends AbstractInsertMaintReleaseAlgorithm 
 
     
     // read in file classes_atoms.src
-    in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "classes_atoms.src")));
+    in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "classes_atoms.src"),
+        StandardCharsets.UTF_8));
     ValidationResult result = new ValidationResultJpa();
     Map<String, String> lowerToNativeMap = new HashMap<>();
     Set<String> vabCodes = new HashSet<>();

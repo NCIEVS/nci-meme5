@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -175,7 +176,8 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		final String attributesFile = getSrcDirFile() + File.separator + "attributes.src";
 
 		try {
-			BufferedReader in = new BufferedReader(new FileReader(attributesFile));
+			BufferedReader in = new BufferedReader(
+					new FileReader(attributesFile, StandardCharsets.UTF_8));
 			String line;
 			while ((line = in.readLine()) != null) {
 				String[] parts = line.split("\\|");
@@ -196,7 +198,8 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		try {
 			final String styTermIdsFile = getSrcDirFile() + File.separator + "sty_term_ids";
 
-			BufferedReader in = new BufferedReader(new FileReader(styTermIdsFile));
+			BufferedReader in = new BufferedReader(
+					new FileReader(styTermIdsFile, StandardCharsets.UTF_8));
 			String line;
 			while ((line = in.readLine()) != null) {
 				String[] parts = line.split("\\|");
@@ -218,7 +221,8 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		final String classesAtomsFile = getSrcDirFile() + File.separator + "classes_atoms.src";
 
 		try {
-			BufferedReader in = new BufferedReader(new FileReader(classesAtomsFile));
+			BufferedReader in = new BufferedReader(
+					new FileReader(classesAtomsFile, StandardCharsets.UTF_8));
 			String line;
 			while ((line = in.readLine()) != null) {
 				String[] parts = line.split("\\|");
@@ -256,10 +260,13 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			/// for these walk through the context trees and assign stys.
 			final String contextsFile = getSrcDirFile() + File.separator + "contexts.src";
 
-			try (FileWriter out = new FileWriter(getSrcDirFile() + File.separator + "new_sty_defaults");
+			try (FileWriter out = new FileWriter(getSrcDirFile() + File.separator + "new_sty_defaults",
+					StandardCharsets.UTF_8);
 					PrintWriter pw = new PrintWriter(new BufferedWriter(
-							new FileWriter(getSrcDirFile() + File.separator + "attributes.src", true)));
-					BufferedReader in = new BufferedReader(new FileReader(contextsFile))) {
+							new FileWriter(getSrcDirFile() + File.separator + "attributes.src",
+									StandardCharsets.UTF_8, true)));
+					BufferedReader in = new BufferedReader(
+							new FileReader(contextsFile, StandardCharsets.UTF_8))) {
 				String line;
 				int count = 0;
 				while ((line = in.readLine()) != null) {
@@ -416,7 +423,7 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 
 	private void attAppender(PrintWriter pw, int aid, String said, String sty) throws Exception {
 		MessageDigest md = MessageDigest.getInstance("MD5");
-		md.update(sty.getBytes());
+		md.update(sty.getBytes(StandardCharsets.UTF_8));
 		byte[] digest = md.digest();
 		String myHash = DatatypeConverter.printHexBinary(digest).toLowerCase();
 		pw.println(aid + "|" + said + "|C|SEMANTIC_TYPE|" + sty + "|E-" + terminology + "_" + version

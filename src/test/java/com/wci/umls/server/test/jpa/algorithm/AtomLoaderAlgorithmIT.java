@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
@@ -104,7 +105,8 @@ public class AtomLoaderAlgorithmIT extends IntegrationUnitSupport {
     // temporary subfolder
     outputFile = new File(tempSrcDir, "classes_atoms.src");
 
-    final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    final PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     out.println(
         "362166237|SRC|SRC/VPT|V-NCI_2016_11D|N|Y|N|National Cancer Institute Thesaurus, 2016_11D|N||||ENG|1|");
     out.println(

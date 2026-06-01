@@ -17,7 +17,6 @@
   - model encapsulation changes can affect Hibernate, Jackson, XML binding, and
     callers that expect live collections
   - constructor/lifecycle changes can affect reflection-loaded algorithms
-  - default-encoding changes can alter terminology, release, and report files
   - unused-field cleanup can remove fields populated by frameworks or legacy
     serialization paths
 
@@ -49,16 +48,6 @@
   </Match>
   <Match>
     <Bug pattern="WMI_WRONG_MAP_ITERATOR"/>
-  </Match>
-
-  <!--
-    Default encoding migration. These findings are real portability risks, but
-    MEME reads and writes config, source-data, release, and report files. The
-    intended charset must be chosen per file family and tested with non-ASCII
-    fixtures before replacing default-charset APIs broadly.
-  -->
-  <Match>
-    <Bug pattern="DM_DEFAULT_ENCODING"/>
   </Match>
 
   <!--

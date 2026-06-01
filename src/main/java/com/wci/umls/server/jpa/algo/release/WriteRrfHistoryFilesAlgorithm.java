@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.release;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -770,27 +771,40 @@ public class WriteRrfHistoryFilesAlgorithm
     final File changeDir = new File(dir, "CHANGE");
     ConfigUtility.ensureDirectoryExists(changeDir);
     writerMap.put("MRAUI.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRAUI.RRF"))));
+        newUtf8Writer(dir, "MRAUI.RRF"));
     writerMap.put("MRCUI.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRCUI.RRF"))));
+        newUtf8Writer(dir, "MRCUI.RRF"));
     String fileName = "nci_code_cui_map_" + getProcess().getVersion() + ".dat";
     writerMap.put(fileName,
-        new PrintWriter(new FileWriter(new File(dir, fileName))));
+        newUtf8Writer(dir, fileName));
     fileName = "NCIMEME_" + getProcess().getVersion() + "_history.txt";
     writerMap.put(fileName,
-        new PrintWriter(new FileWriter(new File(dir, fileName))));
+        newUtf8Writer(dir, fileName));
     writerMap.put("DELETEDCUI.RRF",
-        new PrintWriter(new FileWriter(new File(changeDir, "DELETEDCUI.RRF"))));
+        newUtf8Writer(changeDir, "DELETEDCUI.RRF"));
     writerMap.put("DELETEDLUI.RRF",
-        new PrintWriter(new FileWriter(new File(changeDir, "DELETEDLUI.RRF"))));
+        newUtf8Writer(changeDir, "DELETEDLUI.RRF"));
     writerMap.put("DELETEDSUI.RRF",
-        new PrintWriter(new FileWriter(new File(changeDir, "DELETEDSUI.RRF"))));
+        newUtf8Writer(changeDir, "DELETEDSUI.RRF"));
     writerMap.put("MERGEDCUI.RRF",
-        new PrintWriter(new FileWriter(new File(changeDir, "MERGEDCUI.RRF"))));
+        newUtf8Writer(changeDir, "MERGEDCUI.RRF"));
     writerMap.put("MERGEDLUI.RRF",
-        new PrintWriter(new FileWriter(new File(changeDir, "MERGEDLUI.RRF"))));
+        newUtf8Writer(changeDir, "MERGEDLUI.RRF"));
     writerMap.put("MERGEDSUI.RRF",
-        new PrintWriter(new FileWriter(new File(changeDir, "MERGEDSUI.RRF"))));
+        newUtf8Writer(changeDir, "MERGEDSUI.RRF"));
+  }
+
+  /**
+   * Creates a UTF-8 writer for generated history files.
+   *
+   * @param dir the directory
+   * @param fileName the file name
+   * @return the print writer
+   * @throws Exception the exception
+   */
+  private PrintWriter newUtf8Writer(File dir, String fileName) throws Exception {
+    return new PrintWriter(new FileWriter(new File(dir, fileName),
+        StandardCharsets.UTF_8));
   }
 
   /**

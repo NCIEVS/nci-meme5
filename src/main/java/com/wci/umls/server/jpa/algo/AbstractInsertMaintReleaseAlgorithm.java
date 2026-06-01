@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -228,7 +229,8 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
     final String sourcesFile = srcDirFile + File.separator + fileName;
     BufferedReader sources = null;
     try {
-      sources = new BufferedReader(new FileReader(sourcesFile));
+      sources = new BufferedReader(new FileReader(sourcesFile,
+          StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + sourcesFile);
     }
@@ -293,7 +295,8 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
     final String sourcesFile = srcDirFile + File.separator + fileName;
     BufferedReader sources = null;
     try {
-      sources = new BufferedReader(new FileReader(sourcesFile));
+      sources = new BufferedReader(new FileReader(sourcesFile,
+          StandardCharsets.UTF_8));
     } catch (Exception e) {
       throw new Exception("File not found: " + sourcesFile);
     }

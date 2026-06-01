@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.insert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -161,7 +162,8 @@ public class AttributeLoaderAlgorithm
         final String sourcesFile = getSrcDirFile() + File.separator + "attributes.src";
         BufferedReader sources = null;
         try {
-          sources = new BufferedReader(new FileReader(sourcesFile));
+          sources = new BufferedReader(new FileReader(sourcesFile,
+              StandardCharsets.UTF_8));
         } catch (Exception e) {
           throw new Exception("File not found: " + sourcesFile);
         }
@@ -264,7 +266,8 @@ public class AttributeLoaderAlgorithm
       final String sourcesFile = getSrcDirFile() + File.separator + "attributes.src";
       BufferedReader sources = null;
       try {
-        sources = new BufferedReader(new FileReader(sourcesFile));
+        sources = new BufferedReader(new FileReader(sourcesFile,
+            StandardCharsets.UTF_8));
       } catch (Exception e) {
         throw new Exception("File not found: " + sourcesFile);
       }

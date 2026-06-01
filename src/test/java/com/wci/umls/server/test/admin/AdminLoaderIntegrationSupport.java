@@ -84,7 +84,10 @@ public abstract class AdminLoaderIntegrationSupport {
         if (Files.isDirectory(sourcePath)) {
           Files.createDirectories(targetPath);
         } else {
-          Files.createDirectories(targetPath.getParent());
+          final Path targetParent = targetPath.getParent();
+          if (targetParent != null) {
+            Files.createDirectories(targetParent);
+          }
           Files.copy(sourcePath, targetPath,
               StandardCopyOption.REPLACE_EXISTING);
         }
