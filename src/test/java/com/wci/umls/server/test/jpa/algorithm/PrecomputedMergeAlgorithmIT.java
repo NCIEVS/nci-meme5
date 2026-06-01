@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -105,7 +106,8 @@ public class PrecomputedMergeAlgorithmIT extends IntegrationUnitSupport {
     // temporary subfolder
     outputFile = new File(tempSrcDir, "mergefacts.src");
 
-    PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     out.println(
         "362166237|SY|362166238|SRC||N|N|NCI-SRC|SRC_ATOM_ID||SRC_ATOM_ID||");
     out.println(

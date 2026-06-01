@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -92,7 +93,8 @@ public class ReportChecklistAlgorithm
           new File(getSrcDirFile(), "reportChecklistResults.txt");
       String server = InetAddress.getLocalHost().getHostName();
       
-      final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+      final PrintWriter out =
+          new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
       
 
       out.println("The " + (server.startsWith("ncias-q3009-c") ? "test" : "real") + " insertion of " + getProcess().getTerminology() + "_" + 

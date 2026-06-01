@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
@@ -103,7 +104,8 @@ public class ContextLoaderAlgorithmIT extends IntegrationUnitSupport {
     // Create a minimal sources.src required by ContextLoader's compute() to
     // identify referenced terminologies. Fields: [0]=versioned_source [4]=terminology.
     File sourcesFile = new File(tempSrcDir, "sources.src");
-    PrintWriter sourcesOut = new PrintWriter(new FileWriter(sourcesFile));
+    PrintWriter sourcesOut =
+        new PrintWriter(new FileWriter(sourcesFile, StandardCharsets.UTF_8));
     sourcesOut.println(
         "NCI_2016_11D|NCI_2016_10E|0|NCI_2016_11D|NCI|2016_11D|NCI|National Cancer Institute Thesaurus||||||||||||||||||UTF-8||");
     sourcesOut.close();
@@ -112,7 +114,8 @@ public class ContextLoaderAlgorithmIT extends IntegrationUnitSupport {
     // temporary subfolder
     outputFile = new File(tempSrcDir, "contexts.src");
 
-    PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     out.println(
         "362168904|PAR|isa|362174335|NCI_2016_11D|NCI_2016_11D||31926003.362204588.362250568.362175233.362174339.362174335|00|||C37447|SOURCE_CUI|NCI_2016_11D|C1971|SOURCE_CUI|NCI_2016_11D|");
     out.println(

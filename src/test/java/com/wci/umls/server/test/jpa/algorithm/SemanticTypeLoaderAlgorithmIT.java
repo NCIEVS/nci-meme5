@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
@@ -101,7 +102,8 @@ public class SemanticTypeLoaderAlgorithmIT extends IntegrationUnitSupport {
     // temporary subfolder
     outputFile = new File(tempSrcDir, "attributes.src");
 
-    PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     out.println(
         "1|362166237|C|SEMANTIC_TYPE|Intellectual Product|SRC|R|Y|N|N|SRC_ATOM_ID|||3d9e88091cf4ebbab774e90c8f6d4052|");
     out.println(

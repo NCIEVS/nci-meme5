@@ -5,6 +5,7 @@ package com.wci.umls.server.jpa.algo;
 
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -208,7 +209,8 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     String line = null;
     int objectCt = 0;
     PushBackReader reader = new PushBackReader(
-        new FileReader(new File(getInputPath(), "concepts.txt")));
+        new FileReader(new File(getInputPath(), "concepts.txt"),
+            StandardCharsets.UTF_8));
     final String[] fields = new String[10];
 
     Set<String> types = new HashSet<>();
@@ -386,7 +388,8 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     int objectCt = 0;
     final PushBackReader reader = new PushBackReader(
-        new FileReader(new File(getInputPath(), "concepts.txt")));
+        new FileReader(new File(getInputPath(), "concepts.txt"),
+            StandardCharsets.UTF_8));
 
     while ((line = reader.readLine()) != null) {
 
@@ -484,7 +487,8 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     int objectCt = 0;
     final PushBackReader reader = new PushBackReader(
-        new FileReader(new File(getInputPath(), "parChd.txt")));
+        new FileReader(new File(getInputPath(), "parChd.txt"),
+            StandardCharsets.UTF_8));
     final String[] fields = new String[2];
     while ((line = reader.readLine()) != null) {
 

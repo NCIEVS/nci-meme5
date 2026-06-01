@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.invert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -133,7 +134,8 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
     
     // read in file attributes.src
     BufferedReader in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "MRDOC.RRF")));
+        new File(srcFullPath + File.separator + "MRDOC.RRF"),
+        StandardCharsets.UTF_8));
     String fileLine = "";
 
     Set<String> uniqueFields = new HashSet<>();
@@ -246,7 +248,8 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
 
     // read in file termgroups.src
     in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "termgroups.src")));
+        new File(srcFullPath + File.separator + "termgroups.src"),
+        StandardCharsets.UTF_8));
     fileLine = "";
 
     // do field and line checks
@@ -278,7 +281,8 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
 
     // read in file mergefacts.src
     in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "mergefacts.src")));
+        new File(srcFullPath + File.separator + "mergefacts.src"),
+        StandardCharsets.UTF_8));
     fileLine = "";
 
     // do field and line checks

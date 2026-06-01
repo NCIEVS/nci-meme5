@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,7 +96,8 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     try {
       final File outputFile = new File(srcFullPath, "testFile.txt");
 
-      final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+      final PrintWriter out =
+          new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
       out.print("Test");
       out.close();
 

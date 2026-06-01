@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.invert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -173,7 +174,9 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
     Set<String> uniqueSruis = new HashSet<>();
     
     // read in file MRDOC.RRF
-    BufferedReader in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "MRDOC.RRF")));
+    BufferedReader in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "MRDOC.RRF"),
+        StandardCharsets.UTF_8));
 
     String fileLine = "";
     Set<String> relas = new HashSet<>();
@@ -188,7 +191,9 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
     in.close();
     
     // read in file sources.src
-    in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "sources.src")));
+    in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "sources.src"),
+        StandardCharsets.UTF_8));
     Map<String, String> sourcesToLatMap = new HashMap<>();
     
     // cache sources
@@ -208,7 +213,8 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
     
     // read in file contexts.src
     in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "relationships.src")));
+        new File(srcFullPath + File.separator + "relationships.src"),
+        StandardCharsets.UTF_8));
 
 
     // do field and line checks

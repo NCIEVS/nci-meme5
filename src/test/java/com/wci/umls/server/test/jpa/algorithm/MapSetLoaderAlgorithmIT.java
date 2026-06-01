@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +125,8 @@ public class MapSetLoaderAlgorithmIT extends IntegrationUnitSupport {
 
     attributesOutputFile = new File(tempSrcDir, "attributes.src");
 
-    PrintWriter out = new PrintWriter(new FileWriter(attributesOutputFile));
+    PrintWriter out = new PrintWriter(
+        new FileWriter(attributesOutputFile, StandardCharsets.UTF_8));
     out.println(
         "13340556|900000000001183011|S|MAPSETSID|447562003|SNOMEDCT_US_2015_09_01|R|Y|N|N|SRC_ATOM_ID|||c1bb150020d064227a154e6a6fceaeea|");
     out.println(

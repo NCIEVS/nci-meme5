@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -79,7 +80,8 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     final File conceptsFile = sorter
         .findFile(new File(getInputPath(), "Terminology"), "sct2_Concept");
     final Set<String> releaseSet = new HashSet<>();
-    BufferedReader reader = new BufferedReader(new FileReader(conceptsFile));
+    BufferedReader reader = new BufferedReader(
+        new FileReader(conceptsFile, StandardCharsets.UTF_8));
     String line;
     while ((line = reader.readLine()) != null) {
       final String fields[] = FieldedStringTokenizer.split(line, "\t");
@@ -111,7 +113,8 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     File extendedMapFile =
         sorter.findFile(new File(getInputPath(), "Refset/Map"),
             "der2_iisssccRefset_ExtendedMap");
-    reader = new BufferedReader(new FileReader(extendedMapFile));
+    reader = new BufferedReader(
+        new FileReader(extendedMapFile, StandardCharsets.UTF_8));
     while ((line = reader.readLine()) != null) {
       final String fields[] = FieldedStringTokenizer.split(line, "\t");
       if (!fields[1].equals("effectiveTime")) {

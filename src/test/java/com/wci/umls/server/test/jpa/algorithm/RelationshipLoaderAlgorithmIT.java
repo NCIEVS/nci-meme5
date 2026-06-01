@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
@@ -105,7 +106,8 @@ public class RelationshipLoaderAlgorithmIT extends IntegrationUnitSupport {
     // temporary subfolder
     outputFile = new File(tempSrcDir, "relationships.src");
 
-    PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     out.println(
         "259973|S|386835005|RT|has_active_ingredient|1039008|SNOMEDCT_US_2015_09_01|SNOMEDCT_US_2015_09_01|R|Y|N|N|SOURCE_CUI|SNOMEDCT_US_2015_09_01|SOURCE_CUI|SNOMEDCT_US_2015_09_01|1910721029|0|");
     out.println(
@@ -118,7 +120,7 @@ public class RelationshipLoaderAlgorithmIT extends IntegrationUnitSupport {
     // temporary subfolder
     outputFile = new File(tempSrcDir, "contexts.src");
 
-    out = new PrintWriter(new FileWriter(outputFile));
+    out = new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     out.println(
         "362168904|PAR|isa|362174335|NCI_2016_11D|NCI_2016_11D||31926003.362204588.362250568.362175233.362174339.362174335|00|||C37447|SOURCE_CUI|NCI_2016_11D|C1971|SOURCE_CUI|NCI_2016_11D|");
     out.println(

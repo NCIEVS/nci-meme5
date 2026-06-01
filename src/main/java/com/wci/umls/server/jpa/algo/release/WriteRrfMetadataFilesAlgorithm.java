@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.release;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -111,7 +112,8 @@ public class WriteRrfMetadataFilesAlgorithm
         + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
         + "META");
     final File outputFile = new File(dir, "MRRANK.RRF");
-    final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    final PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     try {
       final PrecedenceList precList = getPrecedenceList(
           getProject().getTerminology(), getProject().getVersion());
@@ -393,7 +395,8 @@ public class WriteRrfMetadataFilesAlgorithm
     }
 
     // sort and write to file
-    final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    final PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     try {
       Collections.sort(outputLines);
       for (final String line : outputLines) {
@@ -710,7 +713,8 @@ public class WriteRrfMetadataFilesAlgorithm
     outputLines.add("REL||expanded_form|Empty relationship|");
 
     // sort and write to file
-    final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+    final PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     Collections.sort(outputLines);
     for (final String line : outputLines) {
       out.print(line + "\n");

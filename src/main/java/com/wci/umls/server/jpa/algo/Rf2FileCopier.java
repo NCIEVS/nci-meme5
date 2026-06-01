@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -111,8 +112,10 @@ public class Rf2FileCopier {
       // Now, iterate through input file and copy lines with headers
       // or where the "keyMap" field is in concepts/descriptions
 
-      BufferedReader in = new BufferedReader(new FileReader(file));
-      PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+      BufferedReader in =
+          new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));
+      PrintWriter out =
+          new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
       String line;
       int index = keyMap.get(key);
       while ((line = in.readLine()) != null) {

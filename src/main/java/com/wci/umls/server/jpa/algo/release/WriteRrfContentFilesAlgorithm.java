@@ -12,6 +12,7 @@ package com.wci.umls.server.jpa.algo.release;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -990,48 +991,61 @@ public class WriteRrfContentFilesAlgorithm
 
     if (filesToWriteSet.contains("AMBIGSUI.RRF")) {
       writerMap.put("AMBIGSUI.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "AMBIGSUI.RRF"))));
+        newUtf8Writer(dir, "AMBIGSUI.RRF"));
     }
     if (filesToWriteSet.contains("AMBIGLUI.RRF")) {
       writerMap.put("AMBIGLUI.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "AMBIGLUI.RRF"))));
+        newUtf8Writer(dir, "AMBIGLUI.RRF"));
     }
     if (filesToWriteSet.contains("MRCONSO.RRF")) {
       writerMap.put("MRCONSO.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRCONSO.RRF"))));
+        newUtf8Writer(dir, "MRCONSO.RRF"));
     }
     if (filesToWriteSet.contains("MRDEF.RRF")) {
       writerMap.put("MRDEF.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRDEF.RRF"))));
+        newUtf8Writer(dir, "MRDEF.RRF"));
     }
     if (filesToWriteSet.contains("MRREL.RRF")) {
       writerMap.put("MRREL.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRREL.RRF"))));
+        newUtf8Writer(dir, "MRREL.RRF"));
     }
     if (filesToWriteSet.contains("MRSTY.RRF")) {
       writerMap.put("MRSTY.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRSTY.RRF"))));
+        newUtf8Writer(dir, "MRSTY.RRF"));
     }
     if (filesToWriteSet.contains("MRSAT.RRF")) {
       writerMap.put("MRSAT.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRSAT.RRF"))));
+        newUtf8Writer(dir, "MRSAT.RRF"));
     }
     if (filesToWriteSet.contains("MRHIER.RRF")) {
       writerMap.put("MRHIER.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRHIER.RRF"))));
+        newUtf8Writer(dir, "MRHIER.RRF"));
     }
     if (filesToWriteSet.contains("MRHIST.RRF")) {
       writerMap.put("MRHIST.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRHIST.RRF"))));
+        newUtf8Writer(dir, "MRHIST.RRF"));
     }
     if (filesToWriteSet.contains("MRMAP.RRF")) {
       writerMap.put("MRMAP.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRMAP.RRF"))));
+        newUtf8Writer(dir, "MRMAP.RRF"));
     }
     if (filesToWriteSet.contains("MRSMAP.RRF")) {
       writerMap.put("MRSMAP.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRSMAP.RRF"))));
+        newUtf8Writer(dir, "MRSMAP.RRF"));
     }
+  }
+
+  /**
+   * Creates a UTF-8 writer for generated RRF files.
+   *
+   * @param dir the directory
+   * @param fileName the file name
+   * @return the print writer
+   * @throws Exception the exception
+   */
+  private PrintWriter newUtf8Writer(File dir, String fileName) throws Exception {
+    return new PrintWriter(new FileWriter(new File(dir, fileName),
+        StandardCharsets.UTF_8));
   }
 
   /**

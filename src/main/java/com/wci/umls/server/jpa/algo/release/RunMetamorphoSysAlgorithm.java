@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -146,15 +147,19 @@ public class RunMetamorphoSysAlgorithm
         .append("\n");
 
     // Write release.dat files (top-level and in META)
-    FileUtils.fileWrite(releaseDat.getPath(), data.toString());
-    FileUtils.fileWrite(metaReleaseDat.getPath(), data.toString());
-    FileUtils.fileWrite(mmsysReleaseDat.getPath(), data.toString());
+    Files.writeString(releaseDat.toPath(), data.toString(),
+        StandardCharsets.UTF_8);
+    Files.writeString(metaReleaseDat.toPath(), data.toString(),
+        StandardCharsets.UTF_8);
+    Files.writeString(mmsysReleaseDat.toPath(), data.toString(),
+        StandardCharsets.UTF_8);
     final File mmsysReleaseConfigVersion = new File(config.getProperty("source.data.dir")
         + "/" + getProcess().getInputPath() + "/" + getProcess().getVersion()
         + "/MMSYS/config/" + getProcess().getVersion());
     ConfigUtility.ensureDirectoryExists(mmsysReleaseConfigVersion);
     ConfigUtility.ensureFileExists(mmsysReleaseConfigDat);
-    FileUtils.fileWrite(mmsysReleaseConfigDat.getPath(), data.toString());
+    Files.writeString(mmsysReleaseConfigDat.toPath(), data.toString(),
+        StandardCharsets.UTF_8);
     updateProgress();
 
     // Run "make_config.csh"

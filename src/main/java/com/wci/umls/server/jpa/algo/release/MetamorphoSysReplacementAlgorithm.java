@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-import org.codehaus.plexus.util.FileUtils;
-
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -108,7 +106,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
         .append("\n");
 
     // Write release.dat file
-    FileUtils.fileWrite(releaseDat.getPath(), data.toString());
+    Files.writeString(releaseDat.toPath(), data.toString(),
+        StandardCharsets.UTF_8);
     
 
     logInfo("Finished " + getName());
@@ -125,8 +124,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           
           String mrfilesRow = "";
 
-          try (BufferedReader reader = new BufferedReader(new FileReader(dataDir + File.separator + inputFile));
-               BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath + File.separator + outputFile))) {
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              dataDir + File.separator + inputFile, StandardCharsets.UTF_8));
+               BufferedWriter writer = new BufferedWriter(new FileWriter(
+                   outputPath + File.separator + outputFile, StandardCharsets.UTF_8))) {
 
               String line;
               while ((line = reader.readLine()) != null) {
@@ -217,7 +218,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               String lastLine;
               long claimedByteCount;
               
-              try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+              try (BufferedReader reader = new BufferedReader(
+                  new FileReader(file, StandardCharsets.UTF_8))) {
                   String line;
                   while ((line = reader.readLine()) != null) {
                       lines.add(line);
@@ -250,7 +252,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               newLastLine.append(actualByteCount).append("|");
               
               // Write all lines back to file
-              try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+              try (BufferedWriter writer = new BufferedWriter(
+                  new FileWriter(file, StandardCharsets.UTF_8))) {
                   // Write all lines except the last
                   for (int i = 0; i < lines.size() - 1; i++) {
                       writer.write(lines.get(i));
@@ -281,8 +284,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           }
 
           // parse template MRCOLS.RRF and create new one with updated column averages
-          try (BufferedReader reader = new BufferedReader(new FileReader(dataDir + File.separator + mrcolsFile));
-               BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath + File.separator + mrcolsFile))) {
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              dataDir + File.separator + mrcolsFile, StandardCharsets.UTF_8));
+               BufferedWriter writer = new BufferedWriter(new FileWriter(
+                   outputPath + File.separator + mrcolsFile, StandardCharsets.UTF_8))) {
 
               String line;
               while ((line = reader.readLine()) != null) {
@@ -334,8 +339,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           String outputFile = "MRSAB.mod";
           String backupFile = "MRSAB.bak";
 
-          try (BufferedReader reader = new BufferedReader(new FileReader(outputPath + File.separator + inputFile));
-               BufferedWriter writer = new BufferedWriter(new FileWriter(outputPath + File.separator + outputFile))) {
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              outputPath + File.separator + inputFile, StandardCharsets.UTF_8));
+               BufferedWriter writer = new BufferedWriter(new FileWriter(
+                   outputPath + File.separator + outputFile, StandardCharsets.UTF_8))) {
 
               String line;
               while ((line = reader.readLine()) != null) {
@@ -405,7 +412,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       
       
       public int findColumnIndex(String filename, String colname) throws IOException {
-          try (BufferedReader reader = new BufferedReader(new FileReader(dataDir + File.separator + "MRFILES.RRF"))) {
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              dataDir + File.separator + "MRFILES.RRF", StandardCharsets.UTF_8))) {
               String line;
               while ((line = reader.readLine()) != null) {
                   // Split the line by vertical bar
@@ -436,7 +444,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           int totalLength =0;
           int count = 0;
 
-        	        try (BufferedReader reader = new BufferedReader(new FileReader(outputPath + File.separator + filename), 32768)) { // Increased buffer size
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              outputPath + File.separator + filename, StandardCharsets.UTF_8), 32768)) { // Increased buffer size
         	            String line;
         	            int start, end, currentField;
         	            
@@ -478,7 +487,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           int count = 0;
           int fieldIndex = 11; // 12th field (0-based index)
           
-          try (BufferedReader reader = new BufferedReader(new FileReader(outputPath + File.separator + "MRCONSO.RRF"), 32768)) {
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              outputPath + File.separator + "MRCONSO.RRF", StandardCharsets.UTF_8), 32768)) {
               String line;
               int currentField, pos;
               
@@ -529,7 +539,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       public int countUniqueTerminologyOccurrences(String terminology) throws IOException {
           Set<String> uniqueFirstFields = new HashSet<>();
           
-          try (BufferedReader reader = new BufferedReader(new FileReader(outputPath + File.separator + "MRCONSO.RRF"), 32768)) {
+          try (BufferedReader reader = new BufferedReader(new FileReader(
+              outputPath + File.separator + "MRCONSO.RRF", StandardCharsets.UTF_8), 32768)) {
               String line;
               
               while ((line = reader.readLine()) != null) {

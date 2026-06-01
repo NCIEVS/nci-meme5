@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.insert;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -204,7 +205,8 @@ public class SemanticTypeResolverAlgorithm
 
       // Create the sty_terms_ids file, and write each result to it
       File outputFile = new File(getSrcDirFile(), "sty_term_ids");
-      final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
+      final PrintWriter out =
+          new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
 
       for (final Object[] entry : list) {
         String alternateTermId = entry[0].toString();

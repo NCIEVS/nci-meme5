@@ -12,6 +12,7 @@ package com.wci.umls.server.jpa.algo.release;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -83,8 +84,12 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
 
 
     
-    mappingsWriter = new BufferedWriter(new FileWriter(new File(mappingsDir, "NCIt_Metathesaurus_Mapping_" + getProcess().getVersion() + ".txt")));
-    readmeWriter = new BufferedWriter(new FileWriter(new File(mappingsDir, "NCIt_Metathesaurus_Mapping.README.txt")));
+    mappingsWriter = new BufferedWriter(new FileWriter(new File(mappingsDir,
+        "NCIt_Metathesaurus_Mapping_" + getProcess().getVersion() + ".txt"),
+        StandardCharsets.UTF_8));
+    readmeWriter = new BufferedWriter(new FileWriter(
+        new File(mappingsDir, "NCIt_Metathesaurus_Mapping.README.txt"),
+        StandardCharsets.UTF_8));
     
     
     // create mapping report

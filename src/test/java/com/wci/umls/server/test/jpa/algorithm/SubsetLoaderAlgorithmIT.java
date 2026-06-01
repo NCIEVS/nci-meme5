@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -121,7 +122,8 @@ public class SubsetLoaderAlgorithmIT extends IntegrationUnitSupport {
     // /temp temporary subfolder
     attributesOutputFile = new File(tempSrcDir, "attributes.src");
 
-    PrintWriter out = new PrintWriter(new FileWriter(attributesOutputFile));
+    PrintWriter out = new PrintWriter(
+        new FileWriter(attributesOutputFile, StandardCharsets.UTF_8));
     out.println(
         "209|447562003|S|SUBSET_MEMBER|900000000000456007~ATTRIBUTEDESCRIPTION~900000000000500006|SNOMEDCT_US_2015_09_01|R|Y|N|N|SOURCE_CUI|SNOMEDCT_US_2015_09_01|d4759302-3afb-565d-b627-17c78e060134|c1d1b595e43df215db2927eafc46e59d|");
     out.println(

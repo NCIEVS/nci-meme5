@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.invert;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -156,7 +157,9 @@ public class ValidateContextsAlgorithm extends AbstractInsertMaintReleaseAlgorit
     ValidationResult result = new ValidationResultJpa();
     
     // read in file classes_atoms.src
-    BufferedReader in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "classes_atoms.src")));
+    BufferedReader in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "classes_atoms.src"),
+        StandardCharsets.UTF_8));
     String fileLine = "";
     Set<String> sauis = new HashSet<>();
     
@@ -168,7 +171,9 @@ public class ValidateContextsAlgorithm extends AbstractInsertMaintReleaseAlgorit
     in.close();
     
     // read in file sources.src
-    in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "sources.src")));
+    in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "sources.src"),
+        StandardCharsets.UTF_8));
     Map<String, String> sourcesToLatMap = new HashMap<>();
     
     // cache sources
@@ -179,7 +184,9 @@ public class ValidateContextsAlgorithm extends AbstractInsertMaintReleaseAlgorit
     in.close();
     
     // read in file MRDOC.RRF
-    in = new BufferedReader(new FileReader(new File(srcFullPath + File.separator + "MRDOC.RRF")));
+    in = new BufferedReader(new FileReader(
+        new File(srcFullPath + File.separator + "MRDOC.RRF"),
+        StandardCharsets.UTF_8));
     Set<String> relas = new HashSet<>();
     
     // cache relas
@@ -200,7 +207,8 @@ public class ValidateContextsAlgorithm extends AbstractInsertMaintReleaseAlgorit
 
     // read in file contexts.src
     in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "contexts.src")));
+        new File(srcFullPath + File.separator + "contexts.src"),
+        StandardCharsets.UTF_8));
     fileLine = "";
 
     Set<String> uniqueFields = new HashSet<>();

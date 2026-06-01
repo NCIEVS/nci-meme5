@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.services;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -777,11 +778,12 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
     final File outputFile = new File(logFullPath, "process."
         + processExecution.getProcessConfigId() + "." + runDate + ".log");
 
-    final PrintWriter out = new PrintWriter(new FileWriter(outputFile));
-    String processLog =
-        getProcessLog(projectId, processExecution.getId(), null, 10000);
-    out.print(processLog);
-    out.close();
+    try (PrintWriter out =
+        new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8))) {
+      final String processLog =
+          getProcessLog(projectId, processExecution.getId(), null, 10000);
+      out.print(processLog);
+    }
 
   }
 

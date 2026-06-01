@@ -18,6 +18,9 @@ Current status:
 - Checkstyle, SpotBugs, `make scan`, and the GitHub Trivy workflow are in place
 - the first SpotBugs cleanup passes are complete
 - the remaining SpotBugs baseline has been audited and documented
+- the default-encoding migration is complete for insertion, validation, loader,
+  file-utility source-data, release, statistics, process-log, and selected
+  property-file paths
 
 ## Reference Project
 
@@ -123,13 +126,38 @@ Step 5 cleanup completed:
   `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT`, `DLS_DEAD_LOCAL_STORE`,
   `RV_RETURN_VALUE_IGNORED_BAD_PRACTICE`, and `UC_USELESS_OBJECT`
 
+Default encoding cleanup completed:
+
+- changed insertion and inversion validation source-data readers/writers to use
+  `StandardCharsets.UTF_8`
+- covered common insertion helpers, semantic type file generation, bequeathal
+  output writers, report/checklist output, and validation `.src`/`.RRF` readers
+- changed the next loader/file-utility batch to use `StandardCharsets.UTF_8`:
+  `ClamlLoaderAlgorithm`, `FileSorter`, `Rf2FileCopier`,
+  `Rf2FullLoaderAlgorithm`, `SimpleLoaderAlgorithm`,
+  `UmlsIdentityLoaderAlgorithm`, and the touched `AdHocAlgorithm` file paths
+- changed process-log export and the atom-class search-handler acronym file
+  reader to use `StandardCharsets.UTF_8`
+- changed release/statistics writers and readers to use
+  `StandardCharsets.UTF_8`, including RRF mappings, RRF statistics, RRF
+  content/history/index/metadata writers, and MetamorphoSys release files
+- changed loader integration-test fixture writers to use
+  `StandardCharsets.UTF_8`
+- verified the batch with `compileJava`, `checkstyleMain`, normal
+  `spotbugsMain`, `spotbugsTest`, and the refreshed `integration-insertion`
+  suite
+- reran the temporary no-`DM_DEFAULT_ENCODING` SpotBugs diagnostic and
+  confirmed the main-code default-encoding backlog is now clean
+- removed `DM_DEFAULT_ENCODING` from the SpotBugs baseline
+
 Baseline audit completed:
 
 - reran SpotBugs with an empty temporary exclude filter
 - confirmed the remaining suppressions still correspond to active findings,
   except one stale entry
 - removed the stale `EI_EXPOSE_STATIC_REP` suppression
-- left 40 active legacy suppression patterns in
+- removed the completed `DM_DEFAULT_ENCODING` suppression
+- left 39 active legacy suppression patterns in
   `config/spotbugs/excludeFilter.xml`
 
 ## Trivy Implementation
@@ -200,7 +228,7 @@ forward while legacy cleanup is planned in smaller, reviewable slices.
 
 ## Current SpotBugs Baseline Status
 
-The current `config/spotbugs/excludeFilter.xml` contains 40 active legacy
+The current `config/spotbugs/excludeFilter.xml` contains 39 active legacy
 suppression patterns. These were confirmed by running SpotBugs with an empty
 temporary exclude filter and comparing the reported bug patterns back to the
 checked-in filter.
@@ -222,10 +250,11 @@ Completed and no longer suppressed:
 - Step 5 ignored-return/dead-store families:
   `RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT`, `DLS_DEAD_LOCAL_STORE`,
   `RV_RETURN_VALUE_IGNORED_BAD_PRACTICE`, and `UC_USELESS_OBJECT`
+- Default encoding family:
+  `DM_DEFAULT_ENCODING`
 
 Remaining backlog:
 
-- default encoding migration for file IO and generated artifacts
 - broad model/JPA encapsulation and mutable representation exposure
 - constructor/lifecycle cleanup for reflection-loaded algorithms
 - dynamic SQL/query execution review
@@ -347,8 +376,8 @@ Batching approach:
 - treat RRF/RF2/source-data file IO carefully because external data formats may
   have release-specific expectations
 - convert in small batches by subsystem
-- keep the broad `DM_DEFAULT_ENCODING` baseline until a batch removes enough
-  findings to narrow or remove the suppression safely
+- remove the broad `DM_DEFAULT_ENCODING` baseline once all active findings are
+  converted and the diagnostic run is clean
 
 Batch 1, internal/config text IO:
 
@@ -368,19 +397,35 @@ Batch 1 testing:
 
 Batch 2, source-data readers:
 
+- `ClamlLoaderAlgorithm`
 - `FileSorter`
 - `Rf2FileCopier`
+- `Rf2FullLoaderAlgorithm`
+- `SimpleLoaderAlgorithm`
+- `UmlsIdentityLoaderAlgorithm`
 - insertion and validation algorithms
+- touched `AdHocAlgorithm` file paths
+
+Batch 2 status:
+
+- completed for insertion, validation, loader, and file-utility algorithms
+- the remaining release/statistics findings were handled in Batch 3
 
 Batch 2 testing:
 
 - create minimal `.src`, `.RRF`, and RF2 fixtures containing UTF-8 characters
 - assert parsed values, sorted output, and copied output bytes
 - keep the fixtures small and focused on the touched reader/writer path
+- for the completed insertion/validation slice, use
+  `make prepare-insertion && make integration-insertion` against
+  `ncimdbinsert`
 
-Batch 3, release writers:
+Batch 3, release/statistics writers and readers:
 
 - release file writers
+- release statistics readers/writers
+- RRF mappings, content, history, index, and metadata output
+- MetamorphoSys release-file generation and replacement paths
 
 Batch 3 testing:
 
@@ -391,10 +436,10 @@ Batch 3 testing:
 
 Final cleanup:
 
-- remove or narrow `<Bug pattern="DM_DEFAULT_ENCODING"/>` from
+- completed by removing `<Bug pattern="DM_DEFAULT_ENCODING"/>` from
   `config/spotbugs/excludeFilter.xml`
-- leave only file-specific suppressions with comments if any path intentionally
-  depends on the platform default charset
+- the temporary no-`DM_DEFAULT_ENCODING` diagnostic now passes with no active
+  main-code findings
 
 ### 5. Ignored Return Values and Dead Stores
 
@@ -482,11 +527,12 @@ Completed in NM-304:
 - resource handling cleanup
 - static state and synchronization review
 - ignored return values and dead-store cleanup
+- default encoding migration for source-data, loader, release, statistics, and
+  related file IO
 - SpotBugs baseline audit and suppression documentation
 
 Remaining follow-up tickets:
 
-- NM-304 follow-up: default encoding migration plan
 - NM-304 follow-up: JPA model encapsulation strategy
 - NM-304 follow-up: constructor initialization strategy
 - NM-304 follow-up: dynamic SQL/query execution review

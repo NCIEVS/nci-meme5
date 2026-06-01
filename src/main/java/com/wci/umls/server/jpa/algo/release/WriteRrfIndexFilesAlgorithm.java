@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo.release;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -212,16 +213,28 @@ public class WriteRrfIndexFilesAlgorithm
         + "META");
 
     writerMap.put("MRXNS_ENG.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRXNS_ENG.RRF"))));
+        newUtf8Writer(dir, "MRXNS_ENG.RRF"));
 
     writerMap.put("MRXNW_ENG.RRF",
-        new PrintWriter(new FileWriter(new File(dir, "MRXNW_ENG.RRF"))));
+        newUtf8Writer(dir, "MRXNW_ENG.RRF"));
     for (Language lat : getLanguages(getProject().getTerminology(),
         getProject().getVersion()).getObjects()) {
       writerMap.put("MRXW_" + lat.getAbbreviation() + ".RRF",
-          new PrintWriter(new FileWriter(
-              new File(dir, "MRXW_" + lat.getAbbreviation() + ".RRF"))));
+          newUtf8Writer(dir, "MRXW_" + lat.getAbbreviation() + ".RRF"));
     }
+  }
+
+  /**
+   * Creates a UTF-8 writer for generated index files.
+   *
+   * @param dir the directory
+   * @param fileName the file name
+   * @return the print writer
+   * @throws Exception the exception
+   */
+  private PrintWriter newUtf8Writer(File dir, String fileName) throws Exception {
+    return new PrintWriter(new FileWriter(new File(dir, fileName),
+        StandardCharsets.UTF_8));
   }
 
   /**

@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -93,7 +94,8 @@ public class FileSorter {
     int ctLines = 0;
 
     // open file
-    BufferedReader in = new BufferedReader(new FileReader(file));
+    BufferedReader in =
+        new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));
 
     prevLine = in.readLine();
 
@@ -161,12 +163,15 @@ public class FileSorter {
     File file1 = new File(filename1);
     File file2 = new File(filename2);
 
-    BufferedReader reader1 = new BufferedReader(new FileReader(file1));
-    BufferedReader reader2 = new BufferedReader(new FileReader(file2));
+    BufferedReader reader1 =
+        new BufferedReader(new FileReader(file1, StandardCharsets.UTF_8));
+    BufferedReader reader2 =
+        new BufferedReader(new FileReader(file2, StandardCharsets.UTF_8));
 
     File fileOut =
         File.createTempFile("merged_", ".tmp", file1.getParentFile());
-    BufferedWriter writer = new BufferedWriter(new FileWriter(fileOut));
+    BufferedWriter writer =
+        new BufferedWriter(new FileWriter(fileOut, StandardCharsets.UTF_8));
 
     String line1 = reader1.readLine();
     String line2 = reader2.readLine();
@@ -254,7 +259,8 @@ public class FileSorter {
 
     // open file
     File fileIn = new File(inputFile);
-    BufferedReader reader = new BufferedReader(new FileReader(fileIn));
+    BufferedReader reader =
+        new BufferedReader(new FileReader(fileIn, StandardCharsets.UTF_8));
 
     // cycle until end of file
     while ((line = reader.readLine()) != null) {
@@ -299,7 +305,7 @@ public class FileSorter {
     File fileTemp =
         File.createTempFile("split_" + fileIn.getName() + "_", ".tmp",
             outputDir);
-    FileWriter fileWriter = new FileWriter(fileTemp);
+    FileWriter fileWriter = new FileWriter(fileTemp, StandardCharsets.UTF_8);
     BufferedWriter writer = new BufferedWriter(fileWriter);
 
     for (int i = 0; i < lines.size(); i++) {
