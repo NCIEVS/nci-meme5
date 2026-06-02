@@ -5,10 +5,11 @@ tsApp.service('securityService', [
   '$location',
   '$q',
   '$cookies',
+  '$window',
   'utilService',
   'gpService',
   'appConfig',
-  function($http, $location, $q, $cookies, utilService, gpService, appConfig) {
+  function($http, $location, $q, $cookies, $window, utilService, gpService, appConfig) {
 
     // Declare the user
     var user = {
@@ -27,6 +28,66 @@ tsApp.service('securityService', [
       page : 1,
       query : null
     };
+
+    function ensureUserPreferences(data) {
+      if (!data.userPreferences) {
+        data.userPreferences = {};
+      }
+      if (!data.userPreferences.properties) {
+        data.userPreferences.properties = {};
+      }
+    }
+
+    function getStoredUser() {
+      var storedUser = null;
+      try {
+        if ($window.localStorage) {
+          storedUser = $window.localStorage.getItem('user');
+        }
+      } catch (e) {
+        storedUser = null;
+      }
+      if (!storedUser) {
+        storedUser = $cookies.get('user');
+      }
+      if (!storedUser) {
+        return null;
+      }
+      try {
+        return JSON.parse(storedUser);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveStoredUser() {
+      try {
+        if ($window.localStorage) {
+          $window.localStorage.setItem('user', angular.toJson(user));
+          $cookies.remove('user', { path : '/' });
+          return;
+        }
+      } catch (e) {
+        // Fall back to the compact cookie below.
+      }
+      $cookies.put('user', angular.toJson({
+        userName : user.userName,
+        name : user.name,
+        email : user.email,
+        authToken : user.authToken,
+        applicationRole : user.applicationRole,
+        editorLevel : user.editorLevel,
+        userPreferences : {
+          lastProjectId : user.userPreferences.lastProjectId,
+          lastProjectRole : user.userPreferences.lastProjectRole,
+          lastTerminology : user.userPreferences.lastTerminology,
+          lastTab : user.userPreferences.lastTab,
+          properties : {
+            reportModeTab : user.userPreferences.properties.reportModeTab
+          }
+        }
+      }), { path : '/' });
+    }
 
     // Configure tabs
     this.saveTab = function(prefs, tab) {
@@ -131,14 +192,11 @@ tsApp.service('securityService', [
       }
       // otherwise, determine if user is already logged in
       else if (!$http.defaults.headers.common.Authorization) {
-        // Retrieve cookie
-        if ($cookies.get('user')) {
-          var cookieUser = JSON.parse($cookies.get('user'));
-          // If there is a user cookie, load it
-          if (cookieUser) {
-            this.setUser(cookieUser);
-            $http.defaults.headers.common.Authorization = user.authToken;
-          }
+        var storedUser = getStoredUser();
+        // If there is a stored user session, load it
+        if (storedUser) {
+          this.setUser(storedUser);
+          $http.defaults.headers.common.Authorization = user.authToken;
         }
       }
       // return user (blank if not found)
@@ -147,6 +205,7 @@ tsApp.service('securityService', [
 
     // Sets the user
     this.setUser = function(data) {
+      ensureUserPreferences(data);
       user.userName = data.userName;
       user.name = data.name;
       user.email = data.email;
@@ -157,8 +216,8 @@ tsApp.service('securityService', [
       user.editorLevel = data.editorLevel;
       $http.defaults.headers.common.Authorization = data.authToken;
 
-      // Whenever set user is called, we should save a cookie
-      $cookies.put('user', JSON.stringify(user), { path: '/' });
+      // Whenever set user is called, persist browser session state for popouts.
+      saveStoredUser();
     };
 
     // Set user to the guest user
@@ -168,10 +227,12 @@ tsApp.service('securityService', [
       user.authToken = 'guest';
       user.password = 'guest';
       user.applicationRole = 'VIEWER';
-      user.userPreferences = {};
+      user.userPreferences = {
+        properties : {}
+      };
 
-      // Whenever set user is called, we should save a cookie
-      $cookies.put('user', JSON.stringify(user), { path: '/' });
+      // Whenever set user is called, persist browser session state for popouts.
+      saveStoredUser();
       $http.defaults.headers.common.Authorization = 'guest';
 
     };
@@ -190,6 +251,14 @@ tsApp.service('securityService', [
       user.applicationRole = null;
       user.userPreferences = null;
 
+      try {
+        if ($window.localStorage) {
+          $window.localStorage.removeItem('user');
+        }
+      } catch (e) {
+        // Continue clearing cookies.
+      }
+      $cookies.remove('user', { path : '/' });
       // $cookies.remove('user');
       angular.forEach($cookies.getAll(), function (v, k) {
          $cookies.remove(k);
@@ -627,8 +696,6 @@ tsApp.service('securityService', [
     // update user preferences
     this.updateUserPreferences = function(userPreferences) {
       console.debug('updateUserPreferences', userPreferences);
-      // Whenever we update user preferences, we need to update the cookie
-      $cookies.put('user', JSON.stringify(user), { path: '/' });
 
       var deferred = $q.defer();
 
@@ -639,10 +706,14 @@ tsApp.service('securityService', [
       }
 
       // Skip for guest user
-      if (this.isGuestUser()) {
+      else if (this.isGuestUser()) {
         console.log('Skipped updating preferences for guest user');
         deferred.reject('guest user');
       } else {
+        // Whenever we update user preferences, persist session state for popouts.
+        user.userPreferences = userPreferences;
+        ensureUserPreferences(user);
+        saveStoredUser();
 
         gpService.increment();
         $http.post(securityUrl + '/user/preferences/update', userPreferences).then(
