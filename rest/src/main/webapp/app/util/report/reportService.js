@@ -44,8 +44,7 @@ tsApp.service('reportService', [
         + '/' + component.id;
       var title = 'Report-' + component.terminology + '/' + component.version + ', '
         + component.terminologyId;
-      var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600',
-        'popout-open');
+      var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600');
       if (newWindow) {
         newWindow.document.title = title;
         newWindow.focus();

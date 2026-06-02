@@ -29,7 +29,7 @@ public class ApiOriginFilter implements Filter {
     res.addHeader("Access-Control-Allow-Methods",
         "GET, POST, DELETE, PUT, PATCH, OPTIONS");
     res.addHeader("Access-Control-Allow-Headers",
-        "Content-Type, api_key, Authorization, X-UMLS-Client-Auth-Version, X-UMLS-Client-Auth-Source");
+        "Content-Type, api_key, Authorization");
     chain.doFilter(request, response);
   }
 

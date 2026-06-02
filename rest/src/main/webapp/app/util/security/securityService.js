@@ -29,14 +29,6 @@ tsApp.service('securityService', [
       query : null
     };
 
-    var authDebugVersion = 'NM-311-popup-reauthorization-v2';
-
-    function setAuthDebugSource(source) {
-      $http.defaults.headers.common['X-UMLS-Client-Auth-Version'] = authDebugVersion;
-      $http.defaults.headers.common['X-UMLS-Client-Auth-Source'] = source;
-      console.debug('auth debug', authDebugVersion, source);
-    }
-
     function ensureUserPreferences(data) {
       if (!data.userPreferences) {
         data.userPreferences = {};
@@ -68,7 +60,7 @@ tsApp.service('securityService', [
       };
     }
 
-    function parseStoredUser(storedUser, source) {
+    function parseStoredUser(storedUser) {
       if (!storedUser) {
         return null;
       }
@@ -77,10 +69,7 @@ tsApp.service('securityService', [
         if (!parsedUser || !parsedUser.authToken) {
           return null;
         }
-        return {
-          source : source,
-          user : parsedUser
-        };
+        return parsedUser;
       } catch (e) {
         return null;
       }
@@ -90,7 +79,7 @@ tsApp.service('securityService', [
       var parsedUser = null;
       try {
         if ($window.localStorage) {
-          parsedUser = parseStoredUser($window.localStorage.getItem('user'), 'localStorage');
+          parsedUser = parseStoredUser($window.localStorage.getItem('user'));
         }
       } catch (e) {
         parsedUser = null;
@@ -98,7 +87,7 @@ tsApp.service('securityService', [
       if (parsedUser) {
         return parsedUser;
       }
-      return parseStoredUser($cookies.get('user'), 'cookie');
+      return parseStoredUser($cookies.get('user'));
     }
 
     function getWindowNameUser() {
@@ -107,73 +96,14 @@ tsApp.service('securityService', [
           return null;
         }
         var session = JSON.parse($window.name);
-        if (!session || session.authDebugVersion !== authDebugVersion || !session.user
-          || !session.user.authToken) {
+        if (!session || !session.user || !session.user.authToken) {
           return null;
         }
         $window.name = '';
-        return {
-          source : 'window-name',
-          user : session.user
-        };
+        return session.user;
       } catch (e) {
         return null;
       }
-    }
-
-    function getOpenerServiceUser() {
-      try {
-        if (!$window.opener || $window.opener.closed || !$window.opener.angular
-          || !$window.opener.document) {
-          return null;
-        }
-        var openerInjector = $window.opener.angular.element($window.opener.document.documentElement)
-          .injector();
-        if (!openerInjector && $window.opener.document.body) {
-          openerInjector = $window.opener.angular.element($window.opener.document.body).injector();
-        }
-        if (!openerInjector) {
-          return null;
-        }
-        var openerSecurityService = openerInjector.get('securityService');
-        if (openerSecurityService && openerSecurityService.getSessionUser) {
-          return openerSecurityService.getSessionUser();
-        }
-        if (openerSecurityService && openerSecurityService.getUser) {
-          return openerSecurityService.getUser();
-        }
-      } catch (e) {
-        return null;
-      }
-      return null;
-    }
-
-    function getOpenerScopeUser() {
-      try {
-        if ($window.opener && !$window.opener.closed && $window.opener.$windowScope
-          && $window.opener.$windowScope.user) {
-          return $window.opener.$windowScope.user;
-        }
-      } catch (e) {
-        return null;
-      }
-      return null;
-    }
-
-    function getOpenerUser() {
-      var openerUser = getOpenerServiceUser();
-      var source = 'opener-service';
-      if (!openerUser) {
-        openerUser = getOpenerScopeUser();
-        source = 'opener-scope';
-      }
-      if (!openerUser || !openerUser.authToken) {
-        return null;
-      }
-      return {
-        source : source,
-        user : angular.copy(openerUser)
-      };
     }
 
     function saveStoredUser() {
@@ -189,8 +119,6 @@ tsApp.service('securityService', [
       }
       $cookies.put('user', angular.toJson(getCompactStoredUser()), { path : '/' });
     }
-
-    setAuthDebugSource('service-init');
 
     // Configure tabs
     this.saveTab = function(prefs, tab) {
@@ -299,30 +227,18 @@ tsApp.service('securityService', [
         if (!storedUser) {
           storedUser = getWindowNameUser();
         }
-        if (!storedUser) {
-          storedUser = getOpenerUser();
-        }
         // If there is a stored user session, load it
         if (storedUser) {
-          this.setUser(storedUser.user, storedUser.source);
+          this.setUser(storedUser);
           $http.defaults.headers.common.Authorization = user.authToken;
-        } else {
-          setAuthDebugSource('none');
         }
       }
       // return user (blank if not found)
       return user;
     };
 
-    this.getSessionUser = function() {
-      if (!user.authToken) {
-        return null;
-      }
-      return getCompactStoredUser();
-    };
-
     // Sets the user
-    this.setUser = function(data, authSource) {
+    this.setUser = function(data) {
       ensureUserPreferences(data);
       user.userName = data.userName;
       user.name = data.name;
@@ -333,28 +249,25 @@ tsApp.service('securityService', [
       user.userPreferences = data.userPreferences;
       user.editorLevel = data.editorLevel;
       $http.defaults.headers.common.Authorization = data.authToken;
-      setAuthDebugSource(authSource ? authSource : 'login');
 
       // Whenever set user is called, persist browser session state for popouts.
       saveStoredUser();
     };
 
-    this.persistUser = function(authSource) {
+    this.persistUser = function() {
       if (user.authToken) {
-        setAuthDebugSource(authSource ? authSource : 'persist');
         saveStoredUser();
       }
     };
 
-    this.openSessionWindow = function(url, title, features, authSource) {
-      this.persistUser(authSource ? authSource : 'popout-open');
+    this.openSessionWindow = function(url, title, features) {
+      this.persistUser();
       var newWindow = $window.open('', title ? title : '', features ? features : '');
       if (!newWindow) {
         return null;
       }
       try {
         newWindow.name = angular.toJson({
-          authDebugVersion : authDebugVersion,
           user : getCompactStoredUser()
         });
       } catch (e) {
@@ -378,7 +291,6 @@ tsApp.service('securityService', [
       // Whenever set user is called, persist browser session state for popouts.
       saveStoredUser();
       $http.defaults.headers.common.Authorization = 'guest';
-      setAuthDebugSource('guest');
 
     };
 
@@ -408,7 +320,6 @@ tsApp.service('securityService', [
       angular.forEach($cookies.getAll(), function (v, k) {
          $cookies.remove(k);
       });
-      setAuthDebugSource('cleared');
 
     };
 

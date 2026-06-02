@@ -1175,7 +1175,7 @@ tsApp
           var title = 'Component-' + component.terminology + '/' + component.version + ', '
             + component.terminologyId;
           var newWindow = securityService.openSessionWindow(newUrl, title,
-            'width=950,height=600,scrollbars=yes', 'popout-open');
+            'width=950,height=600,scrollbars=yes');
           if (newWindow) {
             newWindow.document.title = title;
             newWindow.focus();

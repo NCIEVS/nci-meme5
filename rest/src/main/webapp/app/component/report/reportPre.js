@@ -27,8 +27,7 @@ tsApp.directive('reportPre', [ function() {
                 || href.indexOf('#/content/report/') != -1) {
                 event.preventDefault();
                 event.stopPropagation();
-                securityService.openSessionWindow(href, '', 'resizable,height=800,width=600',
-                  'report-link');
+                securityService.openSessionWindow(href, '', 'resizable,height=800,width=600');
               }
               return;
             }
