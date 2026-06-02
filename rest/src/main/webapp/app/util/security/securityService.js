@@ -29,6 +29,14 @@ tsApp.service('securityService', [
       query : null
     };
 
+    var authDebugVersion = 'NM-311-popup-reauthorization';
+
+    function setAuthDebugSource(source) {
+      $http.defaults.headers.common['X-UMLS-Client-Auth-Version'] = authDebugVersion;
+      $http.defaults.headers.common['X-UMLS-Client-Auth-Source'] = source;
+      console.debug('auth debug', authDebugVersion, source);
+    }
+
     function ensureUserPreferences(data) {
       if (!data.userPreferences) {
         data.userPreferences = {};
@@ -38,39 +46,10 @@ tsApp.service('securityService', [
       }
     }
 
-    function getStoredUser() {
-      var storedUser = null;
-      try {
-        if ($window.localStorage) {
-          storedUser = $window.localStorage.getItem('user');
-        }
-      } catch (e) {
-        storedUser = null;
-      }
-      if (!storedUser) {
-        storedUser = $cookies.get('user');
-      }
-      if (!storedUser) {
-        return null;
-      }
-      try {
-        return JSON.parse(storedUser);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function saveStoredUser() {
-      try {
-        if ($window.localStorage) {
-          $window.localStorage.setItem('user', angular.toJson(user));
-          $cookies.remove('user', { path : '/' });
-          return;
-        }
-      } catch (e) {
-        // Fall back to the compact cookie below.
-      }
-      $cookies.put('user', angular.toJson({
+    function getCompactStoredUser() {
+      var prefs = user.userPreferences || {};
+      var properties = prefs.properties || {};
+      return {
         userName : user.userName,
         name : user.name,
         email : user.email,
@@ -78,16 +57,60 @@ tsApp.service('securityService', [
         applicationRole : user.applicationRole,
         editorLevel : user.editorLevel,
         userPreferences : {
-          lastProjectId : user.userPreferences.lastProjectId,
-          lastProjectRole : user.userPreferences.lastProjectRole,
-          lastTerminology : user.userPreferences.lastTerminology,
-          lastTab : user.userPreferences.lastTab,
+          lastProjectId : prefs.lastProjectId,
+          lastProjectRole : prefs.lastProjectRole,
+          lastTerminology : prefs.lastTerminology,
+          lastTab : prefs.lastTab,
           properties : {
-            reportModeTab : user.userPreferences.properties.reportModeTab
+            reportModeTab : properties.reportModeTab
           }
         }
-      }), { path : '/' });
+      };
     }
+
+    function getStoredUser() {
+      var storedUser = null;
+      var source = null;
+      try {
+        if ($window.localStorage) {
+          storedUser = $window.localStorage.getItem('user');
+          source = storedUser ? 'localStorage' : null;
+        }
+      } catch (e) {
+        storedUser = null;
+      }
+      if (!storedUser) {
+        storedUser = $cookies.get('user');
+        source = storedUser ? 'cookie' : null;
+      }
+      if (!storedUser) {
+        return null;
+      }
+      try {
+        return {
+          source : source,
+          user : JSON.parse(storedUser)
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveStoredUser() {
+      if (!user.authToken) {
+        return;
+      }
+      try {
+        if ($window.localStorage) {
+          $window.localStorage.setItem('user', angular.toJson(user));
+        }
+      } catch (e) {
+        // Fall back to the compact cookie below.
+      }
+      $cookies.put('user', angular.toJson(getCompactStoredUser()), { path : '/' });
+    }
+
+    setAuthDebugSource('service-init');
 
     // Configure tabs
     this.saveTab = function(prefs, tab) {
@@ -195,8 +218,10 @@ tsApp.service('securityService', [
         var storedUser = getStoredUser();
         // If there is a stored user session, load it
         if (storedUser) {
-          this.setUser(storedUser);
+          this.setUser(storedUser.user, storedUser.source);
           $http.defaults.headers.common.Authorization = user.authToken;
+        } else {
+          setAuthDebugSource('none');
         }
       }
       // return user (blank if not found)
@@ -204,7 +229,7 @@ tsApp.service('securityService', [
     };
 
     // Sets the user
-    this.setUser = function(data) {
+    this.setUser = function(data, authSource) {
       ensureUserPreferences(data);
       user.userName = data.userName;
       user.name = data.name;
@@ -215,9 +240,17 @@ tsApp.service('securityService', [
       user.userPreferences = data.userPreferences;
       user.editorLevel = data.editorLevel;
       $http.defaults.headers.common.Authorization = data.authToken;
+      setAuthDebugSource(authSource ? authSource : 'login');
 
       // Whenever set user is called, persist browser session state for popouts.
       saveStoredUser();
+    };
+
+    this.persistUser = function(authSource) {
+      if (user.authToken) {
+        setAuthDebugSource(authSource ? authSource : 'persist');
+        saveStoredUser();
+      }
     };
 
     // Set user to the guest user
@@ -234,6 +267,7 @@ tsApp.service('securityService', [
       // Whenever set user is called, persist browser session state for popouts.
       saveStoredUser();
       $http.defaults.headers.common.Authorization = 'guest';
+      setAuthDebugSource('guest');
 
     };
 
@@ -263,6 +297,7 @@ tsApp.service('securityService', [
       angular.forEach($cookies.getAll(), function (v, k) {
          $cookies.remove(k);
       });
+      setAuthDebugSource('cleared');
 
     };
 

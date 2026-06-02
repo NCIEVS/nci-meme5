@@ -15,7 +15,8 @@ tsApp.directive('relationshipsDeep', [ function() {
       '$window',
       'utilService',
       'contentService',
-      function($scope, $window, utilService, contentService) {
+      'securityService',
+      function($scope, $window, utilService, contentService, securityService) {
 
         $scope.showing = true;
 
@@ -127,6 +128,7 @@ tsApp.directive('relationshipsDeep', [ function() {
         });
 
         $scope.displayConcept = function(item) {
+          securityService.persistUser('popout-open');
           var currentUrl = window.location.href;
           var baseUrl = currentUrl.substring(0, currentUrl.indexOf('#') + 1);
           var newUrl = baseUrl + '/content/report/' + $scope.component.type + '/' + $scope.component.terminology

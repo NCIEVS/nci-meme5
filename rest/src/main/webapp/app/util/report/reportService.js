@@ -6,7 +6,8 @@ tsApp.service('reportService', [
   '$window',
   'gpService',
   'utilService',
-  function($http, $q, $window, gpService, utilService) {
+  'securityService',
+  function($http, $q, $window, gpService, utilService, securityService) {
 
     // get concept report
     this.getComponentReport = function(projectId, component) {
@@ -37,6 +38,7 @@ tsApp.service('reportService', [
 
     // Popout report into new window
     this.popout = function(component) {
+      securityService.persistUser('popout-open');
       var currentUrl = window.location.href;
       var baseUrl = currentUrl.substring(0, currentUrl.indexOf('#') + 1);
       var newUrl = baseUrl + '/content/report/' + component.type + '/' + component.terminology

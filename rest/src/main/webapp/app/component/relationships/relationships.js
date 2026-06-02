@@ -13,8 +13,9 @@ tsApp.directive('relationships', [ function() {
     controller : [
       '$scope',
       '$window',
-      'utilService',      
-      function($scope, $window, utilService) {
+      'utilService',
+      'securityService',
+      function($scope, $window, utilService, securityService) {
       
         // check callbacks supplied
         if (!$scope.callbacks || !$scope.callbacks.findRelationships) {
@@ -139,6 +140,7 @@ tsApp.directive('relationships', [ function() {
         }
         
         $scope.displayConcept = function(item) {
+          securityService.persistUser('popout-open');
           var currentUrl = window.location.href;
           var baseUrl = currentUrl.substring(0, currentUrl.indexOf('#') + 1);
           var newUrl = baseUrl + '/content/report/' + $scope.component.type + '/' + $scope.component.terminology

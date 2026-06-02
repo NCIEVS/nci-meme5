@@ -66,6 +66,8 @@ public class UserActivityLoggingFilter implements Filter {
 
 			logString.append("[HOST: ").append(sr.getRemoteAddr()).append("]");
 			logString.append(" [AUTH: ").append(sr.getHeader("authorization")).append("]");
+			logString.append(" [CLIENT-AUTH: ").append(sr.getHeader("X-UMLS-Client-Auth-Version")).append("]");
+			logString.append(" [AUTH-SOURCE: ").append(sr.getHeader("X-UMLS-Client-Auth-Source")).append("]");
 
 			// don't fail if can't parse cookie, just log and continue.
 			try {

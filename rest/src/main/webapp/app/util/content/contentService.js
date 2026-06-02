@@ -11,7 +11,8 @@ tsApp
       'utilService',
       'tabService',
       'metadataService',
-      function($http, $q, $window, gpService, utilService, tabService, metadataService) {
+      'securityService',
+      function($http, $q, $window, gpService, utilService, tabService, metadataService, securityService) {
 
         var metadata = metadataService.getModel();
 
@@ -1166,6 +1167,7 @@ tsApp
 
         // Popout component into new window
         this.popout = function(component) {
+          securityService.persistUser('popout-open');
           var currentUrl = window.location.href;
           var baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
           // TODO; don't hardcode this - maybe "simple" should be a parameter
