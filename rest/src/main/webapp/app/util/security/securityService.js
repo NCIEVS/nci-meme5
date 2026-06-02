@@ -68,32 +68,92 @@ tsApp.service('securityService', [
       };
     }
 
-    function getStoredUser() {
-      var storedUser = null;
-      var source = null;
-      try {
-        if ($window.localStorage) {
-          storedUser = $window.localStorage.getItem('user');
-          source = storedUser ? 'localStorage' : null;
-        }
-      } catch (e) {
-        storedUser = null;
-      }
-      if (!storedUser) {
-        storedUser = $cookies.get('user');
-        source = storedUser ? 'cookie' : null;
-      }
+    function parseStoredUser(storedUser, source) {
       if (!storedUser) {
         return null;
       }
       try {
+        var parsedUser = JSON.parse(storedUser);
+        if (!parsedUser || !parsedUser.authToken) {
+          return null;
+        }
         return {
           source : source,
-          user : JSON.parse(storedUser)
+          user : parsedUser
         };
       } catch (e) {
         return null;
       }
+    }
+
+    function getStoredUser() {
+      var parsedUser = null;
+      try {
+        if ($window.localStorage) {
+          parsedUser = parseStoredUser($window.localStorage.getItem('user'), 'localStorage');
+        }
+      } catch (e) {
+        parsedUser = null;
+      }
+      if (parsedUser) {
+        return parsedUser;
+      }
+      return parseStoredUser($cookies.get('user'), 'cookie');
+    }
+
+    function getOpenerServiceUser() {
+      try {
+        if (!$window.opener || $window.opener.closed || !$window.opener.angular
+          || !$window.opener.document) {
+          return null;
+        }
+        var openerInjector = $window.opener.angular.element($window.opener.document.documentElement)
+          .injector();
+        if (!openerInjector && $window.opener.document.body) {
+          openerInjector = $window.opener.angular.element($window.opener.document.body).injector();
+        }
+        if (!openerInjector) {
+          return null;
+        }
+        var openerSecurityService = openerInjector.get('securityService');
+        if (openerSecurityService && openerSecurityService.getSessionUser) {
+          return openerSecurityService.getSessionUser();
+        }
+        if (openerSecurityService && openerSecurityService.getUser) {
+          return openerSecurityService.getUser();
+        }
+      } catch (e) {
+        return null;
+      }
+      return null;
+    }
+
+    function getOpenerScopeUser() {
+      try {
+        if ($window.opener && !$window.opener.closed && $window.opener.$windowScope
+          && $window.opener.$windowScope.user) {
+          return $window.opener.$windowScope.user;
+        }
+      } catch (e) {
+        return null;
+      }
+      return null;
+    }
+
+    function getOpenerUser() {
+      var openerUser = getOpenerServiceUser();
+      var source = 'opener-service';
+      if (!openerUser) {
+        openerUser = getOpenerScopeUser();
+        source = 'opener-scope';
+      }
+      if (!openerUser || !openerUser.authToken) {
+        return null;
+      }
+      return {
+        source : source,
+        user : angular.copy(openerUser)
+      };
     }
 
     function saveStoredUser() {
@@ -216,6 +276,9 @@ tsApp.service('securityService', [
       // otherwise, determine if user is already logged in
       else if (!$http.defaults.headers.common.Authorization) {
         var storedUser = getStoredUser();
+        if (!storedUser) {
+          storedUser = getOpenerUser();
+        }
         // If there is a stored user session, load it
         if (storedUser) {
           this.setUser(storedUser.user, storedUser.source);
@@ -226,6 +289,13 @@ tsApp.service('securityService', [
       }
       // return user (blank if not found)
       return user;
+    };
+
+    this.getSessionUser = function() {
+      if (!user.authToken) {
+        return null;
+      }
+      return getCompactStoredUser();
     };
 
     // Sets the user

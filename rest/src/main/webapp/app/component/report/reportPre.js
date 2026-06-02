@@ -10,11 +10,33 @@ tsApp.directive('reportPre', [ function() {
     controller : [
       '$scope',
       '$sce',
+      '$element',
       'reportService',
-      function($scope, $sce, reportService) {
+      'securityService',
+      function($scope, $sce, $element, reportService, securityService) {
 
         // Scope vars
         $scope.report = null;
+
+        function persistForReportLink(event) {
+          var element = event.target;
+          while (element && element !== $element[0]) {
+            if (element.tagName && element.tagName.toLowerCase() === 'a') {
+              var href = element.getAttribute('href') || '';
+              if (href.indexOf('/content/report/') != -1
+                || href.indexOf('#/content/report/') != -1) {
+                securityService.persistUser('report-link');
+              }
+              return;
+            }
+            element = element.parentNode;
+          }
+        }
+
+        $element[0].addEventListener('click', persistForReportLink, true);
+        $scope.$on('$destroy', function() {
+          $element[0].removeEventListener('click', persistForReportLink, true);
+        });
 
         // watch component, generate the report
         $scope.$watch('selected.component', function() {
