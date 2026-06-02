@@ -6,7 +6,8 @@ tsApp.service('reportService', [
   '$window',
   'gpService',
   'utilService',
-  function($http, $q, $window, gpService, utilService) {
+  'securityService',
+  function($http, $q, $window, gpService, utilService, securityService) {
 
     // get concept report
     this.getComponentReport = function(projectId, component) {
@@ -43,9 +44,11 @@ tsApp.service('reportService', [
         + '/' + component.id;
       var title = 'Report-' + component.terminology + '/' + component.version + ', '
         + component.terminologyId;
-      var newWindow = $window.open(newUrl, title, 'width=500, height=600');
-      newWindow.document.title = title;
-      newWindow.focus();
+      var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600');
+      if (newWindow) {
+        newWindow.document.title = title;
+        newWindow.focus();
+      }
 
     };
 

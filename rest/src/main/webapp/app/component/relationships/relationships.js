@@ -13,8 +13,9 @@ tsApp.directive('relationships', [ function() {
     controller : [
       '$scope',
       '$window',
-      'utilService',      
-      function($scope, $window, utilService) {
+      'utilService',
+      'securityService',
+      function($scope, $window, utilService, securityService) {
       
         // check callbacks supplied
         if (!$scope.callbacks || !$scope.callbacks.findRelationships) {
@@ -145,9 +146,11 @@ tsApp.directive('relationships', [ function() {
             + '/' + item.toId;
           var title = 'Report-' + $scope.component.terminology + '/' + $scope.component.version + ', '
             + $scope.component.terminologyId;
-          var newWindow = $window.open(newUrl, title, 'width=500, height=600');
-          newWindow.document.title = title;
-          newWindow.focus();
+          var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600');
+          if (newWindow) {
+            newWindow.document.title = title;
+            newWindow.focus();
+          }
         }
 
         // end controller

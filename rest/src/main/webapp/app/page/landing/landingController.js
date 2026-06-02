@@ -30,9 +30,6 @@ tsApp.controller('LandingCtrl', [ '$scope', '$anchorScroll', '$location', 'utilS
     // Initialize
     $scope.initialize = function() {
 
-      // on return to landing, clear user
-      securityService.clearUser();
-
       // on return to landing page, clear any errors
       utilService.clearError();
     };
