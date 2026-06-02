@@ -25,7 +25,10 @@ tsApp.directive('reportPre', [ function() {
               var href = element.getAttribute('href') || '';
               if (href.indexOf('/content/report/') != -1
                 || href.indexOf('#/content/report/') != -1) {
-                securityService.persistUser('report-link');
+                event.preventDefault();
+                event.stopPropagation();
+                securityService.openSessionWindow(href, '', 'resizable,height=800,width=600',
+                  'report-link');
               }
               return;
             }

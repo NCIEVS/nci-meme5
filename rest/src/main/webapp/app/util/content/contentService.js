@@ -1167,7 +1167,6 @@ tsApp
 
         // Popout component into new window
         this.popout = function(component) {
-          securityService.persistUser('popout-open');
           var currentUrl = window.location.href;
           var baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/'));
           // TODO; don't hardcode this - maybe "simple" should be a parameter
@@ -1175,9 +1174,12 @@ tsApp
             + '/' + component.version + '/' + component.terminologyId;
           var title = 'Component-' + component.terminology + '/' + component.version + ', '
             + component.terminologyId;
-          var newWindow = $window.open(newUrl, title, 'width=950,height=600,scrollbars=yes');
-          newWindow.document.title = title;
-          newWindow.focus();
+          var newWindow = securityService.openSessionWindow(newUrl, title,
+            'width=950,height=600,scrollbars=yes', 'popout-open');
+          if (newWindow) {
+            newWindow.document.title = title;
+            newWindow.focus();
+          }
 
         };
 

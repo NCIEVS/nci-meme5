@@ -140,16 +140,18 @@ tsApp.directive('relationships', [ function() {
         }
         
         $scope.displayConcept = function(item) {
-          securityService.persistUser('popout-open');
           var currentUrl = window.location.href;
           var baseUrl = currentUrl.substring(0, currentUrl.indexOf('#') + 1);
           var newUrl = baseUrl + '/content/report/' + $scope.component.type + '/' + $scope.component.terminology
             + '/' + item.toId;
           var title = 'Report-' + $scope.component.terminology + '/' + $scope.component.version + ', '
             + $scope.component.terminologyId;
-          var newWindow = $window.open(newUrl, title, 'width=500, height=600');
-          newWindow.document.title = title;
-          newWindow.focus();
+          var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600',
+            'popout-open');
+          if (newWindow) {
+            newWindow.document.title = title;
+            newWindow.focus();
+          }
         }
 
         // end controller

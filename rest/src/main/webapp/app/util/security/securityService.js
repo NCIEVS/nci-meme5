@@ -29,7 +29,7 @@ tsApp.service('securityService', [
       query : null
     };
 
-    var authDebugVersion = 'NM-311-popup-reauthorization';
+    var authDebugVersion = 'NM-311-popup-reauthorization-v2';
 
     function setAuthDebugSource(source) {
       $http.defaults.headers.common['X-UMLS-Client-Auth-Version'] = authDebugVersion;
@@ -99,6 +99,26 @@ tsApp.service('securityService', [
         return parsedUser;
       }
       return parseStoredUser($cookies.get('user'), 'cookie');
+    }
+
+    function getWindowNameUser() {
+      try {
+        if (!$window.name) {
+          return null;
+        }
+        var session = JSON.parse($window.name);
+        if (!session || session.authDebugVersion !== authDebugVersion || !session.user
+          || !session.user.authToken) {
+          return null;
+        }
+        $window.name = '';
+        return {
+          source : 'window-name',
+          user : session.user
+        };
+      } catch (e) {
+        return null;
+      }
     }
 
     function getOpenerServiceUser() {
@@ -277,6 +297,9 @@ tsApp.service('securityService', [
       else if (!$http.defaults.headers.common.Authorization) {
         var storedUser = getStoredUser();
         if (!storedUser) {
+          storedUser = getWindowNameUser();
+        }
+        if (!storedUser) {
           storedUser = getOpenerUser();
         }
         // If there is a stored user session, load it
@@ -321,6 +344,24 @@ tsApp.service('securityService', [
         setAuthDebugSource(authSource ? authSource : 'persist');
         saveStoredUser();
       }
+    };
+
+    this.openSessionWindow = function(url, title, features, authSource) {
+      this.persistUser(authSource ? authSource : 'popout-open');
+      var newWindow = $window.open('', title ? title : '', features ? features : '');
+      if (!newWindow) {
+        return null;
+      }
+      try {
+        newWindow.name = angular.toJson({
+          authDebugVersion : authDebugVersion,
+          user : getCompactStoredUser()
+        });
+      } catch (e) {
+        // Stored fallbacks above may still be available to the new window.
+      }
+      newWindow.location.href = url;
+      return newWindow;
     };
 
     // Set user to the guest user

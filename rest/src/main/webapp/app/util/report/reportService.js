@@ -38,16 +38,18 @@ tsApp.service('reportService', [
 
     // Popout report into new window
     this.popout = function(component) {
-      securityService.persistUser('popout-open');
       var currentUrl = window.location.href;
       var baseUrl = currentUrl.substring(0, currentUrl.indexOf('#') + 1);
       var newUrl = baseUrl + '/content/report/' + component.type + '/' + component.terminology
         + '/' + component.id;
       var title = 'Report-' + component.terminology + '/' + component.version + ', '
         + component.terminologyId;
-      var newWindow = $window.open(newUrl, title, 'width=500, height=600');
-      newWindow.document.title = title;
-      newWindow.focus();
+      var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600',
+        'popout-open');
+      if (newWindow) {
+        newWindow.document.title = title;
+        newWindow.focus();
+      }
 
     };
 
