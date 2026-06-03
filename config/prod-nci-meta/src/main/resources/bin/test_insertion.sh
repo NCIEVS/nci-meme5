@@ -1,165 +1,142 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# Script to prepare meme-test (and/or meme-release) for a test insertion.  Script prepares a manual snapshot of meme-edit, recreates meme-test (and/or meme-release) db from this meme-edit snapshot, copies the meme-edit lucene indexes to s3.
-# Notes:
-# target db should not exist when this script is run
-# script takes about one hour to run and needs to be run after editing hours since it takes down tomcat
-#
+# Prepare meme-test and/or meme-release for a test insertion by snapshotting the
+# source edit database, recreating the target RDS database(s), and backing up the
+# source Lucene indexes to S3.
 
+set -euo pipefail
 
-echo "------------------------------------------------------"
-echo "Starting ...`/bin/date`"
-echo "------------------------------------------------------"
+# Configuration
+MEME_BIN="/local/content/MEME/MEME5/ncim/bin"
+INDEX_DIR="/local/content/MEME/MEME5/ncim/data/indexes"
+BASE_URL="http://ncias-q3009-c.nci.nih.gov:8080/ncim-server-rest"
+AWS_BIN="aws"
+AWS_PROFILE="meme"
+S3_BUCKET_NAME="nci-evs-meme"
+S3_BUCKET="s3://$S3_BUCKET_NAME"
+TOMCAT_SERVICE="tomcat-evs-meme"
+RESTART_SERVER_FOR_INSERTION_SNAPSHOT="true"
+MEME_TEST_DB="meme-test"
+MEME_RELEASE_DB="meme-release"
+MEME_SOURCE_DB="meme-edit"
+RDS_MANUAL_SNAPSHOT_ID="meme-edit-manual-snapshot"
+RDS_PARAMETER_GROUP="meme-db"
+RDS_AVAILABILITY_ZONE="us-east-1d"
+RDS_SUBNET_GROUP="default-vpc-dca724a4"
+RDS_SECURITY_GROUP_IDS="sg-05993d12d18c40cae"
 
-usage='test_insertion.sh {meme-test|meme-release|both} '
-TEST_DB='meme-test'
-RELEASE_DB='meme-release'
+AWS_CMD=("$AWS_BIN")
+if [[ -n "$AWS_PROFILE" ]]; then
+  AWS_CMD+=(--profile "$AWS_PROFILE")
+fi
+
+read -r -a RDS_SECURITY_GROUP_ARGS <<< "$RDS_SECURITY_GROUP_IDS"
+
+usage="test_insertion.sh {$MEME_TEST_DB|$MEME_RELEASE_DB|both}"
 both=0
-awspath='/usr/local/bin'
 
+echo "------------------------------------------------------"
+echo "Starting ... $(/bin/date)"
+echo "------------------------------------------------------"
 
-if [ "$#" -eq 1 ]; then
-    DB_NAME=$1
-    SNAPSHOT_DATE=`/bin/date  +"%Y%m%d"`
+if [[ "$#" -ne 1 ]]; then
+  echo "ERROR: Wrong number of parameters"
+  echo "usage: $usage"
+  exit 1
+fi
+
+TARGET_DB="$1"
+SNAPSHOT_DATE="$(/bin/date +"%Y%m%d")"
+TARGET_DBS=("$TARGET_DB")
+
+if [[ "$TARGET_DB" == "both" ]]; then
+  TARGET_DBS=("$MEME_TEST_DB" "$MEME_RELEASE_DB")
+  both=1
+  echo "Both $MEME_TEST_DB and $MEME_RELEASE_DB will be prepared"
+fi
+
+for db in "${TARGET_DBS[@]}"; do
+  if [[ "$db" != "$MEME_TEST_DB" && "$db" != "$MEME_RELEASE_DB" ]]; then
+    echo "ERROR: target DB must be $MEME_TEST_DB, $MEME_RELEASE_DB, or both"
+    exit 1
+  fi
+done
+
+echo "TARGET_DBS: ${TARGET_DBS[*]}"
+echo "SOURCE_DB: $MEME_SOURCE_DB"
+echo "SNAPSHOT: $RDS_MANUAL_SNAPSHOT_ID"
+echo "SNAPSHOT_DATE: $SNAPSHOT_DATE"
+echo "MEME_BIN: $MEME_BIN"
+echo "TOMCAT_SERVICE: $TOMCAT_SERVICE"
+
+server_stopped=0
+restart_server() {
+  if [[ "$server_stopped" -eq 1 && "$RESTART_SERVER_FOR_INSERTION_SNAPSHOT" == "true" ]]; then
+    sudo service "$TOMCAT_SERVICE" start
+  fi
+}
+trap restart_server EXIT
+
+cd "$MEME_BIN"
+
+if [[ "$RESTART_SERVER_FOR_INSERTION_SNAPSHOT" == "true" ]]; then
+  sudo service "$TOMCAT_SERVICE" stop
+  server_stopped=1
 else
-    echo "ERROR: Wrong number of parameters"
-    echo "usage: $usage"
-    exit 1
+  echo "Skipping service stop because RESTART_SERVER_FOR_INSERTION_SNAPSHOT=$RESTART_SERVER_FOR_INSERTION_SNAPSHOT"
 fi
 
-echo "DB_NAME:    $DB_NAME"
-echo "SNAPSHOT_DATE:    $SNAPSHOT_DATE"
+echo "Deleting old $RDS_MANUAL_SNAPSHOT_ID snapshot if it exists"
+"${AWS_CMD[@]}" rds delete-db-snapshot \
+  --db-snapshot-identifier "$RDS_MANUAL_SNAPSHOT_ID" || true
 
-# if parameter indicates 'both' dbs to be created, start with the meme-test db
-if [[ $DB_NAME =~ 'both' ]]; then
-	DB_NAME=$TEST_DB
-	both=1
-        echo "Both meme-test and meme-release will be prepared";
-fi
-
-if [[ $DB_NAME -ne $DEV_DB && $DB_NAME -ne $TEST_DB && $DB_NAME -ne $RELEASE_DB ]]; then 
-        echo "ERROR: DB must be $DEV_DB or $TEST_DB or $RELEASE_DB";
-    exit 1
-fi
-
-cd /local/content/MEME/MEME5/ncim/bin
-
-# stop application
-sudo service tomcat-evs-meme stop
-
-# remove meme-edit-manual-snapshot if exists
-echo "starting deletion of old meme-edit-manual-snapshot"
-$awspath/aws rds delete-db-snapshot --profile meme --db-snapshot-identifier meme-edit-manual-snapshot
-
-
-while :
-do
-
-   echo "deleting"
-   started=`$awspath/aws rds describe-db-snapshots --profile meme --query "DBSnapshots[?DBSnapshotIdentifier=='meme-edit-manual-snapshot'].[Status][0][0]"`
-   echo $started
-
-      if [[ -n $started || $started == 'null' ]]; then
-	echo "deleted"
- 	break
-      fi
-
-      sleep 1
+while "${AWS_CMD[@]}" rds describe-db-snapshots \
+    --db-snapshot-identifier "$RDS_MANUAL_SNAPSHOT_ID" >/dev/null 2>&1; do
+  echo "waiting for old snapshot deletion"
+  sleep 10
 done
 
+echo "Creating $RDS_MANUAL_SNAPSHOT_ID from $MEME_SOURCE_DB"
+"${AWS_CMD[@]}" rds create-db-snapshot \
+  --db-instance-identifier "$MEME_SOURCE_DB" \
+  --db-snapshot-identifier "$RDS_MANUAL_SNAPSHOT_ID"
 
+"${AWS_CMD[@]}" rds wait db-snapshot-available \
+  --db-snapshot-identifier "$RDS_MANUAL_SNAPSHOT_ID"
 
-# create new meme-edit-manual-snapshot
-echo "starting creation of new meme-edit-manual-snapshot"
-$awspath/aws rds create-db-snapshot --profile meme --db-instance-identifier meme-edit --db-snapshot-identifier meme-edit-manual-snapshot
+for db in "${TARGET_DBS[@]}"; do
+  echo "Restoring $db from $RDS_MANUAL_SNAPSHOT_ID"
+  "${AWS_CMD[@]}" rds restore-db-instance-from-db-snapshot \
+    --db-instance-identifier "$db" \
+    --db-snapshot-identifier "$RDS_MANUAL_SNAPSHOT_ID" \
+    --db-parameter-group-name "$RDS_PARAMETER_GROUP" \
+    --availability-zone "$RDS_AVAILABILITY_ZONE" \
+    --db-subnet-group-name "$RDS_SUBNET_GROUP" \
+    --vpc-security-group-ids "${RDS_SECURITY_GROUP_ARGS[@]}"
 
-started='creating snapshot'
-   while :
-   do
-
-   started=`$awspath/aws rds describe-db-snapshots --profile meme --query "DBSnapshots[?DBSnapshotIdentifier=='meme-edit-manual-snapshot'].[Status][0][0]" `
-   echo $started
-         if [[ $started =~ 'available' ]]; then
-              echo ""
-              break
-           fi
-
-           sleep 1
+  "${AWS_CMD[@]}" rds wait db-instance-available \
+    --db-instance-identifier "$db"
 done
 
-
-
-# recreate meme-test/release db from meme-edit-manual-snapshot
-echo "starting meme-test/release db recreation"
-$awspath/aws rds restore-db-instance-from-db-snapshot --profile meme --db-instance-identifier $DB_NAME --db-snapshot-identifier meme-edit-manual-snapshot --db-parameter-group-name meme-db --availability-zone us-east-1d --db-subnet-group-name default-vpc-dca724a4 --vpc-security-group-ids sg-05993d12d18c40cae
-
-started='creating db'
-   while :
-   do
-
-   started=`$awspath/aws rds describe-db-instances --profile meme --query "DBInstances[?DBInstanceIdentifier=='$DB_NAME'].[DBInstanceStatus][0][0]" `
-   echo $started
-         if [[ $started =~ 'available' ]]; then
-              echo ""
-              break
-           fi
-           sleep 1
-done
-
-
-# if 'both' parameter was indicated, meme-release will also be prepared/created from the meme-edit snapshot
-if [[ $both -eq 1 ]]; then 
-	DB_NAME=$RELEASE_DB
-	echo "Both was indicated. meme-release creation will now be processed. "
-
-
-  $awspath/aws rds restore-db-instance-from-db-snapshot --profile meme --db-instance-identifier $DB_NAME --db-snapshot-identifier meme-edit-manual-snapshot --db-parameter-group-name meme-db --availability-zone us-east-1d --db-subnet-group-name default-vpc-dca724a4 --vpc-security-group-ids sg-05993d12d18c40cae
-
-  started='creating db'
-     while :
-     do
-
-     started=`$awspath/aws rds describe-db-instances --profile meme --query "DBInstances[?DBInstanceIdentifier=='$DB_NAME'].[DBInstanceStatus][0][0]" `
-     echo $started
-         if [[ $started =~ 'available' ]]; then
-              echo ""
-              break
-           fi
-           sleep 1
-  done
-fi
-
-# make copy of meme-edit's lucene indexes and store in s3
-echo "meme-test/release db recreate COMPLETED"
-echo "starting backupIndexes.csh"
-
-./backupIndexes.csh manual
-
-# restart application
-sudo service tomcat-evs-meme start
-
+echo "RDS recreation completed"
+echo "Backing up indexes to S3"
+"$MEME_BIN/backupIndexes.csh" manual
 
 echo "------------------------------------------------------"
-echo "Finished ...`/bin/date`"
+echo "Finished ... $(/bin/date)"
 echo "------------------------------------------------------"
 
+if [[ "$both" -eq 1 ]]; then
+  echo "Prepared $MEME_TEST_DB and $MEME_RELEASE_DB"
+else
+  echo "Prepared ${TARGET_DBS[0]}"
+fi
 
-# NEXT STEPS on meme-test (and/or meme-release if clone is to meme-release)
-# 1. pull indexes
-#   tstop
-#   cd /local/content/MEME/MEME5/ncim/data/indexes
-#   rm -rf *
-#   aws s3 cp s3://nci-evs-meme/indexes/manual_20231018.tar .
-#   tar -xvf manual_20231018.tar
-#   rm manual_20231018.tar
-#   chmod -R 777 /local/content/MEME/MEME5/ncim/data/indexes/
-#   chown -R tomcata:tomcata /local/content/MEME/MEME5/ncim/data/indexes/ 
-# 2. cp insertion data from s3
-#    cd /local/content/MEME/MEME5/ncim/bin
-#    ./pull_s3.csh inv NCI_2023_09D
-#    ./prep_insertion.csh -t NCI_2023_09D
-# 3. start tomcat and test application functioning
-#   tstart
-#   http://ncias-q3009-c.nci.nih.gov:8080/ncim-server-rest/index.html#/login
-# 4. set up insertion recipe
+cat <<EOF
 
+Next steps on the target host:
+1. Pull the matching index archive from $S3_BUCKET/indexes.
+2. Restore it under INDEX_DIR=$INDEX_DIR.
+3. Pull insertion source data with pull_s3.csh.
+4. Start the app and verify BASE_URL=$BASE_URL.
+EOF

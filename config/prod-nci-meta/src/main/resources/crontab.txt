@@ -1,21 +1,21 @@
 #
-# Run nightly tasks
+# Sample cron entries for NCI-META operational scripts.
+#
+# Production constants are defined near the top of each script so they are
+# visible where they are used. Set DB_PASSWORD here or in the account profile
+# only if the MySQL connection requires a password.
+#
+MEME_BIN=/meme_work/ncim/bin
+
+#
+# Run nightly tasks:
 # 1. Daily editing report
-# 2. Repartition
-# 3. This includes restarting the tomcat server.
+# 2. MUTUALLY_EXCLUSIVE repartition
+# 3. Optional Tomcat restart controlled by RESTART_SERVER_AFTER_NIGHTLY
 #
-00 00 * * 0-5 /meme_work/ncim/bin/nightlyTasks.csh
+00 00 * * 0-5 $MEME_BIN/nightlyTasks.csh
 
 #
-# Run cron validation script (runs the MID Validation queries and emails them)
+# Run the MID Validation process.
 #
-00 09 * * 6 /meme_work/ncim/bin/cronvalidate.csh
-
-
-
-
-
-
-
-
-
+00 09 * * 6 $MEME_BIN/cronvalidate.csh

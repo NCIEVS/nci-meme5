@@ -14,8 +14,10 @@ purposes:
 - `migrate-table-generators.sql` and `validate-table-generators.sql` are
   operational database migration/validation helpers.
 - `META/MRCOLS.RRF` and `META/MRFILES.RRF` support NCI-META metadata workflows.
-- `bin/**` and `crontab.txt` are historical/operational scripts that still need
-  separate owner review before removal or modernization.
+- `bin/**` and `crontab.txt` are operational scripts. NM-310 modernizes the
+  retained production scripts in place with visible per-script configuration
+  blocks. `load.csh` was retired because the old Maven load flow is now covered
+  by Gradle admin tasks.
 
 The old Maven assembly descriptor for creating a `term-server-config-prod-nci-meta`
 zip has been removed. Do not add a new `config.properties` here; add new runtime

@@ -257,9 +257,10 @@ Remaining backlog:
 
 - broad model/JPA encapsulation and mutable representation exposure
 - constructor/lifecycle cleanup for reflection-loaded algorithms
-- dynamic SQL/query execution review
-- remaining null/correctness edge cases that need focused behavior tests
-- legacy control-flow and exception-handling decisions
+- NM-307: dynamic SQL/query execution review
+- NM-308: remaining null/correctness edge cases that need focused behavior
+  tests
+- NM-309: legacy control-flow and exception-handling decisions
 - unused/unwritten fields that may be populated by frameworks or legacy
   serialization paths
 - lower-priority modernization/noise such as boxing/string construction and map
@@ -533,11 +534,11 @@ Completed in NM-304:
 
 Remaining follow-up tickets:
 
+- NM-307: dynamic SQL/query execution review
+- NM-308: remaining null/correctness edge-case review
+- NM-309: legacy exception and control-flow cleanup
 - NM-304 follow-up: JPA model encapsulation strategy
 - NM-304 follow-up: constructor initialization strategy
-- NM-304 follow-up: dynamic SQL/query execution review
-- NM-304 follow-up: remaining null/correctness edge-case review
-- NM-304 follow-up: legacy exception and control-flow cleanup
 - NM-304 follow-up: unused/unwritten field framework-population review
 - NM-304 follow-up: remaining static/global state mutability review
 - NM-304 follow-up: low-risk modernization/noise cleanup

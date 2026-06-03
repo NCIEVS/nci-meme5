@@ -3,10 +3,25 @@
 # This script is used to create a new rds db from the latest backup of meme-edit.  If you don't want the latest automatic backup or if you want a backup other than the meme-edit db, do the refresh manually from the UI.  
 #
 
-setenv usage 'refresh_rds.csh {meme-test|meme-release|meme-dev} '
+# Configuration
+set AWS_BIN = "aws"
+set AWS_PROFILE = "meme"
 setenv TEST_DB meme-test
 setenv DEV_DB meme-dev
 setenv RELEASE_DB meme-release
+set MEME_SOURCE_DB = "meme-edit"
+set RDS_PARAMETER_GROUP = "meme-db"
+set RDS_AVAILABILITY_ZONE = "us-east-1d"
+set RDS_SUBNET_GROUP = "mysql-subnet-group"
+set RDS_SECURITY_GROUP_IDS = "sg-05993d12d18c40cae"
+set RDS_DEV_SECURITY_GROUP_IDS = "sg-0a42ddabf8c260525"
+if ("$AWS_PROFILE" == "") then
+  set aws = ( "$AWS_BIN" )
+else
+  set aws = ( "$AWS_BIN" --profile "$AWS_PROFILE" )
+endif
+
+setenv usage 'refresh_rds.csh {meme-test|meme-release|meme-dev} '
 
 echo "--------------------------------------------------------"
 echo "Starting `/bin/date`"
@@ -27,23 +42,23 @@ if ($DB_NAME != $DEV_DB && $DB_NAME != $TEST_DB && $DB_NAME != $RELEASE_DB) then
 	exit 1
 endif
 
-if ($DB_NAME == 'meme-dev') then
-    setenv VPC sg-0a42ddabf8c260525
+if ($DB_NAME == "$DEV_DB") then
+    setenv VPC "$RDS_DEV_SECURITY_GROUP_IDS"
 else 
-    setenv VPC sg-05993d12d18c40cae
+    setenv VPC "$RDS_SECURITY_GROUP_IDS"
 endif
 
 echo "VPC:    $VPC"
 
 
-aws rds restore-db-instance-to-point-in-time --profile meme --source-db-instance-identifier meme-edit --target-db-instance-identifier $DB_NAME --use-latest-restorable-time --db-parameter-group-name meme-db --availability-zone us-east-1d --db-subnet-group-name mysql-subnet-group --vpc-security-group-ids $VPC --tags "Key"="autostart","Value"="true" "Key"="autostop","Value"="true"
+$aws rds restore-db-instance-to-point-in-time --source-db-instance-identifier "$MEME_SOURCE_DB" --target-db-instance-identifier $DB_NAME --use-latest-restorable-time --db-parameter-group-name "$RDS_PARAMETER_GROUP" --availability-zone "$RDS_AVAILABILITY_ZONE" --db-subnet-group-name "$RDS_SUBNET_GROUP" --vpc-security-group-ids $VPC --tags "Key"="autostart","Value"="true" "Key"="autostop","Value"="true"
 
 echo ""
 
 set started = null
 while ($started != 'available')
    echo "refreshing"
-   set started = `aws rds describe-db-instances --profile meme --query "DBInstances[?DBInstanceIdentifier=='$DB_NAME'].[DBInstanceStatus][0][0]" | jq -r`
+   set started = `$aws rds describe-db-instances --query "DBInstances[?DBInstanceIdentifier=='$DB_NAME'].[DBInstanceStatus][0][0]" | jq -r`
 end
 
 echo "refresh completed"
