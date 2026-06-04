@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -163,8 +164,7 @@ public class DailyEditingReport extends AbstractReportAlgorithm {
       report.append("<html><body><pre>").append("\n");
       report.append("EMS v3 Daily Editing Report for " + yesterday)
           .append("\n");
-      report.append("Database : " + ConfigUtility.getConfigProperties()
-          .getProperty("jakarta.persistence.jdbc.url").replaceAll("\\?.*", ""))
+      report.append("Database : " + getDatabaseLabel())
           .append("\n");
       report.append("Time now: " + new Date(start)).append("\n");
       report.append("\n");
@@ -254,6 +254,25 @@ public class DailyEditingReport extends AbstractReportAlgorithm {
   @Override
   public String getDescription() {
     return "Daily Editing Report";
+  }
+
+  /**
+   * Returns the database label to show in the report.
+   *
+   * @return the database label
+   * @throws Exception if config properties cannot be loaded
+   */
+  private String getDatabaseLabel() throws Exception {
+    final Properties properties = ConfigUtility.getConfigProperties();
+    String jdbcUrl = null;
+    if (properties != null) {
+      jdbcUrl = properties.getProperty("jakarta.persistence.jdbc.url");
+      if (ConfigUtility.isEmpty(jdbcUrl)) {
+        jdbcUrl = properties.getProperty("javax.persistence.jdbc.url");
+      }
+    }
+    return ConfigUtility.isEmpty(jdbcUrl) ? "unknown"
+        : jdbcUrl.replaceAll("\\?.*", "");
   }
 
   /**
