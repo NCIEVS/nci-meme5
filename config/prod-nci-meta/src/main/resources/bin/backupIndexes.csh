@@ -2,25 +2,48 @@
 #
 # Archive Lucene indexes locally and upload the archive to S3.
 
-# Configuration
-set APP_DIR = "/meme_work/ncim"
-set INDEX_DIR = "/local/content/MEME/MEME5/ncim/data/indexes"
-set INDEX_ARCHIVE_DIR = "$APP_DIR/archive/indexes"
-set DB_HOST = "127.0.0.1"
-set DB_PORT = "3306"
-set DB_NAME = "ncimdb"
-set DB_USER = "root"
-set MYSQL_BIN = "mysql"
-set AWS_BIN = "aws"
-set AWS_PROFILE = "meme"
-set S3_BUCKET_NAME = "nci-evs-meme"
-set S3_BUCKET = "s3://$S3_BUCKET_NAME"
+# Common environment is inherited from /local/content/MEME/MEME5/ncim/setenv.sh.
+if (! $?APP_DIR) then
+  echo "ERROR: APP_DIR must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?INDEX_DIR) then
+  echo "ERROR: INDEX_DIR must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_HOST) then
+  echo "ERROR: DB_HOST must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_PORT) then
+  echo "ERROR: DB_PORT must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_NAME) then
+  echo "ERROR: DB_NAME must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_USER) then
+  echo "ERROR: DB_USER must be set; source the production setenv.sh first."
+  exit 1
+endif
 
-if (! $?DB_PASSWORD) setenv DB_PASSWORD ""
-if ("$DB_PASSWORD" == "") then
-  set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
-else
+# Script configuration
+if (! $?INDEX_ARCHIVE_DIR) set INDEX_ARCHIVE_DIR = "$APP_DIR/archive/indexes"
+if (! $?MYSQL_BIN) set MYSQL_BIN = "mysql"
+if (! $?AWS_BIN) set AWS_BIN = "aws"
+if (! $?AWS_PROFILE) set AWS_PROFILE = "meme"
+if (! $?S3_BUCKET_NAME) set S3_BUCKET_NAME = "nci-evs-meme"
+if (! $?S3_BUCKET) set S3_BUCKET = "s3://$S3_BUCKET_NAME"
+
+if ($?DB_PASSWORD) then
+  if ("$DB_PASSWORD" != "") then
   set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "-p$DB_PASSWORD" "$DB_NAME" )
+  else
+    set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
+  endif
+else
+  set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
 endif
 if ("$AWS_PROFILE" == "") then
   set aws = ( "$AWS_BIN" )

@@ -1,21 +1,21 @@
 #
 # Sample cron entries for NCI-META operational scripts.
 #
-# Production constants are defined near the top of each script so they are
-# visible where they are used. Set DB_PASSWORD here or in the account profile
-# only if the MySQL connection requires a password.
+# Common runtime values are exported by the production setenv.sh. The csh
+# scripts inherit those values from the bash wrapper below.
 #
-MEME_BIN=/meme_work/ncim/bin
+SETENV=/local/content/MEME/MEME5/ncim/setenv.sh
+MEME_BIN=/local/content/MEME/MEME5/ncim/bin
 
 #
 # Run nightly tasks:
 # 1. Daily editing report
 # 2. MUTUALLY_EXCLUSIVE repartition
-# 3. Optional Tomcat restart controlled by RESTART_SERVER_AFTER_NIGHTLY
+# 3. Optional application restart controlled by RESTART_SERVER_AFTER_NIGHTLY
 #
-00 00 * * 0-5 $MEME_BIN/nightlyTasks.csh
+00 00 * * 0-5 /bin/bash -lc 'source "$SETENV" && exec "$MEME_BIN"/nightlyTasks.csh'
 
 #
 # Run the MID Validation process.
 #
-00 09 * * 6 $MEME_BIN/cronvalidate.csh
+00 09 * * 6 /bin/bash -lc 'source "$SETENV" && exec "$MEME_BIN"/cronvalidate.csh'

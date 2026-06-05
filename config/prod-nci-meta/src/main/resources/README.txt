@@ -15,9 +15,10 @@ purposes:
   operational database migration/validation helpers.
 - `META/MRCOLS.RRF` and `META/MRFILES.RRF` support NCI-META metadata workflows.
 - `bin/**` and `crontab.txt` are operational scripts. NM-310 modernizes the
-  retained production scripts in place with visible per-script configuration
-  blocks. `load.csh` was retired because the old Maven load flow is now covered
-  by Gradle admin tasks.
+  retained production scripts to inherit common runtime values from the
+  production `setenv.sh` while keeping script-specific settings local.
+  `load.csh` was retired because the old Maven load flow is now covered by
+  Gradle admin tasks.
 
 The old Maven assembly descriptor for creating a `term-server-config-prod-nci-meta`
 zip has been removed. Do not add a new `config.properties` here; add new runtime
@@ -65,6 +66,7 @@ That file should contain only production overrides, such as:
 - `SERVER_PORT=8080`
 - `SERVER_SERVLET_CONTEXT_PATH=/ncim-server-rest`
 - `BASE_URL`
+- `APP_SERVICE=nci-meme5`
 - `DEPLOY_*`
 - `MAIL_*`
 - `SECURITY_*`
@@ -100,3 +102,8 @@ https://meme-edit.semantics.cancer.gov/ncim-server-rest
 
 The web overlay from this directory is applied during `./gradlew war`,
 `./gradlew bootWar`, and `./gradlew explodeWar`.
+
+Operational scripts under `bin/` should be run from a shell that has sourced the
+same production environment file. The sample `crontab.txt` uses a bash wrapper
+for this because the retained csh scripts can inherit exported variables but do
+not source bash files directly.

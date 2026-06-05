@@ -6,24 +6,27 @@
 
 set -euo pipefail
 
-# Configuration
-MEME_BIN="/local/content/MEME/MEME5/ncim/bin"
-INDEX_DIR="/local/content/MEME/MEME5/ncim/data/indexes"
-BASE_URL="http://ncias-q3009-c.nci.nih.gov:8080/ncim-server-rest"
-AWS_BIN="aws"
-AWS_PROFILE="meme"
-S3_BUCKET_NAME="nci-evs-meme"
-S3_BUCKET="s3://$S3_BUCKET_NAME"
-TOMCAT_SERVICE="tomcat-evs-meme"
-RESTART_SERVER_FOR_INSERTION_SNAPSHOT="true"
-MEME_TEST_DB="meme-test"
-MEME_RELEASE_DB="meme-release"
-MEME_SOURCE_DB="meme-edit"
-RDS_MANUAL_SNAPSHOT_ID="meme-edit-manual-snapshot"
-RDS_PARAMETER_GROUP="meme-db"
-RDS_AVAILABILITY_ZONE="us-east-1d"
-RDS_SUBNET_GROUP="default-vpc-dca724a4"
-RDS_SECURITY_GROUP_IDS="sg-05993d12d18c40cae"
+# Common environment is inherited from /local/content/MEME/MEME5/ncim/setenv.sh.
+: "${APP_DIR:?source the production setenv.sh before running this script}"
+: "${INDEX_DIR:?source the production setenv.sh before running this script}"
+: "${BASE_URL:?source the production setenv.sh before running this script}"
+
+# Script configuration
+MEME_BIN="${MEME_BIN:-$APP_DIR/bin}"
+AWS_BIN="${AWS_BIN:-aws}"
+AWS_PROFILE="${AWS_PROFILE:-meme}"
+S3_BUCKET_NAME="${S3_BUCKET_NAME:-nci-evs-meme}"
+S3_BUCKET="${S3_BUCKET:-s3://$S3_BUCKET_NAME}"
+APP_SERVICE="${APP_SERVICE:-nci-meme5}"
+RESTART_SERVER_FOR_INSERTION_SNAPSHOT="${RESTART_SERVER_FOR_INSERTION_SNAPSHOT:-true}"
+MEME_TEST_DB="${MEME_TEST_DB:-meme-test}"
+MEME_RELEASE_DB="${MEME_RELEASE_DB:-meme-release}"
+MEME_SOURCE_DB="${MEME_SOURCE_DB:-meme-edit}"
+RDS_MANUAL_SNAPSHOT_ID="${RDS_MANUAL_SNAPSHOT_ID:-meme-edit-manual-snapshot}"
+RDS_PARAMETER_GROUP="${RDS_PARAMETER_GROUP:-meme-db}"
+RDS_AVAILABILITY_ZONE="${RDS_AVAILABILITY_ZONE:-us-east-1d}"
+RDS_SUBNET_GROUP="${RDS_SUBNET_GROUP:-default-vpc-dca724a4}"
+RDS_SECURITY_GROUP_IDS="${RDS_SECURITY_GROUP_IDS:-sg-05993d12d18c40cae}"
 
 AWS_CMD=("$AWS_BIN")
 if [[ -n "$AWS_PROFILE" ]]; then
@@ -67,12 +70,12 @@ echo "SOURCE_DB: $MEME_SOURCE_DB"
 echo "SNAPSHOT: $RDS_MANUAL_SNAPSHOT_ID"
 echo "SNAPSHOT_DATE: $SNAPSHOT_DATE"
 echo "MEME_BIN: $MEME_BIN"
-echo "TOMCAT_SERVICE: $TOMCAT_SERVICE"
+echo "APP_SERVICE: $APP_SERVICE"
 
 server_stopped=0
 restart_server() {
   if [[ "$server_stopped" -eq 1 && "$RESTART_SERVER_FOR_INSERTION_SNAPSHOT" == "true" ]]; then
-    sudo service "$TOMCAT_SERVICE" start
+    sudo service "$APP_SERVICE" start
   fi
 }
 trap restart_server EXIT
@@ -80,7 +83,7 @@ trap restart_server EXIT
 cd "$MEME_BIN"
 
 if [[ "$RESTART_SERVER_FOR_INSERTION_SNAPSHOT" == "true" ]]; then
-  sudo service "$TOMCAT_SERVICE" stop
+  sudo service "$APP_SERVICE" stop
   server_stopped=1
 else
   echo "Skipping service stop because RESTART_SERVER_FOR_INSERTION_SNAPSHOT=$RESTART_SERVER_FOR_INSERTION_SNAPSHOT"

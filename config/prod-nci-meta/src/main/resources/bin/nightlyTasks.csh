@@ -3,28 +3,51 @@
 # Nightly MEME automation:
 # 1. Run the Daily Editing Report.
 # 2. Regenerate MUTUALLY_EXCLUSIVE workflow bins.
-# 3. Optionally restart the Tomcat service.
+# 3. Optionally restart the application service.
 
-# Configuration
-set APP_DIR = "/meme_work/ncim"
-set DB_HOST = "127.0.0.1"
-set DB_PORT = "3306"
-set DB_NAME = "ncimdb"
-set DB_USER = "root"
-set MYSQL_BIN = "mysql"
-set BASE_URL = "https://meme-edit.semantics.cancer.gov/ncim-server-rest"
-set ADMIN_USER = "admin"
-set ADMIN_PASSWORD = "admin"
-set TOMCAT_SERVICE = "tomcat-evs-meme"
-set RESTART_SERVER_AFTER_NIGHTLY = "true"
-set NIGHTLY_REPORT_PROCESS_NAME = "Daily Editing Report"
-set NIGHTLY_WORKFLOW_PROGRESS_BINS = '["demotions","norelease","reviewed","ncithesaurus","icd10","icdo","meddra","medrt","radlex","snomedct_us","leftovers"]'
+# Common environment is inherited from /local/content/MEME/MEME5/ncim/setenv.sh.
+if (! $?APP_DIR) then
+  echo "ERROR: APP_DIR must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_HOST) then
+  echo "ERROR: DB_HOST must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_PORT) then
+  echo "ERROR: DB_PORT must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_NAME) then
+  echo "ERROR: DB_NAME must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_USER) then
+  echo "ERROR: DB_USER must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?BASE_URL) then
+  echo "ERROR: BASE_URL must be set; source the production setenv.sh first."
+  exit 1
+endif
 
-if (! $?DB_PASSWORD) setenv DB_PASSWORD ""
-if ("$DB_PASSWORD" == "") then
-  set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
-else
+# Script configuration
+if (! $?MYSQL_BIN) set MYSQL_BIN = "mysql"
+if (! $?ADMIN_USER) set ADMIN_USER = "admin"
+if (! $?ADMIN_PASSWORD) set ADMIN_PASSWORD = "admin"
+if (! $?APP_SERVICE) set APP_SERVICE = "nci-meme5"
+if (! $?RESTART_SERVER_AFTER_NIGHTLY) set RESTART_SERVER_AFTER_NIGHTLY = "true"
+if (! $?NIGHTLY_REPORT_PROCESS_NAME) set NIGHTLY_REPORT_PROCESS_NAME = "Daily Editing Report"
+if (! $?NIGHTLY_WORKFLOW_PROGRESS_BINS) set NIGHTLY_WORKFLOW_PROGRESS_BINS = '["demotions","norelease","reviewed","ncithesaurus","icd10","icdo","meddra","medrt","radlex","snomedct_us","leftovers"]'
+
+if ($?DB_PASSWORD) then
+  if ("$DB_PASSWORD" != "") then
   set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "-p$DB_PASSWORD" "$DB_NAME" )
+  else
+    set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
+  endif
+else
+  set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
 endif
 
 echo "--------------------------------------------------------"
@@ -63,15 +86,15 @@ if ("$enabled" == "true") then
   end
 
   if ("$RESTART_SERVER_AFTER_NIGHTLY" == "true") then
-    sudo service "$TOMCAT_SERVICE" stop
+    sudo service "$APP_SERVICE" stop
     if ($status != 0) then
-      echo "ERROR: could not stop $TOMCAT_SERVICE"
+      echo "ERROR: could not stop $APP_SERVICE"
       exit 1
     endif
 
-    sudo service "$TOMCAT_SERVICE" start
+    sudo service "$APP_SERVICE" start
     if ($status != 0) then
-      echo "ERROR: could not start $TOMCAT_SERVICE"
+      echo "ERROR: could not start $APP_SERVICE"
       exit 1
     endif
   else

@@ -2,23 +2,46 @@
 #
 # Run the MID Validation Report process from cron.
 
-# Configuration
-set APP_DIR = "/meme_work/ncim"
-set DB_HOST = "127.0.0.1"
-set DB_PORT = "3306"
-set DB_NAME = "ncimdb"
-set DB_USER = "root"
-set MYSQL_BIN = "mysql"
-set BASE_URL = "https://meme-edit.semantics.cancer.gov/ncim-server-rest"
-set ADMIN_USER = "admin"
-set ADMIN_PASSWORD = "admin"
-set CRONVALIDATE_PROCESS_NAME = "MID Validation Report"
+# Common environment is inherited from /local/content/MEME/MEME5/ncim/setenv.sh.
+if (! $?APP_DIR) then
+  echo "ERROR: APP_DIR must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_HOST) then
+  echo "ERROR: DB_HOST must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_PORT) then
+  echo "ERROR: DB_PORT must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_NAME) then
+  echo "ERROR: DB_NAME must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?DB_USER) then
+  echo "ERROR: DB_USER must be set; source the production setenv.sh first."
+  exit 1
+endif
+if (! $?BASE_URL) then
+  echo "ERROR: BASE_URL must be set; source the production setenv.sh first."
+  exit 1
+endif
 
-if (! $?DB_PASSWORD) setenv DB_PASSWORD ""
-if ("$DB_PASSWORD" == "") then
-  set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
-else
+# Script configuration
+if (! $?MYSQL_BIN) set MYSQL_BIN = "mysql"
+if (! $?ADMIN_USER) set ADMIN_USER = "admin"
+if (! $?ADMIN_PASSWORD) set ADMIN_PASSWORD = "admin"
+if (! $?CRONVALIDATE_PROCESS_NAME) set CRONVALIDATE_PROCESS_NAME = "MID Validation Report"
+
+if ($?DB_PASSWORD) then
+  if ("$DB_PASSWORD" != "") then
   set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "-p$DB_PASSWORD" "$DB_NAME" )
+  else
+    set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
+  endif
+else
+  set mysql = ( "$MYSQL_BIN" -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$DB_NAME" )
 endif
 
 echo "--------------------------------------------------------"
