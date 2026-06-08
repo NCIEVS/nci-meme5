@@ -561,6 +561,8 @@ Phase 1 implementation notes:
 
 ### Phase 2: Shell, Config, Auth, And Navigation
 
+Status: complete on 2026-06-08.
+
 Goals:
 
 - Build the Angular 20 shell.
@@ -591,6 +593,27 @@ Acceptance:
 - Logout works from the new UI and leaves old UI behavior sane.
 - Direct refresh of the new UI does not lose required config/auth state.
 - Browser smoke tests cover login, logout, config load, and tab rendering.
+
+Phase 2 implementation notes:
+
+- Added an Angular startup initializer that loads
+  `/umls-server-rest/configure/properties` before the shell routes render.
+- Added a runtime config service with deploy title, enabled-tab parsing, and
+  deploy flag helpers.
+- Added auth/session support that preserves the AngularJS-compatible
+  `Authorization` header, `localStorage.user`, `user` cookie, and `window.name`
+  handoff shape.
+- Added login/logout support for
+  `/security/authenticate/{userName}` and `/security/logout/{authToken}`.
+- Added license acceptance with the same `WCI <deploy.title>` cookie contract.
+- Added config-driven header navigation, footer, global loading indicator, and
+  notification/error display.
+- Added route compatibility for landing, login, license, and enabled-tab
+  placeholder routes. Actual feature screens remain Phase 3+.
+- Added Cypress smoke coverage for config/tab rendering, login persistence,
+  logout cleanup, and license cookie behavior.
+- Updated Cypress scripts to unset `ELECTRON_RUN_AS_NODE`, which is required
+  when running the Electron-based Cypress runner from this Codex/VS Code shell.
 
 ### Phase 3: First Read-Only Feature Slice
 

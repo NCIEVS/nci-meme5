@@ -1,0 +1,49 @@
+.panel {
+  max-width: 820px;
+  margin: 42px auto;
+  padding: 40px;
+  color: #ffffff;
+  background:
+    linear-gradient(120deg, rgb(35 54 74 / 94%), rgb(47 143 157 / 86%)),
+    #23364a;
+  border-radius: 6px;
+}
+
+.kicker {
+  margin: 0 0 8px;
+  color: #f7c65f;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+p:not(.kicker) {
+  max-width: 680px;
+  margin: 18px 0 28px;
+  color: #edf6fa;
+}
+
+button {
+  min-height: 40px;
+  padding: 8px 14px;
+  color: #1d2936;
+  background: #ffffff;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    margin: 24px 18px;
+    padding: 28px;
+  }
+}

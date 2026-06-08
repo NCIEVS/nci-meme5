@@ -1,0 +1,109 @@
+.app-header {
+  display: grid;
+  grid-template-columns: minmax(220px, auto) 1fr auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 68px;
+  padding: 0 32px;
+  color: #ffffff;
+  background: #23364a;
+  border-bottom: 4px solid #2f8f9d;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.brand span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #23364a;
+  background: #ffffff;
+  border-radius: 4px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+nav a,
+nav button,
+.session a,
+.session button {
+  min-height: 34px;
+  padding: 6px 10px;
+  color: #dbe7ef;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+nav a.active,
+nav a:hover,
+.session a:hover,
+.session button:hover {
+  color: #ffffff;
+  background: rgb(255 255 255 / 12%);
+}
+
+nav button:disabled {
+  color: rgb(219 231 239 / 52%);
+  cursor: not-allowed;
+}
+
+.session {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.session span {
+  overflow: hidden;
+  max-width: 180px;
+  color: #ffffff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .app-header {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  nav {
+    width: 100%;
+  }
+
+  .session {
+    justify-content: flex-start;
+  }
+}

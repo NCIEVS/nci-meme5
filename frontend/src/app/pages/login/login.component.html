@@ -1,0 +1,24 @@
+<section class="login-panel" aria-labelledby="login-title">
+  <h1 id="login-title">Enter User And Password</h1>
+
+  <form [formGroup]="form" (ngSubmit)="login()">
+    <label for="userField">Username</label>
+    <input id="userField" type="text" formControlName="userName" autocomplete="username" autofocus>
+
+    <label for="passwordField">Password</label>
+    <input
+      id="passwordField"
+      type="password"
+      formControlName="password"
+      autocomplete="current-password"
+    >
+
+    <button id="userLoginButton" type="submit" [disabled]="working()">
+      {{ working() ? 'Logging in' : 'Login' }}
+    </button>
+  </form>
+
+  @if (config.get('deploy.password.reset'); as resetUrl) {
+    <a [href]="resetUrl">Forgot Password?</a>
+  }
+</section>

@@ -14,8 +14,8 @@
     "build:dev": "npm run ng -- build --configuration development --progress=false",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "e2e": "cypress run",
-    "e2e:open": "cypress open"
+    "e2e": "env -u ELECTRON_RUN_AS_NODE cypress run",
+    "e2e:open": "env -u ELECTRON_RUN_AS_NODE cypress open"
   },
   "dependencies": {
     "@angular/animations": "~20.3.0",

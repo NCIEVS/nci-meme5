@@ -1,0 +1,18 @@
+@if (licenseChecked()) {
+  <section class="license" aria-labelledby="license-title">
+    <h1 id="license-title">License Agreement</h1>
+    <div class="agreement" tabindex="0">
+      <p>
+        Access to {{ config.title() }} is subject to the applicable NCI and
+        project usage terms configured for this MEME deployment.
+      </p>
+      <p>
+        Accepting this agreement stores the same license cookie used by the
+        current AngularJS application.
+      </p>
+    </div>
+    <button name="acceptButton" type="button" (click)="acceptLicense()">
+      Accept License
+    </button>
+  </section>
+}

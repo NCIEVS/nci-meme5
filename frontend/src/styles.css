@@ -18,6 +18,10 @@ body {
   margin: 0;
 }
 
+meme-root {
+  min-height: 100vh;
+}
+
 a {
   color: inherit;
 }

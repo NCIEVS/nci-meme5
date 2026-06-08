@@ -1,8 +1,9 @@
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
   provideZoneChangeDetection
 } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   provideRouter,
   withComponentInputBinding,
@@ -10,6 +11,10 @@ import {
 } from '@angular/router';
 
 import { routes } from './app.routes';
+import { authInterceptor } from './core/auth/auth.interceptor';
+import { loadingInterceptor } from './core/http/loading.interceptor';
+import { errorInterceptor } from './core/notifications/error.interceptor';
+import { initializeApplication } from './core/startup/app-initializer';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -19,6 +24,13 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })
     ),
-    provideHttpClient()
+    provideHttpClient(
+      withInterceptors([loadingInterceptor, authInterceptor, errorInterceptor])
+    ),
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
+      useFactory: initializeApplication
+    }
   ]
 };

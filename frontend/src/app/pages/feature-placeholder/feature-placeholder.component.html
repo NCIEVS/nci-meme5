@@ -1,0 +1,20 @@
+@if (tab(); as selectedTab) {
+  <section class="placeholder" aria-labelledby="feature-title">
+    <p class="kicker">Enabled Tab</p>
+    <h1 id="feature-title">{{ selectedTab.label }}</h1>
+
+    @if (canAccess()) {
+      <p>
+        This route is reserved for the Angular 20 migration slice. Until that
+        slice is implemented, the current AngularJS screen remains the source of
+        truth.
+      </p>
+      <a [href]="legacyUrl()">Open Legacy {{ selectedTab.label }}</a>
+    } @else {
+      <p>
+        This tab is enabled by backend configuration, but the Angular 20 shell
+        does not yet have the required project or application role context.
+      </p>
+    }
+  </section>
+}

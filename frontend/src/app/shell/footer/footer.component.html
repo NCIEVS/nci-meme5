@@ -1,0 +1,24 @@
+<footer>
+  <div>
+    @if (config.get('deploy.link'); as link) {
+      <a [href]="link">{{ config.get('deploy.footer.copyright') || 'Copyright' }}</a>
+    } @else {
+      <span>{{ config.get('deploy.footer.copyright') || 'Copyright' }}</span>
+    }
+    @if (auth.currentUser().name && auth.currentUser().name !== 'Guest') {
+      <span>{{ auth.currentUser().name }}</span>
+    }
+    @if (truncatedVersion()) {
+      <span>{{ truncatedVersion() }}</span>
+    }
+  </div>
+
+  <div>
+    @if (config.get('deploy.presented.by'); as presentedBy) {
+      <span [innerHTML]="presentedBy"></span>
+    }
+    @if (config.get('deploy.feedback.email'); as email) {
+      <a [href]="'mailto:' + email">Feedback</a>
+    }
+  </div>
+</footer>

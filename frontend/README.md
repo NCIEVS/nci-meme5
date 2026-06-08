@@ -28,4 +28,8 @@ npm test
 npm run e2e
 ```
 
+The Cypress scripts unset `ELECTRON_RUN_AS_NODE` because Electron-based Cypress
+runners fail to start when launched from shells that inherit that VS Code/Codex
+environment variable.
+
 The root `Makefile` wraps the same commands with `make frontend-*` targets.

@@ -1,0 +1,12 @@
+@if (notifications.messages().length > 0) {
+  <section class="notifications" aria-label="Messages">
+    @for (message of notifications.messages(); track message.id) {
+      <article [class.error]="message.level === 'error'">
+        <span>{{ message.message }}</span>
+        <button type="button" (click)="notifications.dismiss(message.id)">
+          Dismiss
+        </button>
+      </article>
+    }
+  </section>
+}
