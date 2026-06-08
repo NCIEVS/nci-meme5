@@ -10,9 +10,22 @@
 # ./push_s3.csh umls 2022AB
 #
 
+# Configuration
+set AWS_BIN = "aws"
+set AWS_PROFILE = "meme"
+set S3_BUCKET_NAME = "nci-evs-meme"
+set S3_BUCKET = "s3://$S3_BUCKET_NAME"
+set INV_SOURCE_DIR = "/local/content/MEME/MEME5/inv/sources"
+set NCIM_RELEASE_DIR = "/local/content/MEME/MEME5/mr/ncim"
+set UMLS_RELEASE_DIR = "/local/content/MEME/MEME5/mr/umls"
+
+if ("$AWS_PROFILE" == "") then
+  set aws = ( "$AWS_BIN" )
+else
+  set aws = ( "$AWS_BIN" --profile "$AWS_PROFILE" )
+endif
+
 set usage = 'push_s3.csh {inv|ncim|umls} {source_name|release_date} --update'
-setenv S3_BUCKET s3://nci-evs-meme
-set awspath = '/usr/local/bin'
 
 echo "--------------------------------------------------------"
 echo "Starting `/bin/date`"
@@ -39,16 +52,17 @@ echo "update:        $update"
 if ($INV_OR_MR != 'inv' && $INV_OR_MR != 'ncim' && $INV_OR_MR != 'umls') then
     echo "ERROR: inv or ncim or umls  must be specified as first parameter"
 	echo "ERROR: $usage"
+	exit 1
 endif
 
 if ($INV_OR_MR == 'inv') then 
-	setenv SOURCE_PATH /local/content/MEME/MEME5/inv/sources
+	setenv SOURCE_PATH "$INV_SOURCE_DIR"
 endif
 if ($INV_OR_MR == 'ncim') then 
-	setenv SOURCE_PATH /local/content/MEME/MEME5/mr/ncim
+	setenv SOURCE_PATH "$NCIM_RELEASE_DIR"
 endif
 if ($INV_OR_MR == 'umls') then 
-	setenv SOURCE_PATH /local/content/MEME/MEME5/mr/umls
+	setenv SOURCE_PATH "$UMLS_RELEASE_DIR"
 endif
 
 cd $SOURCE_PATH
@@ -68,7 +82,7 @@ endif
 
 echo "    Put data on s3... `/bin/date`"
 if ($INV_OR_MR == 'inv') then
-	set fileExistsFile = `$awspath/aws s3api head-object --bucket nci-evs-meme --key inv/sources/$SOURCE_NAME.tgz >& /tmp/t.txt`
+	set fileExistsFile = `$aws s3api head-object --bucket "$S3_BUCKET_NAME" --key inv/sources/$SOURCE_NAME.tgz >& /tmp/t.txt`
 	set fileExists = `cat /tmp/t.txt | grep Metadata | wc -l`
     if ($fileExists == 1 && $update != 1) then
 	    echo "ERROR: File inv/sources/$SOURCE_NAME.tgz already exists in bucket"
@@ -76,21 +90,21 @@ if ($INV_OR_MR == 'inv') then
     endif
     rm -rf /tmp/t.txt
     tar -zcvf $SOURCE_NAME.tgz $SOURCE_NAME
-    $awspath/aws s3 cp $SOURCE_NAME.tgz $S3_BUCKET/inv/sources/$SOURCE_NAME.tgz
+    $aws s3 cp $SOURCE_NAME.tgz $S3_BUCKET/inv/sources/$SOURCE_NAME.tgz
 else if ($INV_OR_MR == 'ncim') then
-	set fileExists = `$awspath/aws s3api head-object --bucket nci-evs-meme --key mr/ncim/$SOURCE_NAME/$SOURCE_NAME.zip | grep Metadata | wc -l `
+	set fileExists = `$aws s3api head-object --bucket "$S3_BUCKET_NAME" --key mr/ncim/$SOURCE_NAME/$SOURCE_NAME.zip | grep Metadata | wc -l `
     if ($fileExists == 1) then
 	    echo "ERROR: File mr/ncim/$SOURCE_NAME already exists in bucket"
 	    exit 1
 	endif
-    $awspath/aws s3 cp $SOURCE_NAME $S3_BUCKET/mr/ncim/$SOURCE_NAME --recursive
+    $aws s3 cp $SOURCE_NAME $S3_BUCKET/mr/ncim/$SOURCE_NAME --recursive
 else if ($INV_OR_MR == 'umls') then
-	set fileExists = `$awspath/aws s3api head-object --bucket nci-evs-meme --key mr/umls/$SOURCE_NAME/META/MRSAB.RRF | grep Metadata | wc -l `
+	set fileExists = `$aws s3api head-object --bucket "$S3_BUCKET_NAME" --key mr/umls/$SOURCE_NAME/META/MRSAB.RRF | grep Metadata | wc -l `
     if ($fileExists == 1) then
 	    echo "ERROR: File mr/umls/$SOURCE_NAME already exists in bucket"
 	    exit 1
 	endif
-    $awspath/aws s3 cp $SOURCE_NAME $S3_BUCKET/mr/umls/$SOURCE_NAME --recursive
+    $aws s3 cp $SOURCE_NAME $S3_BUCKET/mr/umls/$SOURCE_NAME --recursive
 endif
 
 
@@ -100,4 +114,3 @@ echo ""
 echo "-----------------------------------------------------"
 echo "Finished $0 ... `/bin/date`"
 echo "-----------------------------------------------------"
-

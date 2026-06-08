@@ -3,10 +3,19 @@
 # This script is used to start up an ec2 instance.  
 #
 
-setenv usage 'wake_ec2.csh {test|release} '
+# Configuration
+set AWS_BIN = "aws"
+set AWS_PROFILE = "meme"
 setenv TEST_INSTANCE meme-test
 setenv DEV_INSTANCE meme-dev
 setenv RELEASE_INSTANCE meme-release
+if ("$AWS_PROFILE" == "") then
+  set aws = ( "$AWS_BIN" )
+else
+  set aws = ( "$AWS_BIN" --profile "$AWS_PROFILE" )
+endif
+
+setenv usage 'wake_ec2.csh {test|release} '
 
 echo "--------------------------------------------------------"
 echo "Starting `/bin/date`"
@@ -27,21 +36,21 @@ if ($INSTANCE_NAME != $DEV_INSTANCE && $INSTANCE_NAME != $TEST_INSTANCE && $INST
     exit 1
 endif
 
-set instanceId = `aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=stopped" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq -r '.[0][0].InstanceId'`
+set instanceId = `$aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=stopped" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq -r '.[0][0].InstanceId'`
 echo "instanceId:	$instanceId"
 
-aws ec2 start-instances --instance-ids $instanceId --output table
+$aws ec2 start-instances --instance-ids $instanceId --output table
 set started = null
 while ($started == null)
    echo "starting"
-   set started = `aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq '.[0][0].InstanceId'`
+   set started = `$aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq '.[0][0].InstanceId'`
 end
 echo "running - start completed"
 
 
 echo ""
 
-aws ec2 describe-instances \
+$aws ec2 describe-instances \
 --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}"  \
 --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'"  \
 --output table

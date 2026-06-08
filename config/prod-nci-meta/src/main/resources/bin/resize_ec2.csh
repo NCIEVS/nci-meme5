@@ -3,10 +3,19 @@
 # This script is used to resizean ec2 instance.  The instance will be stopped and  restarted after the resize is complete.
 #
 
-setenv usage 'resize_ec2.csh {nciws-d2391-c|ncias-q3009-c|ncias-q3004-c}  {t3.nano|t3.large|t3.xlarge}'
+# Configuration
+set AWS_BIN = "aws"
+set AWS_PROFILE = "meme"
 setenv TEST_INSTANCE ncias-q3009-c
 setenv DEV_INSTANCE nciws-d2391-c
 setenv RELEASE_INSTANCE ncias-q3004-c
+if ("$AWS_PROFILE" == "") then
+  set aws = ( "$AWS_BIN" )
+else
+  set aws = ( "$AWS_BIN" --profile "$AWS_PROFILE" )
+endif
+
+setenv usage 'resize_ec2.csh {instance_name} {t3.nano|t3.large|t3.xlarge}'
 
 echo "--------------------------------------------------------"
 echo "Starting `/bin/date`"
@@ -33,31 +42,31 @@ endif
 #    exit 1
 #endif
 
-set instanceId = `aws ec2 describe-instances --profile meme --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq -r '.[0][0].InstanceId'`
+set instanceId = `$aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq -r '.[0][0].InstanceId'`
 echo "instanceId:	$instanceId"
 
-aws ec2 stop-instances --profile meme --instance-ids $instanceId  --output table
+$aws ec2 stop-instances --instance-ids $instanceId --output table
 set stopped = null
 while ($stopped == null)
    echo "stopping"
-   set stopped = `aws ec2 describe-instances --profile meme --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=stopped" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq '.[0][0].InstanceId'`
+   set stopped = `$aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=stopped" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq '.[0][0].InstanceId'`
 end
 echo "stop completed"
 
-aws ec2 modify-instance-attribute --profile meme --instance-id $instanceId --instance-type $INSTANCE_TYPE --output table
+$aws ec2 modify-instance-attribute --instance-id $instanceId --instance-type $INSTANCE_TYPE --output table
 
 echo "resize requested to $INSTANCE_TYPE"
 echo ""
 
-aws ec2 start-instances --profile meme --instance-ids $instanceId --output table
+$aws ec2 start-instances --instance-ids $instanceId --output table
 set started = null
 while ($started == null)
    echo "starting"
-   set started = `aws ec2 describe-instances --profile meme --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq '.[0][0].InstanceId'`
+   set started = `$aws ec2 describe-instances --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}" --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'" | jq '.[0][0].InstanceId'`
 end
 echo "running - start completed"
 
-aws ec2 describe-instances --profile meme\
+$aws ec2 describe-instances \
 --query "Reservations[*].Instances[*].{InstanceId:InstanceId,PublicIP:PublicIpAddress,Type:InstanceType,Name:Tags[?Key=='Name']|[0].Value,Status:State.Name}"  \
 --filters "Name=instance-state-name,Values=running" "Name=tag:Name,Values='$INSTANCE_NAME'"  \
 --output table
