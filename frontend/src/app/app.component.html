@@ -1,0 +1,20 @@
+<header class="app-header">
+  <a class="brand" routerLink="/" aria-label="NCI-META home">
+    <span class="brand-mark" aria-hidden="true">NM</span>
+    <span>{{ appTitle }}</span>
+  </a>
+
+  <nav aria-label="Primary">
+    <a
+      routerLink="/"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+    >
+      Angular 20
+    </a>
+  </nav>
+</header>
+
+<main class="app-main">
+  <router-outlet />
+</main>

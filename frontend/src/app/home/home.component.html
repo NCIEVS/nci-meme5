@@ -1,0 +1,32 @@
+<section class="hero" aria-labelledby="page-title">
+  <div>
+    <p class="kicker">NM-313</p>
+    <h1 id="page-title">NCI-META Angular 20</h1>
+    <p class="summary">
+      Parallel frontend shell for route-by-route migration beside the current
+      AngularJS application.
+    </p>
+  </div>
+</section>
+
+<section class="status-grid" aria-label="Runtime status">
+  <article>
+    <span class="label">Frontend</span>
+    <strong>localhost:4200</strong>
+    <span>Angular 20 standalone bootstrap</span>
+  </article>
+
+  @if (probe$ | async; as probe) {
+    <article [class.available]="probe.status === 'available'">
+      <span class="label">Backend Proxy</span>
+      <strong>{{ probe.message }}</strong>
+      <span>{{ probe.endpoint }}</span>
+    </article>
+  }
+
+  <article>
+    <span class="label">Legacy UI</span>
+    <strong>localhost:8080</strong>
+    <span>Existing AngularJS webapp remains untouched</span>
+  </article>
+</section>

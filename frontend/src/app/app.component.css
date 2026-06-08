@@ -1,0 +1,74 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 64px;
+  padding: 0 32px;
+  color: #ffffff;
+  background: #23364a;
+  border-bottom: 4px solid #2f8f9d;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #23364a;
+  background: #ffffff;
+  border-radius: 4px;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+nav a {
+  padding: 8px 10px;
+  color: #dbe7ef;
+  border-radius: 4px;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+nav a.active,
+nav a:hover {
+  color: #ffffff;
+  background: rgb(255 255 255 / 12%);
+}
+
+.app-main {
+  min-height: calc(100vh - 68px);
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 18px;
+  }
+
+  .app-main {
+    min-height: calc(100vh - 122px);
+  }
+}

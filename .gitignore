@@ -228,3 +228,13 @@ pip-log.txt
 *.iml
 gradle.lockfile
 report.html
+
+#################
+## Node / Angular
+#################
+
+frontend/node_modules/
+frontend/.angular/
+frontend/coverage/
+frontend/cypress/screenshots/
+frontend/cypress/videos/

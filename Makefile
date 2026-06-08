@@ -21,6 +21,8 @@ ENV_FILE                ?= config/local/setenv.sh
 WITH_ENV                := source $(ENV_FILE)
 WITHOUT_LOCAL_PATH_ENV  := unset APP_DIR CATALINA_BASE DATA_DIR INDEX_DIR LVG_DIR SOURCE_DATA_DIR
 UNIT_TEST_PATTERN       ?= *UnitTest
+FRONTEND_DIR            ?= frontend
+NPM                     ?= npm
 FLYWAY_IT_JDBC_URL      ?=
 FLYWAY_IT_BASELINE_JDBC_URL ?=
 FLYWAY_IT_USER          ?= root
@@ -39,6 +41,8 @@ FLYWAY_IT_EPHEMERAL_BASELINE_JDBC_URL := jdbc:mysql://$(FLYWAY_IT_HOST):$(FLYWAY
 	integration-sample integration-ncimeta integration-rest \
 	integration-insertion integration-admin integration-flyway \
 	integration-flyway-ephemeral \
+	frontend-install frontend-run frontend-run-dev frontend-build \
+	frontend-build-dev frontend-test frontend-e2e frontend-e2e-open \
 	migrate migrate-info migrate-validate scan version
 
 help:
@@ -65,6 +69,12 @@ help:
 	@echo "  make integration-admin Run admin/load integration tests"
 	@echo "  make integration-flyway Run Flyway smoke integration tests"
 	@echo "  make integration-flyway-ephemeral Run Flyway smoke tests with generated schemas"
+	@echo "  make frontend-install Install Angular 20 frontend dependencies"
+	@echo "  make frontend-run     Start Angular 20 on localhost:4200, proxying to localhost:8080"
+	@echo "  make frontend-run-dev Start Angular 20 on localhost:4200, proxying to localhost:18080"
+	@echo "  make frontend-build   Build Angular 20 production assets"
+	@echo "  make frontend-test    Run Angular 20 unit tests"
+	@echo "  make frontend-e2e     Run Angular 20 Cypress smoke tests"
 	@echo "  make migrate          Run Flyway migrations"
 	@echo "  make migrate-info     Show Flyway migration status"
 	@echo "  make migrate-validate Validate Flyway migrations"
@@ -161,6 +171,30 @@ integration-flyway-ephemeral:
 		-Dflyway.it.baselineJdbcUrl='$(FLYWAY_IT_EPHEMERAL_BASELINE_JDBC_URL)' \
 		-Dflyway.it.user='$(FLYWAY_IT_USER)' \
 		-Dflyway.it.password='$(FLYWAY_IT_PASSWORD)'
+
+frontend-install:
+	cd $(FRONTEND_DIR); $(NPM) install
+
+frontend-run:
+	cd $(FRONTEND_DIR); $(NPM) start
+
+frontend-run-dev:
+	cd $(FRONTEND_DIR); $(NPM) run start:dev
+
+frontend-build:
+	cd $(FRONTEND_DIR); $(NPM) run build
+
+frontend-build-dev:
+	cd $(FRONTEND_DIR); $(NPM) run build:dev
+
+frontend-test:
+	cd $(FRONTEND_DIR); $(NPM) test
+
+frontend-e2e:
+	cd $(FRONTEND_DIR); $(NPM) run e2e
+
+frontend-e2e-open:
+	cd $(FRONTEND_DIR); $(NPM) run e2e:open
 
 migrate:
 	$(WITH_ENV); $(GRADLEW) adminFlywayMigrate

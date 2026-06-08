@@ -498,8 +498,9 @@ Acceptance:
 
 - The team can answer which routes are safest to migrate first.
 - The team can answer which endpoints the first migrated screens need.
-- The team can run old and new local servers at the same time without port or
-  proxy confusion.
+- The team has an agreed old/new local server and proxy model. Actually running
+  both servers together is deferred to NM-313A, after the Angular 20 workspace
+  exists.
 
 Phase 0 findings:
 
@@ -507,10 +508,14 @@ Phase 0 findings:
   loads its own terminology list and details.
 - `metadata` is still a strong early feature, but the legacy route assumes a
   selected terminology/model and redirects to `/content` if none exists.
-- No Cypress skeleton was added in Phase 0 because the repo does not yet have a
-  frontend package/test harness. Add it in NM-313A after `frontend/` exists.
+- Phase 1 added the first Cypress smoke skeleton after the `frontend/`
+  workspace existed.
+- Phase 1 validated concurrent old/new local servers with the Angular 20 dev
+  server on `localhost:4200` and the existing MEME backend on `localhost:8080`.
 
 ### Phase 1: Angular 20 Workspace And Build Skeleton
+
+Status: complete on 2026-06-08.
 
 Goals:
 
@@ -539,6 +544,20 @@ Acceptance:
 - Angular 20 can call a harmless MEME backend endpoint through the proxy.
 - `cd frontend && npm run build` succeeds.
 - No legacy AngularJS assets are modified.
+
+Phase 1 implementation notes:
+
+- Added the Angular 20 workspace under `frontend/` using standalone bootstrap.
+- Added proxy configs for `localhost:8080` and `localhost:18080`.
+- Added a minimal shell and backend probe for
+  `/umls-server-rest/configure/properties`.
+- Added root Makefile wrappers for install, run, build, test, and e2e.
+- Added the first Cypress smoke spec for the Angular 20 shell.
+- Added a local Node `24.16.0` dev dependency plus `.node-version`/`.nvmrc`
+  because Angular 20 supports Node `^20.19.0 || ^22.12.0 || ^24.0.0`, while
+  the current shell default was Node `25.2.1`.
+- Verified `npm start`, the Angular proxy, `npm run build`,
+  `make frontend-build`, and `make frontend-test`.
 
 ### Phase 2: Shell, Config, Auth, And Navigation
 

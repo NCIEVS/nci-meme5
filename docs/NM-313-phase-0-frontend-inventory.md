@@ -593,9 +593,8 @@ I checked whether a local MEME server was already running:
 No screenshots were captured because no local app server was running, and Phase
 0 should not start a DB-backed server unexpectedly.
 
-No Cypress skeleton was added because this repository does not currently have a
-frontend `package.json`, Angular workspace, Cypress config, or e2e test harness.
-Create the first Cypress skeleton in NM-313A after `frontend/` exists.
+Phase 1 update: the first Cypress skeleton now exists under
+`frontend/cypress/e2e/smoke.cy.ts` after the Angular 20 workspace was added.
 
 Recommended first Cypress smoke cases once the Angular 20 workspace exists:
 
@@ -644,20 +643,23 @@ Completed:
 
 Deferred to NM-313A:
 
-- Cypress skeleton files, because no frontend test harness exists yet
 - actual screenshots, because no local app server was running
 
-## Recommendations For NM-313A
+Completed in Phase 1:
 
-Start with:
+- Cypress skeleton files
+- concurrent old/new local server validation with Angular 20 on
+  `localhost:4200` and the existing MEME backend on `localhost:8080`
 
-1. Add `frontend/` Angular 20 workspace.
-2. Add proxy config for `/umls-server-rest/**`.
-3. Add Angular startup config service for `/umls-server-rest/configure/properties`.
-4. Add auth service shell for `/umls-server-rest/security/authenticate/{userName}`.
-5. Add initial app shell routes.
-6. Add a Cypress skeleton once `frontend/package.json` exists.
-7. Enable terminology/metadata in the local test tab set before implementing the
+## Remaining Recommendations After Phase 1
+
+Next:
+
+1. Promote the Phase 1 backend probe into a typed Angular startup config service
+   for `/umls-server-rest/configure/properties`.
+2. Add auth service shell for `/umls-server-rest/security/authenticate/{userName}`.
+3. Replace the placeholder shell route with config-driven navigation.
+4. Enable terminology/metadata in the local test tab set before implementing the
    first read-only feature.
 
 Preferred first feature after shell/auth:
@@ -665,4 +667,3 @@ Preferred first feature after shell/auth:
 1. `terminology` read-only route
 2. `metadata` read-only route
 3. admin read-only users/projects
-

@@ -1,0 +1,8 @@
+{
+  "/umls-server-rest/**": {
+    "target": "http://localhost:18080",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
