@@ -15,7 +15,8 @@ tsApp.directive('relationshipsDeep', [ function() {
       '$window',
       'utilService',
       'contentService',
-      function($scope, $window, utilService, contentService) {
+      'securityService',
+      function($scope, $window, utilService, contentService, securityService) {
 
         $scope.showing = true;
 
@@ -133,9 +134,11 @@ tsApp.directive('relationshipsDeep', [ function() {
             + '/' + item.toId;
           var title = 'Report-' + $scope.component.terminology + '/' + $scope.component.version + ', '
             + $scope.component.terminologyId;
-          var newWindow = $window.open(newUrl, title, 'width=500, height=600');
-          newWindow.document.title = title;
-          newWindow.focus();
+          var newWindow = securityService.openSessionWindow(newUrl, title, 'width=500, height=600');
+          if (newWindow) {
+            newWindow.document.title = title;
+            newWindow.focus();
+          }
         }
         
         // end controller

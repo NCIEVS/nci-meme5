@@ -11,7 +11,8 @@ tsApp
       'utilService',
       'tabService',
       'metadataService',
-      function($http, $q, $window, gpService, utilService, tabService, metadataService) {
+      'securityService',
+      function($http, $q, $window, gpService, utilService, tabService, metadataService, securityService) {
 
         var metadata = metadataService.getModel();
 
@@ -1173,9 +1174,12 @@ tsApp
             + '/' + component.version + '/' + component.terminologyId;
           var title = 'Component-' + component.terminology + '/' + component.version + ', '
             + component.terminologyId;
-          var newWindow = $window.open(newUrl, title, 'width=950,height=600,scrollbars=yes');
-          newWindow.document.title = title;
-          newWindow.focus();
+          var newWindow = securityService.openSessionWindow(newUrl, title,
+            'width=950,height=600,scrollbars=yes');
+          if (newWindow) {
+            newWindow.document.title = title;
+            newWindow.focus();
+          }
 
         };
 
