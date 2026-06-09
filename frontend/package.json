@@ -12,8 +12,8 @@
     "start:dev": "npm run ng -- serve --host localhost --port 4200 --proxy-config proxy.dev.config.json",
     "build": "npm run ng -- build --configuration production --progress=false",
     "build:dev": "npm run ng -- build --configuration development --progress=false",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
     "e2e": "env -u ELECTRON_RUN_AS_NODE cypress run",
     "e2e:open": "env -u ELECTRON_RUN_AS_NODE cypress open"
   },
@@ -33,10 +33,12 @@
     "@angular/build": "~20.3.0",
     "@angular/cli": "~20.3.0",
     "@angular/compiler-cli": "~20.3.0",
+    "@types/jest": "^29.5.14",
     "cypress": "^15.0.0",
+    "jest": "^29.7.0",
     "jsdom": "^26.1.0",
     "node": "24.16.0",
-    "typescript": "~5.9.3",
-    "vitest": "^3.2.4"
+    "ts-jest": "^29.4.11",
+    "typescript": "~5.9.3"
   }
 }

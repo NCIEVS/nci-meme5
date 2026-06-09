@@ -29,6 +29,33 @@ editing and workflow operations.
   preserving MEME-specific auth, config, tab, project, and session behavior.
 - Avoid `ngUpgrade` unless a future spike proves that a specific shared widget
   is worth temporarily embedding.
+- Treat route behavior, interaction parity, and visual parity as separate
+  migration checkpoints. Implement risky API/permission behavior first, then
+  converge on legacy interaction patterns and visual consistency before a route
+  is considered production-ready.
+
+## Interaction And Visual Parity Strategy
+
+The Angular 20 app may temporarily use simpler controls while a route is being
+made functional, but the end state should feel familiar to existing MEME users.
+
+Recommended sequence:
+
+1. Prove the route's API contracts, auth behavior, permissions, routing,
+   loading, and error handling.
+2. Replace temporary controls with reusable Angular interaction patterns that
+   match legacy workflows, such as dialogs for add/edit forms, confirmation
+   prompts for destructive actions, accordions or equivalent grouped sections,
+   and table paging/sort/filter controls.
+3. Consolidate repeated styling into shared component styles or small wrapper
+   components instead of allowing each migrated screen to accumulate one-off
+   CSS.
+4. Complete a visual parity pass against the legacy screen before routing
+   production users to the Angular 20 version by default.
+
+For Phase 5 specifically, the inline user form is an intentional early
+functional slice. Before admin parity is complete, add/edit user should move to
+the shared dialog pattern chosen for admin mutation workflows.
 
 ## Current MEME Frontend State
 
@@ -299,7 +326,7 @@ Recommended frontend stack:
 - Angular Router
 - Angular HttpClient
 - reactive forms for new forms
-- Jest or the Angular CLI's chosen unit-test runner
+- Jest for unit-test coverage
 - Cypress for smoke/e2e coverage
 - ESLint/Prettier or Angular CLI equivalents
 
@@ -709,11 +736,13 @@ Phase 4 implementation notes:
   lists, project role assignments, and user project-role maps.
 - Omitted all admin mutations, including add/edit/delete, validation changes,
   reload/config actions, precedence editing, and user-preference writes.
-- Added Vitest coverage for admin API helper behavior. Additional browser
-  coverage is deferred until the team decides whether Cypress remains the E2E
-  framework or Playwright replaces it.
+- Added Jest coverage for admin API helper behavior, with Cypress retained as
+  the required e2e framework.
 
 ### Phase 5: Admin Mutations In Small Slices
+
+Status: complete on 2026-06-09 for the planned Angular 20 admin mutation
+slices, with later visual/interaction parity refinements tracked separately.
 
 Goals:
 
@@ -727,10 +756,11 @@ Suggested order:
 3. user role/project assignments
 4. edit project basics
 5. add project
-6. project terminology/source configuration
-7. validation checks
-8. precedence editing
-9. reload/cache/exception operations
+6. delete project
+7. project terminology/source configuration
+8. validation checks
+9. precedence editing
+10. reload/cache/exception operations
 
 Acceptance:
 
@@ -738,6 +768,127 @@ Acceptance:
 - Each mutation has a browser smoke path against a safe local database.
 - Admin write tests do not run against shared production-like databases.
 - AngularJS remains available for admin operations not yet migrated.
+
+Phase 5 initial implementation notes:
+
+- Added Angular 20 admin user mutations for the first two suggested slices:
+  - add user
+  - edit user role/editor level
+- Added a conservative user-project role assignment slice from the selected
+  user's detail panel:
+  - assign a loaded project to the selected user with a selected project role
+  - remove an existing project role assignment after confirmation
+- Added project edit basics from the selected project detail panel:
+  - name
+  - description
+  - feedback email
+  - workflow path
+  - editing and automation flags
+  Terminology/version/language edits, validation-check selection, and
+  validation-data add/remove and precedence ordering were added in follow-on
+  Phase 5 slices.
+- Added project add basics from the projects panel:
+  - name
+  - description
+  - feedback email
+  - terminology
+  - version
+  - language
+  - workflow path
+  - editing and automation flags
+- Added client-side validation for required project basics, including workflow
+  path, so null/blank required fields are reported before a save request is
+  sent.
+- Preserved the legacy project permissions split: application
+  `ADMINISTRATOR` users can manage users and project assignments; application
+  `USER` users can add projects; project-level `ADMINISTRATOR` users can edit
+  projects where their project role allows it.
+- When an application `USER` creates a project, Angular 20 follows the legacy
+  side effect of assigning that creator to the new project as project
+  `ADMINISTRATOR`.
+- After assigning a non-admin creator to a newly added project, Angular 20 also
+  updates the current user's `lastProjectId` preference through
+  `POST /security/user/preferences/update` and refreshes the stored session
+  with the returned preferences.
+- Added project delete from the selected project detail panel:
+  - uses the legacy `DELETE /project/{id}` endpoint
+  - shows the legacy assigned-user warning when the project has user role
+    assignments
+  - refreshes both projects and users after removal because project deletion can
+    unassign users
+- Fixed the backend project delete path so assigned user project-role rows in
+  `user_project_role_map` are removed before the project row is deleted.
+- Added project terminology/source configuration basics:
+  - loads current terminology suggestions from `GET /metadata/terminology/current`
+  - auto-populates the current version when a known terminology is selected
+  - loads language options from `GET /metadata/all/{terminology}/{version}`
+  - loads workflow path options from `GET /workflow/paths`
+  - keeps precedence in a later dedicated slice
+- Added project validation-check selection:
+  - loads available checks from `GET /project/checks`
+  - shows available and selected check lists in Edit Project
+  - saves selected check keys through the existing project update payload
+  - preserves the legacy Add Project behavior of selecting checks whose label
+    starts with `Default`
+- Added project validation-data add/remove in Edit Project:
+  - shows existing validation data rows with validation check, value 1, and
+    value 2 columns
+  - opens an Add Validation Data dialog using the available validation checks
+  - removes rows after confirmation
+  - preserves existing row ids and sends new rows without ids so the backend
+    project update path creates/removes `TypeKeyValue` rows
+- Added project precedence-list ordering in Edit Project:
+  - loads the project precedence list from `GET /metadata/precedence/{id}`
+  - shows terminology/term type ordering in a scrollable table
+  - supports moving rows up and down while highlighting touched rows
+  - saves reordered precedence independently through `POST /metadata/precedence`,
+    matching the legacy separation between project saves and precedence saves
+  - treats up/down buttons as the conservative first slice; during the admin
+    interaction-parity pass, replace or supplement them with Angular CDK
+    drag-and-drop ordering so long precedence lists can be rearranged more
+    naturally
+- Added user deletion:
+  - blocks deletion when the user still has project-role assignments, matching
+    the legacy rule
+  - confirms deletion before calling `DELETE /security/user/remove/{id}`
+  - reloads users and projects after removal
+- Added current-user preference operations:
+  - feedback email save
+  - reset preferences to the legacy default state
+  - stored-session refresh after preference saves
+- Added admin-only operational actions:
+  - reload configuration through `POST /project/reload`
+  - force generic exception through `POST /project/exception`
+  - force local/test exception through `POST /project/exception?local=true`
+- Matched the legacy edit-user modal's conservative behavior: existing user
+  username, name, and email are displayed read-only; editor level and
+  application role are editable.
+- Moved add/edit user into a reusable Angular dialog foundation so subsequent
+  admin writes can converge on the legacy modal interaction pattern instead of
+  accumulating one-off inline forms.
+- Added `AdminApiService` write calls for:
+  - `POST /project/`
+  - `PUT /project/`
+  - `DELETE /project/{id}`
+  - `DELETE /security/user/remove/{id}`
+  - `PUT /security/user/add`
+  - `POST /security/user/update`
+  - `POST /security/user/preferences/update`
+  - `POST /project/reload`
+  - `POST /project/exception`
+  - `GET /project/assign?projectId=...&userName=...&role=...`
+  - `GET /project/unassign?projectId=...&userName=...`
+- Added form validation, saving state, success/error notifications, cancel
+  behavior, and user-list reload after save.
+- Added stubbed browser smoke paths for add/edit project, add/edit user,
+  project-role assignment, project-role removal, project-admin edit access,
+  project creator assignment, project delete, validation data, precedence
+  ordering, user deletion, user preference updates, reload config, forced
+  exceptions, and dialog rendering so the test does not write to a real shared
+  database.
+- Deferred richer visual/interaction parity work, including drag-and-drop
+  precedence ordering and tighter legacy modal/table styling, to the admin
+  parity pass rather than Phase 5 functional completion.
 
 ### Phase 6: Source, Process, And Workflow
 
@@ -904,11 +1055,15 @@ For each migrated route, keep a lightweight parity checklist:
 - required role/project state
 - API calls made
 - visible table/detail fields
+- interaction pattern, including dialogs, accordions/sections, confirmation
+  prompts, keyboard behavior, and button placement
+- visual comparison notes for spacing, typography, table density, form layout,
+  and action placement
 - empty state
 - error state
 - loading state
 - permission-gated actions
-- old UI comparison notes
+- shared style/component opportunities that would reduce one-off CSS
 
 ### Manual Test Environments
 

@@ -87,6 +87,13 @@ export class AuthService {
     this.saveStoredUser(user);
   }
 
+  updateCurrentUserPreferences(userPreferences: UserPreferences): void {
+    this.setUser({
+      ...this.userState(),
+      userPreferences
+    });
+  }
+
   setGuestUser(): void {
     this.setUser({
       applicationRole: 'VIEWER',
@@ -170,6 +177,7 @@ export class AuthService {
       authToken: user.authToken,
       editorLevel: user.editorLevel,
       email: user.email,
+      id: user.id,
       name: user.name,
       userName: user.userName,
       userPreferences: {

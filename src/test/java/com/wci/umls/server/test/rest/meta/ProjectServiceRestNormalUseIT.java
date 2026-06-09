@@ -12,6 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.wci.umls.server.model.algo.Project;
+import com.wci.umls.server.model.algo.User;
+import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.model.ProjectJpa;
 
@@ -131,6 +133,45 @@ public class ProjectServiceRestNormalUseIT extends ProjectServiceRestIT {
     projectList = projectService.findProjects(null, null, authToken);
     Assert.assertEquals(projectCount - 2, projectList.size());
 
+  }
+
+  /**
+   * Test remove project after users have been assigned to it.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRemoveProjectUnassignsUsers() throws Exception {
+    Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
+
+    // Add a project
+    Logger.getLogger(getClass()).info("  Add project");
+    ProjectJpa project = new ProjectJpa();
+    project.setDescription("Sample assigned project");
+    project.setName(uniqueTestName("Sample assigned project"));
+    project.setTerminology("MTH");
+    project.setVersion("latest");
+    project.setLanguage("ENG");
+    project.setWorkflowPath("DEFAULT");
+    project = (ProjectJpa) projectService.addProject(project, authToken);
+    final Long projectId = project.getId();
+
+    // Assign a user to the project
+    Logger.getLogger(getClass()).info("  Assign user to project");
+    projectService.assignUserToProject(projectId, adminUser,
+        UserRole.ADMINISTRATOR, authToken);
+
+    // Remove the project
+    Logger.getLogger(getClass()).info("  Remove assigned project");
+    projectService.removeProject(projectId, authToken);
+
+    // TEST: verify that it is removed (call should return null)
+    Assert.assertNull(projectService.getProject(projectId, authToken));
+
+    // TEST: verify the user's project role map no longer references it
+    User user = securityService.getUser(adminUser, authToken);
+    Assert.assertFalse(user.getProjectRoleMap().keySet().stream()
+        .anyMatch(assignedProject -> projectId.equals(assignedProject.getId())));
   }
 
   /**

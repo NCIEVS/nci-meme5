@@ -1,7 +1,7 @@
 <section class="admin-view" aria-labelledby="admin-title">
   <header class="view-header">
     <div>
-      <p class="kicker">Read-Only Admin Foundation</p>
+      <p class="kicker">Admin Foundation</p>
       <h1 id="admin-title">Admin</h1>
     </div>
 
@@ -28,6 +28,686 @@
     </div>
   </section>
 
+  <section class="utility-grid" aria-label="Admin utilities">
+    <section class="utility-panel" aria-labelledby="preferences-title">
+      <div class="panel-header compact-header">
+        <div>
+          <h2 id="preferences-title">User Preferences</h2>
+          <p>{{ currentUser().userName || currentUser().name || 'Current user' }}</p>
+        </div>
+        <button
+          type="button"
+          class="quiet-button"
+          (click)="resetUserPreferences()"
+          [disabled]="savingUserPreferences()"
+        >
+          Reset Preferences
+        </button>
+      </div>
+
+      <div class="utility-body">
+        <div class="form-grid compact-form">
+          <label for="user-preference-feedback-email">Feedback Email</label>
+          <div class="inline-control">
+            <input
+              id="user-preference-feedback-email"
+              type="email"
+              [ngModel]="userPreferenceFeedbackEmail()"
+              (ngModelChange)="updateUserPreferenceFeedbackEmail($event)"
+              [disabled]="savingUserPreferences()"
+            >
+            <button
+              type="button"
+              class="quiet-button"
+              (click)="saveFeedbackEmailPreference()"
+              [disabled]="savingUserPreferences() || !userPreferenceFeedbackEmailChanged()"
+            >
+              Save
+            </button>
+          </div>
+
+          <span class="field-label">Last Project Id</span>
+          <span class="readonly-value">{{ currentUser().userPreferences?.lastProjectId ?? 'n/a' }}</span>
+
+          <span class="field-label">Last Project Role</span>
+          <span class="readonly-value">{{ currentUser().userPreferences?.lastProjectRole || 'n/a' }}</span>
+        </div>
+
+        @if (preferencePropertyEntries().length) {
+          <dl class="preference-list">
+            @for (property of preferencePropertyEntries(); track property.key) {
+              <div>
+                <dt>{{ property.key }}</dt>
+                <dd>{{ property.value || 'n/a' }}</dd>
+              </div>
+            }
+          </dl>
+        }
+      </div>
+    </section>
+
+    @if (currentUser().applicationRole === 'ADMINISTRATOR') {
+      <section class="utility-panel" aria-labelledby="operations-title">
+        <div class="panel-header compact-header">
+          <div>
+            <h2 id="operations-title">Admin Operations</h2>
+            <p>Server-side maintenance and exception checks</p>
+          </div>
+        </div>
+        <div class="operation-actions">
+          <button
+            type="button"
+            class="quiet-button"
+            (click)="runAdminOperation('reloadConfig')"
+            [disabled]="runningAdminOperation() !== null"
+          >
+            {{ runningAdminOperation() === 'reloadConfig' ? 'Reloading' : 'Reload Config' }}
+          </button>
+          <button
+            type="button"
+            class="danger-button"
+            (click)="runAdminOperation('exception')"
+            [disabled]="runningAdminOperation() !== null"
+          >
+            Force Exception
+          </button>
+          <button
+            type="button"
+            class="danger-button"
+            (click)="runAdminOperation('localException')"
+            [disabled]="runningAdminOperation() !== null"
+          >
+            Force Test Exception
+          </button>
+        </div>
+      </section>
+    }
+  </section>
+
+  @if (projectForm(); as form) {
+    <meme-dialog
+      [title]="form.mode === 'add' ? 'Add Project' : 'Edit Project'"
+      [closeDisabled]="savingProject()"
+      (closed)="cancelProjectForm()"
+    >
+      <form class="user-form" (ngSubmit)="saveProject()" aria-label="Project form">
+        @if (projectFormErrors().length) {
+          <ul class="form-errors" aria-live="polite">
+            @for (error of projectFormErrors(); track error) {
+              <li>{{ error }}</li>
+            }
+          </ul>
+        }
+
+        <div class="form-grid">
+          @if (form.mode === 'edit') {
+            <span class="field-label">Project Id</span>
+            <span class="readonly-value">{{ form.sourceProject?.id ?? 'n/a' }}</span>
+          }
+
+          <label for="project-form-name">Name</label>
+          <input
+            id="project-form-name"
+            type="text"
+            [ngModel]="form.name"
+            (ngModelChange)="updateProjectForm('name', $event)"
+            name="name"
+            [disabled]="savingProject()"
+            autofocus
+          >
+
+          <label for="project-form-description">Description</label>
+          <textarea
+            id="project-form-description"
+            rows="4"
+            [ngModel]="form.description"
+            (ngModelChange)="updateProjectForm('description', $event)"
+            name="description"
+            [disabled]="savingProject()"
+          ></textarea>
+
+          <label for="project-form-feedback-email">Feedback Email</label>
+          <input
+            id="project-form-feedback-email"
+            type="email"
+            [ngModel]="form.feedbackEmail"
+            (ngModelChange)="updateProjectForm('feedbackEmail', $event)"
+            name="feedbackEmail"
+            [disabled]="savingProject()"
+          >
+
+          <label for="project-form-terminology">Terminology</label>
+          <input
+            id="project-form-terminology"
+            type="text"
+            list="project-form-terminologies"
+            [ngModel]="form.terminology"
+            (ngModelChange)="updateProjectForm('terminology', $event)"
+            name="terminology"
+            [disabled]="savingProject()"
+          >
+          <datalist id="project-form-terminologies">
+            @for (terminology of projectTerminologies(); track terminology.terminology) {
+              <option [value]="terminology.terminology ?? ''">
+                {{ terminology.version || '' }}
+              </option>
+            }
+          </datalist>
+
+          <label for="project-form-version">Version</label>
+          <input
+            id="project-form-version"
+            type="text"
+            [ngModel]="form.version"
+            (ngModelChange)="updateProjectForm('version', $event)"
+            (blur)="refreshProjectLanguages()"
+            name="version"
+            [disabled]="savingProject()"
+          >
+
+          <label for="project-form-language">Language</label>
+          @if (projectLanguageOptions().length) {
+            <select
+              id="project-form-language"
+              [ngModel]="form.language"
+              (ngModelChange)="updateProjectForm('language', $event)"
+              name="language"
+              [disabled]="savingProject()"
+            >
+              <option value="">Select language</option>
+              @for (language of projectLanguageOptions(); track language.key) {
+                <option [value]="language.key">{{ language.value || language.key }}</option>
+              }
+            </select>
+          } @else {
+            <input
+              id="project-form-language"
+              type="text"
+              [ngModel]="form.language"
+              (ngModelChange)="updateProjectForm('language', $event)"
+              name="language"
+              [disabled]="savingProject()"
+            >
+          }
+
+          <label for="project-form-workflow-path">Workflow Path</label>
+          @if (workflowPathOptions().length > 1) {
+            <select
+              id="project-form-workflow-path"
+              [ngModel]="form.workflowPath"
+              (ngModelChange)="updateProjectForm('workflowPath', $event)"
+              name="workflowPath"
+              required
+              [disabled]="savingProject()"
+            >
+              <option value="">Select workflow path</option>
+              @for (path of workflowPathOptions(); track path) {
+                <option [value]="path">{{ path }}</option>
+              }
+            </select>
+          } @else if (workflowPathOptions().length === 1) {
+            <span class="readonly-value">{{ form.workflowPath || workflowPathOptions()[0] }}</span>
+          } @else {
+            <input
+              id="project-form-workflow-path"
+              type="text"
+              [ngModel]="form.workflowPath"
+              (ngModelChange)="updateProjectForm('workflowPath', $event)"
+              name="workflowPath"
+              required
+              [disabled]="savingProject()"
+            >
+          }
+
+          <label for="project-form-editing-enabled">Editing Enabled</label>
+          <input
+            id="project-form-editing-enabled"
+            type="checkbox"
+            [ngModel]="form.editingEnabled"
+            (ngModelChange)="updateProjectForm('editingEnabled', $event)"
+            name="editingEnabled"
+            [disabled]="savingProject()"
+          >
+
+          <label for="project-form-automations-enabled">Automations Enabled</label>
+          <input
+            id="project-form-automations-enabled"
+            type="checkbox"
+            [ngModel]="form.automationsEnabled"
+            (ngModelChange)="updateProjectForm('automationsEnabled', $event)"
+            name="automationsEnabled"
+            [disabled]="savingProject()"
+          >
+        </div>
+
+        @if (form.mode === 'edit') {
+          <div class="validation-check-section" aria-label="Validation checks">
+            <section>
+              <h3>Available Validation Checks</h3>
+              @if (availableValidationChecks().length) {
+                <ul class="check-list">
+                  @for (check of availableValidationChecks(); track check.key) {
+                    <li>
+                      <span>{{ validationCheckLabel(check) }}</span>
+                      <button
+                        type="button"
+                        class="quiet-button"
+                        (click)="selectValidationCheck(check)"
+                        [disabled]="savingProject()"
+                      >
+                        Add
+                      </button>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="empty compact">No available checks.</p>
+              }
+            </section>
+
+            <section>
+              <h3>Selected Validation Checks</h3>
+              @if (selectedValidationChecks().length) {
+                <ul class="check-list">
+                  @for (check of selectedValidationChecks(); track check.key) {
+                    <li>
+                      <span>{{ validationCheckLabel(check) }}</span>
+                      <button
+                        type="button"
+                        class="quiet-button"
+                        (click)="removeValidationCheck(check)"
+                        [disabled]="savingProject()"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="empty compact">No selected checks.</p>
+              }
+            </section>
+          </div>
+        }
+
+        @if (form.mode === 'edit') {
+          <section class="validation-data-section" aria-label="Validation data">
+            <div class="section-heading">
+              <h3>Validation Data</h3>
+              <button
+                type="button"
+                (click)="startAddValidationData()"
+                [disabled]="savingProject()"
+              >
+                Add
+              </button>
+            </div>
+
+            @if (form.validationData.length) {
+              <div class="table-wrap compact-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Validation Check</th>
+                      <th>Value 1</th>
+                      <th>Value 2</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (data of form.validationData; track data.id ?? $index; let index = $index) {
+                      <tr>
+                        <td>{{ data.type || 'n/a' }}</td>
+                        <td>{{ data.key || 'n/a' }}</td>
+                        <td>{{ data.value || 'n/a' }}</td>
+                        <td>
+                          <button
+                            type="button"
+                            class="quiet-button"
+                            (click)="removeValidationData(data, index)"
+                            [disabled]="savingProject()"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="empty compact">No validation data.</p>
+            }
+          </section>
+
+          <section class="precedence-section" aria-label="Precedence list">
+            <div class="section-heading">
+              <h3>Precedence List</h3>
+              <button
+                type="button"
+                (click)="savePrecedenceList()"
+                [disabled]="
+                  loadingPrecedenceList() ||
+                  savingPrecedenceList() ||
+                  !precedenceList() ||
+                  !precedenceEntries().length
+                "
+              >
+                {{ savingPrecedenceList() ? 'Saving' : 'Save' }}
+              </button>
+            </div>
+
+            @if (loadingPrecedenceList()) {
+              <p class="empty compact">Loading precedence list...</p>
+            } @else if (precedenceList()) {
+              @if (precedenceEntries().length) {
+                <div class="table-wrap compact-table precedence-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Terminology</th>
+                        <th>Term Type</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (entry of precedenceEntries(); track precedenceTrackKey(entry, $index); let index = $index) {
+                        <tr [class.precedence-touched]="isPrecedenceEntryTouched(entry)">
+                          <td>{{ entry.key || 'n/a' }}</td>
+                          <td>{{ entry.value || 'n/a' }}</td>
+                          <td>
+                            <div class="row-actions">
+                              <button
+                                type="button"
+                                class="quiet-button"
+                                (click)="movePrecedenceEntry(index, -1)"
+                                [disabled]="index === 0 || savingPrecedenceList()"
+                              >
+                                Up
+                              </button>
+                              <button
+                                type="button"
+                                class="quiet-button"
+                                (click)="movePrecedenceEntry(index, 1)"
+                                [disabled]="index === precedenceEntries().length - 1 || savingPrecedenceList()"
+                              >
+                                Down
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="empty compact">No precedence entries.</p>
+              }
+            } @else {
+              <p class="empty compact">No precedence list available.</p>
+            }
+          </section>
+        }
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="quiet-button"
+            (click)="cancelProjectForm()"
+            [disabled]="savingProject()"
+          >
+            Cancel
+          </button>
+          <button type="submit" [disabled]="savingProject()">
+            {{ savingProject() ? 'Saving' : form.mode === 'add' ? 'Add' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    </meme-dialog>
+  }
+
+  @if (validationDataForm(); as form) {
+    <meme-dialog
+      title="Add Validation Data"
+      [closeDisabled]="savingProject()"
+      (closed)="cancelValidationDataForm()"
+    >
+      <form class="user-form" (ngSubmit)="saveValidationData()" aria-label="Validation data form">
+        @if (validationDataFormErrors().length) {
+          <ul class="form-errors" aria-live="polite">
+            @for (error of validationDataFormErrors(); track error) {
+              <li>{{ error }}</li>
+            }
+          </ul>
+        }
+
+        <div class="form-grid">
+          <label for="validation-data-type">Validation Check</label>
+          <select
+            id="validation-data-type"
+            [ngModel]="form.type"
+            (ngModelChange)="updateValidationDataForm('type', $event)"
+            name="type"
+            [disabled]="savingProject()"
+          >
+            <option value="">Select validation check</option>
+            @for (check of validationCheckDefinitions(); track check.key) {
+              <option [value]="check.key">{{ validationCheckLabel(check) }}</option>
+            }
+          </select>
+
+          <label for="validation-data-key">Value 1</label>
+          <input
+            id="validation-data-key"
+            type="text"
+            [ngModel]="form.key"
+            (ngModelChange)="updateValidationDataForm('key', $event)"
+            name="key"
+            [disabled]="savingProject()"
+            autofocus
+          >
+
+          <label for="validation-data-value">Value 2</label>
+          <input
+            id="validation-data-value"
+            type="text"
+            [ngModel]="form.value"
+            (ngModelChange)="updateValidationDataForm('value', $event)"
+            name="value"
+            [disabled]="savingProject()"
+          >
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="quiet-button"
+            (click)="cancelValidationDataForm()"
+            [disabled]="savingProject()"
+          >
+            Cancel
+          </button>
+          <button type="submit" [disabled]="savingProject()">Add</button>
+        </div>
+      </form>
+    </meme-dialog>
+  }
+
+  @if (userForm(); as form) {
+    <meme-dialog
+      [title]="form.mode === 'add' ? 'Add User' : 'Edit User'"
+      [closeDisabled]="savingUser()"
+      (closed)="cancelUserForm()"
+    >
+      <form class="user-form" (ngSubmit)="saveUser()" aria-label="User form">
+        @if (userFormErrors().length) {
+          <ul class="form-errors" aria-live="polite">
+            @for (error of userFormErrors(); track error) {
+              <li>{{ error }}</li>
+            }
+          </ul>
+        }
+
+        <div class="form-grid">
+          <label for="user-form-username">Username</label>
+          @if (form.mode === 'add') {
+            <input
+              id="user-form-username"
+              type="text"
+              [ngModel]="form.userName"
+              (ngModelChange)="updateUserForm('userName', $event)"
+              name="userName"
+              [disabled]="savingUser()"
+              autofocus
+            >
+          } @else {
+            <span class="readonly-value">{{ form.userName || 'n/a' }}</span>
+          }
+
+          <label for="user-form-name">Name</label>
+          @if (form.mode === 'add') {
+            <input
+              id="user-form-name"
+              type="text"
+              [ngModel]="form.name"
+              (ngModelChange)="updateUserForm('name', $event)"
+              name="name"
+              [disabled]="savingUser()"
+            >
+          } @else {
+            <span class="readonly-value">{{ form.name || 'n/a' }}</span>
+          }
+
+          <label for="user-form-email">Email</label>
+          @if (form.mode === 'add') {
+            <input
+              id="user-form-email"
+              type="email"
+              [ngModel]="form.email"
+              (ngModelChange)="updateUserForm('email', $event)"
+              name="email"
+              [disabled]="savingUser()"
+            >
+          } @else {
+            <span class="readonly-value">{{ form.email || 'n/a' }}</span>
+          }
+
+          <label for="user-form-editor-level">Editor Level</label>
+          <div class="inline-control">
+            <input
+              id="user-form-editor-level"
+              type="number"
+              [ngModel]="form.editorLevel"
+              (ngModelChange)="updateUserForm('editorLevel', $event)"
+              name="editorLevel"
+              [disabled]="savingUser()"
+            >
+            <button
+              type="button"
+              class="quiet-button"
+              (click)="updateUserForm('editorLevel', '')"
+              [disabled]="savingUser()"
+            >
+              Clear
+            </button>
+          </div>
+
+          <label for="user-form-role">Application Role</label>
+          <select
+            id="user-form-role"
+            [ngModel]="form.applicationRole"
+            (ngModelChange)="updateUserForm('applicationRole', $event)"
+            name="applicationRole"
+            [disabled]="savingUser()"
+          >
+            @for (role of applicationRoles(); track role) {
+              <option [ngValue]="role">{{ role }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="quiet-button"
+            (click)="cancelUserForm()"
+            [disabled]="savingUser()"
+          >
+            Cancel
+          </button>
+          <button type="submit" [disabled]="savingUser()">
+            {{ savingUser() ? 'Saving' : form.mode === 'add' ? 'Add' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    </meme-dialog>
+  }
+
+  @if (projectAssignmentForm(); as assignmentForm) {
+    <meme-dialog
+      title="Assign Project Role"
+      [closeDisabled]="savingProjectAssignment()"
+      (closed)="cancelProjectAssignment()"
+    >
+      <form class="user-form" (ngSubmit)="saveProjectAssignment()" aria-label="Project assignment form">
+        @if (projectAssignmentErrors().length) {
+          <ul class="form-errors" aria-live="polite">
+            @for (error of projectAssignmentErrors(); track error) {
+              <li>{{ error }}</li>
+            }
+          </ul>
+        }
+
+        <div class="form-grid">
+          <span class="field-label">User</span>
+          <span class="readonly-value">{{ assignmentForm.user.userName || 'n/a' }}</span>
+
+          <label for="project-assignment-project">Project</label>
+          <select
+            id="project-assignment-project"
+            [ngModel]="assignmentForm.projectId"
+            (ngModelChange)="updateProjectAssignmentForm('projectId', $event)"
+            name="projectId"
+            [disabled]="savingProjectAssignment()"
+          >
+            @for (project of projects(); track project.id ?? project.name) {
+              @if (project.id !== null && project.id !== undefined) {
+                <option [value]="project.id">{{ projectLabel(project.id) }}</option>
+              }
+            }
+          </select>
+
+          <label for="project-assignment-role">Project Role</label>
+          <select
+            id="project-assignment-role"
+            [ngModel]="assignmentForm.role"
+            (ngModelChange)="updateProjectAssignmentForm('role', $event)"
+            name="role"
+            [disabled]="savingProjectAssignment()"
+          >
+            @for (role of projectRoles(); track role) {
+              <option [ngValue]="role">{{ role }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="quiet-button"
+            (click)="cancelProjectAssignment()"
+            [disabled]="savingProjectAssignment()"
+          >
+            Cancel
+          </button>
+          <button type="submit" [disabled]="savingProjectAssignment()">
+            {{ savingProjectAssignment() ? 'Saving' : 'Assign' }}
+          </button>
+        </div>
+      </form>
+    </meme-dialog>
+  }
+
   <div class="admin-grid">
     <section class="list-panel" aria-labelledby="projects-title">
       <div class="panel-header">
@@ -35,7 +715,12 @@
           <h2 id="projects-title">Projects</h2>
           <p>{{ loadingProjects() ? 'Loading projects' : 'Read-only project list' }}</p>
         </div>
-        <button type="button" (click)="loadProjects()">Refresh</button>
+        <div class="panel-actions">
+          @if (canAddProjects()) {
+            <button type="button" (click)="startAddProject()">Add Project</button>
+          }
+          <button type="button" (click)="loadProjects()">Refresh</button>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -48,7 +733,6 @@
           (keyup.enter)="loadProjects()"
           placeholder="Name, description, terminology"
         >
-        <button type="button" (click)="loadProjects()">Apply</button>
 
         <label for="project-page-size">Page size</label>
         <select
@@ -126,7 +810,22 @@
 
     <aside class="detail-panel" aria-label="Selected project details">
       @if (selectedProject(); as project) {
-        <h2>{{ project.name || 'Selected Project' }}</h2>
+        <div class="detail-heading">
+          <h2>{{ project.name || 'Selected Project' }}</h2>
+          @if (canEditProject(project)) {
+            <div class="detail-actions">
+              <button type="button" (click)="startEditProject(project)">Edit</button>
+              <button
+                class="danger-button"
+                type="button"
+                (click)="removeProject(project)"
+                [disabled]="deletingProjectId() === project.id"
+              >
+                {{ deletingProjectId() === project.id ? 'Deleting' : 'Delete' }}
+              </button>
+            </div>
+          }
+        </div>
         <dl>
           <div>
             <dt>Id</dt>
@@ -166,7 +865,7 @@
           </div>
           <div>
             <dt>Validation Checks</dt>
-            <dd>{{ listValue(project.validationChecks) }}</dd>
+            <dd>{{ validationCheckLabels(project.validationChecks) }}</dd>
           </div>
           <div>
             <dt>Project Role Assignments</dt>
@@ -194,9 +893,14 @@
       <div class="panel-header">
         <div>
           <h2 id="users-title">Users</h2>
-          <p>{{ loadingUsers() ? 'Loading users' : 'Read-only user list' }}</p>
+          <p>{{ loadingUsers() ? 'Loading users' : 'User administration' }}</p>
         </div>
-        <button type="button" (click)="loadUsers()">Refresh</button>
+        <div class="panel-actions">
+          @if (canMutateUsers()) {
+            <button type="button" (click)="startAddUser()">Add User</button>
+          }
+          <button type="button" (click)="loadUsers()">Refresh</button>
+        </div>
       </div>
 
       <div class="toolbar">
@@ -209,7 +913,6 @@
           (keyup.enter)="loadUsers()"
           placeholder="Username, name, email"
         >
-        <button type="button" (click)="loadUsers()">Apply</button>
 
         <label for="user-page-size">Page size</label>
         <select
@@ -254,6 +957,9 @@
                     <span>{{ userSortIndicator('applicationRole') }}</span>
                   </button>
                 </th>
+                @if (canMutateUsers()) {
+                  <th>Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -268,6 +974,27 @@
                   <td>{{ user.name || 'n/a' }}</td>
                   <td>{{ user.email || 'n/a' }}</td>
                   <td>{{ user.applicationRole || 'n/a' }}</td>
+                  @if (canMutateUsers()) {
+                    <td>
+                      <div class="row-actions">
+                        <button
+                          type="button"
+                          class="quiet-button"
+                          (click)="startEditUser(user); $event.stopPropagation()"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          class="danger-button"
+                          (click)="removeUser(user); $event.stopPropagation()"
+                          [disabled]="deletingUserId() === user.id"
+                        >
+                          {{ deletingUserId() === user.id ? 'Deleting' : 'Delete' }}
+                        </button>
+                      </div>
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -292,7 +1019,29 @@
 
     <aside class="detail-panel" aria-label="Selected user details">
       @if (selectedUser(); as user) {
-        <h2>{{ user.userName || 'Selected User' }}</h2>
+        <div class="detail-heading">
+          <h2>{{ user.userName || 'Selected User' }}</h2>
+          @if (canMutateUsers()) {
+            <div class="detail-actions">
+              <button
+                type="button"
+                (click)="startProjectAssignment(user)"
+                [disabled]="savingProjectAssignment() || projects().length === 0"
+              >
+                Assign Project
+              </button>
+              <button type="button" (click)="startEditUser(user)">Edit</button>
+              <button
+                type="button"
+                class="danger-button"
+                (click)="removeUser(user)"
+                [disabled]="deletingUserId() === user.id"
+              >
+                {{ deletingUserId() === user.id ? 'Deleting' : 'Delete' }}
+              </button>
+            </div>
+          }
+        </div>
         <dl>
           <div>
             <dt>Name</dt>
@@ -320,7 +1069,20 @@
               @if (roleEntries(user.projectRoleMap).length) {
                 <ul class="role-list">
                   @for (role of roleEntries(user.projectRoleMap); track role.key) {
-                    <li><span>Project {{ role.key }}</span><strong>{{ role.value }}</strong></li>
+                    <li>
+                      <span>{{ projectLabel(role.key) }}</span>
+                      <strong>{{ role.value }}</strong>
+                      @if (canMutateUsers()) {
+                        <button
+                          type="button"
+                          class="quiet-button"
+                          (click)="removeProjectAssignment(user, role)"
+                          [disabled]="savingProjectAssignment()"
+                        >
+                          Remove
+                        </button>
+                      }
+                    </li>
                   }
                 </ul>
               } @else {

@@ -4,6 +4,7 @@
 package com.wci.umls.server.jpa.services;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -22,6 +23,7 @@ import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.content.ConceptList;
 import com.wci.umls.server.jpa.model.ProjectJpa;
+import com.wci.umls.server.jpa.model.UserJpa;
 import com.wci.umls.server.jpa.model.helpers.ProjectListJpa;
 import com.wci.umls.server.services.ProjectService;
 
@@ -163,7 +165,72 @@ public class ProjectServiceJpa extends RootServiceJpa
   public void removeProject(Long id) throws Exception {
     Logger.getLogger(getClass())
         .debug("Project Service - remove project " + id);
-    removeHasLastModified(id, ProjectJpa.class);
+
+    try {
+      tx = manager.getTransaction();
+      final ProjectJpa project = manager.find(ProjectJpa.class, id);
+
+      // Entity not found - nothing to remove, treat as no-op
+      if (project == null) {
+        return;
+      }
+
+      if (isLastModifiedFlag()) {
+        if (getLastModifiedBy() == null) {
+          throw new Exception(
+              "Service cannot remove object, name of modifying user required");
+        }
+        project.setLastModifiedBy(getLastModifiedBy());
+        project.setLastModified(new Date());
+      }
+
+      if (getTransactionPerOperation()) {
+        tx.begin();
+      }
+
+      removeProjectRolesFromUsers(id);
+      project.getUserRoleMap().clear();
+
+      if (manager.contains(project)) {
+        manager.remove(project);
+      } else {
+        manager.remove(manager.merge(project));
+      }
+
+      if (getTransactionPerOperation()) {
+        tx.commit();
+      }
+    } catch (Exception e) {
+      if (tx.isActive()) {
+        tx.rollback();
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Removes references to the specified project from every user's project-role
+   * map before the project row is deleted.
+   *
+   * @param projectId the project id
+   */
+  private void removeProjectRolesFromUsers(final Long projectId) {
+    final List<UserJpa> users = manager
+        .createQuery("select u from UserJpa u", UserJpa.class)
+        .getResultList();
+
+    for (final UserJpa user : users) {
+      final List<Project> projectKeysToRemove = new ArrayList<>();
+      for (final Project project : user.getProjectRoleMap().keySet()) {
+        if (projectId.equals(project.getId())) {
+          projectKeysToRemove.add(project);
+        }
+      }
+
+      for (final Project project : projectKeysToRemove) {
+        user.getProjectRoleMap().remove(project);
+      }
+    }
   }
 
   /**

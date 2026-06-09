@@ -1,0 +1,73 @@
+.dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(24 39 52 / 54%);
+}
+
+.dialog-panel {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid #b8c5cf;
+  border-radius: 6px;
+  box-shadow: 0 24px 56px rgb(21 40 58 / 24%);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #d9e2ea;
+}
+
+h2 {
+  margin: 0;
+  color: #1d2936;
+  font-size: 1.15rem;
+  letter-spacing: 0;
+}
+
+.dialog-close {
+  min-height: 34px;
+  padding: 6px 10px;
+  color: #245f7a;
+  background: #e8f1f4;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.dialog-close:disabled {
+  color: #ffffff;
+  background: #9da9b2;
+  cursor: not-allowed;
+}
+
+.dialog-body {
+  padding: 18px;
+}
+
+@media (max-width: 760px) {
+  .dialog-layer {
+    padding: 12px;
+  }
+
+  .dialog-panel {
+    max-height: calc(100vh - 24px);
+  }
+}
