@@ -70,14 +70,59 @@ describe('Angular 20 shell', () => {
       'deploy.license.enabled': 'false'
     }).as('projectTabConfig');
 
+    cy.intercept('GET', '/umls-server-rest/security/roles', {
+      objects: ['VIEWER', 'USER', 'ADMINISTRATOR'],
+      totalCount: 3
+    }).as('applicationRoles');
+
+    cy.intercept('GET', '/umls-server-rest/project/roles', {
+      objects: ['AUTHOR', 'REVIEWER', 'ADMINISTRATOR'],
+      totalCount: 3
+    }).as('projectRoles');
+
+    cy.intercept('POST', '/umls-server-rest/project/find?query=', {
+      projects: [
+        {
+          id: 1,
+          name: 'NCI-META Editing',
+          description: 'Project for NCI-META Editing',
+          terminology: 'NCIMTH',
+          version: 'latest',
+          userRoleMap: {
+            DSS: 'ADMINISTRATOR'
+          }
+        }
+      ],
+      totalCount: 1
+    }).as('projects');
+
+    cy.intercept('POST', '/umls-server-rest/security/user/find?query=', {
+      users: [
+        {
+          id: 1,
+          userName: 'DSS',
+          name: 'Deborah Shapiro',
+          email: 'DSS@example.com',
+          applicationRole: 'USER',
+          projectRoleMap: {
+            '1': 'ADMINISTRATOR'
+          }
+        }
+      ],
+      totalCount: 1
+    }).as('users');
+
     cy.visit('/edit', {
       onBeforeLoad(window) {
         window.localStorage.setItem(
           'user',
           JSON.stringify({
-            applicationRole: 'ADMINISTRATOR',
+            applicationRole: 'USER',
             authToken: 'DSS',
             name: 'Deborah Shapiro',
+            projectRoleMap: {
+              '1': 'ADMINISTRATOR'
+            },
             userName: 'dss',
             userPreferences: {
               lastTab: '/edit',
@@ -90,7 +135,10 @@ describe('Angular 20 shell', () => {
 
     cy.wait('@projectTabConfig');
     cy.location('pathname').should('equal', '/admin');
-    cy.contains('Enabled Tab').should('be.visible');
+    cy.wait(['@applicationRoles', '@projectRoles', '@projects', '@users']);
+    cy.contains('Read-Only Admin Foundation').should('be.visible');
+    cy.contains('NCI-META Editing').should('be.visible');
+    cy.contains('Deborah Shapiro').should('be.visible');
     cy.contains('Admin').should('be.visible');
   });
 

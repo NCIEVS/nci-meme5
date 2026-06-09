@@ -3,15 +3,16 @@ import { Routes } from '@angular/router';
 import { TAB_DEFINITIONS } from './core/config/runtime-config.models';
 import { featureAccessGuard } from './core/startup/feature-access.guard';
 import { startupGuard } from './core/startup/startup.guard';
+import { AdminComponent } from './features/admin/admin.component';
+import { TerminologyComponent } from './features/terminology/terminology.component';
 import { FeaturePlaceholderComponent } from './pages/feature-placeholder/feature-placeholder.component';
 import { LandingComponent } from './pages/landing/landing.component';
 import { LicenseComponent } from './pages/license/license.component';
 import { LoginComponent } from './pages/login/login.component';
 import { StartupComponent } from './pages/startup/startup.component';
-import { TerminologyComponent } from './features/terminology/terminology.component';
 
 const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS)
-  .filter((tabKey) => tabKey !== 'terminology')
+  .filter((tabKey) => tabKey !== 'terminology' && tabKey !== 'admin')
   .map((tabKey) => ({
     path: TAB_DEFINITIONS[tabKey].link,
     component: FeaturePlaceholderComponent,
@@ -53,6 +54,15 @@ export const routes: Routes = [
       tabKey: 'terminology'
     },
     title: 'NCI-META Terminology'
+  },
+  {
+    path: 'admin',
+    component: AdminComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'admin'
+    },
+    title: 'NCI-META Admin'
   },
   ...tabRoutes,
   {

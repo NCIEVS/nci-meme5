@@ -1,0 +1,337 @@
+<section class="admin-view" aria-labelledby="admin-title">
+  <header class="view-header">
+    <div>
+      <p class="kicker">Read-Only Admin Foundation</p>
+      <h1 id="admin-title">Admin</h1>
+    </div>
+
+    <div class="summary-set" aria-label="Admin record counts">
+      <div class="summary">
+        <strong>{{ projectTotalCount() }}</strong>
+        <span>projects</span>
+      </div>
+      <div class="summary">
+        <strong>{{ userTotalCount() }}</strong>
+        <span>users</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="role-strip" aria-label="Available roles">
+    <div>
+      <h2>Application Roles</h2>
+      <p>{{ applicationRoles().join(', ') || (loadingRoles() ? 'Loading' : 'n/a') }}</p>
+    </div>
+    <div>
+      <h2>Project Roles</h2>
+      <p>{{ projectRoles().join(', ') || (loadingRoles() ? 'Loading' : 'n/a') }}</p>
+    </div>
+  </section>
+
+  <div class="admin-grid">
+    <section class="list-panel" aria-labelledby="projects-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="projects-title">Projects</h2>
+          <p>{{ loadingProjects() ? 'Loading projects' : 'Read-only project list' }}</p>
+        </div>
+        <button type="button" (click)="loadProjects()">Refresh</button>
+      </div>
+
+      <div class="toolbar">
+        <label for="project-filter">Filter</label>
+        <input
+          id="project-filter"
+          type="search"
+          [ngModel]="projectFilter()"
+          (ngModelChange)="setProjectFilter($event)"
+          (keyup.enter)="loadProjects()"
+          placeholder="Name, description, terminology"
+        >
+        <button type="button" (click)="loadProjects()">Apply</button>
+
+        <label for="project-page-size">Page size</label>
+        <select
+          id="project-page-size"
+          [ngModel]="projectPageSize()"
+          (ngModelChange)="setProjectPageSize($event)"
+        >
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+      </div>
+
+      @if (projects().length === 0) {
+        <p class="empty">No projects available.</p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" (click)="setProjectSortField('id')">
+                    Id
+                    <span>{{ projectSortIndicator('id') }}</span>
+                  </button>
+                </th>
+                <th>
+                  <button type="button" (click)="setProjectSortField('name')">
+                    Name
+                    <span>{{ projectSortIndicator('name') }}</span>
+                  </button>
+                </th>
+                <th>Description</th>
+                <th>
+                  <button type="button" (click)="setProjectSortField('terminology')">
+                    Terminology
+                    <span>{{ projectSortIndicator('terminology') }}</span>
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (project of projects(); track project.id ?? project.name) {
+                <tr
+                  [class.selected]="selectedProject()?.id === project.id"
+                  (click)="selectProject(project)"
+                  (keyup.enter)="selectProject(project)"
+                  tabindex="0"
+                >
+                  <td>{{ project.id }}</td>
+                  <td>{{ project.name || 'n/a' }}</td>
+                  <td>{{ project.description || 'n/a' }}</td>
+                  <td>{{ project.terminology || 'n/a' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" aria-label="Project pages">
+          <button type="button" (click)="previousProjectPage()" [disabled]="projectPage() === 1">
+            Previous
+          </button>
+          <span>Page {{ projectPage() }} of {{ projectTotalPages() }}</span>
+          <button
+            type="button"
+            (click)="nextProjectPage()"
+            [disabled]="projectPage() === projectTotalPages()"
+          >
+            Next
+          </button>
+        </div>
+      }
+    </section>
+
+    <aside class="detail-panel" aria-label="Selected project details">
+      @if (selectedProject(); as project) {
+        <h2>{{ project.name || 'Selected Project' }}</h2>
+        <dl>
+          <div>
+            <dt>Id</dt>
+            <dd>{{ project.id }}</dd>
+          </div>
+          <div>
+            <dt>Terminology</dt>
+            <dd>{{ project.terminology || 'n/a' }} {{ project.version || '' }}</dd>
+          </div>
+          <div>
+            <dt>Language</dt>
+            <dd>{{ project.language || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Branch</dt>
+            <dd>{{ project.branch || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Workflow Path</dt>
+            <dd>{{ project.workflowPath || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Feedback Email</dt>
+            <dd>{{ project.feedbackEmail || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Last Modified</dt>
+            <dd>{{ formatDate(project.lastModified) }} by {{ project.lastModifiedBy || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Flags</dt>
+            <dd>
+              Editing {{ project.editingEnabled ? 'enabled' : 'disabled' }},
+              automations {{ project.automationsEnabled ? 'enabled' : 'disabled' }},
+              public {{ project.public ? 'yes' : 'no' }}
+            </dd>
+          </div>
+          <div>
+            <dt>Validation Checks</dt>
+            <dd>{{ listValue(project.validationChecks) }}</dd>
+          </div>
+          <div>
+            <dt>Project Role Assignments</dt>
+            <dd>
+              @if (roleEntries(project.userRoleMap).length) {
+                <ul class="role-list">
+                  @for (role of roleEntries(project.userRoleMap); track role.key) {
+                    <li><span>{{ role.key }}</span><strong>{{ role.value }}</strong></li>
+                  }
+                </ul>
+              } @else {
+                n/a
+              }
+            </dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="empty">Select a project to see details.</p>
+      }
+    </aside>
+  </div>
+
+  <div class="admin-grid">
+    <section class="list-panel" aria-labelledby="users-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="users-title">Users</h2>
+          <p>{{ loadingUsers() ? 'Loading users' : 'Read-only user list' }}</p>
+        </div>
+        <button type="button" (click)="loadUsers()">Refresh</button>
+      </div>
+
+      <div class="toolbar">
+        <label for="user-filter">Filter</label>
+        <input
+          id="user-filter"
+          type="search"
+          [ngModel]="userFilter()"
+          (ngModelChange)="setUserFilter($event)"
+          (keyup.enter)="loadUsers()"
+          placeholder="Username, name, email"
+        >
+        <button type="button" (click)="loadUsers()">Apply</button>
+
+        <label for="user-page-size">Page size</label>
+        <select
+          id="user-page-size"
+          [ngModel]="userPageSize()"
+          (ngModelChange)="setUserPageSize($event)"
+        >
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+        </select>
+      </div>
+
+      @if (users().length === 0) {
+        <p class="empty">No users available.</p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" (click)="setUserSortField('userName')">
+                    Username
+                    <span>{{ userSortIndicator('userName') }}</span>
+                  </button>
+                </th>
+                <th>
+                  <button type="button" (click)="setUserSortField('name')">
+                    Name
+                    <span>{{ userSortIndicator('name') }}</span>
+                  </button>
+                </th>
+                <th>
+                  <button type="button" (click)="setUserSortField('email')">
+                    Email
+                    <span>{{ userSortIndicator('email') }}</span>
+                  </button>
+                </th>
+                <th>
+                  <button type="button" (click)="setUserSortField('applicationRole')">
+                    Application Role
+                    <span>{{ userSortIndicator('applicationRole') }}</span>
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.id ?? user.userName) {
+                <tr
+                  [class.selected]="selectedUser()?.id === user.id"
+                  (click)="selectUser(user)"
+                  (keyup.enter)="selectUser(user)"
+                  tabindex="0"
+                >
+                  <td>{{ user.userName || 'n/a' }}</td>
+                  <td>{{ user.name || 'n/a' }}</td>
+                  <td>{{ user.email || 'n/a' }}</td>
+                  <td>{{ user.applicationRole || 'n/a' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager" aria-label="User pages">
+          <button type="button" (click)="previousUserPage()" [disabled]="userPage() === 1">
+            Previous
+          </button>
+          <span>Page {{ userPage() }} of {{ userTotalPages() }}</span>
+          <button
+            type="button"
+            (click)="nextUserPage()"
+            [disabled]="userPage() === userTotalPages()"
+          >
+            Next
+          </button>
+        </div>
+      }
+    </section>
+
+    <aside class="detail-panel" aria-label="Selected user details">
+      @if (selectedUser(); as user) {
+        <h2>{{ user.userName || 'Selected User' }}</h2>
+        <dl>
+          <div>
+            <dt>Name</dt>
+            <dd>{{ user.name || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{{ user.email || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Team</dt>
+            <dd>{{ user.team || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Application Role</dt>
+            <dd>{{ user.applicationRole || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Editor Level</dt>
+            <dd>{{ user.editorLevel ?? 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Project Roles</dt>
+            <dd>
+              @if (roleEntries(user.projectRoleMap).length) {
+                <ul class="role-list">
+                  @for (role of roleEntries(user.projectRoleMap); track role.key) {
+                    <li><span>Project {{ role.key }}</span><strong>{{ role.value }}</strong></li>
+                  }
+                </ul>
+              } @else {
+                n/a
+              }
+            </dd>
+          </div>
+        </dl>
+      } @else {
+        <p class="empty">Select a user to see details.</p>
+      }
+    </aside>
+  </div>
+</section>

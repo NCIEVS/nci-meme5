@@ -664,6 +664,8 @@ Phase 3 implementation notes:
 
 ### Phase 4: Read-Only Admin Foundation
 
+Status: complete on 2026-06-09.
+
 Goals:
 
 - Introduce admin navigation and read-only admin views.
@@ -678,14 +680,38 @@ Deliverables:
 - selected user details view
 - selected project details view
 - role/permission display
-- admin-only route guard
+- admin route guard that blocks viewers while allowing application users and
+  administrators to see the read-only foundation
 
 Acceptance:
 
-- Non-admin users cannot access admin routes.
-- Admin users can view users and projects.
+- Viewers cannot access admin routes.
+- Application users and administrators can view users and projects.
 - Data shown in Angular 20 matches AngularJS for selected fixtures.
 - No create/update/delete admin actions are enabled yet.
+
+Phase 4 implementation notes:
+
+- Migrated `/admin` from a placeholder route to an Angular 20 read-only admin
+  foundation.
+- Kept the Angular 20 admin tab visibility aligned with the legacy AngularJS
+  admin page: application `USER` and `ADMINISTRATOR` can view the read-only
+  foundation, while `VIEWER` cannot.
+- Added typed admin models and an `AdminApiService` for the legacy read
+  endpoints:
+  - `POST /project/find`
+  - `POST /security/user/find`
+  - `GET /security/roles`
+  - `GET /project/roles`
+- Added projects and users tables with server-backed filter, sort, paging,
+  refresh controls, and selected read-only detail panels.
+- Added role/permission display through application role lists, project role
+  lists, project role assignments, and user project-role maps.
+- Omitted all admin mutations, including add/edit/delete, validation changes,
+  reload/config actions, precedence editing, and user-preference writes.
+- Added Vitest coverage for admin API helper behavior. Additional browser
+  coverage is deferred until the team decides whether Cypress remains the E2E
+  framework or Playwright replaces it.
 
 ### Phase 5: Admin Mutations In Small Slices
 
