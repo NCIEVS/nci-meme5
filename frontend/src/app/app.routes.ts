@@ -8,16 +8,19 @@ import { LandingComponent } from './pages/landing/landing.component';
 import { LicenseComponent } from './pages/license/license.component';
 import { LoginComponent } from './pages/login/login.component';
 import { StartupComponent } from './pages/startup/startup.component';
+import { TerminologyComponent } from './features/terminology/terminology.component';
 
-const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS).map((tabKey) => ({
-  path: TAB_DEFINITIONS[tabKey].link,
-  component: FeaturePlaceholderComponent,
-  canActivate: [featureAccessGuard],
-  data: {
-    tabKey
-  },
-  title: `NCI-META ${TAB_DEFINITIONS[tabKey].label}`
-}));
+const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS)
+  .filter((tabKey) => tabKey !== 'terminology')
+  .map((tabKey) => ({
+    path: TAB_DEFINITIONS[tabKey].link,
+    component: FeaturePlaceholderComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey
+    },
+    title: `NCI-META ${TAB_DEFINITIONS[tabKey].label}`
+  }));
 
 export const routes: Routes = [
   {
@@ -41,6 +44,15 @@ export const routes: Routes = [
     path: 'license',
     component: LicenseComponent,
     title: 'NCI-META License'
+  },
+  {
+    path: 'terminology',
+    component: TerminologyComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'terminology'
+    },
+    title: 'NCI-META Terminology'
   },
   ...tabRoutes,
   {

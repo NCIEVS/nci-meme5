@@ -1,0 +1,152 @@
+<section class="terminology-view" aria-labelledby="terminology-title">
+  <header class="view-header">
+    <div>
+      <p class="kicker">Read-Only Feature Slice</p>
+      <h1 id="terminology-title">Terminology</h1>
+    </div>
+
+    <div class="summary">
+      <strong>{{ terminologies().length }}</strong>
+      <span>current terminologies</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label for="terminology-filter">Filter</label>
+    <input
+      id="terminology-filter"
+      type="search"
+      [ngModel]="filter()"
+      (ngModelChange)="setFilter($event)"
+      placeholder="Name, abbreviation, version"
+    >
+
+    <label for="page-size">Page size</label>
+    <select
+      id="page-size"
+      [ngModel]="pageSize()"
+      (ngModelChange)="setPageSize($event)"
+    >
+      <option [ngValue]="10">10</option>
+      <option [ngValue]="25">25</option>
+      <option [ngValue]="50">50</option>
+    </select>
+  </div>
+
+  <div class="content-grid">
+    <section class="table-panel" aria-label="Terminologies">
+      @if (terminologies().length === 0) {
+        <p class="empty">No terminology available.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <button type="button" (click)="setSortField('preferredName')">
+                  Terminology
+                  <span>{{ sortIndicator('preferredName') }}</span>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSortField('terminology')">
+                  Abbr
+                  <span>{{ sortIndicator('terminology') }}</span>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSortField('version')">
+                  Version
+                  <span>{{ sortIndicator('version') }}</span>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSortField('organizingClassType')">
+                  Class Type
+                  <span>{{ sortIndicator('organizingClassType') }}</span>
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (terminology of pagedTerminologies(); track terminology.id ?? terminology.terminology + terminology.version) {
+              <tr
+                [class.selected]="selectedTerminology()?.id === terminology.id"
+                (click)="selectTerminology(terminology)"
+                (keyup.enter)="selectTerminology(terminology)"
+                tabindex="0"
+              >
+                <td>{{ terminology.preferredName || 'n/a' }}</td>
+                <td>{{ terminology.terminology }}</td>
+                <td>{{ terminology.version }}</td>
+                <td>{{ terminology.organizingClassType || 'n/a' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="pager" aria-label="Terminology pages">
+          <button type="button" (click)="previousPage()" [disabled]="page() === 1">
+            Previous
+          </button>
+          <span>Page {{ page() }} of {{ totalPages() }}</span>
+          <button type="button" (click)="nextPage()" [disabled]="page() === totalPages()">
+            Next
+          </button>
+        </div>
+      }
+    </section>
+
+    <aside class="detail-panel" aria-label="Terminology details">
+      @if (selectedTerminology(); as terminology) {
+        <h2>{{ terminology.preferredName || terminology.terminology }}</h2>
+
+        @if (loadingDetails()) {
+          <p class="loading">Loading details</p>
+        }
+
+        <dl>
+          <div>
+            <dt>Terminology</dt>
+            <dd>{{ terminology.terminology }}</dd>
+          </div>
+          <div>
+            <dt>Version</dt>
+            <dd>{{ terminology.version }}</dd>
+          </div>
+          <div>
+            <dt>Citation</dt>
+            <dd>{{ citationValue(terminology.citation) }}</dd>
+          </div>
+          <div>
+            <dt>Restriction Level</dt>
+            <dd>{{ selectedRootTerminology()?.restrictionLevel ?? 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Language</dt>
+            <dd>{{ selectedRootTerminology()?.language || 'n/a' }}</dd>
+          </div>
+          <div>
+            <dt>Acquisition Contact</dt>
+            <dd>{{ contactValue(selectedRootTerminology()?.acquisitionContact) }}</dd>
+          </div>
+          <div>
+            <dt>Content Contact</dt>
+            <dd>{{ contactValue(selectedRootTerminology()?.contentContact) }}</dd>
+          </div>
+          <div>
+            <dt>License Contact</dt>
+            <dd>{{ contactValue(selectedRootTerminology()?.licenseContact) }}</dd>
+          </div>
+          @if (terminology.metathesaurus && terminology.relatedTerminologies?.length) {
+            <div>
+              <dt>Related Terminologies</dt>
+              <dd>{{ terminology.relatedTerminologies?.join(', ') }}</dd>
+            </div>
+          }
+        </dl>
+      } @else {
+        <p class="empty">Select a terminology to see details.</p>
+      }
+    </aside>
+  </div>
+</section>

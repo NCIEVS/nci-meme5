@@ -94,6 +94,131 @@ describe('Angular 20 shell', () => {
     cy.contains('Admin').should('be.visible');
   });
 
+  it('ignores stored guest sessions when login is enabled', () => {
+    cy.intercept('GET', '/umls-server-rest/configure/properties', {
+      ...config,
+      'deploy.enabled.tabs': 'terminology,admin',
+      'deploy.license.enabled': 'false',
+      'deploy.login.enabled': 'true'
+    }).as('loginRequiredConfig');
+
+    cy.visit('/terminology', {
+      onBeforeLoad(window) {
+        window.localStorage.setItem(
+          'user',
+          JSON.stringify({
+            applicationRole: 'VIEWER',
+            authToken: 'guest',
+            name: 'Guest',
+            userName: 'guest',
+            userPreferences: {
+              properties: {}
+            }
+          })
+        );
+      }
+    });
+
+    cy.wait('@loginRequiredConfig');
+    cy.location('pathname').should('equal', '/login');
+    cy.window().its('localStorage.user').should('be.undefined');
+  });
+
+  it('clears stale stored tokens when the backend rejects the session', () => {
+    cy.intercept('GET', '/umls-server-rest/configure/properties', {
+      ...config,
+      'deploy.enabled.tabs': 'terminology,admin',
+      'deploy.license.enabled': 'false',
+      'deploy.login.enabled': 'true'
+    }).as('staleSessionConfig');
+
+    cy.intercept('GET', '/umls-server-rest/metadata/terminology/current', {
+      statusCode: 500,
+      body: 'AuthToken does not have a valid username.'
+    }).as('terminologyAuthFailure');
+
+    cy.visit('/terminology', {
+      onBeforeLoad(window) {
+        window.localStorage.setItem(
+          'user',
+          JSON.stringify({
+            applicationRole: 'VIEWER',
+            authToken: 'stale-token',
+            name: 'Stale User',
+            userName: 'stale',
+            userPreferences: {
+              properties: {}
+            }
+          })
+        );
+      }
+    });
+
+    cy.wait(['@staleSessionConfig', '@terminologyAuthFailure']);
+    cy.location('pathname').should('equal', '/login');
+    cy.window().its('localStorage.user').should('be.undefined');
+  });
+
+  it('renders the terminology read-only feature slice', () => {
+    cy.intercept('GET', '/umls-server-rest/configure/properties', {
+      ...config,
+      'deploy.enabled.tabs': 'terminology,admin',
+      'deploy.license.enabled': 'false',
+      'deploy.login.enabled': 'false'
+    }).as('terminologyConfig');
+
+    cy.intercept('GET', '/umls-server-rest/metadata/terminology/current', {
+      terminologies: [
+        {
+          id: 1,
+          terminology: 'NCI',
+          version: '2026_05',
+          preferredName: 'NCI Thesaurus',
+          organizingClassType: 'CONCEPT',
+          citation: {
+            title: 'NCI Thesaurus',
+            publisher: 'National Cancer Institute'
+          }
+        },
+        {
+          id: 2,
+          terminology: 'SNOMEDCT_US',
+          version: '2026_03',
+          preferredName: 'SNOMED CT US Edition',
+          organizingClassType: 'CONCEPT'
+        }
+      ]
+    }).as('terminologies');
+
+    cy.intercept('GET', '/umls-server-rest/metadata/rootTerminology/NCI', {
+      terminology: 'NCI',
+      restrictionLevel: 0,
+      language: 'ENG',
+      acquisitionContact: {
+        organization: 'NCI'
+      },
+      contentContact: {
+        name: 'Content Team',
+        email: 'content@example.com'
+      },
+      licenseContact: {
+        name: 'License Team'
+      }
+    }).as('rootTerminology');
+
+    cy.visit('/terminology');
+    cy.wait(['@terminologyConfig', '@terminologies', '@rootTerminology']);
+
+    cy.contains('Read-Only Feature Slice').should('be.visible');
+    cy.contains('NCI Thesaurus').should('be.visible');
+    cy.contains('SNOMED CT US Edition').should('be.visible');
+    cy.contains('Restriction Level').should('be.visible');
+    cy.contains('ENG').should('be.visible');
+    cy.get('#terminology-filter').type('snomed');
+    cy.get('tbody').should('contain', 'SNOMED CT US Edition');
+    cy.get('tbody').should('not.contain', 'NCI Thesaurus');
+  });
+
   it('accepts the license with the AngularJS-compatible cookie name', () => {
     cy.visit('/license');
     cy.wait('@config');

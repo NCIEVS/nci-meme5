@@ -617,6 +617,8 @@ Phase 2 implementation notes:
 
 ### Phase 3: First Read-Only Feature Slice
 
+Status: complete on 2026-06-08.
+
 Goals:
 
 - Migrate a useful but lower-risk read-only screen before admin mutations.
@@ -643,6 +645,22 @@ Acceptance:
 - API service tests cover query parameter construction and error handling.
 - A Cypress smoke test verifies route load and one representative data table or
   detail panel.
+
+Phase 3 implementation notes:
+
+- Migrated the read-only Terminology route into Angular 20 as the first feature
+  slice.
+- Added typed frontend models for terminology, root terminology, citation, and
+  contact information.
+- Added a `TerminologyApiService` for:
+  - `GET /metadata/terminology/current`
+  - `GET /metadata/rootTerminology/{terminology}`
+- Added a read-only terminology table with client-side filtering, sorting, page
+  size controls, paging, selection, and a detail panel.
+- Kept Phase 3 read-only: legacy export, content navigation, metadata
+  navigation, and user-preference updates remain later slices.
+- Added Cypress smoke coverage for route load, table rendering, selected detail
+  display, and filtering.
 
 ### Phase 4: Read-Only Admin Foundation
 

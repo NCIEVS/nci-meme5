@@ -30,6 +30,11 @@ export class AuthService {
     const storedUser = this.getStoredUser() ?? this.getWindowNameUser();
 
     if (storedUser) {
+      if (storedUser.authToken === 'guest') {
+        this.clearUser();
+        return;
+      }
+
       this.setUser(storedUser);
     }
   }
