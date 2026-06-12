@@ -8,7 +8,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.EnumSet;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.generator.BeforeExecutionGenerator;
@@ -23,6 +25,15 @@ import com.wci.umls.server.helpers.HasId;
  * Uses existing ID if set, otherwise generates new ID from table sequence.
  */
 public class UseExistingOrGenerateIdGenerator implements BeforeExecutionGenerator {
+
+  /** Maximum number of attempts to reserve a sequence block. */
+  private static final int MAX_SEQUENCE_RETRIES = 20;
+
+  /** Base delay before retrying a collided sequence update. */
+  private static final int BASE_RETRY_SLEEP_MILLIS = 10;
+
+  /** Maximum delay before retrying a collided sequence update. */
+  private static final int MAX_RETRY_SLEEP_MILLIS = 100;
 
   private String tableName = "table_generator";
   private String valueColumn = "next_val";
@@ -108,52 +119,171 @@ public class UseExistingOrGenerateIdGenerator implements BeforeExecutionGenerato
     return session.doReturningWork(new AbstractReturningWork<Long>() {
       @Override
       public Long execute(Connection connection) throws SQLException {
-        // Read current value
-        String selectSql = "SELECT " + valueColumn + " FROM " + tableName
-            + " WHERE " + segmentColumn + " = ?";
-
-        long currentValue;
-        try (PreparedStatement ps = connection.prepareStatement(selectSql)) {
-          ps.setString(1, segmentValue);
-          try (ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-              currentValue = rs.getLong(1);
-            } else {
-              // Row doesn't exist, insert it
-              insertInitialRow(connection);
-              currentValue = initialValue;
-            }
-          }
-        }
-
-        // Update to next value
-        long nextValue = currentValue + allocationSize;
-        String updateSql = "UPDATE " + tableName + " SET " + valueColumn + " = ? "
-            + "WHERE " + segmentColumn + " = ? AND " + valueColumn + " = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
-          ps.setLong(1, nextValue);
-          ps.setString(2, segmentValue);
-          ps.setLong(3, currentValue);
-          int updated = ps.executeUpdate();
-          if (updated == 0) {
-            // Concurrent modification, retry
-            throw new SQLException("Concurrent sequence update, retry");
-          }
-        }
-
-        return currentValue;
-      }
-
-      private void insertInitialRow(Connection connection) throws SQLException {
-        String insertSql = "INSERT INTO " + tableName + " (" + segmentColumn + ", "
-            + valueColumn + ") VALUES (?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
-          ps.setString(1, segmentValue);
-          ps.setLong(2, initialValue + allocationSize);
-          ps.executeUpdate();
-        }
+        return reserveSequenceBlockWithRetry(connection);
       }
     });
+  }
+
+  /**
+   * Reserves the next block of identifiers, retrying transient optimistic
+   * sequence collisions.
+   *
+   * @param connection the connection
+   * @return the first identifier in the reserved block
+   * @throws SQLException if the block cannot be reserved
+   */
+  private long reserveSequenceBlockWithRetry(Connection connection)
+    throws SQLException {
+
+    SQLException lastException = null;
+    for (int attempt = 1; attempt <= MAX_SEQUENCE_RETRIES; attempt++) {
+      try {
+        return reserveSequenceBlock(connection);
+      } catch (ConcurrentSequenceUpdateException
+          | SQLIntegrityConstraintViolationException e) {
+        lastException = e;
+      } catch (SQLException e) {
+        if (!isDuplicateKey(e)) {
+          throw e;
+        }
+        lastException = e;
+      }
+
+      if (attempt < MAX_SEQUENCE_RETRIES) {
+        sleepBeforeRetry(attempt);
+      }
+    }
+
+    throw new SQLException("Unable to reserve sequence block for " + tableName
+        + "." + segmentValue + " after " + MAX_SEQUENCE_RETRIES + " attempts",
+        lastException);
+  }
+
+  /**
+   * Reserves one block of identifiers using an optimistic compare-and-swap
+   * update.
+   *
+   * @param connection the connection
+   * @return the first identifier in the reserved block
+   * @throws SQLException if the sequence cannot be updated
+   */
+  private long reserveSequenceBlock(Connection connection) throws SQLException {
+
+    final Long currentValue = readCurrentValue(connection);
+    if (currentValue == null) {
+      insertInitialRow(connection);
+      return initialValue;
+    }
+
+    final long nextValue = currentValue + allocationSize;
+    final String updateSql = "UPDATE " + tableName + " SET " + valueColumn
+        + " = ? WHERE " + segmentColumn + " = ? AND " + valueColumn + " = ?";
+
+    try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
+      ps.setLong(1, nextValue);
+      ps.setString(2, segmentValue);
+      ps.setLong(3, currentValue);
+      final int updated = ps.executeUpdate();
+      if (updated == 0) {
+        throw new ConcurrentSequenceUpdateException(
+            "Concurrent sequence update for " + tableName + "."
+                + segmentValue);
+      }
+    }
+
+    return currentValue;
+  }
+
+  /**
+   * Reads the current sequence value.
+   *
+   * @param connection the connection
+   * @return the current sequence value, or null if no sequence row exists
+   * @throws SQLException if the value cannot be read
+   */
+  private Long readCurrentValue(Connection connection) throws SQLException {
+
+    final String selectSql = "SELECT " + valueColumn + " FROM " + tableName
+        + " WHERE " + segmentColumn + " = ?";
+
+    try (PreparedStatement ps = connection.prepareStatement(selectSql)) {
+      ps.setString(1, segmentValue);
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next() ? rs.getLong(1) : null;
+      }
+    }
+  }
+
+  /**
+   * Inserts the initial sequence row.
+   *
+   * @param connection the connection
+   * @throws SQLException if the row cannot be inserted
+   */
+  private void insertInitialRow(Connection connection) throws SQLException {
+
+    final String insertSql = "INSERT INTO " + tableName + " ("
+        + segmentColumn + ", " + valueColumn + ") VALUES (?, ?)";
+
+    try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
+      ps.setString(1, segmentValue);
+      ps.setLong(2, initialValue + allocationSize);
+      ps.executeUpdate();
+    }
+  }
+
+  /**
+   * Sleeps briefly before retrying a collided sequence update.
+   *
+   * @param attempt the attempt number
+   * @throws SQLException if interrupted while waiting
+   */
+  private void sleepBeforeRetry(int attempt) throws SQLException {
+
+    final int baseSleep = Math.min(MAX_RETRY_SLEEP_MILLIS,
+        BASE_RETRY_SLEEP_MILLIS * attempt);
+    final int jitter = ThreadLocalRandom.current()
+        .nextInt(BASE_RETRY_SLEEP_MILLIS);
+
+    try {
+      Thread.sleep(baseSleep + jitter);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new SQLException("Interrupted while retrying sequence update", e);
+    }
+  }
+
+  /**
+   * Indicates whether the exception represents a duplicate-key row insert.
+   *
+   * @param e the exception
+   * @return true if duplicate key
+   */
+  private boolean isDuplicateKey(SQLException e) {
+
+    for (SQLException current = e; current != null;
+        current = current.getNextException()) {
+      if ("23000".equals(current.getSQLState())
+          || current.getErrorCode() == 1062) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Retryable optimistic sequence collision. */
+  private static class ConcurrentSequenceUpdateException extends SQLException {
+
+    /** Serial version UID. */
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Instantiates an exception.
+     *
+     * @param message the message
+     */
+    ConcurrentSequenceUpdateException(String message) {
+      super(message);
+    }
   }
 }

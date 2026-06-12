@@ -15,7 +15,7 @@ usage='test_insertion.sh {meme-test|meme-release|both} '
 TEST_DB='meme-test'
 RELEASE_DB='meme-release'
 both=0
-awspath='/usr/local/bin'
+awspath='/usr/bin'
 
 
 if [ "$#" -eq 1 ]; then
@@ -71,7 +71,7 @@ done
 
 # create new meme-edit-manual-snapshot
 echo "starting creation of new meme-edit-manual-snapshot"
-$awspath/aws rds create-db-snapshot --profile meme --db-instance-identifier meme-edit --db-snapshot-identifier meme-edit-manual-snapshot
+$awspath/aws rds create-db-snapshot --profile meme --db-instance-identifier meme-edit-new --db-snapshot-identifier meme-edit-manual-snapshot
 
 started='creating snapshot'
    while :
@@ -91,7 +91,7 @@ done
 
 # recreate meme-test/release db from meme-edit-manual-snapshot
 echo "starting meme-test/release db recreation"
-$awspath/aws rds restore-db-instance-from-db-snapshot --profile meme --db-instance-identifier $DB_NAME --db-snapshot-identifier meme-edit-manual-snapshot --db-parameter-group-name meme-db --availability-zone us-east-1d --db-subnet-group-name default-vpc-dca724a4 --vpc-security-group-ids sg-05993d12d18c40cae
+$awspath/aws rds restore-db-instance-from-db-snapshot --profile meme --db-instance-identifier $DB_NAME --db-snapshot-identifier meme-edit-manual-snapshot --db-parameter-group-name meme-db-84 --availability-zone us-east-1d --db-subnet-group-name default-vpc-dca724a4 --vpc-security-group-ids sg-05993d12d18c40cae
 
 started='creating db'
    while :
@@ -113,7 +113,7 @@ if [[ $both -eq 1 ]]; then
 	echo "Both was indicated. meme-release creation will now be processed. "
 
 
-  $awspath/aws rds restore-db-instance-from-db-snapshot --profile meme --db-instance-identifier $DB_NAME --db-snapshot-identifier meme-edit-manual-snapshot --db-parameter-group-name meme-db --availability-zone us-east-1d --db-subnet-group-name default-vpc-dca724a4 --vpc-security-group-ids sg-05993d12d18c40cae
+  $awspath/aws rds restore-db-instance-from-db-snapshot --profile meme --db-instance-identifier $DB_NAME --db-snapshot-identifier meme-edit-manual-snapshot --db-parameter-group-name meme-db-84 --availability-zone us-east-1d --db-subnet-group-name default-vpc-dca724a4 --vpc-security-group-ids sg-05993d12d18c40cae
 
   started='creating db'
      while :
