@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.EnumSet;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -139,11 +138,10 @@ public class UseExistingOrGenerateIdGenerator implements BeforeExecutionGenerato
     for (int attempt = 1; attempt <= MAX_SEQUENCE_RETRIES; attempt++) {
       try {
         return reserveSequenceBlock(connection);
-      } catch (ConcurrentSequenceUpdateException
-          | SQLIntegrityConstraintViolationException e) {
+      } catch (ConcurrentSequenceUpdateException e) {
         lastException = e;
       } catch (SQLException e) {
-        if (!isDuplicateKey(e)) {
+        if (!isRetryableSequenceException(e)) {
           throw e;
         }
         lastException = e;
@@ -195,7 +193,7 @@ public class UseExistingOrGenerateIdGenerator implements BeforeExecutionGenerato
   }
 
   /**
-   * Reads the current sequence value.
+   * Reads and locks the current sequence value.
    *
    * @param connection the connection
    * @return the current sequence value, or null if no sequence row exists
@@ -204,7 +202,7 @@ public class UseExistingOrGenerateIdGenerator implements BeforeExecutionGenerato
   private Long readCurrentValue(Connection connection) throws SQLException {
 
     final String selectSql = "SELECT " + valueColumn + " FROM " + tableName
-        + " WHERE " + segmentColumn + " = ?";
+        + " WHERE " + segmentColumn + " = ? FOR UPDATE";
 
     try (PreparedStatement ps = connection.prepareStatement(selectSql)) {
       ps.setString(1, segmentValue);
@@ -254,17 +252,19 @@ public class UseExistingOrGenerateIdGenerator implements BeforeExecutionGenerato
   }
 
   /**
-   * Indicates whether the exception represents a duplicate-key row insert.
+   * Indicates whether the exception represents a retryable sequence conflict.
    *
    * @param e the exception
-   * @return true if duplicate key
+   * @return true if retryable
    */
-  private boolean isDuplicateKey(SQLException e) {
+  private boolean isRetryableSequenceException(SQLException e) {
 
     for (SQLException current = e; current != null;
         current = current.getNextException()) {
-      if ("23000".equals(current.getSQLState())
-          || current.getErrorCode() == 1062) {
+      final String state = current.getSQLState();
+      final int errorCode = current.getErrorCode();
+      if ("23000".equals(state) || "40001".equals(state)
+          || errorCode == 1062 || errorCode == 1205 || errorCode == 1213) {
         return true;
       }
     }
