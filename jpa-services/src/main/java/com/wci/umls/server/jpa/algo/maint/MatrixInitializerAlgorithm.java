@@ -76,8 +76,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
     if (updateMode) {
       logInfo("  update mode = " + conceptIds.size());
     } else {
-      conceptIds = new HashSet<>(getAllConceptIds(getProject().getTerminology(),
-          getProject().getVersion(), Branch.ROOT));
+      conceptIds = getAllProjectConceptIds();
       logInfo("  full mode concept scope = " + conceptIds.size());
     }
 
@@ -376,6 +375,32 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
       Logger.getLogger(getClass()).warn(
           "Unable to persist Matrix initializer failure log: " + message, e);
     }
+  }
+
+  /**
+   * Returns all project concept ids from the database.
+   *
+   * Matrix Init uses this set as the full-mode processing scope and validation
+   * input. Do not use Lucene here: the default Lucene fetch path caps unpaged
+   * results at 500000, which can silently exclude valid candidate concepts.
+   *
+   * @return all concept ids in project scope
+   */
+  private Set<Long> getAllProjectConceptIds() throws Exception {
+    final jakarta.persistence.Query query =
+        getEntityManager().createQuery("select c.id from ConceptJpa c "
+            + "where c.version = :version and c.terminology = :terminology "
+            + "and (c.branch = :branch or c.branchedTo not like :branchMatch)");
+    query.setParameter("terminology", getProject().getTerminology());
+    query.setParameter("version", getProject().getVersion());
+    query.setParameter("branch", Branch.ROOT);
+    query.setParameter("branchMatch", "%" + Branch.ROOT + Branch.SEPARATOR + "%");
+
+    final Set<Long> ids = new HashSet<>();
+    for (final Object id : query.getResultList()) {
+      ids.add(((Number) id).longValue());
+    }
+    return ids;
   }
 
   @SuppressWarnings("unchecked")
