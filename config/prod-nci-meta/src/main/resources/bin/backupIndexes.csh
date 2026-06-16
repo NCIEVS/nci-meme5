@@ -32,7 +32,7 @@ echo ""
 # if enabled, run stuff
 if ($enabled == "true") then
 
-cd $MEME_HOME/archive/indexes
+cd $MEME_HOME/data/indexes
 echo `pwd`
 if ($#argv == 1) then
     set dayofweek='manual'
@@ -44,10 +44,10 @@ endif
 
 echo "todaysdate: $todaysdate"
 
-mkdir $MEME_HOME/archive/indexes/$todaysdate
-cp -R /local/content/MEME/MEME5/ncim/data/indexes/* $MEME_HOME/archive/indexes/$todaysdate
+mkdir $MEME_HOME/data/indexes/$todaysdate
+cp -R /local/content/MEME/MEME5/ncim/data/indexes/* $MEME_HOME/data/indexes/$todaysdate
 
-cd $MEME_HOME/archive/indexes/$todaysdate
+cd $MEME_HOME/data/indexes/$todaysdate
 tar -cvf $todaysdate.tar *
 
 
@@ -64,7 +64,7 @@ tar -cvf $todaysdate.tar *
     aws s3 cp $todaysdate.tar $S3_BUCKET/indexes/$todaysdate.tar
 
     rm $todaysdate.tar
-    rm -rf $MEME_HOME/archive/indexes/$todaysdate
+    rm -rf $MEME_HOME/data/indexes/$todaysdate
 
 
 else
