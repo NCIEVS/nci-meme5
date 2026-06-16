@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.log4j.Logger;
+
 import com.google.common.collect.Sets;
 import com.wci.umls.server.AlgorithmParameter;
 import com.wci.umls.server.ValidationResult;
@@ -39,6 +41,9 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
   public Set<Long> conceptIds = null;
 
   private Map<Long, Set<Long>> atomIdToTrackingRecordIds = new HashMap<>();
+
+  /** Indicates whether the tracking record component id cache has been loaded. */
+  private boolean atomIdToTrackingRecordIdsLoaded = false;
 
   /**
    * Instantiates an empty {@link MatrixInitializerAlgorithm}.
@@ -67,11 +72,13 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
   public void compute() throws Exception {
     logInfo("Starting " + getName());
 
-    if (conceptIds != null) {
+    final boolean updateMode = conceptIds != null;
+    if (updateMode) {
       logInfo("  update mode = " + conceptIds.size());
     } else {
       conceptIds = new HashSet<>(getAllConceptIds(getProject().getTerminology(),
           getProject().getVersion(), Branch.ROOT));
+      logInfo("  full mode concept scope = " + conceptIds.size());
     }
 
     fireProgressEvent(0, "Starting...find publishable atoms");
@@ -172,11 +179,17 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
       conceptsToChange.addAll(makeReviewed);
       conceptsToChange.addAll(makeNeedsReview);
       conceptsToChange.addAll(failures);
+      logInfo("  total concepts to evaluate = " + conceptsToChange.size());
 
       int prevProgress = 60;
       int statusChangeCt = 0;
       int publishableChangeCt = 0;
       int stepsCompleted = 0;
+      int skippedConceptCt = 0;
+      int foundConceptCt = 0;
+      Long currentConceptId = null;
+      Boolean currentPublishable = null;
+      WorkflowStatus currentStatus = null;
 
       // Changes will be sent to a conceptUpdate molecular action
       final UpdateConceptMolecularAction action =
@@ -187,8 +200,12 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
       try {
 
         for (final Long conceptId : conceptsToChange) {
-          // If in "updater" mode, skip concepts not accounted for.
+          currentConceptId = conceptId;
+          currentPublishable = null;
+          currentStatus = null;
+          // Skip concepts outside the configured scope.
           if (conceptIds != null && !conceptIds.contains(conceptId)) {
+            skippedConceptCt++;
             continue;
           }
 
@@ -208,6 +225,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
           Boolean publishable = null;
           if (makePublishable.contains(conceptId)) {
             publishable = true;
+            currentPublishable = publishable;
             logInfo("  publishable change  = " + concept.getId());
             publishableChangeCt++;
             found = true;
@@ -215,6 +233,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
           if (makeUnpublishable.contains(conceptId)) {
             publishable = false;
+            currentPublishable = publishable;
             logInfo("  unpublishable change  = " + concept.getId());
             publishableChangeCt++;
             found = true;
@@ -223,6 +242,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
           WorkflowStatus status = null;
           if (makeReviewed.contains(conceptId)) {
             status = WorkflowStatus.READY_FOR_PUBLICATION;
+            currentStatus = status;
             logInfo("  status change  = " + concept.getId());
             statusChangeCt++;
             found = true;
@@ -232,6 +252,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
           if (makeNeedsReview.contains(conceptId)) {
             status = WorkflowStatus.NEEDS_REVIEW;
+            currentStatus = status;
             statusChangeCt++;
             logInfo("  status change  = " + concept.getId());
             found = true;
@@ -242,6 +263,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
           if (failures.contains(conceptId)
               && concept.getWorkflowStatus() != WorkflowStatus.NEEDS_REVIEW) {
             status = WorkflowStatus.NEEDS_REVIEW;
+            currentStatus = status;
             statusChangeCt++;
             logInfo("  status change (failure)  = " + concept.getId());
             found = true;
@@ -249,6 +271,7 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
           // If changing concept, change it
           if (found) {
+            foundConceptCt++;
             // Configure the conceptUpdate molecular action
 
             action.setProject(getProject());
@@ -292,13 +315,42 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
         action.commitClearBegin();
 
       } catch (Exception e) {
-        action.rollback();
+        try {
+          action.rollback();
+        } catch (Exception rollbackException) {
+          Logger.getLogger(getClass()).error(
+              "Matrix initializer rollback failed after conceptId="
+                  + currentConceptId,
+              rollbackException);
+        }
+        Logger.getLogger(getClass()).error(
+            "Matrix initializer failed while processing conceptId="
+                + currentConceptId,
+            e);
+        logMatrixInitFailure("Matrix initializer failed while processing conceptId="
+            + currentConceptId);
+        logMatrixInitFailure("  candidate membership: makePublishable="
+            + makePublishable.contains(currentConceptId)
+            + ", makeUnpublishable=" + makeUnpublishable.contains(currentConceptId)
+            + ", makeReviewed=" + makeReviewed.contains(currentConceptId)
+            + ", makeNeedsReview=" + makeNeedsReview.contains(currentConceptId)
+            + ", failure=" + failures.contains(currentConceptId));
+        logMatrixInitFailure("  attempted publishable=" + currentPublishable
+            + ", attempted workflowStatus=" + currentStatus);
+        logMatrixInitFailure("  progress before rollback: stepsCompleted=" + stepsCompleted
+            + ", foundConceptCt=" + foundConceptCt + ", skippedConceptCt="
+            + skippedConceptCt + ", publishableChangeCt="
+            + publishableChangeCt + ", statusChangeCt=" + statusChangeCt
+            + ", totalConceptsToEvaluate=" + conceptsToChange.size());
+        throw e;
       } finally {
         action.close();
       }
 
       logInfo("  publishable changed = " + publishableChangeCt);
       logInfo("  status changed = " + statusChangeCt);
+      logInfo("  concepts skipped by scope = " + skippedConceptCt);
+      logInfo("  concepts with attempted changes = " + foundConceptCt);
       fireProgressEvent(100, "Finished ...");
       logInfo("Finished " + getName());
 
@@ -311,15 +363,32 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
   }
 
+  /**
+   * Attempt to persist Matrix Init failure details without masking the original
+   * exception.
+   *
+   * @param message the diagnostic message
+   */
+  private void logMatrixInitFailure(String message) {
+    try {
+      logError(message);
+    } catch (Exception e) {
+      Logger.getLogger(getClass()).warn(
+          "Unable to persist Matrix initializer failure log: " + message, e);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private void updateTrackingRecord(Concept concept, WorkflowStatus status)
     throws Exception {
 
-    if (atomIdToTrackingRecordIds.isEmpty()) {
+    if (!atomIdToTrackingRecordIdsLoaded) {
       // Cache all atomId->trackingRecordIds
+      logInfo("  loading tracking record component id cache");
       jakarta.persistence.Query query =
           getEntityManager().createNativeQuery("select * from component_ids");
       final List<Object[]> list = query.getResultList();
+      logInfo("  tracking record component id rows = " + list.size());
       for (final Object[] entry : list) {
         Long atomId = ((Number) entry[1]).longValue();
         Long trackingRecordId = ((Number) entry[0]).longValue();
@@ -329,6 +398,9 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
         }
         atomIdToTrackingRecordIds.get(atomId).add(trackingRecordId);
       }
+      atomIdToTrackingRecordIdsLoaded = true;
+      logInfo("  tracking record atom id cache size = "
+          + atomIdToTrackingRecordIds.size());
     }
 
     // Get the concept's atom Ids, and find all tracking records for those atom
