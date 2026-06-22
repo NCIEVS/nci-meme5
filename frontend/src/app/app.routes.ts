@@ -4,7 +4,8 @@ import { TAB_DEFINITIONS } from './core/config/runtime-config.models';
 import { featureAccessGuard } from './core/startup/feature-access.guard';
 import { startupGuard } from './core/startup/startup.guard';
 import { AdminComponent } from './features/admin/admin.component';
-import { TerminologyComponent } from './features/terminology/terminology.component';
+import { ProcessComponent } from './features/operations/process.component';
+import { WorkflowComponent } from './features/operations/workflow.component';
 import { FeaturePlaceholderComponent } from './pages/feature-placeholder/feature-placeholder.component';
 import { LandingComponent } from './pages/landing/landing.component';
 import { LicenseComponent } from './pages/license/license.component';
@@ -12,7 +13,7 @@ import { LoginComponent } from './pages/login/login.component';
 import { StartupComponent } from './pages/startup/startup.component';
 
 const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS)
-  .filter((tabKey) => tabKey !== 'terminology' && tabKey !== 'admin')
+  .filter((tabKey) => !['admin', 'process', 'workflow'].includes(tabKey))
   .map((tabKey) => ({
     path: TAB_DEFINITIONS[tabKey].link,
     component: FeaturePlaceholderComponent,
@@ -47,13 +48,22 @@ export const routes: Routes = [
     title: 'NCI-META License'
   },
   {
-    path: 'terminology',
-    component: TerminologyComponent,
+    path: 'process',
+    component: ProcessComponent,
     canActivate: [featureAccessGuard],
     data: {
-      tabKey: 'terminology'
+      tabKey: 'process'
     },
-    title: 'NCI-META Terminology'
+    title: 'NCI-META Process'
+  },
+  {
+    path: 'workflow',
+    component: WorkflowComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'workflow'
+    },
+    title: 'NCI-META Workflow'
   },
   {
     path: 'admin',

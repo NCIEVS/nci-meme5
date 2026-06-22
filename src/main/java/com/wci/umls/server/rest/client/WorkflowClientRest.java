@@ -5,6 +5,7 @@ package com.wci.umls.server.rest.client;
 
 import java.io.InputStream;
 import java.net.URLEncoder;
+import java.util.List;
 import java.util.Properties;
 
 import jakarta.ws.rs.client.Client;
@@ -357,6 +358,33 @@ public class WorkflowClientRest extends RootClientRest
         + "/workflow/definition?projectId=" + projectId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.json(definition));
+
+    if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
+      // n/a
+    } else {
+      throw new Exception(response.toString());
+    }
+
+  }
+
+  /* see superclass */
+  @Override
+  public void reorderWorkflowBinDefinitions(Long projectId,
+    Long workflowConfigId, List<Long> definitionIds, String authToken)
+    throws Exception {
+    Logger.getLogger(getClass())
+        .debug("Workflow Client - reorder workflow bin definitions "
+            + projectId + ", " + workflowConfigId);
+
+    validateNotEmpty(projectId, "projectId");
+    validateNotEmpty(workflowConfigId, "workflowConfigId");
+
+    final Client client = ClientBuilder.newClient();
+    final WebTarget target = client.target(config.getProperty("base.url")
+        + "/workflow/definition/order?projectId=" + projectId
+        + "&workflowConfigId=" + workflowConfigId);
+    final Response response = target.request(MediaType.APPLICATION_XML)
+        .header("Authorization", authToken).post(Entity.json(definitionIds));
 
     if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
       // n/a

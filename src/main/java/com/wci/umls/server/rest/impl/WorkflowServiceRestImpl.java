@@ -953,6 +953,86 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
   /* see superclass */
   @Override
+  @RequestMapping(value = "/definition/order", method = RequestMethod.POST)
+  @POST
+  @Path("/definition/order")
+  @Operation(summary = "Reorder workflow bin definitions",
+      description = "Reorder workflow bin definitions for a workflow config")
+  public void reorderWorkflowBinDefinitions(
+    @Parameter(description = "Project id, e.g. 1", required = true) @RequestParam(value = "projectId", required = false) Long projectId,
+    @Parameter(description = "Workflow config id, e.g. 1", required = true) @RequestParam(value = "workflowConfigId", required = false) Long workflowConfigId,
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Ordered workflow bin definition ids", required = true) @RequestBody List<Long> definitionIds,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    Logger.getLogger(getClass()).info("RESTful call (Workflow): /definition/order "
+        + projectId + " " + workflowConfigId + " " + authToken);
+
+    final String action = "trying to reorder workflow bin definitions";
+    final WorkflowService workflowService = new WorkflowServiceJpa();
+    try {
+      final String userName = authorizeProject(workflowService, projectId, securityService,
+          authToken, action, UserRole.AUTHOR);
+      workflowService.setLastModifiedBy(userName);
+
+      final WorkflowConfig workflowConfig = workflowService.getWorkflowConfig(workflowConfigId);
+      verifyProject(workflowConfig, projectId);
+
+      final List<WorkflowBinDefinition> definitions =
+          workflowConfig.getWorkflowBinDefinitions();
+      final Map<Long, WorkflowBinDefinition> definitionById = new HashMap<>();
+      for (final WorkflowBinDefinition definition : definitions) {
+        definitionById.put(definition.getId(), definition);
+      }
+
+      final Set<Long> submittedDefinitionIds =
+          definitionIds == null ? new HashSet<>() : new HashSet<>(definitionIds);
+      if (definitionIds == null || definitionIds.size() != definitions.size()
+          || submittedDefinitionIds.size() != definitions.size()
+          || !definitionById.keySet().equals(submittedDefinitionIds)) {
+        throw new LocalException(
+            "Ordered workflow bin definition ids must match the workflow config.");
+      }
+
+      final List<WorkflowBinDefinition> reorderedDefinitions = new ArrayList<>();
+      final Map<String, Integer> rankByBinName = new HashMap<>();
+      for (int i = 0; i < definitionIds.size(); i++) {
+        final WorkflowBinDefinition definition = definitionById.get(definitionIds.get(i));
+        reorderedDefinitions.add(definition);
+        rankByBinName.put(definition.getName(), i + 1);
+      }
+
+      definitions.clear();
+      definitions.addAll(reorderedDefinitions);
+      workflowService.updateWorkflowConfig(workflowConfig);
+
+      final Project project = workflowService.getProject(projectId);
+      for (final WorkflowBin workflowBin : workflowService.getWorkflowBins(project,
+          workflowConfig.getType())) {
+        final Integer rank = rankByBinName.get(workflowBin.getName());
+        if (rank != null && workflowBin.getRank() != rank) {
+          workflowBin.setRank(rank);
+          workflowService.updateWorkflowBin(workflowBin);
+        }
+      }
+
+      workflowService.addLogEntry(userName, projectId, workflowConfig.getId(), null, null,
+          "REORDER workflow bin definitions - " + definitionIds);
+
+      final ChangeEvent event = new ChangeEventJpa("ReorderWorkflowBinDefinitions",
+          authToken, "BINS", workflowConfig.getId(), getProjectInfo(project));
+      sendChangeEvent(userName, event);
+
+    } catch (Exception e) {
+      handleException(e, action);
+    } finally {
+      workflowService.close();
+      securityService.close();
+    }
+
+  }
+
+  /* see superclass */
+  @Override
   @RequestMapping(value = "/definition/{id}", method = RequestMethod.DELETE)
   @DELETE
   @Path("/definition/{id}")
@@ -1674,9 +1754,10 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
       final Project project = workflowService.getProject(projectId);
 
       // Assume current epoch unless explicit
-      final String localQuery =
-          (query != null && !query.contains("epoch:")) ? ConfigUtility.composeQuery("AND", query,
-              "epoch:" + workflowService.getCurrentWorkflowEpoch(project)) : query;
+      final WorkflowEpoch currentEpoch = workflowService.getCurrentWorkflowEpoch(project);
+      final String epochQuery = currentEpoch == null ? null : "epoch:" + currentEpoch.getName();
+      final String localQuery = query != null && query.contains("epoch:") ? query
+          : ConfigUtility.composeQuery("AND", query, epochQuery);
 
       // find worklists
       final WorklistList list =

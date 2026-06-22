@@ -100,9 +100,10 @@ CDNs. Notable dependencies include:
 - bundled static libraries under `src/main/webapp/ui/components` and
   `src/main/webapp/lib`
 
-The current route table is driven by `app/routes.js` and gated by
-`deploy.enabled.tabs` from `configure/properties`. Enabled tabs include source,
-content, terminology, metadata, workflow, edit, process, inversion, and admin.
+The current AngularJS route table is driven by `app/routes.js` and gated by
+`deploy.enabled.tabs` from `configure/properties`. Angular 20 intentionally
+does not support the legacy Sources, Terminology, or Metadata tabs; if those
+keys are present in deploy config, the Angular 20 shell ignores them.
 
 Authentication/session behavior is centralized in `securityService.js` and uses
 both browser storage and cookies:
@@ -235,6 +236,7 @@ Candidate `frontend/proxy.config.json` shape:
     "target": "http://localhost:8080",
     "secure": false,
     "changeOrigin": true,
+    "ws": true,
     "logLevel": "debug"
   }
 }
@@ -408,17 +410,15 @@ that mirror the existing AngularJS service boundaries:
 - `ConfigureApi`
 - `SecurityApi`
 - `ProjectApi`
-- `MetadataApi`
-- `TerminologyApi`
 - `ContentApi`
 - `WorkflowApi`
 - `ProcessApi`
-- `SourceDataApi`
 - `InversionApi`
 - `ReportApi`
 
-Start with the services needed by shell/config/auth and the first read-only
-screens. Add types as endpoints are migrated.
+Start with the services needed by shell/config/auth and supported screens. Add
+shared metadata endpoint wrappers only inside features that still require them,
+such as Admin project setup or Process config defaults.
 
 ### Routing
 
@@ -457,7 +457,7 @@ Use small, typed state services for:
 - deploy configuration
 - enabled tabs
 - current project
-- current terminology/source selection
+- current terminology selection where supported feature forms require it
 - global notifications
 - global loader state
 
@@ -531,10 +531,9 @@ Acceptance:
 
 Phase 0 findings:
 
-- `terminology` is the cleaner first independent read-only feature because it
-  loads its own terminology list and details.
-- `metadata` is still a strong early feature, but the legacy route assumes a
-  selected terminology/model and redirects to `/content` if none exists.
+- The original inventory identified terminology and metadata as low-risk
+  read-only candidates, but the later NM-313 scope decision removed the
+  Sources, Terminology, and Metadata tabs from Angular 20 support.
 - Phase 1 added the first Cypress smoke skeleton after the `frontend/`
   workspace existed.
 - Phase 1 validated concurrent old/new local servers with the Angular 20 dev
@@ -642,52 +641,15 @@ Phase 2 implementation notes:
 - Updated Cypress scripts to unset `ELECTRON_RUN_AS_NODE`, which is required
   when running the Electron-based Cypress runner from this Codex/VS Code shell.
 
-### Phase 3: First Read-Only Feature Slice
+### Phase 3: Removed Read-Only Tab Slice
 
-Status: complete on 2026-06-08.
+Status: removed from NM-313 scope on 2026-06-10.
 
-Goals:
-
-- Migrate a useful but lower-risk read-only screen before admin mutations.
-- Validate the API/service/component pattern.
-- Validate routing, permissions, loading, and error behavior on real data.
-
-Preferred candidates:
-
-- metadata tab
-- terminology tab
-- read-only project/current-user summary
-- selected source-data read-only views
-
-Recommendation:
-
-- Start with metadata or terminology before admin.
-- Choose the route with the fewest modal/editor/websocket dependencies and the
-  clearest read-only REST contract.
-
-Acceptance:
-
-- The screen reaches visual and behavioral parity for common read-only use.
-- Empty/error/loading states are handled deliberately.
-- API service tests cover query parameter construction and error handling.
-- A Cypress smoke test verifies route load and one representative data table or
-  detail panel.
-
-Phase 3 implementation notes:
-
-- Migrated the read-only Terminology route into Angular 20 as the first feature
-  slice.
-- Added typed frontend models for terminology, root terminology, citation, and
-  contact information.
-- Added a `TerminologyApiService` for:
-  - `GET /metadata/terminology/current`
-  - `GET /metadata/rootTerminology/{terminology}`
-- Added a read-only terminology table with client-side filtering, sorting, page
-  size controls, paging, selection, and a detail panel.
-- Kept Phase 3 read-only: legacy export, content navigation, metadata
-  navigation, and user-preference updates remain later slices.
-- Added Cypress smoke coverage for route load, table rendering, selected detail
-  display, and filtering.
+The earlier Angular 20 Terminology feature slice was removed after the team
+decided not to support the Sources, Terminology, or Metadata tabs in the new UI.
+The shell still tolerates those keys in backend deploy configuration by ignoring
+them, but Angular 20 no longer registers routes, navigation entries, feature
+components, or Cypress coverage for those tabs.
 
 ### Phase 4: Read-Only Admin Foundation
 
@@ -757,7 +719,7 @@ Suggested order:
 4. edit project basics
 5. add project
 6. delete project
-7. project terminology/source configuration
+7. project terminology configuration
 8. validation checks
 9. precedence editing
 10. reload/cache/exception operations
@@ -818,7 +780,7 @@ Phase 5 initial implementation notes:
     unassign users
 - Fixed the backend project delete path so assigned user project-role rows in
   `user_project_role_map` are removed before the project row is deleted.
-- Added project terminology/source configuration basics:
+- Added project terminology configuration basics:
   - loads current terminology suggestions from `GET /metadata/terminology/current`
   - auto-populates the current version when a known terminology is selected
   - loads language options from `GET /metadata/all/{terminology}/{version}`
@@ -890,27 +852,56 @@ Phase 5 initial implementation notes:
   precedence ordering and tighter legacy modal/table styling, to the admin
   parity pass rather than Phase 5 functional completion.
 
-### Phase 6: Source, Process, And Workflow
+### Phase 6: Process And Workflow
+
+Status: Process config, algorithm-step, import/export, and execution-control
+slices, and Workflow config add/edit/delete/import/export, bin definition
+add/edit/delete/query test, bin regeneration, and checklist/worklist
+detail/log/export/delete complete on 2026-06-10. Workflow bin display now
+includes the legacy created/modified date, run-time, and cluster-stat columns.
+The unsupported Sources, Terminology, and Metadata tabs were removed from
+Angular 20 scope. Current-user workflow assignment actions are now wired for
+worklists, selected-user assignment is wired for available worklists, and
+manager reassign controls are wired for assigned worklist authors/reviewers,
+checklist/worklist creation from workflow-bin cluster rows is implemented, and
+worklist concept report generate/download/remove is wired in the inline
+worklist detail panel. Checklist/worklist note add/remove is wired in the inline
+detail panel. Reviewer/editor/administrator stamp/unapprove list actions,
+review-assigned worklist finish, concept-status initialize/update, and
+checklist compute are also wired. Epoch add/remove and checklist import are now
+wired in the Workflow route.
+Process execution progress/log polling, automatic running-state refresh, and
+richer execution/step progress details are wired in the Process route.
+Process algorithm-parameter query formatting and query testing are wired in the
+algorithm step editor.
+The Workflow route now wraps the legacy `/websocket` endpoint for live
+bin/checklist/worklist updates and uses bin-regeneration progress polling as a
+fallback/visibility layer during long-running regeneration calls.
+Workflow bin definition query formatting and order editing are wired, including
+drag-and-drop reordering and Up/Down fallback controls backed by a focused
+definition-order REST endpoint.
+No legacy worklist import endpoint or UI workflow was found, so worklist import
+is out of NM-313 parity scope unless a future backend contract is added.
+Phase 6 is functionally complete for the currently supported Process and
+Workflow Angular 20 scope.
 
 Goals:
 
-- Migrate operational screens that are important but less editor-intensive than
-  content editing.
-- Build reusable table, modal, file-upload, and confirmation patterns.
+- Migrate supported operational screens that are important but less
+  editor-intensive than content editing.
+- Build reusable table, modal, file-import, and confirmation patterns.
 
 Suggested order:
 
-1. source read-only views
-2. source data import/upload paths
-3. process read-only views
-4. process edit/import dialogs
-5. workflow read-only views
-6. workflow bins, epochs, checklists, worklists
-7. workflow assignment and import operations
+1. process read-only views
+2. process edit/import/export dialogs
+3. workflow read-only views
+4. workflow bins, epochs, checklists, worklists
+5. workflow assignment and remaining import/export operations
 
 Special care:
 
-- file upload behavior
+- process/workflow import behavior
 - long-running operation feedback
 - websocket or polling notifications
 - permission-gated buttons
@@ -922,6 +913,170 @@ Acceptance:
 - Long-running operations provide feedback equivalent to AngularJS.
 - Errors are visible and actionable.
 - REST requests match old UI semantics.
+
+Phase 6 initial implementation notes:
+
+- Added a shared project-context service for Angular 20 routes that need the
+  legacy selected project:
+  - reads `lastProjectId` from stored user preferences
+  - reads `lastProjectRole` from preferences, falling back to `projectRoleMap`
+    for the selected project when present
+  - keeps project-role tabs unavailable when no selected project exists, so the
+    existing fallback behavior still protects `/edit`, `/process`, `/workflow`,
+    and `/inversion`
+- Updated project-tab permission handling so application `USER` and
+  `ADMINISTRATOR` users with a selected project can enter project-backed
+  operational routes, matching the server-side `authorizeProject` behavior.
+- Replaced the placeholders for `/process` and `/workflow` with Angular 20
+  route foundations.
+- Added a shared `OperationalApiService`, typed models, and list/PFS helpers
+  for the Phase 6 REST calls.
+- Process route:
+  - uses `POST /process/config/find?projectId=...&query=`
+  - uses `POST /process/execution/find?projectId=...&query=`
+  - uses `GET /process/executing?projectId=...`
+  - shows process configs, recent executions, running executions, and selected
+    config/execution detail
+  - hydrates selected configs and executions through `GET /process/config/{id}`
+    and `GET /process/execution/{id}` so the detail panels can show configured
+    and executed algorithm steps
+  - supports process type filtering with the legacy process-type set:
+    `Insertion`, `Inversion`, `Maintenance`, `Release`, `Report`, and `Autofix`
+  - supports independent paging for configs and executions so large process
+    lists are reachable
+  - supports project-administrator prepare, execute, cancel, restart, step, and
+    unstep actions through the legacy process REST endpoints
+  - supports process execution feedback through `GET /process/executing`,
+    `GET /process/{id}/progress`, `GET /process/algo/{id}/progress`,
+    `GET /process/{id}/log`, and `GET /process/algo/{id}/log`, including
+    automatic running-state refresh, selected execution polling, process log,
+    active step log, and execution-info display
+  - supports project-administrator process config add/edit/delete through
+    `PUT /process/config`, `POST /process/config`, and
+    `DELETE /process/config/{id}?cascade=true`
+  - supports project-administrator process config import/export through
+    multipart `POST /process/config/import?projectId=...` and
+    octet-stream `POST /process/config/export?projectId=...&processId=...`
+  - supports process-config algorithm step add/edit/delete, enable/disable,
+    validation, and order updates through the legacy algorithm config endpoints
+    and ordered process-config updates
+  - supports algorithm-parameter query formatting and `QUERY_ID` /
+    `QUERY_ID_PAIR` testing through
+    `GET /process/testquery?projectId=...&processId=...&queryType=...&queryStyle=...&query=...`
+  - keeps process operation controls hidden for non-administrator project roles,
+    matching the legacy `EditProcessOrStep` permission
+- Workflow route:
+  - uses `GET /workflow/config/all?projectId=...`
+  - uses `GET /workflow/epoch/all?projectId=...`
+  - uses `POST /workflow/checklist/find?projectId=...&query=`
+  - uses `POST /workflow/worklist/find?projectId=...&query=`
+  - uses `GET /workflow/bin/all?projectId=...&type=...`
+  - shows workflow configs, bins for the selected config type, worklists,
+    checklists, epochs, and selected bin detail
+  - shows workflow-bin created date, modified date, run time, cluster type,
+    all, assigned, and unassigned values to match the legacy bin table
+  - supports project-administrator workflow config add/edit/delete through
+    `PUT /workflow/config`, `POST /workflow/config`, and
+    `DELETE /workflow/config/{id}?projectId=...`
+  - supports project-administrator workflow config import/export through
+    multipart `POST /workflow/config/import?projectId=...` and octet-stream
+    `POST /workflow/config/export?projectId=...&workflowId=...`
+  - supports project-administrator workflow bin definition add/edit/delete
+    through `PUT /workflow/definition`, `POST /workflow/definition`, and
+    `DELETE /workflow/definition/{id}?projectId=...`
+  - supports workflow-bin definition query testing through
+    `GET /workflow/query/test?projectId=...&query=...&queryType=...&queryStyle=...`
+  - supports workflow-bin definition query formatting in the add/edit dialog
+  - adds the legacy add-bin "position bin after" control using workflow-bin
+    definition IDs for `positionAfterId`
+  - loads autofix algorithm choices from `GET /process/algo/autofix?projectId=...`
+    and shows a picklist for MID validation workflow configs
+  - supports workflow-bin definition order edits through
+    `POST /workflow/definition/order?projectId=...&workflowConfigId=...`,
+    with drag-and-drop rows, Up/Down fallback controls, exact submitted-ID
+    validation, existing workflow-bin rank updates, and BINS websocket
+    notification
+  - supports project-administrator workflow-bin regeneration:
+    - all bins for the selected config use the legacy clear-then-regenerate
+      sequence: `POST /workflow/bin/clear/all` followed by
+      `POST /workflow/bin/regenerate/all`
+    - single-bin regeneration uses `POST /workflow/bin/{id}/regenerate` for
+      non-mutually-exclusive configs
+    - the Angular UI blocks overlapping regenerations, preserves the selected
+      bin during refreshes, and polls bins every 5 seconds while regeneration
+      is running
+  - supports live workflow updates by wrapping the existing
+    `/umls-server-rest/websocket?{userName}` endpoint in a typed Angular
+    service with reconnect, legacy ping, same-session filtering by
+    `Authorization`, and `BINS`/`CHECKLIST`/`WORKLIST` refresh handling for the
+    current project
+  - supports checklist/worklist detail and log viewing in an inline selected
+    detail panel through `GET /workflow/checklist/{id}`,
+    `GET /workflow/worklist/{id}`, and `GET /workflow/log?projectId=...`
+  - shows worklist author/reviewer assignment state in the inline detail panel
+    and supports current-user assign, unassign, and legacy-state reassign
+    through `GET /workflow/worklist/action?projectId=...&worklistId=...`
+  - supports reviewer/editor/administrator selected-user assignment for
+    available worklists by loading the selected project and assigned project
+    users from `GET /project/{projectId}` and
+    `POST /project/{projectId}/users`, filtering by worklist team and target
+    role, then calling
+    `GET /workflow/worklist/action?projectId=...&worklistId=...&action=ASSIGN`
+    with an optional worklist note
+  - supports project-administrator removal of assigned worklist authors and
+    reviewers from the inline detail panel through
+    `GET /workflow/worklist/action?projectId=...&worklistId=...&action=UNASSIGN`
+  - supports reviewer/editor/administrator reassign controls for an assigned
+    worklist author or reviewer when the legacy workflow handler allows
+    `action=REASSIGN` for the current worklist state
+  - supports reviewer/editor/administrator concept-status initialize/update
+    through `POST /workflow/status/compute?projectId=...`
+  - supports checklist compute through
+    `POST /workflow/checklist/compute?projectId=...&name=...&query=...&queryType=...`,
+    including duplicate-name validation, cluster count, skip count, query
+    formatting, and query testing
+  - supports checklist/worklist stamp and unapprove actions through
+    `POST /workflow/checklist/{id}/stamp?projectId=...&approve=...` and
+    `POST /workflow/worklist/{id}/stamp?projectId=...&approve=...`
+  - supports review-assigned worklist finish actions through
+    `GET /workflow/worklist/action?projectId=...&worklistId=...&action=FINISH`
+  - supports worklist concept report status, generation, download, and removal
+    in the inline worklist detail panel through
+    `POST /workflow/report?projectId=...&query=...`,
+    `GET /workflow/worklist/{id}/report/generate?projectId=...&sendEmail=true`,
+    `GET /workflow/report/{fileName}?projectId=...`, and
+    `DELETE /workflow/report/{fileName}?projectId=...`
+  - supports checklist/worklist notes in the inline detail panel through
+    `PUT /workflow/checklist/{id}/note?projectId=...`,
+    `DELETE /workflow/checklist/note/{noteId}?projectId=...`,
+    `PUT /workflow/worklist/{id}/note?projectId=...`, and
+    `DELETE /workflow/worklist/note/{noteId}?projectId=...`
+  - supports checklist creation from non-`all` workflow-bin cluster rows through
+    `POST /workflow/checklist?projectId=...&workflowBinId=...`
+  - supports worklist creation from non-`all` workflow-bin cluster rows through
+    `PUT /workflow/worklist?projectId=...&workflowBinId=...`, including the
+    legacy cluster count, skip count, sort order, and number-of-worklists
+    controls
+  - supports checklist/worklist export and delete through
+    `GET /workflow/checklist/{id}/export`,
+    `GET /workflow/worklist/{id}/export`, `DELETE /workflow/checklist/{id}`,
+    and `DELETE /workflow/worklist/{id}`
+  - supports workflow epoch add/remove through `PUT /workflow/epoch` and
+    `DELETE /workflow/epoch/{id}?projectId=...`
+  - supports checklist import through multipart
+    `POST /workflow/checklist/import?projectId=...&name=...`, including
+    duplicate-name validation before import
+- Added Jest coverage for the operational API helper behavior.
+- Added Cypress smoke coverage for Process and Workflow route load,
+  representative data rendering, process import/export, process config
+  mutations, algorithm-step mutations, process execution controls, workflow
+  config add/edit/delete/import/export, and workflow bin definition
+  add/edit/delete, checklist creation, worklist creation, and current-user
+  plus selected-user worklist assignment and unassignment, reviewer
+  stamp/finish, worklist concept reports, and checklist/worklist notes.
+- Deferred behavior:
+  - worklist import is intentionally not listed for parity because no legacy
+    worklist import endpoint or UI workflow exists
 
 ### Phase 7: Content And Edit Workflows
 
@@ -997,24 +1152,22 @@ Use this order as the default unless stakeholder testing suggests otherwise:
 
 1. shell/config/auth/navigation
 2. login, landing, license compatibility
-3. metadata or terminology read-only route
-4. admin read-only users/projects
-5. small admin mutations
-6. source read-only and source import
-7. process read-only and process operations
-8. workflow read-only and workflow operations
-9. content read-only detail/search
-10. edit workbench and mutation-heavy content workflows
-11. websocket-heavy and popout-heavy workflows
-12. AngularJS removal
+3. admin read-only users/projects
+4. small admin mutations
+5. process read-only and process operations
+6. workflow read-only and workflow operations
+7. content read-only detail/search
+8. edit workbench and mutation-heavy content workflows
+9. websocket-heavy and popout-heavy workflows
+10. AngularJS removal
 
 Rationale:
 
 - Login is small, but it is foundational and touches session compatibility.
 - Admin appears peripheral, but full admin is not low risk because it mutates
   users, projects, roles, validation, precedence, and reload state.
-- Metadata/terminology read-only routes are better first feature slices because
-  they validate real API/data rendering without write-risk.
+- Sources, Terminology, and Metadata are explicitly out of Angular 20 scope, so
+  early parity work should stay on Admin before moving into Process/Workflow.
 - Content/edit should come late because productivity, data safety, hotkeys,
   websocket behavior, and popouts all matter.
 
@@ -1245,13 +1398,12 @@ Mitigation:
 - Implement auth interceptor and permission service.
 - Add smoke tests for login/logout/config/navigation.
 
-### NM-313C: First Read-Only Route
+### NM-313C: Removed Read-Only Tab Slice
 
-- Migrate metadata or terminology read-only route.
-- Add typed API methods.
-- Add empty/loading/error states.
-- Add Cypress smoke coverage.
-- Record parity notes against AngularJS.
+- Sources, Terminology, and Metadata are not supported Angular 20 tabs.
+- Keep deploy-tab parsing tolerant of those legacy keys.
+- Do not add routes, navigation entries, feature components, or Cypress smoke
+  coverage for those tabs.
 
 ### NM-313D: Admin Read-Only Foundation
 
@@ -1268,9 +1420,8 @@ Mitigation:
 
 ### NM-313F: Operational Tabs
 
-- Migrate source, process, and workflow routes in staged read-only then mutation
-  slices.
-- Establish shared table/modal/file-upload/long-running-operation patterns.
+- Migrate process and workflow routes in staged read-only then mutation slices.
+- Establish shared table/modal/file-import/long-running-operation patterns.
 
 ### NM-313G: Content/Edit Workbench
 

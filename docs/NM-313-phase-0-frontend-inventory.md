@@ -17,6 +17,10 @@ Phase 0 focused on:
 No Angular 20 source was added in this phase. The output is an implementation
 orientation document for the first scaffold and feature-slice tickets.
 
+Scope update, 2026-06-10: Sources, Terminology, and Metadata are no longer
+supported Angular 20 tabs. References to those routes below are retained as
+historical AngularJS inventory, not as active migration targets.
+
 ## Inventory Date
 
 2026-06-08
@@ -659,11 +663,11 @@ Next:
    for `/umls-server-rest/configure/properties`.
 2. Add auth service shell for `/umls-server-rest/security/authenticate/{userName}`.
 3. Replace the placeholder shell route with config-driven navigation.
-4. Enable terminology/metadata in the local test tab set before implementing the
-   first read-only feature.
+4. Superseded on 2026-06-10: do not enable terminology/metadata in the Angular
+   20 local test tab set.
 
 Preferred first feature after shell/auth:
 
-1. `terminology` read-only route
-2. `metadata` read-only route
-3. admin read-only users/projects
+1. admin read-only users/projects
+2. process read-only and operations
+3. workflow read-only and operations

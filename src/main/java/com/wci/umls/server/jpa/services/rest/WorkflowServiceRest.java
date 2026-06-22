@@ -10,6 +10,7 @@
 package com.wci.umls.server.jpa.services.rest;
 
 import java.io.InputStream;
+import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
@@ -138,6 +139,18 @@ public interface WorkflowServiceRest {
    */
   public void updateWorkflowBinDefinition(Long projectId, WorkflowBinDefinitionJpa definition,
     String authToken) throws Exception;
+
+  /**
+   * Reorder workflow bin definitions.
+   *
+   * @param projectId the project id
+   * @param workflowConfigId the workflow config id
+   * @param definitionIds the ordered workflow bin definition ids
+   * @param authToken auth token
+   * @throws Exception the exception
+   */
+  public void reorderWorkflowBinDefinitions(Long projectId, Long workflowConfigId,
+    List<Long> definitionIds, String authToken) throws Exception;
 
   /**
    * Removes the workflow bin definition.

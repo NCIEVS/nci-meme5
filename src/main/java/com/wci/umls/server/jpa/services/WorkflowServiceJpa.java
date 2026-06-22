@@ -293,10 +293,22 @@ public class WorkflowServiceJpa extends HistoryServiceJpa
 
     // TODO: make epoch part of the project -> so we can just say
     // project.getWorkflowEpoch...
-    String maxName = "";
+    return getMaxWorkflowEpochByName(getWorkflowEpochs(project));
+  }
+
+  /**
+   * Returns the workflow epoch with the highest name.
+   *
+   * @param epochs the epochs
+   * @return the max workflow epoch
+   */
+  static WorkflowEpoch getMaxWorkflowEpochByName(final List<WorkflowEpoch> epochs) {
     WorkflowEpoch maxEpoch = null;
-    for (final WorkflowEpoch epoch : getWorkflowEpochs(project)) {
-      if (epoch.getName().compareTo(maxName) > 0) {
+    for (final WorkflowEpoch epoch : epochs) {
+      if (epoch == null || ConfigUtility.isEmpty(epoch.getName())) {
+        continue;
+      }
+      if (maxEpoch == null || epoch.getName().compareTo(maxEpoch.getName()) > 0) {
         maxEpoch = epoch;
       }
     }

@@ -178,7 +178,7 @@ public interface SourceDataServiceRest {
 
   /**
    * Cancel running process from source data id.
-   * 
+   *
    * @param sourceData the source data
    * @param authToken the auth token
    * @throws Exception the exception

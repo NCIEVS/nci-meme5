@@ -13,26 +13,10 @@ export interface EnabledTab {
 }
 
 export const TAB_DEFINITIONS: Record<string, EnabledTab> = {
-  source: {
-    key: 'source',
-    label: 'Sources',
-    link: 'source',
-    role: 'USER'
-  },
   content: {
     key: 'content',
     label: 'Content',
     link: 'content'
-  },
-  terminology: {
-    key: 'terminology',
-    label: 'Terminology',
-    link: 'terminology'
-  },
-  metadata: {
-    key: 'metadata',
-    label: 'Metadata',
-    link: 'metadata'
   },
   workflow: {
     key: 'workflow',

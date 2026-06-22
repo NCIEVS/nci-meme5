@@ -179,6 +179,7 @@ export class AuthService {
       email: user.email,
       id: user.id,
       name: user.name,
+      projectRoleMap: user.projectRoleMap,
       userName: user.userName,
       userPreferences: {
         lastProjectId: preferences.lastProjectId,

@@ -23,6 +23,7 @@ export interface MemeUser {
   id?: number | null;
   name?: string | null;
   password?: string | null;
+  projectRoleMap?: Record<string, string> | null;
   userName: string | null;
   userPreferences: UserPreferences | null;
 }
