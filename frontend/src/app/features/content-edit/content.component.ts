@@ -1,0 +1,4742 @@
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { finalize, map, of, switchMap } from 'rxjs';
+
+import { ProjectContextService } from '../../core/navigation/project-context.service';
+import { NotificationService } from '../../core/notifications/notification.service';
+import { OperationalApiService } from '../operations/operational-api.service';
+import {
+  buildContentPfs,
+  buildContentSearchPfs,
+  contentTypePath
+} from './content-edit-api.helpers';
+import { ContentEditApiService } from './content-edit-api.service';
+import {
+  ContentAtom,
+  ContentAttribute,
+  ContentComponent as ContentComponentDetail,
+  ContentComponentType,
+  ContentDefinition,
+  ContentMapping,
+  ContentNote,
+  ContentRelationship,
+  ContentRouteMode,
+  ContentSearchResult,
+  ContentSemanticType,
+  ContentSemanticTypeMetadata,
+  ContentSubsetMember,
+  ContentTerminology,
+  ContentTree,
+  ContentTreePosition
+} from './content-edit.models';
+import {
+  buildAtomAddReadiness,
+  buildAtomMutationReadiness,
+  buildAttributeAddReadiness,
+  buildAttributeMutationReadiness,
+  buildConceptMutationReadiness,
+  buildMergeConceptReadiness,
+  buildMoveAtomsReadiness,
+  buildRelationshipAddReadiness,
+  buildRelationshipsAddReadiness,
+  buildRelationshipMutationReadiness,
+  buildSemanticTypeAddReadiness,
+  buildSemanticTypeMutationReadiness,
+  buildSplitConceptReadiness,
+  validationBlocksCommit,
+  validationErrors,
+  validationNeedsWarningOverride,
+  validationWarnings
+} from './edit-mutation.helpers';
+import { EditMutationApiService } from './edit-mutation-api.service';
+import {
+  EditAddAtomRequest,
+  EditAddAttributeRequest,
+  EditAddRelationshipRequest,
+  EditAddRelationshipsRequest,
+  EditAddSemanticTypeRequest,
+  EditMergeConceptRequest,
+  EditMoveAtomsRequest,
+  EditMutationReadiness,
+  EditRemoveAtomRequest,
+  EditRemoveAttributeRequest,
+  EditRemoveRelationshipRequest,
+  EditRemoveSemanticTypeRequest,
+  EditSplitConceptRequest,
+  EditUpdateAtomRequest,
+  EditValidationResult
+} from './edit-mutation.models';
+
+type SearchableContentType = 'CODE' | 'CONCEPT' | 'DESCRIPTOR';
+
+interface EditPopoutLink {
+  label: string;
+  route: string;
+  title: string;
+  windowName: string;
+  workbench: string;
+}
+
+@Component({
+  selector: 'meme-content',
+  imports: [FormsModule],
+  templateUrl: './content.component.html',
+  styleUrl: '../operations/operations.component.css'
+})
+export class ContentComponent implements OnInit {
+  private readonly api = inject(ContentEditApiService);
+  private readonly mutationApi = inject(EditMutationApiService);
+  private readonly notifications = inject(NotificationService);
+  private readonly operationsApi = inject(OperationalApiService);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly projectContext = inject(ProjectContextService);
+
+  protected readonly componentTypes: SearchableContentType[] = [
+    'CONCEPT',
+    'CODE',
+    'DESCRIPTOR'
+  ];
+  protected readonly atomStatusOptions = [
+    'NEEDS_REVIEW',
+    'READY_FOR_PUBLICATION'
+  ];
+  protected readonly baseRelationshipAddTypeOptions = [
+    'RO',
+    'RB',
+    'RN',
+    'BRO',
+    'BRB',
+    'BRN',
+    'XR'
+  ];
+  protected readonly baseConceptWorkflowStatusOptions = [
+    'NEW',
+    'EDITING_IN_PROGRESS',
+    'EDITING_DONE',
+    'REVIEW_NEW',
+    'REVIEW_IN_PROGRESS',
+    'REVIEW_DONE',
+    'READY_FOR_PUBLICATION',
+    'PUBLISHED',
+    'NEEDS_REVIEW',
+    'DEMOTION',
+    'EMBRYO'
+  ];
+  protected readonly pageSizeOptions = [10, 25, 50];
+  protected readonly sortOptions = [
+    { label: 'Relevance', value: '' },
+    { label: 'Name', value: 'name' }
+  ];
+  protected readonly editPopoutLinks: EditPopoutLink[] = [
+    {
+      label: 'Semantic Types',
+      route: '/edit/semantic-types',
+      title: 'Semantic Type Editor',
+      windowName: 'styWindow',
+      workbench: 'semantic-types'
+    },
+    {
+      label: 'Code Concepts',
+      route: '/edit/codeConcepts',
+      title: 'Code Concepts Reference',
+      windowName: 'codeConceptsWindow',
+      workbench: 'code-concepts'
+    },
+    {
+      label: 'Atoms',
+      route: '/edit/atoms',
+      title: 'Atoms Editor',
+      windowName: 'atomWindow',
+      workbench: 'atoms'
+    },
+    {
+      label: 'Relationships',
+      route: '/edit/relationships',
+      title: 'Relationships Editor',
+      windowName: 'relationshipWindow',
+      workbench: 'relationships'
+    },
+    {
+      label: 'Contexts',
+      route: '/contexts',
+      title: 'Contexts',
+      windowName: 'contextWindow',
+      workbench: 'contexts'
+    }
+  ];
+
+  protected readonly currentTerminologies = signal<ContentTerminology[]>([]);
+  protected readonly errors = signal<string[]>([]);
+  protected readonly addingComponentNote = signal(false);
+  protected readonly componentNoteError = signal<string | null>(null);
+  protected readonly componentNoteText = signal('');
+  protected readonly loadingComponent = signal(false);
+  protected readonly loadingProjectContext = signal(false);
+  protected readonly loadingReport = signal(false);
+  protected readonly loadingReportFacets = signal(false);
+  protected readonly loadingMergeTargetDetail = signal(false);
+  protected readonly loadingSemanticTypeOptions = signal(false);
+  protected readonly loadingTerminologies = signal(false);
+  protected readonly page = signal(1);
+  protected readonly pageSize = signal(10);
+  protected readonly editActivityId = signal('');
+  protected readonly conceptUpdateError = signal<string | null>(null);
+  protected readonly conceptUpdatePublishable = signal(true);
+  protected readonly conceptUpdateWorkflowStatus = signal('');
+  protected readonly updatingConcept = signal(false);
+  protected readonly approvalActivityId = signal('');
+  protected readonly approvalResult = signal<EditValidationResult | null>(null);
+  protected readonly approvingConcept = signal(false);
+  protected readonly addingAtom = signal(false);
+  protected readonly atomAddActivityId = signal('');
+  protected readonly atomAddCodeId = signal('NOCODE');
+  protected readonly atomAddConceptId = signal('');
+  protected readonly atomAddDescriptorId = signal('');
+  protected readonly atomAddLanguage = signal('ENG');
+  protected readonly atomAddName = signal('');
+  protected readonly atomAddPendingAtom = signal<ContentAtom | null>(null);
+  protected readonly atomAddResult = signal<EditValidationResult | null>(null);
+  protected readonly atomAddStatus = signal('NEEDS_REVIEW');
+  protected readonly atomAddTermgroup = signal('');
+  protected readonly atomRemovalActivityId = signal('');
+  protected readonly atomRemovalPendingAtom = signal<ContentAtom | null>(null);
+  protected readonly atomRemovalResult = signal<EditValidationResult | null>(null);
+  protected readonly atomMoveActivityId = signal('');
+  protected readonly atomMovePendingRequest =
+    signal<EditMoveAtomsRequest | null>(null);
+  protected readonly atomMoveResult = signal<EditValidationResult | null>(null);
+  protected readonly atomMoveTargetConceptId = signal('');
+  protected readonly atomMoveTargetQuery = signal('');
+  protected readonly atomMoveTargetResults = signal<ContentSearchResult[]>([]);
+  protected readonly atomMoveTargetSearchError = signal<string | null>(null);
+  protected readonly movingAtoms = signal(false);
+  protected readonly atomSplitActivityId = signal('');
+  protected readonly atomSplitCopyRelated = signal(false);
+  protected readonly atomSplitPendingRequest =
+    signal<EditSplitConceptRequest | null>(null);
+  protected readonly atomSplitRelationshipType = signal('RO');
+  protected readonly atomSplitResult = signal<EditValidationResult | null>(null);
+  protected readonly splittingConcept = signal(false);
+  protected readonly atomUpdateActivityId = signal('');
+  protected readonly atomUpdatePendingAtom = signal<ContentAtom | null>(null);
+  protected readonly atomUpdateResult = signal<EditValidationResult | null>(null);
+  protected readonly atomUpdateStatus = signal('NEEDS_REVIEW');
+  protected readonly atomEditPendingAtom = signal<ContentAtom | null>(null);
+  protected readonly atomEditPublishable = signal(false);
+  protected readonly atomEditResult = signal<EditValidationResult | null>(null);
+  protected readonly atomEditTarget = signal<ContentAtom | null>(null);
+  protected readonly atomSimpleEditError = signal<string | null>(null);
+  protected readonly atomSimpleEditLanguage = signal('');
+  protected readonly atomSimpleEditName = signal('');
+  protected readonly atomSimpleEditPublishable = signal(false);
+  protected readonly atomSimpleEditSuppressible = signal(false);
+  protected readonly atomSimpleEditTarget = signal<ContentAtom | null>(null);
+  protected readonly atomSimpleEditTermgroup = signal('');
+  protected readonly atomCodeConceptError = signal<string | null>(null);
+  protected readonly atomCodeConceptResults = signal<ContentSearchResult[]>([]);
+  protected readonly atomCodeConceptTotalCount = signal(0);
+  protected readonly atomCodeConceptTarget = signal<ContentAtom | null>(null);
+  protected readonly atomValidationResult = signal<EditValidationResult | null>(null);
+  protected readonly atomValidationTarget = signal<ContentAtom | null>(null);
+  protected readonly loadingAtomCodeConcepts = signal(false);
+  protected readonly addingAttribute = signal(false);
+  protected readonly attributeAddActivityId = signal('');
+  protected readonly attributeAddName = signal('');
+  protected readonly attributeAddPendingAttribute =
+    signal<ContentAttribute | null>(null);
+  protected readonly attributeAddResult = signal<EditValidationResult | null>(null);
+  protected readonly attributeAddValue = signal('');
+  protected readonly attributeRemovalActivityId = signal('');
+  protected readonly attributeRemovalPendingAttribute =
+    signal<ContentAttribute | null>(null);
+  protected readonly attributeRemovalResult =
+    signal<EditValidationResult | null>(null);
+  protected readonly projectContextError = signal<string | null>(null);
+  protected readonly projectDefaultLanguage = signal('ENG');
+  protected readonly projectEditingEnabled = signal<boolean | null>(null);
+  protected readonly projectNewAtomTermgroups = signal<string[]>([]);
+  protected readonly projectValidationChecks = signal<string[]>([]);
+  protected readonly mergeActivityId = signal('');
+  protected readonly mergePendingTarget = signal<ContentSearchResult | null>(null);
+  protected readonly mergeResult = signal<EditValidationResult | null>(null);
+  protected readonly mergeReverseOrder = signal(false);
+  protected readonly mergeTargetConceptId = signal('');
+  protected readonly mergeTargetDetailError = signal<string | null>(null);
+  protected readonly mergeTargetQuery = signal('');
+  protected readonly mergeTargetResults = signal<ContentSearchResult[]>([]);
+  protected readonly mergeTargetSearchError = signal<string | null>(null);
+  protected readonly mergingConcept = signal(false);
+  protected readonly query = signal('');
+  protected readonly results = signal<ContentSearchResult[]>([]);
+  protected readonly reportDeepRelationships = signal<ContentRelationship[]>([]);
+  protected readonly reportError = signal<string | null>(null);
+  protected readonly reportFacetErrors = signal<string[]>([]);
+  protected readonly reportHtml = signal<string | null>(null);
+  protected readonly reportMappings = signal<ContentMapping[]>([]);
+  protected readonly reportTrees = signal<ContentTree[]>([]);
+  protected readonly contextFilter = signal('');
+  protected readonly contextTreePositions = signal<ContentTreePosition[]>([]);
+  protected readonly contextTreePositionCount = signal(0);
+  protected readonly contextTreePositionError = signal<string | null>(null);
+  protected readonly loadingContextTreePositions = signal(false);
+  protected readonly searched = signal(false);
+  protected readonly searching = signal(false);
+  protected readonly searchingAtomMoveTargets = signal(false);
+  protected readonly searchingMergeTargets = signal(false);
+  protected readonly searchType = signal<SearchableContentType>('CONCEPT');
+  protected readonly selectedComponent = signal<ContentComponentDetail | null>(null);
+  protected readonly selectedComponentError = signal<string | null>(null);
+  protected readonly selectedAtomMoveIds = signal<number[]>([]);
+  protected readonly selectedAtomSplitIds = signal<number[]>([]);
+  protected readonly selectedAtomMoveTarget = signal<ContentSearchResult | null>(null);
+  protected readonly selectedMergeTarget = signal<ContentSearchResult | null>(null);
+  protected readonly selectedResult = signal<ContentSearchResult | null>(null);
+  protected readonly removingAttributeId = signal<number | null>(null);
+  protected readonly removingAtomId = signal<number | null>(null);
+  protected readonly removingComponentNoteId = signal<number | null>(null);
+  protected readonly removingRelationshipId = signal<number | null>(null);
+  protected readonly removingSemanticTypeId = signal<number | null>(null);
+  protected readonly updatingAtomId = signal<number | null>(null);
+  protected readonly addingRelationship = signal(false);
+  protected readonly relationshipAddActivityId = signal('');
+  protected readonly relationshipAddPendingRelationships =
+    signal<ContentRelationship[] | null>(null);
+  protected readonly relationshipAddPendingRelationship =
+    signal<ContentRelationship | null>(null);
+  protected readonly relationshipAddResult = signal<EditValidationResult | null>(null);
+  protected readonly relationshipAddTargetConceptId = signal('');
+  protected readonly relationshipAddType = signal('RO');
+  protected readonly relationshipTargetQuery = signal('');
+  protected readonly relationshipTargetResults = signal<ContentSearchResult[]>([]);
+  protected readonly relationshipTargetSearchError = signal<string | null>(null);
+  protected readonly searchingRelationshipTargets = signal(false);
+  protected readonly selectedRelationshipTarget =
+    signal<ContentSearchResult | null>(null);
+  protected readonly selectedRelationshipTargets = signal<ContentSearchResult[]>([]);
+  protected readonly relationshipRemovalActivityId = signal('');
+  protected readonly relationshipRemovalPendingRelationship =
+    signal<ContentRelationship | null>(null);
+  protected readonly relationshipRemovalResult =
+    signal<EditValidationResult | null>(null);
+  protected readonly addingSemanticType = signal(false);
+  protected readonly semanticTypeAddActivityId = signal('');
+  protected readonly semanticTypeAddPendingValue = signal<string | null>(null);
+  protected readonly semanticTypeAddResult = signal<EditValidationResult | null>(null);
+  protected readonly semanticTypeAddValue = signal('');
+  protected readonly semanticTypeOptions = signal<ContentSemanticTypeMetadata[]>([]);
+  protected readonly semanticTypeOptionsError = signal<string | null>(null);
+  protected readonly semanticTypeOptionsKey = signal<string | null>(null);
+  protected readonly semanticTypeRemovalActivityId = signal('');
+  protected readonly semanticTypeRemovalPendingType =
+    signal<ContentSemanticType | null>(null);
+  protected readonly semanticTypeRemovalResult =
+    signal<EditValidationResult | null>(null);
+  protected readonly sortAscending = signal(false);
+  protected readonly sortField = signal('');
+  protected readonly terminology = signal('');
+  protected readonly totalCount = signal(0);
+  protected readonly validatingAtomId = signal<number | null>(null);
+  protected readonly version = signal('');
+  protected readonly conceptValidationCheckId = signal('');
+  protected readonly conceptValidationResult = signal<EditValidationResult | null>(null);
+  protected readonly validatingConcept = signal(false);
+
+  protected readonly projectId = computed(() => this.projectContext.projectId());
+  protected readonly projectRole = computed(
+    () => this.projectContext.projectRole() || 'n/a'
+  );
+  protected readonly routeMode = computed<ContentRouteMode>(() => {
+    const params = this.route.snapshot.paramMap;
+    const queryParams = this.route.snapshot.queryParamMap;
+
+    return {
+      activityId: queryParams.get('activityId'),
+      componentId: queryParams.get('componentId'),
+      mode: params.get('mode') ?? queryParams.get('mode') ?? 'content',
+      projectId: queryParams.get('projectId'),
+      terminology: params.get('terminology') ?? queryParams.get('terminology'),
+      terminologyId:
+        params.get('terminologyId') ??
+        params.get('id') ??
+        queryParams.get('terminologyId') ??
+        queryParams.get('id'),
+      type: params.get('type') ?? queryParams.get('type'),
+      version: params.get('version') ?? queryParams.get('version')
+    };
+  });
+  protected readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.totalCount() / this.pageSize()))
+  );
+  protected readonly isReportMode = computed(() => {
+    const routeMode = this.routeMode();
+
+    return routeMode.mode !== 'content' && Boolean(routeMode.type);
+  });
+  protected readonly selectedLastModifiedEpoch = computed(() =>
+    this.toEpochMillis(this.selectedComponent()?.lastModified)
+  );
+  protected readonly approvalErrors = computed(() =>
+    validationErrors(this.approvalResult())
+  );
+  protected readonly approvalWarnings = computed(() =>
+    validationWarnings(this.approvalResult())
+  );
+  protected readonly approvalNeedsWarningOverride = computed(() =>
+    validationNeedsWarningOverride(this.approvalResult())
+  );
+  protected readonly atomAddErrors = computed(() =>
+    validationErrors(this.atomAddResult())
+  );
+  protected readonly atomAddWarnings = computed(() =>
+    validationWarnings(this.atomAddResult())
+  );
+  protected readonly atomAddComments = computed(() =>
+    Array.from(this.atomAddResult()?.comments ?? [])
+  );
+  protected readonly atomAddNeedsWarningOverride = computed(() =>
+    Boolean(this.atomAddPendingAtom()) &&
+    validationNeedsWarningOverride(this.atomAddResult())
+  );
+  protected readonly atomAddReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildAtomAddReadiness(
+      projectId,
+      component?.id,
+      this.atomAddName(),
+      this.atomAddTermgroup(),
+      this.atomAddLanguage(),
+      this.atomAddCodeId(),
+      this.atomAddConceptId(),
+      this.atomAddDescriptorId(),
+      this.mutationActivityId(this.atomAddActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (!this.projectNewAtomTermgroups().length) {
+      reasons.push('Project atom termgroups are required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly atomRemovalErrors = computed(() =>
+    validationErrors(this.atomRemovalResult())
+  );
+  protected readonly atomRemovalWarnings = computed(() =>
+    validationWarnings(this.atomRemovalResult())
+  );
+  protected readonly atomRemovalComments = computed(() =>
+    Array.from(this.atomRemovalResult()?.comments ?? [])
+  );
+  protected readonly atomRemovalNeedsWarningOverride = computed(() =>
+    Boolean(this.atomRemovalPendingAtom()) &&
+    validationNeedsWarningOverride(this.atomRemovalResult())
+  );
+  protected readonly atomMoveErrors = computed(() =>
+    validationErrors(this.atomMoveResult())
+  );
+  protected readonly atomMoveWarnings = computed(() =>
+    validationWarnings(this.atomMoveResult())
+  );
+  protected readonly atomMoveComments = computed(() =>
+    Array.from(this.atomMoveResult()?.comments ?? [])
+  );
+  protected readonly atomMoveNeedsWarningOverride = computed(() =>
+    Boolean(this.atomMovePendingRequest()) &&
+    validationNeedsWarningOverride(this.atomMoveResult())
+  );
+  protected readonly selectedAtomMoveCount = computed(
+    () => this.selectedAtomMoveIds().length
+  );
+  protected readonly atomSplitErrors = computed(() =>
+    validationErrors(this.atomSplitResult())
+  );
+  protected readonly atomSplitWarnings = computed(() =>
+    validationWarnings(this.atomSplitResult())
+  );
+  protected readonly atomSplitComments = computed(() =>
+    Array.from(this.atomSplitResult()?.comments ?? [])
+  );
+  protected readonly atomSplitNeedsWarningOverride = computed(() =>
+    Boolean(this.atomSplitPendingRequest()) &&
+    validationNeedsWarningOverride(this.atomSplitResult())
+  );
+  protected readonly selectedAtomSplitCount = computed(
+    () => this.selectedAtomSplitIds().length
+  );
+  protected readonly atomMoveReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildMoveAtomsReadiness(
+      projectId,
+      component?.id,
+      this.parsePositiveInteger(this.atomMoveTargetConceptId()),
+      this.selectedAtomMoveIds(),
+      this.mutationActivityId(this.atomMoveActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly atomSplitReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildSplitConceptReadiness(
+      projectId,
+      component?.id,
+      this.selectedAtomSplitIds(),
+      this.atomSplitRelationshipType(),
+      this.mutationActivityId(this.atomSplitActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly atomUpdateErrors = computed(() =>
+    validationErrors(this.atomUpdateResult())
+  );
+  protected readonly atomUpdateWarnings = computed(() =>
+    validationWarnings(this.atomUpdateResult())
+  );
+  protected readonly atomUpdateComments = computed(() =>
+    Array.from(this.atomUpdateResult()?.comments ?? [])
+  );
+  protected readonly atomUpdateNeedsWarningOverride = computed(() =>
+    Boolean(this.atomUpdatePendingAtom()) &&
+    validationNeedsWarningOverride(this.atomUpdateResult())
+  );
+  protected readonly atomEditErrors = computed(() =>
+    validationErrors(this.atomEditResult())
+  );
+  protected readonly atomEditWarnings = computed(() =>
+    validationWarnings(this.atomEditResult())
+  );
+  protected readonly atomEditComments = computed(() =>
+    Array.from(this.atomEditResult()?.comments ?? [])
+  );
+  protected readonly atomEditNeedsWarningOverride = computed(() =>
+    Boolean(this.atomEditPendingAtom()) &&
+    validationNeedsWarningOverride(this.atomEditResult())
+  );
+  protected readonly atomValidationErrors = computed(() =>
+    validationErrors(this.atomValidationResult())
+  );
+  protected readonly atomValidationWarnings = computed(() =>
+    validationWarnings(this.atomValidationResult())
+  );
+  protected readonly atomValidationComments = computed(() =>
+    Array.from(this.atomValidationResult()?.comments ?? [])
+  );
+  protected readonly attributeRemovalErrors = computed(() =>
+    validationErrors(this.attributeRemovalResult())
+  );
+  protected readonly attributeRemovalWarnings = computed(() =>
+    validationWarnings(this.attributeRemovalResult())
+  );
+  protected readonly attributeRemovalComments = computed(() =>
+    Array.from(this.attributeRemovalResult()?.comments ?? [])
+  );
+  protected readonly attributeRemovalNeedsWarningOverride = computed(() =>
+    Boolean(this.attributeRemovalPendingAttribute()) &&
+    validationNeedsWarningOverride(this.attributeRemovalResult())
+  );
+  protected readonly attributeAddErrors = computed(() =>
+    validationErrors(this.attributeAddResult())
+  );
+  protected readonly attributeAddWarnings = computed(() =>
+    validationWarnings(this.attributeAddResult())
+  );
+  protected readonly attributeAddComments = computed(() =>
+    Array.from(this.attributeAddResult()?.comments ?? [])
+  );
+  protected readonly attributeAddNeedsWarningOverride = computed(() =>
+    Boolean(this.attributeAddPendingAttribute()) &&
+    validationNeedsWarningOverride(this.attributeAddResult())
+  );
+  protected readonly semanticTypeRemovalErrors = computed(() =>
+    validationErrors(this.semanticTypeRemovalResult())
+  );
+  protected readonly semanticTypeRemovalWarnings = computed(() =>
+    validationWarnings(this.semanticTypeRemovalResult())
+  );
+  protected readonly semanticTypeRemovalComments = computed(() =>
+    Array.from(this.semanticTypeRemovalResult()?.comments ?? [])
+  );
+  protected readonly semanticTypeRemovalNeedsWarningOverride = computed(() =>
+    Boolean(this.semanticTypeRemovalPendingType()) &&
+    validationNeedsWarningOverride(this.semanticTypeRemovalResult())
+  );
+  protected readonly semanticTypeAddErrors = computed(() =>
+    validationErrors(this.semanticTypeAddResult())
+  );
+  protected readonly semanticTypeAddWarnings = computed(() =>
+    validationWarnings(this.semanticTypeAddResult())
+  );
+  protected readonly semanticTypeAddComments = computed(() =>
+    Array.from(this.semanticTypeAddResult()?.comments ?? [])
+  );
+  protected readonly semanticTypeAddNeedsWarningOverride = computed(() =>
+    Boolean(this.semanticTypeAddPendingValue()) &&
+    validationNeedsWarningOverride(this.semanticTypeAddResult())
+  );
+  protected readonly atomRemovalBaseReasons = computed(() =>
+    this.atomRemovalReadiness(null).reasons.filter(
+      (reason) => reason !== 'Atom id is required.'
+    )
+  );
+  protected readonly atomUpdateBaseReasons = computed(() =>
+    this.atomUpdateReadiness(null).reasons.filter(
+      (reason) => reason !== 'Atom id is required.'
+    )
+  );
+  protected readonly semanticTypeRemovalBaseReasons = computed(() =>
+    this.semanticTypeRemovalReadiness(null).reasons.filter(
+      (reason) => reason !== 'Semantic type id is required.'
+    )
+  );
+  protected readonly attributeRemovalBaseReasons = computed(() =>
+    this.attributeRemovalReadiness(null).reasons.filter(
+      (reason) => reason !== 'Attribute id is required.'
+    )
+  );
+  protected readonly attributeAddReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildAttributeAddReadiness(
+      projectId,
+      component?.id,
+      this.attributeAddName(),
+      this.attributeAddValue(),
+      this.mutationActivityId(this.attributeAddActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly mergeErrors = computed(() =>
+    validationErrors(this.mergeResult())
+  );
+  protected readonly mergeWarnings = computed(() =>
+    validationWarnings(this.mergeResult())
+  );
+  protected readonly mergeComments = computed(() =>
+    Array.from(this.mergeResult()?.comments ?? [])
+  );
+  protected readonly mergeFromLastModifiedEpoch = computed(() =>
+    this.mergeReverseOrder()
+      ? this.toEpochMillis(this.selectedMergeTarget()?.lastModified)
+      : this.selectedLastModifiedEpoch()
+  );
+  protected readonly mergeFromLabel = computed(() =>
+    this.mergeReverseOrder()
+      ? this.selectedMergeTarget()?.terminologyId ||
+        this.selectedMergeTarget()?.id ||
+        this.mergeTargetConceptId() ||
+        'target concept'
+      : this.selectedComponent()?.terminologyId ||
+        this.selectedComponent()?.id ||
+        'selected concept'
+  );
+  protected readonly mergeToLabel = computed(() =>
+    this.mergeReverseOrder()
+      ? this.selectedComponent()?.terminologyId ||
+        this.selectedComponent()?.id ||
+        'selected concept'
+      : this.selectedMergeTarget()?.terminologyId ||
+        this.parsePositiveInteger(this.mergeTargetConceptId()) ||
+        'target concept'
+  );
+  protected readonly mergeNeedsWarningOverride = computed(() =>
+    Boolean(this.mergePendingTarget()) &&
+    validationNeedsWarningOverride(this.mergeResult())
+  );
+  protected readonly mergeReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildMergeConceptReadiness(
+      projectId,
+      component?.id,
+      this.parsePositiveInteger(this.mergeTargetConceptId()),
+      this.mutationActivityId(this.mergeActivityId()),
+      this.mergeFromLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+    if (this.mergeReverseOrder()) {
+      const targetConceptId = this.parsePositiveInteger(this.mergeTargetConceptId());
+      const selectedTarget = this.selectedMergeTarget();
+
+      if (!selectedTarget?.id || selectedTarget.id !== targetConceptId) {
+        reasons.push('Reverse merge order requires selecting the target concept.');
+      }
+      if (this.loadingMergeTargetDetail()) {
+        reasons.push('Target concept detail is loading.');
+      }
+      if (this.mergeTargetDetailError()) {
+        reasons.push('Target concept detail could not be loaded.');
+      }
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly relationshipAddErrors = computed(() =>
+    validationErrors(this.relationshipAddResult())
+  );
+  protected readonly relationshipAddWarnings = computed(() =>
+    validationWarnings(this.relationshipAddResult())
+  );
+  protected readonly relationshipAddComments = computed(() =>
+    Array.from(this.relationshipAddResult()?.comments ?? [])
+  );
+  protected readonly relationshipAddNeedsWarningOverride = computed(() =>
+    Boolean(this.relationshipAddPendingRelationship()) &&
+    validationNeedsWarningOverride(this.relationshipAddResult())
+  );
+  protected readonly relationshipBatchAddNeedsWarningOverride = computed(() =>
+    Boolean(this.relationshipAddPendingRelationships()) &&
+    validationNeedsWarningOverride(this.relationshipAddResult())
+  );
+  protected readonly relationshipBatchTargetCount = computed(
+    () => this.selectedRelationshipTargets().length
+  );
+  protected readonly relationshipAddReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildRelationshipAddReadiness(
+      projectId,
+      component?.id,
+      this.parsePositiveInteger(this.relationshipAddTargetConceptId()),
+      this.relationshipAddType(),
+      this.mutationActivityId(this.relationshipAddActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly relationshipBatchAddReadiness =
+    computed<EditMutationReadiness>(() => {
+      const component = this.selectedComponent();
+      const projectId = this.projectId();
+      const projectEditingEnabled = this.projectEditingEnabled();
+      const reasons = buildRelationshipsAddReadiness(
+        projectId,
+        component?.id,
+        this.selectedRelationshipTargets().map((target) => target.id),
+        this.relationshipAddType(),
+        this.mutationActivityId(this.relationshipAddActivityId()),
+        this.selectedLastModifiedEpoch(),
+        this.projectRole(),
+        projectEditingEnabled !== false
+      ).reasons;
+
+      if (!component || !this.isConceptComponent(component)) {
+        reasons.push('Concept detail is required.');
+      }
+      if (projectId && this.loadingProjectContext()) {
+        reasons.push('Project editing state is loading.');
+      }
+      if (projectId && this.projectContextError()) {
+        reasons.push('Project editing state could not be loaded.');
+      }
+      if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+        reasons.push('Project editing state is required.');
+      }
+
+      return {
+        canExecute: reasons.length === 0,
+        reasons: Array.from(new Set(reasons))
+      };
+    });
+  protected readonly relationshipRemovalErrors = computed(() =>
+    validationErrors(this.relationshipRemovalResult())
+  );
+  protected readonly relationshipRemovalWarnings = computed(() =>
+    validationWarnings(this.relationshipRemovalResult())
+  );
+  protected readonly relationshipRemovalComments = computed(() =>
+    Array.from(this.relationshipRemovalResult()?.comments ?? [])
+  );
+  protected readonly relationshipRemovalNeedsWarningOverride = computed(() =>
+    Boolean(this.relationshipRemovalPendingRelationship()) &&
+    validationNeedsWarningOverride(this.relationshipRemovalResult())
+  );
+  protected readonly relationshipRemovalBaseReasons = computed(() =>
+    this.relationshipRemovalReadiness(null).reasons.filter(
+      (reason) => reason !== 'Relationship id is required.'
+    )
+  );
+  protected readonly semanticTypeAddReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildSemanticTypeAddReadiness(
+      projectId,
+      component?.id,
+      this.semanticTypeAddValue(),
+      this.mutationActivityId(this.semanticTypeAddActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+    if (this.loadingSemanticTypeOptions()) {
+      reasons.push('Semantic type options are loading.');
+    }
+    if (this.semanticTypeOptionsError()) {
+      reasons.push('Semantic type options could not be loaded.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly conceptValidationErrors = computed(() =>
+    validationErrors(this.conceptValidationResult())
+  );
+  protected readonly conceptValidationWarnings = computed(() =>
+    validationWarnings(this.conceptValidationResult())
+  );
+  protected readonly conceptValidationComments = computed(() =>
+    Array.from(this.conceptValidationResult()?.comments ?? [])
+  );
+  protected readonly canValidateConcept = computed(() => {
+    const component = this.selectedComponent();
+
+    return Boolean(
+      this.projectId() &&
+        component?.id &&
+        this.toSearchableContentType(
+          component.type || this.selectedResult()?.type || this.searchType()
+        ) === 'CONCEPT'
+    );
+  });
+  protected readonly conceptUpdateHasChanges = computed(() => {
+    const component = this.selectedComponent();
+
+    if (!component || !this.isConceptComponent(component)) {
+      return false;
+    }
+
+    return (
+      this.conceptUpdateWorkflowStatus().trim() !== (component.workflowStatus || '') ||
+      this.conceptUpdatePublishable() !== (component.publishable !== false)
+    );
+  });
+  protected readonly conceptUpdateReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+
+    if (
+      this.toSearchableContentType(
+        component?.type || this.selectedResult()?.type || this.searchType()
+      ) !== 'CONCEPT'
+    ) {
+      return {
+        canExecute: false,
+        reasons: ['Concept update only applies to concept detail.']
+      };
+    }
+
+    const reasons = buildConceptMutationReadiness(
+      projectId,
+      component?.id,
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+    if (!this.conceptUpdateWorkflowStatus().trim()) {
+      reasons.push('Concept workflow status is required.');
+    }
+    if (!this.conceptUpdateHasChanges()) {
+      reasons.push('At least one concept property must change.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly componentNoteAddReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const reasons = [];
+
+    if (!component?.id) {
+      reasons.push('Persisted component detail is required.');
+    }
+    if (!this.componentNoteText().trim()) {
+      reasons.push('Note text is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons
+    };
+  });
+  protected readonly conceptApprovalReadiness = computed<EditMutationReadiness>(() => {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+
+    if (
+      this.toSearchableContentType(
+        component?.type || this.selectedResult()?.type || this.searchType()
+      ) !== 'CONCEPT'
+    ) {
+      return {
+        canExecute: false,
+        reasons: ['Concept approval only applies to concept detail.']
+      };
+    }
+
+    const readiness = buildConceptMutationReadiness(
+      projectId,
+      component?.id,
+      this.projectRole(),
+      projectEditingEnabled !== false
+    );
+    const reasons = [...readiness.reasons];
+
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+    if (!this.selectedLastModifiedEpoch()) {
+      reasons.push('Concept lastModified timestamp is required.');
+    }
+    if (!this.mutationActivityId(this.approvalActivityId())) {
+      reasons.push('Activity id is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+
+  ngOnInit(): void {
+    this.applyRouteContext();
+    this.loadProjectContext();
+    this.loadRouteComponent();
+    this.loadCurrentTerminologies();
+  }
+
+  protected search(): void {
+    const validationErrors = this.validateSearch();
+
+    this.errors.set(validationErrors);
+    if (validationErrors.length) {
+      return;
+    }
+
+    const pfs = buildContentSearchPfs(
+      this.page(),
+      this.pageSize(),
+      this.sortField(),
+      this.sortAscending(),
+      this.searchType()
+    );
+
+    this.searching.set(true);
+    this.api
+      .findComponents(
+        this.searchType(),
+        this.terminology().trim(),
+        this.version().trim(),
+        this.query().trim(),
+        pfs
+      )
+      .pipe(finalize(() => this.searching.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.results.set(response.items);
+          this.totalCount.set(response.totalCount);
+          this.searched.set(true);
+          this.selectResult(response.items[0] ?? null);
+        },
+        error: () => {
+          this.notifications.error('Content search could not be loaded.');
+        }
+      });
+  }
+
+  protected clearSearch(): void {
+    this.query.set('');
+    this.results.set([]);
+    this.selectedComponent.set(null);
+    this.selectedComponentError.set(null);
+    this.selectedResult.set(null);
+    this.totalCount.set(0);
+    this.searched.set(false);
+    this.errors.set([]);
+  }
+
+  protected nextPage(): void {
+    if (this.page() >= this.totalPages()) {
+      return;
+    }
+
+    this.page.set(this.page() + 1);
+    this.search();
+  }
+
+  protected previousPage(): void {
+    if (this.page() <= 1) {
+      return;
+    }
+
+    this.page.set(this.page() - 1);
+    this.search();
+  }
+
+  protected selectResult(result: ContentSearchResult | null): void {
+    this.selectedResult.set(result);
+    this.loadSelectedComponent(result);
+  }
+
+  protected setPageSize(value: string): void {
+    this.pageSize.set(Number(value));
+    this.page.set(1);
+    if (this.searched()) {
+      this.search();
+    }
+  }
+
+  protected setQuery(value: string): void {
+    this.query.set(value);
+    this.page.set(1);
+  }
+
+  protected setSearchType(value: string): void {
+    this.searchType.set(this.toSearchableContentType(value) ?? 'CONCEPT');
+    this.page.set(1);
+  }
+
+  protected setSortField(value: string): void {
+    this.sortField.set(value);
+    this.page.set(1);
+    if (this.searched()) {
+      this.search();
+    }
+  }
+
+  protected setSortAscending(value: boolean): void {
+    this.sortAscending.set(value);
+    this.page.set(1);
+    if (this.searched()) {
+      this.search();
+    }
+  }
+
+  protected setEditActivityId(value: string): void {
+    this.editActivityId.set(value);
+  }
+
+  protected setConceptUpdatePublishable(value: boolean): void {
+    this.conceptUpdatePublishable.set(value);
+    this.conceptUpdateError.set(null);
+  }
+
+  protected setConceptUpdateWorkflowStatus(value: string): void {
+    this.conceptUpdateWorkflowStatus.set(value);
+    this.conceptUpdateError.set(null);
+  }
+
+  protected activityIdValue(activityId: string): string {
+    return activityId || this.editActivityId();
+  }
+
+  protected setApprovalActivityId(value: string): void {
+    this.approvalActivityId.set(value);
+  }
+
+  protected setAtomAddActivityId(value: string): void {
+    this.atomAddActivityId.set(value);
+  }
+
+  protected setAtomAddCodeId(value: string): void {
+    this.atomAddCodeId.set(value);
+  }
+
+  protected setAtomAddConceptId(value: string): void {
+    this.atomAddConceptId.set(value);
+  }
+
+  protected setAtomAddDescriptorId(value: string): void {
+    this.atomAddDescriptorId.set(value);
+  }
+
+  protected setAtomAddLanguage(value: string): void {
+    this.atomAddLanguage.set(value);
+  }
+
+  protected setAtomAddName(value: string): void {
+    this.atomAddName.set(value);
+  }
+
+  protected setAtomAddStatus(value: string): void {
+    this.atomAddStatus.set(value);
+  }
+
+  protected setAtomAddTermgroup(value: string): void {
+    this.atomAddTermgroup.set(value);
+  }
+
+  protected setAtomRemovalActivityId(value: string): void {
+    this.atomRemovalActivityId.set(value);
+  }
+
+  protected setAtomMoveActivityId(value: string): void {
+    this.atomMoveActivityId.set(value);
+    this.atomMovePendingRequest.set(null);
+  }
+
+  protected setAtomMoveTargetConceptId(value: string | number): void {
+    const stringValue = String(value ?? '');
+    this.atomMoveTargetConceptId.set(stringValue);
+    this.atomMovePendingRequest.set(null);
+
+    const selectedTarget = this.selectedAtomMoveTarget();
+    if (
+      selectedTarget?.id &&
+      selectedTarget.id !== this.parsePositiveInteger(stringValue)
+    ) {
+      this.selectedAtomMoveTarget.set(null);
+    }
+  }
+
+  protected setAtomMoveTargetQuery(value: string): void {
+    this.atomMoveTargetQuery.set(value);
+  }
+
+  protected setAtomSplitActivityId(value: string): void {
+    this.atomSplitActivityId.set(value);
+    this.atomSplitPendingRequest.set(null);
+  }
+
+  protected setAtomSplitCopyRelated(value: boolean): void {
+    this.atomSplitCopyRelated.set(value);
+    this.atomSplitPendingRequest.set(null);
+  }
+
+  protected setAtomSplitRelationshipType(value: string): void {
+    this.atomSplitRelationshipType.set(value);
+    this.atomSplitPendingRequest.set(null);
+  }
+
+  protected setAtomUpdateActivityId(value: string): void {
+    this.atomUpdateActivityId.set(value);
+  }
+
+  protected setAtomUpdateStatus(value: string): void {
+    this.atomUpdateStatus.set(value);
+  }
+
+  protected setAtomEditPublishable(value: boolean): void {
+    this.atomEditPublishable.set(value);
+    this.atomEditPendingAtom.set(null);
+  }
+
+  protected setAtomSimpleEditLanguage(value: string): void {
+    this.atomSimpleEditLanguage.set(value);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected setAtomSimpleEditName(value: string): void {
+    this.atomSimpleEditName.set(value);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected setAtomSimpleEditPublishable(value: boolean): void {
+    this.atomSimpleEditPublishable.set(value);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected setAtomSimpleEditSuppressible(value: boolean): void {
+    this.atomSimpleEditSuppressible.set(value);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected setAtomSimpleEditTermgroup(value: string): void {
+    this.atomSimpleEditTermgroup.set(value);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected setAttributeAddActivityId(value: string): void {
+    this.attributeAddActivityId.set(value);
+  }
+
+  protected setAttributeAddName(value: string): void {
+    this.attributeAddName.set(value);
+  }
+
+  protected setAttributeAddValue(value: string): void {
+    this.attributeAddValue.set(value);
+  }
+
+  protected setAttributeRemovalActivityId(value: string): void {
+    this.attributeRemovalActivityId.set(value);
+  }
+
+  protected setMergeActivityId(value: string): void {
+    this.mergeActivityId.set(value);
+  }
+
+  protected setMergeReverseOrder(value: boolean): void {
+    this.mergeReverseOrder.set(value);
+    this.mergePendingTarget.set(null);
+  }
+
+  protected setMergeTargetConceptId(value: string | number): void {
+    const stringValue = String(value ?? '');
+    this.mergeTargetConceptId.set(stringValue);
+    this.mergePendingTarget.set(null);
+
+    const selectedTarget = this.selectedMergeTarget();
+    if (selectedTarget?.id && selectedTarget.id !== this.parsePositiveInteger(stringValue)) {
+      this.selectedMergeTarget.set(null);
+      this.mergeTargetDetailError.set(null);
+    }
+  }
+
+  protected setMergeTargetQuery(value: string): void {
+    this.mergeTargetQuery.set(value);
+  }
+
+  protected setRelationshipAddActivityId(value: string): void {
+    this.relationshipAddActivityId.set(value);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddPendingRelationships.set(null);
+  }
+
+  protected setRelationshipAddTargetConceptId(value: string | number): void {
+    const stringValue = String(value ?? '');
+    this.relationshipAddTargetConceptId.set(stringValue);
+    this.relationshipAddPendingRelationship.set(null);
+
+    const selectedTarget = this.selectedRelationshipTarget();
+    if (
+      selectedTarget?.id &&
+      selectedTarget.id !== this.parsePositiveInteger(stringValue)
+    ) {
+      this.selectedRelationshipTarget.set(null);
+    }
+  }
+
+  protected setRelationshipAddType(value: string): void {
+    this.relationshipAddType.set(value);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddPendingRelationships.set(null);
+  }
+
+  protected setRelationshipTargetQuery(value: string): void {
+    this.relationshipTargetQuery.set(value);
+  }
+
+  protected setRelationshipRemovalActivityId(value: string): void {
+    this.relationshipRemovalActivityId.set(value);
+  }
+
+  protected setSemanticTypeAddActivityId(value: string): void {
+    this.semanticTypeAddActivityId.set(value);
+  }
+
+  protected setSemanticTypeAddValue(value: string): void {
+    this.semanticTypeAddValue.set(value);
+  }
+
+  protected setSemanticTypeRemovalActivityId(value: string): void {
+    this.semanticTypeRemovalActivityId.set(value);
+  }
+
+  protected setConceptValidationCheckId(value: string): void {
+    this.conceptValidationCheckId.set(value);
+  }
+
+  protected setComponentNoteText(value: string): void {
+    this.componentNoteText.set(value);
+  }
+
+  protected addNoteToSelectedComponent(): void {
+    const component = this.selectedComponent();
+    const componentType = this.selectedComponentType();
+    const noteText = this.componentNoteText().trim();
+
+    if (!component?.id || !componentType || !noteText) {
+      return;
+    }
+
+    this.addingComponentNote.set(true);
+    this.componentNoteError.set(null);
+    this.api
+      .addComponentNote(componentType, component.id, noteText)
+      .pipe(finalize(() => this.addingComponentNote.set(false)))
+      .subscribe({
+        next: () => {
+          this.componentNoteText.set('');
+          this.notifications.success('Note added.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.componentNoteError.set('Note could not be added.');
+          this.notifications.error('Note could not be added.');
+        }
+      });
+  }
+
+  protected canRemoveComponentNote(note: ContentNote): boolean {
+    return Boolean(
+      this.selectedComponent()?.id &&
+        this.selectedComponentType() &&
+        note.id &&
+        this.removingComponentNoteId() === null
+    );
+  }
+
+  protected removeNoteFromSelectedComponent(note: ContentNote): void {
+    const componentType = this.selectedComponentType();
+
+    if (!componentType || !note.id || !this.canRemoveComponentNote(note)) {
+      return;
+    }
+
+    if (!window.confirm('Remove this note?')) {
+      return;
+    }
+
+    this.removingComponentNoteId.set(note.id);
+    this.componentNoteError.set(null);
+    this.api
+      .removeComponentNote(componentType, note.id)
+      .pipe(finalize(() => this.removingComponentNoteId.set(null)))
+      .subscribe({
+        next: () => {
+          this.notifications.success('Note removed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.componentNoteError.set('Note could not be removed.');
+          this.notifications.error('Note could not be removed.');
+        }
+      });
+  }
+
+  protected validateSelectedConcept(): void {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+
+    if (!projectId || !component || !this.canValidateConcept()) {
+      return;
+    }
+
+    this.validatingConcept.set(true);
+    this.conceptValidationResult.set(null);
+    this.api
+      .validateConcept(
+        projectId,
+        component,
+        this.conceptValidationCheckId().trim() || null
+      )
+      .pipe(finalize(() => this.validatingConcept.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.conceptValidationResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.notifications.error('Concept validation found errors.');
+            return;
+          }
+          this.notifications.success('Concept validation completed.');
+        },
+        error: () => {
+          this.notifications.error('Concept validation could not be completed.');
+        }
+      });
+  }
+
+  protected updateSelectedConcept(): void {
+    const projectId = this.projectId();
+    const concept = this.buildUpdateConceptPayload();
+    const conceptLabel =
+      this.selectedComponent()?.terminologyId || this.selectedComponent()?.id;
+
+    if (!projectId || !concept || !this.conceptUpdateReadiness().canExecute) {
+      return;
+    }
+
+    if (!window.confirm(`Update concept "${conceptLabel}"?`)) {
+      return;
+    }
+
+    this.updatingConcept.set(true);
+    this.conceptUpdateError.set(null);
+    this.mutationApi
+      .updateConcept(projectId, concept)
+      .pipe(finalize(() => this.updatingConcept.set(false)))
+      .subscribe({
+        next: () => {
+          this.notifications.success('Concept updated.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.conceptUpdateError.set('Concept could not be updated.');
+          this.notifications.error('Concept could not be updated.');
+        }
+      });
+  }
+
+  protected approveSelectedConcept(overrideWarnings = false): void {
+    const request = this.buildApproveConceptRequest(overrideWarnings);
+
+    if (!request || !this.conceptApprovalReadiness().canExecute) {
+      return;
+    }
+
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and approve'
+      : 'Approve';
+    const conceptLabel =
+      this.selectedComponent()?.terminologyId || this.selectedComponent()?.id;
+
+    if (!window.confirm(`${actionLabel} concept "${conceptLabel}"?`)) {
+      return;
+    }
+
+    this.approvingConcept.set(true);
+    this.approvalResult.set(null);
+    this.mutationApi
+      .approveConcept(request)
+      .pipe(finalize(() => this.approvingConcept.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.approvalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.notifications.error('Concept approval failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.notifications.error(
+              'Concept approval returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.notifications.success('Concept approved.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Concept approval could not be completed.');
+        }
+      });
+  }
+
+  protected canValidateAtom(atom: ContentAtom): boolean {
+    return Boolean(this.projectId() && atom.id && this.validatingAtomId() === null);
+  }
+
+  protected canFindAtomCodeConcepts(atom: ContentAtom): boolean {
+    return Boolean(atom.codeId?.trim() && !this.loadingAtomCodeConcepts());
+  }
+
+  protected findAtomCodeConcepts(atom: ContentAtom): void {
+    const codeId = atom.codeId?.trim();
+    const component = this.selectedComponent();
+    const terminology = component?.terminology || this.terminology();
+    const version = component?.version || this.versionForTerminology(terminology);
+
+    if (!codeId || !terminology || !version || !this.canFindAtomCodeConcepts(atom)) {
+      return;
+    }
+
+    this.atomCodeConceptTarget.set(atom);
+    this.atomCodeConceptResults.set([]);
+    this.atomCodeConceptTotalCount.set(0);
+    this.atomCodeConceptError.set(null);
+    this.loadingAtomCodeConcepts.set(true);
+    this.api
+      .findComponents(
+        'CONCEPT',
+        terminology,
+        version,
+        `atoms.codeId:${codeId}`,
+        buildContentSearchPfs(1, 25, null, false, 'CONCEPT')
+      )
+      .pipe(finalize(() => this.loadingAtomCodeConcepts.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.atomCodeConceptResults.set(this.sortResultsById(response.items));
+          this.atomCodeConceptTotalCount.set(response.totalCount);
+        },
+        error: () => {
+          this.atomCodeConceptError.set('Code concepts could not be loaded.');
+          this.notifications.error('Code concepts could not be loaded.');
+        }
+      });
+  }
+
+  protected openAtomCodeConcept(result: ContentSearchResult): void {
+    this.selectResult(result);
+  }
+
+  protected editPopoutUrl(
+    link: EditPopoutLink,
+    component: ContentComponentDetail
+  ): string {
+    const url = new URL(link.route.replace(/^\//, ''), document.baseURI);
+    const queryParams = this.buildEditPopoutQueryParams(component);
+
+    Object.entries(queryParams).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+
+    return url.toString();
+  }
+
+  protected openEditPopout(
+    link: EditPopoutLink,
+    component: ContentComponentDetail
+  ): void {
+    const openedWindow = window.open(
+      this.editPopoutUrl(link, component),
+      link.windowName,
+      'width=600,height=600,scrollbars=yes'
+    );
+
+    if (!openedWindow) {
+      return;
+    }
+
+    try {
+      openedWindow.document.title = link.title;
+    } catch {
+      // Browser popout policies can make the opened document unavailable.
+    }
+    openedWindow.focus();
+  }
+
+  protected setContextFilter(value: string): void {
+    this.contextFilter.set(value);
+  }
+
+  protected loadContextTreePositions(): void {
+    const component = this.selectedComponent();
+    const terminology = component?.terminology || this.terminology();
+    const version = component?.version || this.version();
+    const terminologyId = component?.terminologyId;
+
+    if (
+      !component ||
+      !this.isConceptComponent(component) ||
+      !terminology ||
+      !version ||
+      !terminologyId
+    ) {
+      this.contextTreePositionError.set(
+        'Context browser requires a selected concept with terminology identifiers.'
+      );
+      return;
+    }
+
+    this.contextTreePositionError.set(null);
+    this.contextTreePositions.set([]);
+    this.contextTreePositionCount.set(0);
+    this.loadingContextTreePositions.set(true);
+    this.api
+      .findDeepTreePositions(
+        terminology,
+        version,
+        terminologyId,
+        this.contextFilter().trim(),
+        buildContentPfs(1, 25, 'terminology', false, '')
+      )
+      .pipe(finalize(() => this.loadingContextTreePositions.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.contextTreePositions.set(response.items);
+          this.contextTreePositionCount.set(response.totalCount);
+        },
+        error: () => {
+          this.contextTreePositionError.set('Contexts could not be loaded.');
+          this.notifications.error('Contexts could not be loaded.');
+        }
+      });
+  }
+
+  protected contextTreePositionDisplay(treePosition: ContentTreePosition): string {
+    return (
+      [treePosition.nodeTerminologyId, treePosition.nodeName].filter(Boolean).join(' ') ||
+      treePosition.terminology ||
+      'n/a'
+    );
+  }
+
+  protected contextTreePositionType(treePosition: ContentTreePosition): string {
+    return String(treePosition.type || 'CONCEPT').toUpperCase();
+  }
+
+  protected canOpenContextTreePosition(
+    treePosition: ContentTreePosition
+  ): boolean {
+    return Boolean(
+      this.toSearchableContentType(this.contextTreePositionType(treePosition)) &&
+        (treePosition.nodeTerminologyId || treePosition.nodeId)
+    );
+  }
+
+  protected openContextTreePosition(treePosition: ContentTreePosition): void {
+    const type = this.toSearchableContentType(this.contextTreePositionType(treePosition));
+
+    if (!type || !this.canOpenContextTreePosition(treePosition)) {
+      return;
+    }
+
+    this.selectResult({
+      id: treePosition.nodeId ?? null,
+      name: treePosition.nodeName ?? null,
+      terminology: treePosition.nodeTerminology || treePosition.terminology,
+      terminologyId: treePosition.nodeTerminologyId ?? null,
+      type,
+      version: treePosition.nodeVersion || treePosition.version
+    });
+  }
+
+  protected isAtomSelectedForMove(atom: ContentAtom): boolean {
+    return Boolean(atom.id && this.selectedAtomMoveIds().includes(atom.id));
+  }
+
+  protected setAtomSelectedForMove(atom: ContentAtom, selected: boolean): void {
+    const atomId = atom.id;
+    if (!atomId) {
+      return;
+    }
+
+    this.selectedAtomMoveIds.update((atomIds) => {
+      const existing = new Set(atomIds);
+      if (selected) {
+        existing.add(atomId);
+      } else {
+        existing.delete(atomId);
+      }
+
+      return Array.from(existing).sort((left, right) => left - right);
+    });
+    this.atomMovePendingRequest.set(null);
+  }
+
+  protected isAtomSelectedForSplit(atom: ContentAtom): boolean {
+    return Boolean(atom.id && this.selectedAtomSplitIds().includes(atom.id));
+  }
+
+  protected setAtomSelectedForSplit(atom: ContentAtom, selected: boolean): void {
+    const atomId = atom.id;
+    if (!atomId) {
+      return;
+    }
+
+    this.selectedAtomSplitIds.update((atomIds) => {
+      const existing = new Set(atomIds);
+      if (selected) {
+        existing.add(atomId);
+      } else {
+        existing.delete(atomId);
+      }
+
+      return Array.from(existing).sort((left, right) => left - right);
+    });
+    this.atomSplitPendingRequest.set(null);
+  }
+
+  protected validateAtom(atom: ContentAtom): void {
+    const projectId = this.projectId();
+
+    if (!projectId || !this.canValidateAtom(atom)) {
+      return;
+    }
+
+    this.validatingAtomId.set(atom.id ?? null);
+    this.atomValidationTarget.set(atom);
+    this.atomValidationResult.set(null);
+    this.api
+      .validateAtom(projectId, atom)
+      .pipe(finalize(() => this.validatingAtomId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.atomValidationResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.notifications.error('Atom validation found errors.');
+            return;
+          }
+          this.notifications.success('Atom validation completed.');
+        },
+        error: () => {
+          this.notifications.error('Atom validation could not be completed.');
+        }
+      });
+  }
+
+  protected addAtomToConcept(overrideWarnings = false): void {
+    const request = this.buildAddAtomRequest(overrideWarnings);
+
+    if (!request || !this.atomAddReadiness().canExecute) {
+      return;
+    }
+
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and add'
+      : 'Add';
+
+    if (!window.confirm(`${actionLabel} atom "${request.atom.name}"?`)) {
+      return;
+    }
+
+    this.addingAtom.set(true);
+    this.atomAddResult.set(null);
+    this.mutationApi
+      .addAtomToConcept(request)
+      .pipe(finalize(() => this.addingAtom.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.atomAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomAddPendingAtom.set(null);
+            this.notifications.error('Atom add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomAddPendingAtom.set(request.atom);
+            this.notifications.error(
+              'Atom add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.atomAddPendingAtom.set(null);
+          this.notifications.success('Atom added.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Atom could not be added.');
+        }
+      });
+  }
+
+  protected atomRemovalReadiness(atom: ContentAtom | null): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildAtomMutationReadiness(
+      projectId,
+      component?.id,
+      atom?.id,
+      this.mutationActivityId(this.atomRemovalActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected canRemoveAtom(atom: ContentAtom): boolean {
+    return (
+      this.removingAtomId() === null &&
+      this.atomRemovalReadiness(atom).canExecute
+    );
+  }
+
+  protected atomUpdateReadiness(atom: ContentAtom | null): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildAtomMutationReadiness(
+      projectId,
+      component?.id,
+      atom?.id,
+      this.mutationActivityId(this.atomUpdateActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+    if (!this.atomUpdateStatus().trim()) {
+      reasons.push('Atom status is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected canUpdateAtomStatus(atom: ContentAtom): boolean {
+    return (
+      this.updatingAtomId() === null &&
+      this.atomUpdateReadiness(atom).canExecute
+    );
+  }
+
+  protected atomSimpleEditReadiness(
+    atom: ContentAtom | null
+  ): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildConceptMutationReadiness(
+      projectId,
+      component?.id,
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (!atom?.id) {
+      reasons.push('Atom id is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+    if (!this.atomSimpleEditName().trim()) {
+      reasons.push('Atom name is required.');
+    }
+    if (!this.atomSimpleEditLanguage().trim()) {
+      reasons.push('Atom language is required.');
+    }
+    if (!this.parseTermgroup(this.atomSimpleEditTermgroup())) {
+      reasons.push('Atom termgroup is required.');
+    }
+    if (atom && !this.atomSimpleEditHasChanges(atom)) {
+      reasons.push('At least one atom property must change.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected openSimpleAtomEdit(atom: ContentAtom): void {
+    this.atomSimpleEditTarget.set(atom);
+    this.atomSimpleEditName.set(atom.name || '');
+    this.atomSimpleEditTermgroup.set(this.atomTermgroup(atom));
+    this.atomSimpleEditLanguage.set(atom.language || this.projectDefaultLanguage());
+    this.atomSimpleEditPublishable.set(atom.publishable !== false);
+    this.atomSimpleEditSuppressible.set(atom.suppressible === true);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected closeSimpleAtomEdit(): void {
+    if (this.updatingAtomId() !== null) {
+      return;
+    }
+
+    this.atomSimpleEditTarget.set(null);
+    this.atomSimpleEditError.set(null);
+  }
+
+  protected simpleAtomTermgroupOptions(atom: ContentAtom): string[] {
+    return Array.from(
+      new Set(
+        [this.atomTermgroup(atom), ...this.projectNewAtomTermgroups()]
+          .map((termgroup) => termgroup.trim())
+          .filter(Boolean)
+      )
+    );
+  }
+
+  protected canSimpleEditAtom(atom: ContentAtom): boolean {
+    return Boolean(atom.id && this.updatingAtomId() === null);
+  }
+
+  protected updateSimpleAtom(): void {
+    const targetAtom = this.atomSimpleEditTarget();
+    const requestAtom = targetAtom ? this.buildSimpleAtomPayload(targetAtom) : null;
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+
+    if (
+      !targetAtom ||
+      !requestAtom ||
+      !projectId ||
+      !component?.id ||
+      !this.atomSimpleEditReadiness(targetAtom).canExecute
+    ) {
+      return;
+    }
+
+    if (!window.confirm(`Save simple atom "${this.atomDisplay(targetAtom)}"?`)) {
+      return;
+    }
+
+    this.updatingAtomId.set(targetAtom.id ?? null);
+    this.atomSimpleEditError.set(null);
+    this.mutationApi
+      .updateAtom(projectId, component.id, requestAtom)
+      .pipe(finalize(() => this.updatingAtomId.set(null)))
+      .subscribe({
+        next: () => {
+          this.atomSimpleEditTarget.set(null);
+          this.notifications.success('Atom simple edit saved.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.atomSimpleEditError.set('Atom simple edit could not be saved.');
+          this.notifications.error('Atom simple edit could not be saved.');
+        }
+      });
+  }
+
+  protected atomEditReadiness(atom: ContentAtom | null): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildAtomMutationReadiness(
+      projectId,
+      component?.id,
+      atom?.id,
+      this.mutationActivityId(this.atomUpdateActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected openAtomEdit(atom: ContentAtom): void {
+    this.atomEditTarget.set(atom);
+    this.atomEditPublishable.set(atom.publishable !== false);
+    this.atomEditPendingAtom.set(null);
+    this.atomEditResult.set(null);
+  }
+
+  protected closeAtomEdit(): void {
+    if (this.updatingAtomId() !== null) {
+      return;
+    }
+
+    this.atomEditTarget.set(null);
+    this.atomEditPendingAtom.set(null);
+    this.atomEditResult.set(null);
+  }
+
+  protected canEditAtom(atom: ContentAtom): boolean {
+    return Boolean(atom.id && this.updatingAtomId() === null);
+  }
+
+  protected updateAtom(atom: ContentAtom, overrideWarnings = false): void {
+    const request = this.buildUpdateAtomRequest(
+      atom,
+      this.atomEditPublishable(),
+      overrideWarnings
+    );
+
+    if (!request || !this.atomEditReadiness(atom).canExecute) {
+      return;
+    }
+
+    const atomLabel = this.atomDisplay(atom);
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and update'
+      : 'Update';
+
+    if (!window.confirm(`${actionLabel} atom "${atomLabel}"?`)) {
+      return;
+    }
+
+    this.updatingAtomId.set(atom.id ?? null);
+    this.atomEditResult.set(null);
+    this.mutationApi
+      .updateAtomOnConcept(request)
+      .pipe(finalize(() => this.updatingAtomId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.atomEditResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomEditPendingAtom.set(null);
+            this.notifications.error('Atom update failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomEditPendingAtom.set(request.atom);
+            this.notifications.error(
+              'Atom update returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.atomEditTarget.set(null);
+          this.atomEditPendingAtom.set(null);
+          this.notifications.success('Atom updated.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Atom could not be updated.');
+        }
+      });
+  }
+
+  protected updateAtomStatus(atom: ContentAtom, overrideWarnings = false): void {
+    const request = this.buildUpdateAtomStatusRequest(
+      atom,
+      this.atomUpdateStatus().trim(),
+      overrideWarnings
+    );
+
+    if (!request || !this.atomUpdateReadiness(atom).canExecute) {
+      return;
+    }
+
+    const atomLabel = this.atomDisplay(atom);
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and update'
+      : 'Update';
+    const workflowStatus = request.atom.workflowStatus || this.atomUpdateStatus();
+
+    if (!window.confirm(`${actionLabel} atom "${atomLabel}" status to ${workflowStatus}?`)) {
+      return;
+    }
+
+    this.updatingAtomId.set(atom.id ?? null);
+    this.atomUpdateResult.set(null);
+    this.mutationApi
+      .updateAtomOnConcept(request)
+      .pipe(finalize(() => this.updatingAtomId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.atomUpdateResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomUpdatePendingAtom.set(null);
+            this.notifications.error('Atom status update failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomUpdatePendingAtom.set(request.atom);
+            this.notifications.error(
+              'Atom status update returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.atomUpdatePendingAtom.set(null);
+          this.notifications.success('Atom status updated.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Atom status could not be updated.');
+        }
+      });
+  }
+
+  protected removeAtomFromConcept(atom: ContentAtom, overrideWarnings = false): void {
+    const request = this.buildRemoveAtomRequest(atom, overrideWarnings);
+
+    if (!request || !this.atomRemovalReadiness(atom).canExecute) {
+      return;
+    }
+
+    const atomLabel = this.atomDisplay(atom);
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and remove'
+      : 'Remove';
+
+    if (!window.confirm(`${actionLabel} atom "${atomLabel}"?`)) {
+      return;
+    }
+
+    this.removingAtomId.set(atom.id ?? null);
+    this.atomRemovalResult.set(null);
+    this.mutationApi
+      .removeAtomFromConcept(request)
+      .pipe(finalize(() => this.removingAtomId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.atomRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomRemovalPendingAtom.set(null);
+            this.notifications.error('Atom removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomRemovalPendingAtom.set(atom);
+            this.notifications.error(
+              'Atom removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.atomRemovalPendingAtom.set(null);
+          this.notifications.success('Atom removed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Atom could not be removed.');
+        }
+      });
+  }
+
+  protected addAttributeToConcept(overrideWarnings = false): void {
+    const request = this.buildAddAttributeRequest(overrideWarnings);
+
+    if (!request || !this.attributeAddReadiness().canExecute) {
+      return;
+    }
+
+    const label = this.attributeDisplay(request.attribute);
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and add'
+      : 'Add';
+
+    if (!window.confirm(`${actionLabel} attribute "${label}"?`)) {
+      return;
+    }
+
+    this.addingAttribute.set(true);
+    this.attributeAddResult.set(null);
+    this.mutationApi
+      .addAttributeToConcept(request)
+      .pipe(finalize(() => this.addingAttribute.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.attributeAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.attributeAddPendingAttribute.set(null);
+            this.notifications.error('Attribute add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.attributeAddPendingAttribute.set(request.attribute);
+            this.notifications.error(
+              'Attribute add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.attributeAddPendingAttribute.set(null);
+          this.notifications.success('Attribute added.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Attribute could not be added.');
+        }
+      });
+  }
+
+  protected attributeRemovalReadiness(
+    attribute: ContentAttribute | null
+  ): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildAttributeMutationReadiness(
+      projectId,
+      component?.id,
+      attribute?.id,
+      this.mutationActivityId(this.attributeRemovalActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected canRemoveAttribute(attribute: ContentAttribute): boolean {
+    return (
+      this.removingAttributeId() === null &&
+      this.attributeRemovalReadiness(attribute).canExecute
+    );
+  }
+
+  protected removeAttributeFromConcept(
+    attribute: ContentAttribute,
+    overrideWarnings = false
+  ): void {
+    const request = this.buildRemoveAttributeRequest(attribute, overrideWarnings);
+
+    if (!request || !this.attributeRemovalReadiness(attribute).canExecute) {
+      return;
+    }
+
+    const label = this.attributeDisplay(attribute);
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and remove'
+      : 'Remove';
+
+    if (!window.confirm(`${actionLabel} attribute "${label}"?`)) {
+      return;
+    }
+
+    this.removingAttributeId.set(attribute.id ?? null);
+    this.attributeRemovalResult.set(null);
+    this.mutationApi
+      .removeAttributeFromConcept(request)
+      .pipe(finalize(() => this.removingAttributeId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.attributeRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.attributeRemovalPendingAttribute.set(null);
+            this.notifications.error('Attribute removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.attributeRemovalPendingAttribute.set(attribute);
+            this.notifications.error(
+              'Attribute removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.attributeRemovalPendingAttribute.set(null);
+          this.notifications.success('Attribute removed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Attribute could not be removed.');
+        }
+      });
+  }
+
+  protected semanticTypeOptionValue(option: ContentSemanticTypeMetadata): string {
+    return option.expandedForm || option.abbreviation || option.typeId || '';
+  }
+
+  protected semanticTypeOptionDisplay(option: ContentSemanticTypeMetadata): string {
+    return [
+      option.expandedForm || option.abbreviation || option.typeId || 'n/a',
+      option.typeId
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  protected availableSemanticTypeOptions(
+    component: ContentComponentDetail
+  ): ContentSemanticTypeMetadata[] {
+    const existing = new Set(
+      (component.semanticTypes ?? [])
+        .map((semanticType) => semanticType.semanticType?.trim())
+        .filter((value): value is string => Boolean(value))
+    );
+
+    return this.semanticTypeOptions().filter((option) => {
+      const value = this.semanticTypeOptionValue(option);
+
+      return value && !existing.has(value);
+    });
+  }
+
+  protected addSemanticTypeToConcept(overrideWarnings = false): void {
+    const request = this.buildAddSemanticTypeRequest(overrideWarnings);
+
+    if (!request || !this.semanticTypeAddReadiness().canExecute) {
+      return;
+    }
+
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and add'
+      : 'Add';
+
+    if (!window.confirm(`${actionLabel} semantic type "${request.semanticType}"?`)) {
+      return;
+    }
+
+    this.addingSemanticType.set(true);
+    this.semanticTypeAddResult.set(null);
+    this.mutationApi
+      .addSemanticTypeToConcept(request)
+      .pipe(finalize(() => this.addingSemanticType.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.semanticTypeAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.semanticTypeAddPendingValue.set(null);
+            this.notifications.error('Semantic type add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.semanticTypeAddPendingValue.set(request.semanticType);
+            this.notifications.error(
+              'Semantic type add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.semanticTypeAddPendingValue.set(null);
+          this.notifications.success('Semantic type added.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Semantic type could not be added.');
+        }
+      });
+  }
+
+  protected semanticTypeDisplay(semanticType: ContentSemanticType): string {
+    return (
+      semanticType.semanticType ||
+      (semanticType.id === null || semanticType.id === undefined
+        ? 'n/a'
+        : `#${semanticType.id}`)
+    );
+  }
+
+  protected semanticTypeRemovalReadiness(
+    semanticType: ContentSemanticType | null
+  ): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildSemanticTypeMutationReadiness(
+      projectId,
+      component?.id,
+      semanticType?.id,
+      this.mutationActivityId(this.semanticTypeRemovalActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected canRemoveSemanticType(semanticType: ContentSemanticType): boolean {
+    return (
+      this.removingSemanticTypeId() === null &&
+      this.semanticTypeRemovalReadiness(semanticType).canExecute
+    );
+  }
+
+  protected removeSemanticTypeFromConcept(
+    semanticType: ContentSemanticType,
+    overrideWarnings = false
+  ): void {
+    const request = this.buildRemoveSemanticTypeRequest(
+      semanticType,
+      overrideWarnings
+    );
+
+    if (!request || !this.semanticTypeRemovalReadiness(semanticType).canExecute) {
+      return;
+    }
+
+    const label = this.semanticTypeDisplay(semanticType);
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and remove'
+      : 'Remove';
+
+    if (!window.confirm(`${actionLabel} semantic type "${label}"?`)) {
+      return;
+    }
+
+    this.removingSemanticTypeId.set(semanticType.id ?? null);
+    this.semanticTypeRemovalResult.set(null);
+    this.mutationApi
+      .removeSemanticTypeFromConcept(request)
+      .pipe(finalize(() => this.removingSemanticTypeId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.semanticTypeRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.semanticTypeRemovalPendingType.set(null);
+            this.notifications.error('Semantic type removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.semanticTypeRemovalPendingType.set(semanticType);
+            this.notifications.error(
+              'Semantic type removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.semanticTypeRemovalPendingType.set(null);
+          this.notifications.success('Semantic type removed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Semantic type could not be removed.');
+        }
+      });
+  }
+
+  protected relationshipAddTypeOptions(
+    component: ContentComponentDetail
+  ): string[] {
+    const options = [...this.baseRelationshipAddTypeOptions];
+
+    if (component.publishable === false) {
+      options.push('BBT');
+    }
+
+    return options;
+  }
+
+  protected searchAtomMoveTargets(): void {
+    const component = this.selectedComponent();
+    const query = this.atomMoveTargetQuery().trim();
+    const terminology = component?.terminology || this.terminology();
+    const version = component?.version || this.version();
+
+    if (!query || !terminology || !version) {
+      return;
+    }
+
+    this.searchingAtomMoveTargets.set(true);
+    this.atomMoveTargetSearchError.set(null);
+    this.atomMoveTargetResults.set([]);
+    this.api
+      .findComponents(
+        'CONCEPT',
+        terminology,
+        version,
+        query,
+        buildContentSearchPfs(1, 5, '', false, 'CONCEPT')
+      )
+      .pipe(finalize(() => this.searchingAtomMoveTargets.set(false)))
+      .subscribe({
+        next: (state) => {
+          this.atomMoveTargetResults.set(
+            state.items.filter((result) => result.id !== component?.id)
+          );
+        },
+        error: () => {
+          this.atomMoveTargetSearchError.set(
+            'Atom move target search could not be loaded.'
+          );
+        }
+      });
+  }
+
+  protected selectAtomMoveTarget(result: ContentSearchResult): void {
+    if (!result.id) {
+      return;
+    }
+
+    this.selectedAtomMoveTarget.set(result);
+    this.atomMoveTargetConceptId.set(String(result.id));
+    this.atomMovePendingRequest.set(null);
+  }
+
+  protected moveSelectedAtoms(overrideWarnings = false): void {
+    const request = this.buildMoveAtomsRequest(overrideWarnings);
+
+    if (!request || !this.atomMoveReadiness().canExecute) {
+      return;
+    }
+
+    const targetLabel =
+      this.selectedAtomMoveTarget()?.terminologyId || request.conceptId2;
+    const actionLabel = overrideWarnings ? 'Override warnings and move' : 'Move';
+
+    if (
+      !window.confirm(
+        `${actionLabel} ${request.atomIds.length} atom(s) to concept "${targetLabel}"?`
+      )
+    ) {
+      return;
+    }
+
+    this.movingAtoms.set(true);
+    this.atomMoveResult.set(null);
+    this.mutationApi
+      .moveAtoms(request)
+      .pipe(finalize(() => this.movingAtoms.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.atomMoveResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomMovePendingRequest.set(null);
+            this.notifications.error('Atom move failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomMovePendingRequest.set(request);
+            this.notifications.error(
+              'Atom move returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.atomMovePendingRequest.set(null);
+          this.selectedAtomMoveIds.set([]);
+          this.atomMoveTargetConceptId.set('');
+          this.selectedAtomMoveTarget.set(null);
+          this.notifications.success('Atom move completed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Atoms could not be moved.');
+        }
+      });
+  }
+
+  protected splitSelectedAtoms(overrideWarnings = false): void {
+    const request = this.buildSplitConceptRequest(overrideWarnings);
+
+    if (!request || !this.atomSplitReadiness().canExecute) {
+      return;
+    }
+
+    const componentLabel =
+      this.selectedComponent()?.terminologyId || request.conceptId;
+    const actionLabel = overrideWarnings ? 'Override warnings and split' : 'Split';
+
+    if (
+      !window.confirm(
+        `${actionLabel} ${request.atomIds.length} atom(s) from concept "${componentLabel}"?`
+      )
+    ) {
+      return;
+    }
+
+    const selectedType = this.atomSplitRelationshipType().trim();
+    const request$ =
+      overrideWarnings && this.atomSplitPendingRequest()
+        ? of(request)
+        : this.api
+            .getInverseRelationshipType(
+              this.selectedComponent()?.terminology || this.terminology(),
+              this.selectedComponent()?.version || this.version(),
+              selectedType
+            )
+            .pipe(
+              map((inverseRelationshipType) => ({
+                ...request,
+                relationshipType:
+                  inverseRelationshipType.trim() || request.relationshipType
+              }))
+            );
+    let submittedRequest = request;
+
+    this.splittingConcept.set(true);
+    this.atomSplitResult.set(null);
+    request$
+      .pipe(
+        switchMap((splitRequest) => {
+          submittedRequest = splitRequest;
+
+          return this.mutationApi.splitConcept(splitRequest);
+        }),
+        finalize(() => this.splittingConcept.set(false))
+      )
+      .subscribe({
+        next: (result) => {
+          this.atomSplitResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomSplitPendingRequest.set(null);
+            this.notifications.error('Concept split failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomSplitPendingRequest.set(submittedRequest);
+            this.notifications.error(
+              'Concept split returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.atomSplitPendingRequest.set(null);
+          this.selectedAtomSplitIds.set([]);
+          this.notifications.success('Concept split completed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Concept could not be split.');
+        }
+      });
+  }
+
+  protected searchMergeTargets(): void {
+    const component = this.selectedComponent();
+    const query = this.mergeTargetQuery().trim();
+    const terminology = component?.terminology || this.terminology();
+    const version = component?.version || this.version();
+
+    if (!query || !terminology || !version) {
+      return;
+    }
+
+    this.searchingMergeTargets.set(true);
+    this.mergeTargetSearchError.set(null);
+    this.mergeTargetResults.set([]);
+    this.api
+      .findComponents(
+        'CONCEPT',
+        terminology,
+        version,
+        query,
+        buildContentSearchPfs(1, 5, '', false, 'CONCEPT')
+      )
+      .pipe(finalize(() => this.searchingMergeTargets.set(false)))
+      .subscribe({
+        next: (state) => {
+          this.mergeTargetResults.set(
+            state.items.filter((result) => result.id !== component?.id)
+          );
+        },
+        error: () => {
+          this.mergeTargetSearchError.set('Merge target search could not be loaded.');
+        }
+      });
+  }
+
+  protected selectMergeTarget(result: ContentSearchResult): void {
+    if (!result.id) {
+      return;
+    }
+
+    this.selectedMergeTarget.set(result);
+    this.mergeTargetConceptId.set(String(result.id));
+    this.mergePendingTarget.set(null);
+    this.mergeTargetDetailError.set(null);
+
+    if (result.lastModified) {
+      return;
+    }
+
+    this.loadingMergeTargetDetail.set(true);
+    this.api
+      .getComponentById('CONCEPT', result.id, this.projectId())
+      .pipe(finalize(() => this.loadingMergeTargetDetail.set(false)))
+      .subscribe({
+        next: (component) => {
+          if (this.selectedMergeTarget()?.id !== result.id) {
+            return;
+          }
+          if (!component?.id) {
+            this.mergeTargetDetailError.set('Target concept detail could not be loaded.');
+            return;
+          }
+
+          this.selectedMergeTarget.set({
+            ...result,
+            lastModified: component.lastModified,
+            name: component.name || result.name,
+            terminology: component.terminology || result.terminology,
+            terminologyId: component.terminologyId || result.terminologyId,
+            value: component.name || result.value,
+            version: component.version || result.version
+          });
+        },
+        error: () => {
+          if (this.selectedMergeTarget()?.id === result.id) {
+            this.mergeTargetDetailError.set(
+              'Target concept detail could not be loaded.'
+            );
+          }
+        }
+      });
+  }
+
+  protected mergeConcept(overrideWarnings = false): void {
+    const request = this.buildMergeConceptRequest(overrideWarnings);
+
+    if (!request || !this.mergeReadiness().canExecute) {
+      return;
+    }
+
+    const componentLabel = this.mergeFromLabel();
+    const targetLabel = this.mergeToLabel();
+    const actionLabel = overrideWarnings ? 'Override warnings and merge' : 'Merge';
+
+    if (
+      !window.confirm(
+        `${actionLabel} concept "${componentLabel}" into concept "${targetLabel}"?`
+      )
+    ) {
+      return;
+    }
+
+    this.mergingConcept.set(true);
+    this.mergeResult.set(null);
+    this.mutationApi
+      .mergeConcepts(request)
+      .pipe(finalize(() => this.mergingConcept.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.mergeResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.mergePendingTarget.set(null);
+            this.notifications.error('Concept merge failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.mergePendingTarget.set(
+              this.selectedMergeTarget() ?? { id: request.conceptId2 }
+            );
+            this.notifications.error(
+              'Concept merge returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.mergePendingTarget.set(null);
+          this.mergeTargetConceptId.set('');
+          this.selectedMergeTarget.set(null);
+          this.notifications.success(
+            this.mergeReverseOrder()
+              ? 'Reverse concept merge completed.'
+              : 'Concept merged.'
+          );
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Concept could not be merged.');
+        }
+      });
+  }
+
+  protected searchRelationshipTargets(): void {
+    const component = this.selectedComponent();
+    const query = this.relationshipTargetQuery().trim();
+    const terminology = component?.terminology || this.terminology();
+    const version = component?.version || this.version();
+
+    if (!query || !terminology || !version) {
+      return;
+    }
+
+    this.searchingRelationshipTargets.set(true);
+    this.relationshipTargetSearchError.set(null);
+    this.relationshipTargetResults.set([]);
+    this.api
+      .findComponents(
+        'CONCEPT',
+        terminology,
+        version,
+        query,
+        buildContentSearchPfs(1, 5, '', false, 'CONCEPT')
+      )
+      .pipe(finalize(() => this.searchingRelationshipTargets.set(false)))
+      .subscribe({
+        next: (state) => {
+          this.relationshipTargetResults.set(
+            state.items.filter((result) => result.id !== component?.id)
+          );
+        },
+        error: () => {
+          this.relationshipTargetSearchError.set(
+            'Target concept search could not be loaded.'
+          );
+        }
+      });
+  }
+
+  protected selectRelationshipTarget(result: ContentSearchResult): void {
+    if (!result.id) {
+      return;
+    }
+
+    this.selectedRelationshipTarget.set(result);
+    this.relationshipAddTargetConceptId.set(String(result.id));
+  }
+
+  protected addRelationshipBatchTarget(result: ContentSearchResult): void {
+    const componentId = this.selectedComponent()?.id;
+    if (!result.id || result.id === componentId) {
+      return;
+    }
+
+    this.selectedRelationshipTargets.update((targets) =>
+      targets.some((target) => target.id === result.id)
+        ? targets
+        : [...targets, result]
+    );
+    this.relationshipAddPendingRelationships.set(null);
+  }
+
+  protected removeRelationshipBatchTarget(result: ContentSearchResult): void {
+    if (!result.id) {
+      return;
+    }
+
+    this.selectedRelationshipTargets.update((targets) =>
+      targets.filter((target) => target.id !== result.id)
+    );
+    this.relationshipAddPendingRelationships.set(null);
+  }
+
+  protected isRelationshipBatchTargetSelected(
+    result: ContentSearchResult
+  ): boolean {
+    return Boolean(
+      result.id &&
+        this.selectedRelationshipTargets().some((target) => target.id === result.id)
+    );
+  }
+
+  protected conceptSearchTargetDisplay(result: ContentSearchResult): string {
+    return (
+      result.value ||
+      result.name ||
+      result.terminologyId ||
+      (result.id === null || result.id === undefined ? 'n/a' : `#${result.id}`)
+    );
+  }
+
+  protected addRelationshipToConcept(overrideWarnings = false): void {
+    const request = this.buildAddRelationshipRequest(
+      overrideWarnings,
+      this.relationshipAddType()
+    );
+
+    if (!request || !this.relationshipAddReadiness().canExecute) {
+      return;
+    }
+
+    const selectedType = this.relationshipAddType().trim();
+    const targetConceptId = request.relationship.toId;
+    const actionLabel = overrideWarnings ? 'Override warnings and add' : 'Add';
+
+    if (
+      !window.confirm(
+        `${actionLabel} relationship "${selectedType}" to concept #${targetConceptId}?`
+      )
+    ) {
+      return;
+    }
+
+    const request$ =
+      overrideWarnings && this.relationshipAddPendingRelationship()
+        ? of(request)
+        : this.api
+            .getInverseRelationshipType(
+              request.relationship.terminology || this.terminology(),
+              request.relationship.version || this.version(),
+              selectedType
+            )
+            .pipe(
+              map((inverseRelationshipType) => ({
+                ...request,
+                relationship: {
+                  ...request.relationship,
+                  relationshipType:
+                    inverseRelationshipType.trim() ||
+                    request.relationship.relationshipType
+                }
+              }))
+            );
+    let submittedRelationship = request.relationship;
+
+    this.addingRelationship.set(true);
+    this.relationshipAddResult.set(null);
+    request$
+      .pipe(
+        switchMap((relationshipRequest) => {
+          submittedRelationship = relationshipRequest.relationship;
+
+          return this.mutationApi.addRelationshipToConcept(relationshipRequest);
+        }),
+        finalize(() => this.addingRelationship.set(false))
+      )
+      .subscribe({
+        next: (result) => {
+          this.relationshipAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.relationshipAddPendingRelationship.set(null);
+            this.notifications.error('Relationship add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.relationshipAddPendingRelationship.set(submittedRelationship);
+            this.notifications.error(
+              'Relationship add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.relationshipAddPendingRelationship.set(null);
+          this.relationshipAddTargetConceptId.set('');
+          this.notifications.success('Relationship added.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Relationship could not be added.');
+        }
+      });
+  }
+
+  protected addRelationshipsToConcept(overrideWarnings = false): void {
+    const request = this.buildAddRelationshipsRequest(
+      overrideWarnings,
+      this.relationshipAddType()
+    );
+
+    if (!request || !this.relationshipBatchAddReadiness().canExecute) {
+      return;
+    }
+
+    const selectedType = this.relationshipAddType().trim();
+    const actionLabel = overrideWarnings ? 'Override warnings and add' : 'Add';
+
+    if (
+      !window.confirm(
+        `${actionLabel} ${request.relationships.length} relationship(s) of type "${selectedType}"?`
+      )
+    ) {
+      return;
+    }
+
+    const request$ =
+      overrideWarnings && this.relationshipAddPendingRelationships()
+        ? of(request)
+        : this.api
+            .getInverseRelationshipType(
+              request.relationships[0]?.terminology || this.terminology(),
+              request.relationships[0]?.version || this.version(),
+              selectedType
+            )
+            .pipe(
+              map((inverseRelationshipType) => ({
+                ...request,
+                relationships: request.relationships.map((relationship) => ({
+                  ...relationship,
+                  relationshipType:
+                    inverseRelationshipType.trim() || relationship.relationshipType
+                }))
+              }))
+            );
+    let submittedRelationships = request.relationships;
+
+    this.addingRelationship.set(true);
+    this.relationshipAddResult.set(null);
+    request$
+      .pipe(
+        switchMap((relationshipsRequest) => {
+          submittedRelationships = relationshipsRequest.relationships;
+
+          return this.mutationApi.addRelationshipsToConcept(relationshipsRequest);
+        }),
+        finalize(() => this.addingRelationship.set(false))
+      )
+      .subscribe({
+        next: (result) => {
+          this.relationshipAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.relationshipAddPendingRelationships.set(null);
+            this.notifications.error('Relationship add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.relationshipAddPendingRelationships.set(submittedRelationships);
+            this.notifications.error(
+              'Relationship add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.relationshipAddPendingRelationships.set(null);
+          this.selectedRelationshipTargets.set([]);
+          this.notifications.success('Relationships added.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Relationships could not be added.');
+        }
+      });
+  }
+
+  protected relationshipRemovalReadiness(
+    relationship: ContentRelationship | null
+  ): EditMutationReadiness {
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+    const reasons = buildRelationshipMutationReadiness(
+      projectId,
+      component?.id,
+      relationship?.id,
+      this.mutationActivityId(this.relationshipRemovalActivityId()),
+      this.selectedLastModifiedEpoch(),
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  }
+
+  protected canRemoveRelationship(relationship: ContentRelationship): boolean {
+    return (
+      this.removingRelationshipId() === null &&
+      this.relationshipRemovalReadiness(relationship).canExecute
+    );
+  }
+
+  protected removeRelationshipFromConcept(
+    relationship: ContentRelationship,
+    overrideWarnings = false
+  ): void {
+    const request = this.buildRemoveRelationshipRequest(
+      relationship,
+      overrideWarnings
+    );
+
+    if (!request || !this.relationshipRemovalReadiness(relationship).canExecute) {
+      return;
+    }
+
+    const label = [
+      this.relationshipDisplay(relationship),
+      this.relationshipTargetDisplay(relationship)
+    ]
+      .filter(Boolean)
+      .join(' ');
+    const actionLabel = overrideWarnings
+      ? 'Override warnings and remove'
+      : 'Remove';
+
+    if (!window.confirm(`${actionLabel} relationship "${label || relationship.id}"?`)) {
+      return;
+    }
+
+    this.removingRelationshipId.set(relationship.id ?? null);
+    this.relationshipRemovalResult.set(null);
+    this.mutationApi
+      .removeRelationshipFromConcept(request)
+      .pipe(finalize(() => this.removingRelationshipId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.relationshipRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.relationshipRemovalPendingRelationship.set(null);
+            this.notifications.error('Relationship removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.relationshipRemovalPendingRelationship.set(relationship);
+            this.notifications.error(
+              'Relationship removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+
+          this.relationshipRemovalPendingRelationship.set(null);
+          this.notifications.success('Relationship removed.');
+          this.loadSelectedComponent(this.selectedResult());
+        },
+        error: () => {
+          this.notifications.error('Relationship could not be removed.');
+        }
+      });
+  }
+
+  protected setTerminology(value: string): void {
+    this.terminology.set(value);
+    const selected = this.currentTerminologies().find(
+      (terminology) => terminology.terminology === value
+    );
+
+    if (selected?.version) {
+      this.version.set(selected.version);
+    }
+
+    const organizingClassType = this.toSearchableContentType(
+      selected?.organizingClassType
+    );
+    if (organizingClassType) {
+      this.searchType.set(organizingClassType);
+    }
+
+    this.page.set(1);
+  }
+
+  protected setVersion(value: string): void {
+    this.version.set(value);
+    this.page.set(1);
+  }
+
+  protected resultDisplay(result: ContentSearchResult): string {
+    return result.value || result.name || result.terminologyId || `#${result.id}`;
+  }
+
+  protected resultProperty(result: ContentSearchResult): string {
+    const property = result.property;
+
+    if (!property?.key && !property?.value) {
+      return 'n/a';
+    }
+
+    return [property.key, property.value].filter(Boolean).join(': ');
+  }
+
+  private sortResultsById(
+    results: readonly ContentSearchResult[]
+  ): ContentSearchResult[] {
+    return [...results].sort(
+      (left, right) => (left.id ?? Number.MAX_SAFE_INTEGER) - (right.id ?? Number.MAX_SAFE_INTEGER)
+    );
+  }
+
+  protected displayScore(score: number | null | undefined): string {
+    return score === null || score === undefined ? 'n/a' : score.toFixed(2);
+  }
+
+  protected componentDisplay(component: ContentComponentDetail): string {
+    return (
+      component.name ||
+      component.terminologyId ||
+      (component.id === null || component.id === undefined ? 'n/a' : `#${component.id}`)
+    );
+  }
+
+  protected componentStatus(component: ContentComponentDetail): string {
+    return component.workflowStatus || (component.obsolete ? 'Obsolete' : 'Active');
+  }
+
+  protected conceptWorkflowStatusOptions(
+    component: ContentComponentDetail
+  ): string[] {
+    const currentStatus = component.workflowStatus?.trim();
+
+    return currentStatus &&
+      !this.baseConceptWorkflowStatusOptions.includes(currentStatus)
+      ? [currentStatus, ...this.baseConceptWorkflowStatusOptions]
+      : this.baseConceptWorkflowStatusOptions;
+  }
+
+  protected limitedAtoms(component: ContentComponentDetail): ContentAtom[] {
+    return (component.atoms ?? []).slice(0, 8);
+  }
+
+  protected limitedDefinitions(
+    component: ContentComponentDetail
+  ): ContentDefinition[] {
+    return (component.definitions ?? []).slice(0, 5);
+  }
+
+  protected limitedSemanticTypes(
+    component: ContentComponentDetail
+  ): ContentSemanticType[] {
+    return (component.semanticTypes ?? []).slice(0, 8);
+  }
+
+  protected limitedAttributes(
+    component: ContentComponentDetail
+  ): ContentAttribute[] {
+    return (component.attributes ?? []).slice(0, 8);
+  }
+
+  protected limitedRelationships(
+    component: ContentComponentDetail
+  ): ContentRelationship[] {
+    return (component.relationships ?? []).slice(0, 8);
+  }
+
+  protected limitedNotes(component: ContentComponentDetail): ContentNote[] {
+    return (component.notes ?? []).slice(0, 8);
+  }
+
+  protected atomDisplay(atom: ContentAtom): string {
+    return atom.name || atom.terminologyId || `#${atom.id}`;
+  }
+
+  protected atomTermgroup(atom: ContentAtom): string {
+    return [atom.terminology, atom.termType].filter(Boolean).join('/');
+  }
+
+  protected definitionDisplay(definition: ContentDefinition): string {
+    return definition.value || definition.atomElementStr || `#${definition.id}`;
+  }
+
+  protected definitionHtml(definition: ContentDefinition): string {
+    return this.richTextHtml(this.definitionDisplay(definition));
+  }
+
+  protected definitionSource(definition: ContentDefinition): string {
+    return definition.atomElementStr || definition.terminology || '';
+  }
+
+  protected definitionStatusLabels(definition: ContentDefinition): string[] {
+    return [
+      definition.atomElement ? 'Atom' : '',
+      definition.suppressible ? 'Suppressible' : '',
+      definition.obsolete ? 'Obsolete' : ''
+    ].filter((label): label is string => Boolean(label));
+  }
+
+  protected attributeDisplay(attribute: ContentAttribute): string {
+    return [attribute.name, attribute.value].filter(Boolean).join(': ') || `#${attribute.id}`;
+  }
+
+  protected relationshipDisplay(relationship: ContentRelationship): string {
+    return [
+      relationship.relationshipType,
+      relationship.additionalRelationshipType
+    ]
+      .filter(Boolean)
+      .join(' / ');
+  }
+
+  protected noteDisplay(note: ContentNote): string {
+    return note.note || `#${note.id}`;
+  }
+
+  protected noteByline(note: ContentNote): string {
+    return [note.lastModifiedBy, note.lastModified || note.timestamp]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  protected isConceptComponent(component: ContentComponentDetail): boolean {
+    return (
+      this.toSearchableContentType(
+        component.type || this.selectedResult()?.type || this.searchType()
+      ) === 'CONCEPT'
+    );
+  }
+
+  protected selectedComponentType(): SearchableContentType | null {
+    const component = this.selectedComponent();
+
+    return this.toSearchableContentType(
+      component?.type || this.selectedResult()?.type || this.searchType()
+    );
+  }
+
+  protected reportAtoms(component: ContentComponentDetail): ContentAtom[] {
+    return (component.atoms ?? []).slice(0, 25);
+  }
+
+  protected reportDefinitions(component: ContentComponentDetail): ContentDefinition[] {
+    return (component.definitions ?? []).slice(0, 25);
+  }
+
+  protected reportSemanticTypes(component: ContentComponentDetail): ContentSemanticType[] {
+    return (component.semanticTypes ?? []).slice(0, 25);
+  }
+
+  protected reportAttributes(component: ContentComponentDetail): ContentAttribute[] {
+    return (component.attributes ?? []).slice(0, 25);
+  }
+
+  protected reportRelationships(component: ContentComponentDetail): ContentRelationship[] {
+    return (component.relationships ?? []).slice(0, 25);
+  }
+
+  protected reportMembers(component: ContentComponentDetail): ContentSubsetMember[] {
+    return (component.members ?? []).slice(0, 25);
+  }
+
+  protected reportNotes(component: ContentComponentDetail): ContentNote[] {
+    return (component.notes ?? []).slice(0, 25);
+  }
+
+  protected treeDisplay(tree: ContentTree): string {
+    return [tree.nodeTerminologyId, tree.nodeName].filter(Boolean).join(' ') || 'n/a';
+  }
+
+  protected relationshipTargetDisplay(relationship: ContentRelationship): string {
+    return (
+      [
+        relationship.toTerminologyId,
+        relationship.toName,
+        relationship.to?.name
+      ]
+        .filter(Boolean)
+        .join(' ') ||
+      (relationship.toId === null || relationship.toId === undefined
+        ? 'n/a'
+        : `#${relationship.toId}`)
+    );
+  }
+
+  protected relationshipSourceDisplay(relationship: ContentRelationship): string {
+    return (
+      [
+        relationship.fromTerminologyId,
+        relationship.fromName,
+        relationship.from?.name
+      ]
+        .filter(Boolean)
+        .join(' ') ||
+      (relationship.fromId === null || relationship.fromId === undefined
+        ? 'n/a'
+        : `#${relationship.fromId}`)
+    );
+  }
+
+  protected mappingTargetDisplay(mapping: ContentMapping): string {
+    return [mapping.toTerminologyId, mapping.toName].filter(Boolean).join(' ') || 'n/a';
+  }
+
+  protected memberDisplay(member: ContentSubsetMember): string {
+    return (
+      member.subset?.name ||
+      member.subset?.terminologyId ||
+      member.member?.name ||
+      member.member?.terminologyId ||
+      (member.id === null || member.id === undefined ? 'n/a' : `#${member.id}`)
+    );
+  }
+
+  private applyRouteContext(): void {
+    const routeMode = this.routeMode();
+    const routeType = this.toSearchableContentType(routeMode.type);
+
+    if (routeType) {
+      this.searchType.set(routeType);
+    }
+    if (routeMode.terminology) {
+      this.terminology.set(routeMode.terminology);
+    }
+    if (routeMode.version) {
+      this.version.set(routeMode.version);
+    }
+    if (routeMode.terminologyId) {
+      this.query.set(routeMode.terminologyId);
+    }
+    if (routeMode.activityId) {
+      this.editActivityId.set(routeMode.activityId);
+    }
+  }
+
+  private loadRouteComponent(): void {
+    const routeMode = this.routeMode();
+    const type = this.toSearchableContentType(routeMode.type);
+
+    if (!type || !routeMode.terminologyId) {
+      return;
+    }
+
+    const routeId = Number(routeMode.terminologyId);
+    const result: ContentSearchResult = {
+      id: !routeMode.version && Number.isFinite(routeId) ? routeId : undefined,
+      terminology: routeMode.terminology,
+      terminologyId: routeMode.terminologyId,
+      type,
+      version: routeMode.version
+    };
+
+    this.selectResult(result);
+  }
+
+  private buildEditPopoutQueryParams(
+    component: ContentComponentDetail
+  ): Record<string, string> {
+    const queryParams: Record<string, string> = {};
+    const type = this.toSearchableContentType(component.type) ?? this.searchType();
+    const values = {
+      activityId: this.editActivityId().trim(),
+      componentId:
+        component.id === null || component.id === undefined
+          ? ''
+          : String(component.id),
+      projectId: this.projectId() === null ? '' : String(this.projectId()),
+      terminology: component.terminology || this.terminology(),
+      terminologyId: component.terminologyId || '',
+      type,
+      version: component.version || this.version()
+    };
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (value) {
+        queryParams[key] = value;
+      }
+    });
+
+    return queryParams;
+  }
+
+  private loadCurrentTerminologies(): void {
+    this.loadingTerminologies.set(true);
+    this.api
+      .getCurrentTerminologies()
+      .pipe(finalize(() => this.loadingTerminologies.set(false)))
+      .subscribe({
+        next: (terminologies) => {
+          const current = terminologies.filter(
+            (terminology) => terminology.current !== false
+          );
+          this.currentTerminologies.set(current);
+          this.applyDefaultTerminology(current);
+        },
+        error: () => {
+          this.notifications.error('Current terminologies could not be loaded.');
+        }
+      });
+  }
+
+  private loadProjectContext(): void {
+    const projectId = this.projectId();
+
+    this.projectEditingEnabled.set(null);
+    this.projectContextError.set(null);
+    this.projectDefaultLanguage.set('ENG');
+    this.projectNewAtomTermgroups.set([]);
+    this.projectValidationChecks.set([]);
+    if (!projectId) {
+      return;
+    }
+
+    this.loadingProjectContext.set(true);
+    this.operationsApi
+      .getProject(projectId)
+      .pipe(finalize(() => this.loadingProjectContext.set(false)))
+      .subscribe({
+        next: (project) => {
+          this.projectEditingEnabled.set(project.editingEnabled === true);
+          this.projectDefaultLanguage.set(project.language || 'ENG');
+          this.projectNewAtomTermgroups.set(project.newAtomTermgroups ?? []);
+          this.projectValidationChecks.set(project.validationChecks ?? []);
+          this.applyAtomAddDefaults();
+        },
+        error: () => {
+          this.projectContextError.set('Project context could not be loaded.');
+          this.projectEditingEnabled.set(null);
+          this.projectDefaultLanguage.set('ENG');
+          this.projectNewAtomTermgroups.set([]);
+          this.projectValidationChecks.set([]);
+        }
+      });
+  }
+
+  private applyDefaultTerminology(terminologies: ContentTerminology[]): void {
+    if (this.terminology() && this.version()) {
+      return;
+    }
+
+    const routeType = contentTypePath(this.searchType());
+    const preferred =
+      terminologies.find(
+        (terminology) =>
+          terminology.organizingClassType &&
+          contentTypePath(terminology.organizingClassType) === routeType
+      ) ??
+      terminologies[0] ??
+      null;
+
+    if (!this.terminology() && preferred?.terminology) {
+      this.terminology.set(preferred.terminology);
+    }
+    if (!this.version() && preferred?.version) {
+      this.version.set(preferred.version);
+    }
+  }
+
+  private applyAtomAddDefaults(): void {
+    if (!this.atomAddLanguage()) {
+      this.atomAddLanguage.set(this.projectDefaultLanguage());
+    }
+    if (!this.atomAddTermgroup()) {
+      this.atomAddTermgroup.set(this.projectNewAtomTermgroups()[0] ?? '');
+    }
+  }
+
+  private applyConceptUpdateDefaults(
+    component: ContentComponentDetail | null
+  ): void {
+    this.conceptUpdateWorkflowStatus.set(component?.workflowStatus || '');
+    this.conceptUpdatePublishable.set(component?.publishable !== false);
+    this.conceptUpdateError.set(null);
+  }
+
+  private validateSearch(): string[] {
+    const errors = [];
+
+    if (!this.query().trim()) {
+      errors.push('Query is required.');
+    }
+    if (!this.terminology().trim()) {
+      errors.push('Terminology is required.');
+    }
+    if (!this.version().trim()) {
+      errors.push('Version is required.');
+    }
+
+    return errors;
+  }
+
+  private loadSemanticTypeOptionsForComponent(
+    component: ContentComponentDetail
+  ): void {
+    if (!this.isConceptComponent(component) || this.isReportMode()) {
+      return;
+    }
+
+    const terminology = component.terminology || this.terminology();
+    const version = component.version || this.version();
+
+    if (!terminology || !version) {
+      this.semanticTypeOptionsError.set(
+        'Semantic type terminology context is required.'
+      );
+      return;
+    }
+
+    const key = `${terminology}|${version}`;
+    if (this.semanticTypeOptionsKey() === key && this.semanticTypeOptions().length) {
+      return;
+    }
+
+    this.semanticTypeOptionsKey.set(key);
+    this.semanticTypeOptions.set([]);
+    this.semanticTypeOptionsError.set(null);
+    this.loadingSemanticTypeOptions.set(true);
+    this.api
+      .getSemanticTypes(terminology, version)
+      .pipe(finalize(() => this.loadingSemanticTypeOptions.set(false)))
+      .subscribe({
+        next: (options) => {
+          this.semanticTypeOptions.set(
+            [...options].sort((left, right) =>
+              this.semanticTypeOptionDisplay(left).localeCompare(
+                this.semanticTypeOptionDisplay(right)
+              )
+            )
+          );
+        },
+        error: () => {
+          this.semanticTypeOptionsError.set('Semantic type options could not be loaded.');
+        }
+      });
+  }
+
+  private loadSelectedComponent(result: ContentSearchResult | null): void {
+    this.selectedComponent.set(null);
+    this.selectedComponentError.set(null);
+    this.applyConceptUpdateDefaults(null);
+    this.approvalActivityId.set('');
+    this.approvalResult.set(null);
+    this.componentNoteError.set(null);
+    this.componentNoteText.set('');
+    this.atomAddActivityId.set('');
+    this.atomAddCodeId.set('NOCODE');
+    this.atomAddConceptId.set('');
+    this.atomAddDescriptorId.set('');
+    this.atomAddLanguage.set(this.projectDefaultLanguage());
+    this.atomAddName.set('');
+    this.atomAddPendingAtom.set(null);
+    this.atomAddResult.set(null);
+    this.atomAddStatus.set('NEEDS_REVIEW');
+    this.atomAddTermgroup.set(this.projectNewAtomTermgroups()[0] ?? '');
+    this.atomRemovalActivityId.set('');
+    this.atomRemovalPendingAtom.set(null);
+    this.atomRemovalResult.set(null);
+    this.atomMoveActivityId.set('');
+    this.atomMovePendingRequest.set(null);
+    this.atomMoveResult.set(null);
+    this.atomMoveTargetConceptId.set('');
+    this.atomMoveTargetQuery.set('');
+    this.atomMoveTargetResults.set([]);
+    this.atomMoveTargetSearchError.set(null);
+    this.selectedAtomMoveIds.set([]);
+    this.selectedAtomMoveTarget.set(null);
+    this.atomSplitActivityId.set('');
+    this.atomSplitCopyRelated.set(false);
+    this.atomSplitPendingRequest.set(null);
+    this.atomSplitRelationshipType.set('RO');
+    this.atomSplitResult.set(null);
+    this.selectedAtomSplitIds.set([]);
+    this.atomUpdateActivityId.set('');
+    this.atomUpdatePendingAtom.set(null);
+    this.atomUpdateResult.set(null);
+    this.atomUpdateStatus.set('NEEDS_REVIEW');
+    this.atomEditPendingAtom.set(null);
+    this.atomEditPublishable.set(false);
+    this.atomEditResult.set(null);
+    this.atomEditTarget.set(null);
+    this.atomSimpleEditError.set(null);
+    this.atomSimpleEditLanguage.set('');
+    this.atomSimpleEditName.set('');
+    this.atomSimpleEditPublishable.set(false);
+    this.atomSimpleEditSuppressible.set(false);
+    this.atomSimpleEditTarget.set(null);
+    this.atomSimpleEditTermgroup.set('');
+    this.atomCodeConceptError.set(null);
+    this.atomCodeConceptResults.set([]);
+    this.atomCodeConceptTotalCount.set(0);
+    this.atomCodeConceptTarget.set(null);
+    this.atomValidationResult.set(null);
+    this.atomValidationTarget.set(null);
+    this.attributeAddActivityId.set('');
+    this.attributeAddName.set('');
+    this.attributeAddPendingAttribute.set(null);
+    this.attributeAddResult.set(null);
+    this.attributeAddValue.set('');
+    this.attributeRemovalActivityId.set('');
+    this.attributeRemovalPendingAttribute.set(null);
+    this.attributeRemovalResult.set(null);
+    this.mergeActivityId.set('');
+    this.mergePendingTarget.set(null);
+    this.mergeResult.set(null);
+    this.mergeReverseOrder.set(false);
+    this.mergeTargetConceptId.set('');
+    this.mergeTargetDetailError.set(null);
+    this.mergeTargetQuery.set('');
+    this.mergeTargetResults.set([]);
+    this.mergeTargetSearchError.set(null);
+    this.selectedMergeTarget.set(null);
+    this.relationshipAddActivityId.set('');
+    this.relationshipAddPendingRelationships.set(null);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddResult.set(null);
+    this.relationshipAddTargetConceptId.set('');
+    this.relationshipAddType.set('RO');
+    this.relationshipTargetQuery.set('');
+    this.relationshipTargetResults.set([]);
+    this.relationshipTargetSearchError.set(null);
+    this.selectedRelationshipTarget.set(null);
+    this.selectedRelationshipTargets.set([]);
+    this.relationshipRemovalActivityId.set('');
+    this.relationshipRemovalPendingRelationship.set(null);
+    this.relationshipRemovalResult.set(null);
+    this.semanticTypeAddActivityId.set('');
+    this.semanticTypeAddPendingValue.set(null);
+    this.semanticTypeAddResult.set(null);
+    this.semanticTypeAddValue.set('');
+    this.semanticTypeRemovalActivityId.set('');
+    this.semanticTypeRemovalPendingType.set(null);
+    this.semanticTypeRemovalResult.set(null);
+    this.conceptValidationResult.set(null);
+    this.loadingReport.set(false);
+    this.loadingReportFacets.set(false);
+    this.reportError.set(null);
+    this.reportFacetErrors.set([]);
+    this.reportHtml.set(null);
+    this.reportDeepRelationships.set([]);
+    this.reportMappings.set([]);
+    this.reportTrees.set([]);
+    this.contextFilter.set('');
+    this.contextTreePositionError.set(null);
+    this.contextTreePositions.set([]);
+    this.contextTreePositionCount.set(0);
+    this.applyAtomAddDefaults();
+
+    if (!result) {
+      this.loadingComponent.set(false);
+      return;
+    }
+
+    const type = this.toSearchableContentType(result.type) ?? this.searchType();
+    const terminology = result.terminology || this.terminology();
+    const version = result.version || this.version();
+    const projectId = this.projectId();
+    const terminologyId = result.terminologyId;
+    const request =
+      terminologyId && terminology && version
+        ? this.api.getComponentByTerminologyId(
+            type,
+            terminology,
+            version,
+            terminologyId,
+            projectId
+          )
+        : type === 'CONCEPT' && result.id
+          ? this.api.getComponentById(type, result.id, projectId)
+          : null;
+
+    if (!request) {
+      this.selectedComponentError.set(
+        'Selected component does not include enough identifiers for detail.'
+      );
+      return;
+    }
+
+    this.loadingComponent.set(true);
+    request
+      .pipe(finalize(() => this.loadingComponent.set(false)))
+      .subscribe({
+        next: (component) => {
+          if (this.selectedResult() === result) {
+            if (!component) {
+              this.selectedComponentError.set(this.missingComponentMessage(result));
+              return;
+            }
+            this.selectedComponent.set(component);
+            this.applyConceptUpdateDefaults(component);
+            this.loadSemanticTypeOptionsForComponent(component);
+            this.loadReportForComponent(result, type, component);
+            this.loadReportFacetsForComponent(result, type, component);
+          }
+        },
+        error: () => {
+          if (this.selectedResult() === result) {
+            this.selectedComponentError.set('Component detail could not be loaded.');
+            this.notifications.error('Component detail could not be loaded.');
+          }
+        }
+      });
+  }
+
+  private missingComponentMessage(result: ContentSearchResult): string {
+    const type = result.type || this.searchType();
+    const identifier = result.terminologyId || result.id || this.query() || 'n/a';
+    const terminology = result.terminology || this.terminology();
+    const version = result.version || this.version();
+    const terminologyContext = [terminology, version].filter(Boolean).join('/');
+
+    return terminologyContext
+      ? `No ${type} component matched ${terminologyContext}/${identifier}.`
+      : `No ${type} component matched ${identifier}.`;
+  }
+
+  private loadReportFacetsForComponent(
+    result: ContentSearchResult,
+    type: SearchableContentType,
+    component: ContentComponentDetail
+  ): void {
+    if (!this.isReportMode()) {
+      return;
+    }
+
+    const terminology = component.terminology || result.terminology || this.terminology();
+    const version = component.version || result.version || this.version();
+    const terminologyId = component.terminologyId || result.terminologyId;
+    if (!terminology || !version || !terminologyId) {
+      this.reportFacetErrors.set([
+        'Report expansion requires terminology, version, and terminology id.'
+      ]);
+      return;
+    }
+
+    this.loadingReportFacets.set(true);
+    this.reportFacetErrors.set([]);
+    const firstPage = buildContentPfs(1, 10, 'ancestorPath', true, '');
+    const relationshipPage = buildContentPfs(1, 10, 'group', true, '');
+    const mappingPage = buildContentPfs(1, 10, '', true, '');
+
+    let pendingRequests = type === 'CONCEPT' ? 3 : 2;
+    const finishRequest = () => {
+      pendingRequests -= 1;
+      if (pendingRequests <= 0 && this.selectedResult() === result) {
+        this.loadingReportFacets.set(false);
+      }
+    };
+
+    this.api
+      .findTrees(type, terminology, version, terminologyId, firstPage)
+      .pipe(finalize(finishRequest))
+      .subscribe({
+        next: (response) => {
+          if (this.selectedResult() === result) {
+            this.reportTrees.set(response.items);
+          }
+        },
+        error: () => {
+          if (this.selectedResult() === result) {
+            this.addReportFacetError('Hierarchies could not be loaded.');
+          }
+        }
+      });
+
+    if (type === 'CONCEPT') {
+      this.api
+        .findDeepRelationships(terminology, version, terminologyId, relationshipPage)
+        .pipe(finalize(finishRequest))
+        .subscribe({
+          next: (response) => {
+            if (this.selectedResult() === result) {
+              this.reportDeepRelationships.set(response.items);
+            }
+          },
+          error: () => {
+            if (this.selectedResult() === result) {
+              this.addReportFacetError('Deep relationships could not be loaded.');
+            }
+          }
+        });
+    }
+
+    this.api
+      .findMappings(type, terminology, version, terminologyId, mappingPage)
+      .pipe(finalize(finishRequest))
+      .subscribe({
+        next: (response) => {
+          if (this.selectedResult() === result) {
+            this.reportMappings.set(response.items);
+          }
+        },
+        error: () => {
+          if (this.selectedResult() === result) {
+            this.addReportFacetError('Mappings could not be loaded.');
+          }
+        }
+      });
+
+    if (pendingRequests === 0) {
+      this.loadingReportFacets.set(false);
+    }
+  }
+
+  private addReportFacetError(message: string): void {
+    this.reportFacetErrors.update((errors) =>
+      errors.includes(message) ? errors : [...errors, message]
+    );
+  }
+
+  private loadReportForComponent(
+    result: ContentSearchResult,
+    type: SearchableContentType,
+    component: ContentComponentDetail
+  ): void {
+    if (!this.isReportMode()) {
+      return;
+    }
+
+    if (!component.id) {
+      this.reportError.set('Preformatted report requires a persisted component id.');
+      return;
+    }
+
+    this.loadingReport.set(true);
+    this.api.getComponentReport(type, component.id, this.projectId()).subscribe({
+      next: (report) => {
+        if (this.selectedResult() !== result) {
+          return;
+        }
+        this.reportHtml.set(report || '');
+        this.reportError.set(null);
+        this.loadingReport.set(false);
+      },
+      error: () => {
+        if (this.selectedResult() !== result) {
+          return;
+        }
+        this.reportError.set('Preformatted report could not be loaded.');
+        this.loadingReport.set(false);
+      }
+    });
+  }
+
+  private toSearchableContentType(
+    value: ContentComponentType | string | null | undefined
+  ): SearchableContentType | null {
+    const normalized = value?.trim().toUpperCase();
+
+    return this.componentTypes.includes(normalized as SearchableContentType)
+      ? (normalized as SearchableContentType)
+      : null;
+  }
+
+  private toEpochMillis(value: string | number | null | undefined): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+
+    if (!value) {
+      return null;
+    }
+
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+
+    const parsed = Date.parse(value);
+
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private richTextHtml(value: string): string {
+    const normalized = value.replace(/\r\n?/g, '\n');
+
+    if (this.hasHtmlMarkup(normalized)) {
+      return normalized;
+    }
+
+    return normalized
+      .split(/\n{2,}/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .map(
+        (paragraph) =>
+          `<p>${paragraph
+            .split('\n')
+            .map((line) => this.escapeHtml(line))
+            .join('<br>')}</p>`
+      )
+      .join('');
+  }
+
+  private hasHtmlMarkup(value: string): boolean {
+    return /<\/?[a-z][\s\S]*>/i.test(value);
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (character) => {
+      const entities: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+
+      return entities[character];
+    });
+  }
+
+  private mutationActivityId(activityId: string): string {
+    return activityId.trim() || this.editActivityId().trim();
+  }
+
+  private parseTermgroup(
+    termgroup: string
+  ): { termType: string; terminology: string } | null {
+    const value = termgroup.trim();
+    const separatorIndex = value.indexOf('/');
+
+    if (separatorIndex <= 0 || separatorIndex >= value.length - 1) {
+      return null;
+    }
+
+    return {
+      terminology: value.slice(0, separatorIndex),
+      termType: value.slice(separatorIndex + 1)
+    };
+  }
+
+  private parsePositiveInteger(value: string): number | null {
+    const parsed = Number(value.trim());
+
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  private versionForTerminology(terminology: string): string {
+    return (
+      this.currentTerminologies().find(
+        (candidate) => candidate.terminology === terminology
+      )?.version ||
+      this.selectedComponent()?.version ||
+      this.version()
+    );
+  }
+
+  private buildApproveConceptRequest(overrideWarnings: boolean) {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.approvalActivityId());
+
+    if (!projectId || !component?.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildUpdateConceptPayload(): ContentComponentDetail | null {
+    const component = this.selectedComponent();
+    const workflowStatus = this.conceptUpdateWorkflowStatus().trim();
+
+    if (!component?.id || !workflowStatus || !this.isConceptComponent(component)) {
+      return null;
+    }
+
+    return {
+      ...component,
+      publishable: this.conceptUpdatePublishable(),
+      workflowStatus
+    };
+  }
+
+  private buildAddAtomRequest(
+    overrideWarnings: boolean
+  ): EditAddAtomRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.atomAddActivityId());
+    const pendingAtom = overrideWarnings ? this.atomAddPendingAtom() : null;
+    const termgroup = this.atomAddTermgroup().trim();
+    const separatorIndex = termgroup.indexOf('/');
+    const terminology =
+      separatorIndex >= 0 ? termgroup.slice(0, separatorIndex) : '';
+    const termType =
+      separatorIndex >= 0 ? termgroup.slice(separatorIndex + 1) : '';
+    const atom =
+      pendingAtom ??
+      {
+        codeId: this.atomAddCodeId().trim(),
+        conceptId: this.atomAddConceptId().trim(),
+        descriptorId: this.atomAddDescriptorId().trim(),
+        language: this.atomAddLanguage().trim(),
+        name: this.atomAddName().trim(),
+        publishable: true,
+        termType,
+        terminology,
+        terminologyId: '',
+        version: this.versionForTerminology(terminology),
+        workflowStatus: this.atomAddStatus().trim()
+      };
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !atom.name ||
+      !atom.termType ||
+      !atom.terminology ||
+      !atom.language ||
+      (!atom.codeId && !atom.conceptId && !atom.descriptorId) ||
+      !lastModified ||
+      !activityId
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      atom,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildRemoveAtomRequest(
+    atom: ContentAtom,
+    overrideWarnings: boolean
+  ): EditRemoveAtomRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.atomRemovalActivityId());
+
+    if (!projectId || !component?.id || !atom.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      atomId: atom.id,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildMoveAtomsRequest(
+    overrideWarnings: boolean
+  ): EditMoveAtomsRequest | null {
+    const pendingRequest = overrideWarnings ? this.atomMovePendingRequest() : null;
+    if (pendingRequest) {
+      return {
+        ...pendingRequest,
+        overrideWarnings: true
+      };
+    }
+
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const conceptId2 = this.parsePositiveInteger(this.atomMoveTargetConceptId());
+    const atomIds = this.selectedAtomMoveIds();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.atomMoveActivityId());
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !conceptId2 ||
+      !atomIds.length ||
+      !lastModified ||
+      !activityId
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      atomIds,
+      conceptId: component.id,
+      conceptId2,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildSplitConceptRequest(
+    overrideWarnings: boolean
+  ): EditSplitConceptRequest | null {
+    const pendingRequest = overrideWarnings ? this.atomSplitPendingRequest() : null;
+    if (pendingRequest) {
+      return {
+        ...pendingRequest,
+        overrideWarnings: true
+      };
+    }
+
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const atomIds = this.selectedAtomSplitIds();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.atomSplitActivityId());
+    const relationshipType = this.atomSplitRelationshipType().trim();
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !atomIds.length ||
+      !lastModified ||
+      !activityId ||
+      !relationshipType
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      atomIds,
+      conceptId: component.id,
+      copyRelationships: this.atomSplitCopyRelated(),
+      copySemanticTypes: this.atomSplitCopyRelated(),
+      lastModified,
+      overrideWarnings,
+      projectId,
+      relationshipType
+    };
+  }
+
+  private buildUpdateAtomStatusRequest(
+    atom: ContentAtom,
+    workflowStatus: string,
+    overrideWarnings: boolean
+  ): EditUpdateAtomRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.atomUpdateActivityId());
+    const pendingAtom = overrideWarnings ? this.atomUpdatePendingAtom() : null;
+    const updatedAtom =
+      pendingAtom && pendingAtom.id === atom.id
+        ? pendingAtom
+        : { ...atom, workflowStatus };
+
+    if (!projectId || !component?.id || !atom.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      atom: updatedAtom,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildUpdateAtomRequest(
+    atom: ContentAtom,
+    publishable: boolean,
+    overrideWarnings: boolean
+  ): EditUpdateAtomRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.atomUpdateActivityId());
+    const pendingAtom = overrideWarnings ? this.atomEditPendingAtom() : null;
+    const updatedAtom =
+      pendingAtom && pendingAtom.id === atom.id
+        ? pendingAtom
+        : { ...atom, publishable };
+
+    if (!projectId || !component?.id || !atom.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      atom: updatedAtom,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private atomSimpleEditHasChanges(atom: ContentAtom): boolean {
+    return (
+      this.atomSimpleEditName().trim() !== (atom.name || '') ||
+      this.atomSimpleEditTermgroup().trim() !== this.atomTermgroup(atom) ||
+      this.atomSimpleEditLanguage().trim() !== (atom.language || '') ||
+      this.atomSimpleEditPublishable() !== (atom.publishable !== false) ||
+      this.atomSimpleEditSuppressible() !== (atom.suppressible === true)
+    );
+  }
+
+  private buildSimpleAtomPayload(atom: ContentAtom): ContentAtom | null {
+    const termgroup = this.parseTermgroup(this.atomSimpleEditTermgroup());
+    const name = this.atomSimpleEditName().trim();
+    const language = this.atomSimpleEditLanguage().trim();
+
+    if (!atom.id || !termgroup || !name || !language) {
+      return null;
+    }
+
+    return {
+      ...atom,
+      language,
+      name,
+      publishable: this.atomSimpleEditPublishable(),
+      suppressible: this.atomSimpleEditSuppressible(),
+      termType: termgroup.termType,
+      terminology: termgroup.terminology,
+      version: atom.version || this.versionForTerminology(termgroup.terminology)
+    };
+  }
+
+  private buildRemoveAttributeRequest(
+    attribute: ContentAttribute,
+    overrideWarnings: boolean
+  ): EditRemoveAttributeRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.attributeRemovalActivityId());
+
+    if (!projectId || !component?.id || !attribute.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      attributeId: attribute.id,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildAddAttributeRequest(
+    overrideWarnings: boolean
+  ): EditAddAttributeRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.attributeAddActivityId());
+    const attribute =
+      overrideWarnings && this.attributeAddPendingAttribute()
+        ? this.attributeAddPendingAttribute()
+        : {
+            name: this.attributeAddName().trim(),
+            value: this.attributeAddValue().trim()
+          };
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !attribute?.name ||
+      !attribute.value ||
+      !lastModified ||
+      !activityId
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      attribute,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildAddSemanticTypeRequest(
+    overrideWarnings: boolean
+  ): EditAddSemanticTypeRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.semanticTypeAddActivityId());
+    const semanticType = (
+      overrideWarnings
+        ? this.semanticTypeAddPendingValue() || this.semanticTypeAddValue()
+        : this.semanticTypeAddValue()
+    ).trim();
+
+    if (!projectId || !component?.id || !semanticType || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      semanticType
+    };
+  }
+
+  private buildMergeConceptRequest(
+    overrideWarnings: boolean
+  ): EditMergeConceptRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const activityId = this.mutationActivityId(this.mergeActivityId());
+    const targetConceptId = this.parsePositiveInteger(this.mergeTargetConceptId());
+    const selectedTarget = this.selectedMergeTarget();
+    const lastModified = this.mergeFromLastModifiedEpoch();
+
+    if (!projectId || !component?.id || !targetConceptId || !lastModified || !activityId) {
+      return null;
+    }
+
+    if (this.mergeReverseOrder()) {
+      if (!selectedTarget?.id || selectedTarget.id !== targetConceptId) {
+        return null;
+      }
+
+      return {
+        activityId,
+        conceptId: targetConceptId,
+        conceptId2: component.id,
+        lastModified,
+        overrideWarnings,
+        projectId
+      };
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      conceptId2: targetConceptId,
+      lastModified,
+      overrideWarnings,
+      projectId
+    };
+  }
+
+  private buildAddRelationshipRequest(
+    overrideWarnings: boolean,
+    relationshipType: string
+  ): EditAddRelationshipRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.relationshipAddActivityId());
+    const pendingRelationship = overrideWarnings
+      ? this.relationshipAddPendingRelationship()
+      : null;
+    const targetConceptId =
+      pendingRelationship?.toId ??
+      this.parsePositiveInteger(this.relationshipAddTargetConceptId());
+    const selectedTarget =
+      targetConceptId && this.selectedRelationshipTarget()?.id === targetConceptId
+        ? this.selectedRelationshipTarget()
+        : null;
+    const relationship =
+      pendingRelationship ??
+      (component && targetConceptId
+        ? this.buildRelationshipPayload(component, targetConceptId, relationshipType, selectedTarget)
+        : null);
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !targetConceptId ||
+      !relationship ||
+      !relationship.relationshipType ||
+      !relationship.terminology ||
+      !relationship.version ||
+      !lastModified ||
+      !activityId
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      relationship
+    };
+  }
+
+  private buildAddRelationshipsRequest(
+    overrideWarnings: boolean,
+    relationshipType: string
+  ): EditAddRelationshipsRequest | null {
+    const pendingRelationships = overrideWarnings
+      ? this.relationshipAddPendingRelationships()
+      : null;
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.relationshipAddActivityId());
+    const relationships =
+      pendingRelationships ??
+      (component
+        ? this.selectedRelationshipTargets()
+            .map((target) =>
+              target.id
+                ? this.buildRelationshipPayload(
+                    component,
+                    target.id,
+                    relationshipType,
+                    target
+                  )
+                : null
+            )
+            .filter(
+              (relationship): relationship is ContentRelationship =>
+                Boolean(relationship)
+            )
+        : []);
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !relationships.length ||
+      !relationshipType.trim() ||
+      !lastModified ||
+      !activityId
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      relationships
+    };
+  }
+
+  private buildRelationshipPayload(
+    component: ContentComponentDetail,
+    targetConceptId: number,
+    relationshipType: string,
+    selectedTarget: ContentSearchResult | null
+  ): ContentRelationship {
+    const terminology = component.terminology || this.terminology();
+    const version =
+      component.version || this.versionForTerminology(terminology || this.terminology());
+
+    return {
+      additionalRelationshipType: '',
+      assertedDirection: false,
+      fromId: component.id,
+      fromName: component.name,
+      fromTerminology: component.terminology,
+      fromTerminologyId: component.terminologyId,
+      fromVersion: component.version,
+      group: null,
+      hierarchical: false,
+      inferred: false,
+      name: null,
+      obsolete: false,
+      published: false,
+      relationshipType: relationshipType.trim(),
+      stated: false,
+      suppressible: false,
+      terminology,
+      terminologyId: '',
+      toId: targetConceptId,
+      toName: selectedTarget?.name || selectedTarget?.value || '',
+      toTerminology: selectedTarget?.terminology || terminology,
+      toTerminologyId: selectedTarget?.terminologyId || '',
+      toVersion: selectedTarget?.version || version,
+      type: 'RELATIONSHIP',
+      version,
+      workflowStatus: 'NEEDS_REVIEW'
+    };
+  }
+
+  private buildRemoveRelationshipRequest(
+    relationship: ContentRelationship,
+    overrideWarnings: boolean
+  ): EditRemoveRelationshipRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.relationshipRemovalActivityId());
+
+    if (
+      !projectId ||
+      !component?.id ||
+      !relationship.id ||
+      !lastModified ||
+      !activityId
+    ) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      relationshipId: relationship.id
+    };
+  }
+
+  private buildRemoveSemanticTypeRequest(
+    semanticType: ContentSemanticType,
+    overrideWarnings: boolean
+  ): EditRemoveSemanticTypeRequest | null {
+    const projectId = this.projectId();
+    const component = this.selectedComponent();
+    const lastModified = this.selectedLastModifiedEpoch();
+    const activityId = this.mutationActivityId(this.semanticTypeRemovalActivityId());
+
+    if (!projectId || !component?.id || !semanticType.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: component.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      semanticTypeId: semanticType.id
+    };
+  }
+}

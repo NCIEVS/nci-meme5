@@ -13,7 +13,10 @@ import { LoginComponent } from './pages/login/login.component';
 import { StartupComponent } from './pages/startup/startup.component';
 
 const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS)
-  .filter((tabKey) => !['admin', 'process', 'workflow'].includes(tabKey))
+  .filter(
+    (tabKey) =>
+      !['admin', 'edit', 'process', 'workflow'].includes(tabKey)
+  )
   .map((tabKey) => ({
     path: TAB_DEFINITIONS[tabKey].link,
     component: FeaturePlaceholderComponent,
@@ -23,6 +26,16 @@ const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS)
     },
     title: `NCI-META ${TAB_DEFINITIONS[tabKey].label}`
   }));
+
+const loadContentComponent = () =>
+  import('./features/content-edit/content.component').then(
+    (module) => module.ContentComponent
+  );
+
+const loadEditWorkbenchComponent = () =>
+  import('./features/content-edit/edit-workbench.component').then(
+    (module) => module.EditWorkbenchComponent
+  );
 
 export const routes: Routes = [
   {
@@ -46,6 +59,92 @@ export const routes: Routes = [
     path: 'license',
     component: LicenseComponent,
     title: 'NCI-META License'
+  },
+  {
+    path: 'content',
+    loadComponent: loadContentComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit'
+    },
+    title: 'NCI-META Content'
+  },
+  {
+    path: 'content/:mode/:type/:terminology/:version/:terminologyId',
+    loadComponent: loadContentComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit'
+    },
+    title: 'NCI-META Content'
+  },
+  {
+    path: 'content/:mode/:type/:terminology/:id',
+    loadComponent: loadContentComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit'
+    },
+    title: 'NCI-META Content'
+  },
+  {
+    path: 'edit',
+    loadComponent: loadContentComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit'
+    },
+    title: 'NCI-META Edit'
+  },
+  {
+    path: 'edit/semantic-types',
+    loadComponent: loadEditWorkbenchComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit',
+      workbench: 'semantic-types'
+    },
+    title: 'NCI-META Semantic Type Editor'
+  },
+  {
+    path: 'edit/codeConcepts',
+    loadComponent: loadEditWorkbenchComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit',
+      workbench: 'code-concepts'
+    },
+    title: 'NCI-META Code Concept Editor'
+  },
+  {
+    path: 'edit/atoms',
+    loadComponent: loadEditWorkbenchComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit',
+      workbench: 'atoms'
+    },
+    title: 'NCI-META Atom Editor'
+  },
+  {
+    path: 'edit/relationships',
+    loadComponent: loadEditWorkbenchComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit',
+      workbench: 'relationships'
+    },
+    title: 'NCI-META Relationship Editor'
+  },
+  {
+    path: 'contexts',
+    loadComponent: loadEditWorkbenchComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'edit',
+      workbench: 'contexts'
+    },
+    title: 'NCI-META Context Editor'
   },
   {
     path: 'process',

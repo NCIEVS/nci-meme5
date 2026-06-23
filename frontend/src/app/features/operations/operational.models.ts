@@ -64,10 +64,16 @@ export interface WorkflowNote {
 }
 
 export interface OperationalProject {
+  editingEnabled?: boolean | null;
   id?: number | null;
+  language?: string | null;
   name?: string | null;
+  newAtomTermgroups?: string[] | null;
   teamBased?: boolean | null;
+  terminology?: string | null;
   userRoleMap?: Record<string, string> | null;
+  validationChecks?: string[] | null;
+  version?: string | null;
 }
 
 export interface OperationalUser {

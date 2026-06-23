@@ -1,0 +1,277 @@
+<section class="operations-view" aria-labelledby="edit-title">
+  <header class="view-header">
+    <div>
+      <p class="kicker">Edit Foundation</p>
+      <h1 id="edit-title">Edit</h1>
+    </div>
+    <div class="summary-set" aria-label="Edit foundation counts">
+      <div class="summary">
+        <strong>{{ routeInventory.length }}</strong>
+        <span>routes</span>
+      </div>
+      <div class="summary">
+        <strong>{{ mutationInventory.length }}</strong>
+        <span>mutation groups</span>
+      </div>
+      <div class="summary">
+        <strong>{{ projectId() ?? 'n/a' }}</strong>
+        <span>project</span>
+      </div>
+      <div class="summary">
+        <strong>{{ activeWorkbench() }}</strong>
+        <span>workbench</span>
+      </div>
+    </div>
+  </header>
+
+  <p class="context-panel">
+    Edit route foundation is active for project {{ projectId() ?? 'n/a' }}
+    with role {{ projectRole() }}.
+    @if (!canOpenWorkbench()) {
+      Edit routes require author-level project context.
+    }
+  </p>
+
+  <nav class="toolbar" aria-label="Edit workbench routes">
+    @for (link of workbenchLinks; track link.workbench) {
+      <a
+        class="legacy-link"
+        [class.active]="activeWorkbench() === link.workbench"
+        [routerLink]="link.route"
+        [queryParams]="selectedContextQueryParams()"
+        routerLinkActive="active"
+      >
+        {{ link.label }}
+      </a>
+    }
+  </nav>
+
+  @if (selectedContext(); as context) {
+    <section class="list-panel" aria-labelledby="edit-selected-context-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="edit-selected-context-title">Selected Context</h2>
+          <p>
+            {{ context.terminologyId || context.componentId || 'n/a' }}
+            {{ context.terminology || '' }} {{ context.version || '' }}
+          </p>
+        </div>
+      </div>
+      <div class="detail-body">
+        <dl>
+          @for (entry of selectedContextEntries(); track entry.label) {
+            <dt>{{ entry.label }}</dt>
+            <dd>{{ entry.value }}</dd>
+          }
+        </dl>
+        <div class="form-actions">
+          <a
+            class="legacy-link"
+            [routerLink]="'/edit'"
+            [queryParams]="editDetailQueryParams()"
+          >
+            Open Full Edit Detail
+          </a>
+        </div>
+      </div>
+    </section>
+  }
+
+  <div class="split-grid">
+    <section class="list-panel" aria-labelledby="edit-routes-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="edit-routes-title">Legacy Routes</h2>
+          <p>Angular route coverage captured for the edit workbench family.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Legacy Source</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of routeInventory; track item.label) {
+              <tr>
+                <td>{{ item.label }}</td>
+                <td>{{ item.legacySource }}</td>
+                <td>{{ item.notes }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="list-panel" aria-labelledby="edit-mutations-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="edit-mutations-title">Mutation Surface</h2>
+          <p>Endpoint groups held for focused, safety-first implementation slices.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Group</th>
+              <th>Legacy Source</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of mutationInventory; track item.label) {
+              <tr>
+                <td>{{ item.label }}</td>
+                <td>{{ item.legacySource }}</td>
+                <td>{{ item.notes }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="split-grid">
+    <section class="list-panel" aria-labelledby="edit-staged-actions-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="edit-staged-actions-title">Staged Mutation Actions</h2>
+          <p>Typed API coverage is in place; live buttons stay disabled until safety gates are wired.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Endpoint</th>
+              <th>Readiness Gate</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of stagedActions; track item.action) {
+              <tr>
+                <td>{{ item.action }}</td>
+                <td>{{ item.endpoint }}</td>
+                <td>{{ item.readiness }}</td>
+                <td>
+                  <button type="button" disabled>
+                    {{ editRoleReady() ? 'Safety Pending' : 'Role Required' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="list-panel" aria-labelledby="edit-action-controls-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="edit-action-controls-title">Undo / Redo Action</h2>
+          <p>Run a molecular action reversal or replay with explicit confirmation.</p>
+        </div>
+      </div>
+      <div class="detail-body">
+        <label class="form-field" for="edit-action-id">
+          Molecular Action ID
+          <input
+            id="edit-action-id"
+            type="number"
+            min="1"
+            [ngModel]="actionMolecularActionId()"
+            (ngModelChange)="setActionMolecularActionId($event)"
+          />
+        </label>
+        <label class="form-field" for="edit-action-activity">
+          Activity ID
+          <input
+            id="edit-action-activity"
+            type="text"
+            [ngModel]="actionActivityId()"
+            (ngModelChange)="setActionActivityId($event)"
+          />
+        </label>
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [ngModel]="actionForce()"
+            (ngModelChange)="setActionForce($event)"
+          />
+          Force action
+        </label>
+        @if (actionReadiness().reasons.length) {
+          <ul class="form-errors">
+            @for (reason of actionReadiness().reasons; track reason) {
+              <li>{{ reason }}</li>
+            }
+          </ul>
+        }
+        @if (actionErrors().length) {
+          <ul class="form-errors">
+            @for (error of actionErrors(); track error) {
+              <li>{{ error }}</li>
+            }
+          </ul>
+        }
+        @if (actionWarnings().length) {
+          <ul
+            class="form-errors"
+            style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
+          >
+            @for (warning of actionWarnings(); track warning) {
+              <li>{{ warning }}</li>
+            }
+          </ul>
+        }
+        @if (actionComments().length) {
+          <div class="form-messages">
+            @for (comment of actionComments(); track comment) {
+              <p>{{ comment }}</p>
+            }
+          </div>
+        }
+        <div class="form-actions">
+          <button
+            type="button"
+            (click)="performAction('undo')"
+            [disabled]="!actionReadiness().canExecute || runningAction() !== null"
+          >
+            {{ runningAction() === 'undo' ? 'Undoing...' : 'Undo Action' }}
+          </button>
+          <button
+            type="button"
+            (click)="performAction('redo')"
+            [disabled]="!actionReadiness().canExecute || runningAction() !== null"
+          >
+            {{ runningAction() === 'redo' ? 'Redoing...' : 'Redo Action' }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="list-panel" aria-labelledby="edit-safety-title">
+      <div class="panel-header">
+        <div>
+          <h2 id="edit-safety-title">Safety Gates</h2>
+          <p>Required before enabling mutation execution in the Angular workbench.</p>
+        </div>
+      </div>
+      <div class="detail-body">
+        <ul class="sample-results">
+          @for (check of safetyChecks; track check) {
+            <li>{{ check }}</li>
+          }
+        </ul>
+      </div>
+    </section>
+  </div>
+</section>

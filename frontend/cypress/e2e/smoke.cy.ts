@@ -1,7 +1,7 @@
 describe('Angular 20 shell', () => {
   const config = {
     'base.url': 'http://localhost:8080/umls-server-rest',
-    'deploy.enabled.tabs': 'content,source,terminology,metadata,admin',
+    'deploy.enabled.tabs': 'edit,source,terminology,metadata,admin',
     'deploy.feedback.email': 'info@example.com',
     'deploy.footer.copyright': 'Copyright @2026',
     'deploy.landing.enabled': 'true',
@@ -26,8 +26,9 @@ describe('Angular 20 shell', () => {
 
     cy.wait('@config');
     cy.contains('NCI-META Test').should('be.visible');
-    cy.contains('Content').should('be.visible');
+    cy.contains('Edit').should('be.visible');
     cy.contains('Admin').should('be.visible');
+    cy.get('nav[aria-label="Enabled tabs"]').should('not.contain', 'Content');
     cy.get('nav[aria-label="Enabled tabs"]').should('not.contain', 'Sources');
     cy.get('nav[aria-label="Enabled tabs"]').should('not.contain', 'Terminology');
     cy.get('nav[aria-label="Enabled tabs"]').should('not.contain', 'Metadata');
@@ -235,9 +236,7 @@ describe('Angular 20 shell', () => {
             authToken: 'DSS',
             name: 'Deborah Shapiro',
             id: 11,
-            projectRoleMap: {
-              '1': 'ADMINISTRATOR'
-            },
+            projectRoleMap: {},
             userName: 'dss',
             userPreferences: {
               id: 22,
@@ -286,6 +285,1495 @@ describe('Angular 20 shell', () => {
     cy.contains('Project added.').should('be.visible');
     cy.contains('DSS New Project').should('be.visible');
     cy.contains('Assign Project').should('not.exist');
+  });
+
+  it('loads the content search and edit route foundations', () => {
+    const storedUser = {
+      applicationRole: 'USER',
+      authToken: 'DSS',
+      name: 'Deborah Shapiro',
+      id: 11,
+      projectRoleMap: {
+        '3': 'AUTHOR'
+      },
+      userName: 'dss',
+      userPreferences: {
+        id: 22,
+        lastProjectId: 3,
+        lastProjectRole: 'AUTHOR',
+        lastTab: '/edit',
+        userName: 'dss',
+        properties: {}
+      }
+    };
+
+    cy.intercept('GET', '/umls-server-rest/configure/properties', {
+      ...config,
+      'deploy.enabled.tabs': 'edit',
+      'deploy.license.enabled': 'false'
+    }).as('contentEditConfig');
+    cy.intercept('GET', '/umls-server-rest/metadata/terminology/current', {
+      terminologies: [
+        {
+          current: true,
+          organizingClassType: 'CONCEPT',
+          terminology: 'NCIMTH',
+          version: 'latest'
+        }
+      ],
+      totalCount: 1
+    }).as('contentTerminologies');
+    cy.intercept('GET', '/umls-server-rest/project/3', {
+      editingEnabled: true,
+      id: 3,
+      language: 'ENG',
+      name: 'NCI-META Editing',
+      newAtomTermgroups: ['NCIMTH/PT', 'NCIMTH/SY'],
+      teamBased: false,
+      terminology: 'NCIMTH',
+      userRoleMap: {
+        dss: 'AUTHOR'
+      },
+      validationChecks: ['DEFAULT', 'REL'],
+      version: 'latest'
+    }).as('contentProject');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/NCIMTH/latest?query=C123',
+      (request) => {
+        expect(request.body).to.include({
+          ascending: false,
+          maxResults: 10,
+          startIndex: 0
+        });
+        expect(request.body).not.to.have.property('sortField');
+        expect(request.body.queryRestriction).to.contain('anonymous:false');
+        request.reply({
+          results: [
+            {
+              id: 123,
+              terminology: 'NCIMTH',
+              terminologyId: 'C123',
+              type: 'CONCEPT',
+              value: 'Test concept',
+              version: 'latest',
+              score: 12.25,
+              workflowStatus: 'READY'
+            }
+          ],
+          totalCount: 1
+        });
+      }
+    ).as('contentSearch');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/NCIMTH/latest?query=C456',
+      (request) => {
+        expect(request.body).to.include({
+          ascending: false,
+          maxResults: 5,
+          startIndex: 0
+        });
+        expect(request.body).not.to.have.property('sortField');
+        expect(request.body.queryRestriction).to.contain('anonymous:false');
+        request.reply({
+          results: [
+            {
+              id: 456,
+              terminology: 'NCIMTH',
+              terminologyId: 'C456',
+              type: 'CONCEPT',
+              value: 'Related target concept',
+              version: 'latest',
+              workflowStatus: 'READY'
+            },
+            {
+              id: 654,
+              terminology: 'NCIMTH',
+              terminologyId: 'C654',
+              type: 'CONCEPT',
+              value: 'Additional relationship target',
+              version: 'latest',
+              workflowStatus: 'READY'
+            }
+          ],
+          totalCount: 2
+        });
+      }
+    ).as('relationshipTargetSearch');
+    cy.intercept(
+      'POST',
+      /\/umls-server-rest\/content\/concept\/NCIMTH\/latest\?query=atoms\.codeId(?::|%3A)CODE123/,
+      (request) => {
+        expect(request.body).to.include({
+          ascending: false,
+          maxResults: 25,
+          startIndex: 0
+        });
+        expect(request.body).not.to.have.property('sortField');
+        expect(request.body.queryRestriction).to.contain('anonymous:false');
+        request.reply({
+          results: [
+            {
+              id: 999,
+              terminology: 'NCIMTH',
+              terminologyId: 'C999',
+              type: 'CONCEPT',
+              value: 'Later shared code concept',
+              version: 'latest',
+              workflowStatus: 'READY'
+            },
+            {
+              id: 321,
+              terminology: 'NCIMTH',
+              terminologyId: 'C321',
+              type: 'CONCEPT',
+              value: 'Earlier shared code concept',
+              version: 'latest',
+              workflowStatus: 'READY'
+            }
+          ],
+          totalCount: 2
+        });
+      }
+    ).as('atomCodeConcepts');
+    cy.intercept(
+      'POST',
+      /\/umls-server-rest\/content\/concept\/NCIMTH\/latest\/C123\/treePositions\/deep\?query=Tree/,
+      (request) => {
+        expect(request.body).to.include({
+          ascending: false,
+          maxResults: 25,
+          sortField: 'terminology',
+          startIndex: 0
+        });
+        request.reply({
+          totalCount: 2,
+          treePositions: [
+            {
+              ancestorPath: '1~2',
+              nodeId: 777,
+              nodeName: 'Tree test context',
+              nodeTerminology: 'NCIMTH',
+              nodeTerminologyId: 'C777',
+              nodeVersion: 'latest',
+              terminology: 'NCIMTH',
+              type: 'CONCEPT',
+              version: 'latest'
+            },
+            {
+              ancestorPath: '',
+              nodeId: 888,
+              nodeName: 'Root test context',
+              nodeTerminology: 'NCIMTH',
+              nodeTerminologyId: 'C888',
+              nodeVersion: 'latest',
+              terminology: 'NCIMTH',
+              type: 'CONCEPT',
+              version: 'latest'
+            }
+          ]
+        });
+      }
+    ).as('contextTreePositions');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/NCIMTH/latest?query=C789',
+      (request) => {
+        expect(request.body).to.include({
+          ascending: false,
+          maxResults: 5,
+          startIndex: 0
+        });
+        expect(request.body).not.to.have.property('sortField');
+        expect(request.body.queryRestriction).to.contain('anonymous:false');
+        request.reply({
+          results: [
+            {
+              id: 789,
+              lastModified: 1770000001000,
+              terminology: 'NCIMTH',
+              terminologyId: 'C789',
+              type: 'CONCEPT',
+              value: 'Merge target concept',
+              version: 'latest',
+              workflowStatus: 'READY'
+            }
+          ],
+          totalCount: 1
+        });
+      }
+    ).as('mergeTargetSearch');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/NCIMTH/latest?query=C987',
+      (request) => {
+        expect(request.body).to.include({
+          ascending: false,
+          maxResults: 5,
+          startIndex: 0
+        });
+        expect(request.body).not.to.have.property('sortField');
+        expect(request.body.queryRestriction).to.contain('anonymous:false');
+        request.reply({
+          results: [
+            {
+              id: 987,
+              terminology: 'NCIMTH',
+              terminologyId: 'C987',
+              type: 'CONCEPT',
+              value: 'Atom move target concept',
+              version: 'latest',
+              workflowStatus: 'READY'
+            }
+          ],
+          totalCount: 1
+        });
+      }
+    ).as('atomMoveTargetSearch');
+    cy.intercept(
+      'GET',
+      '/umls-server-rest/content/concept/NCIMTH/latest/C123?projectId=3',
+      {
+        id: 123,
+        terminology: 'NCIMTH',
+        terminologyId: 'C123',
+        type: 'CONCEPT',
+        lastModified: 1770000000000,
+        name: 'Full test concept',
+        publishable: true,
+        version: 'latest',
+        workflowStatus: 'READY',
+        atoms: [
+          {
+            codeId: 'CODE123',
+            conceptId: 'C123',
+            descriptorId: '',
+            id: 1001,
+            language: 'ENG',
+            lexicalClassId: 'L123',
+            name: 'Preferred test atom',
+            obsolete: false,
+            publishable: true,
+            stringClassId: 'S123',
+            suppressible: false,
+            termType: 'PN',
+            terminology: 'NCIMTH',
+            terminologyId: 'A123',
+            workflowStatus: 'READY'
+          }
+        ],
+        definitions: [
+          {
+            id: 2001,
+            terminology: 'NCI',
+            value:
+              '<p>A fuller <strong>concept</strong> definition.</p><p>Second definition line.</p>'
+          },
+          {
+            atomElement: true,
+            atomElementStr: 'Preferred test atom [NCIMTH/PN]',
+            id: 2002,
+            suppressible: true,
+            terminology: 'NCI',
+            value: 'Atom definition line one\nAtom definition line two'
+          }
+        ],
+        semanticTypes: [
+          {
+            id: 3001,
+            semanticType: 'Neoplastic Process'
+          }
+        ],
+        attributes: [
+          {
+            id: 4001,
+            terminology: 'NCI',
+            name: 'Concept_Status',
+            value: 'Reviewed'
+          }
+        ],
+        relationships: [
+          {
+            id: 5001,
+            relationshipType: 'PAR',
+            toTerminologyId: 'C456'
+          }
+        ],
+        members: [
+          {
+            id: 6001,
+            subset: {
+              terminologyId: 'SUBSET1',
+              name: 'Test subset'
+            }
+          }
+        ],
+        notes: [
+          {
+            id: 7001,
+            lastModifiedBy: 'DSS',
+            note: 'Curator report note'
+          }
+        ]
+      }
+    ).as('contentDetail');
+    cy.intercept('GET', '/umls-server-rest/metadata/sty/NCIMTH/latest', {
+      totalCount: 2,
+      types: [
+        {
+          abbreviation: 'T191',
+          expandedForm: 'Neoplastic Process',
+          typeId: 'T191'
+        },
+        {
+          abbreviation: 'T033',
+          expandedForm: 'Finding',
+          typeId: 'T033'
+        }
+      ]
+    }).as('semanticTypeOptions');
+    cy.intercept('GET', '/umls-server-rest/report/concept/123?projectId=3', {
+      body: 'Legacy concept report\nLegacy atom context'
+    }).as('contentReport');
+    cy.intercept('POST', '/umls-server-rest/content/concept/NCIMTH/latest/C123/trees', {
+      trees: [
+        {
+          nodeId: 8001,
+          nodeTerminologyId: 'C123',
+          nodeName: 'Tree test node',
+          terminology: 'NCIMTH',
+          childCt: 2,
+          children: []
+        }
+      ],
+      totalCount: 1
+    }).as('contentTrees');
+    cy.intercept(
+      'POST',
+      /\/umls-server-rest\/content\/concept\/NCIMTH\/latest\/C123\/relationships\/deep.*/,
+      {
+        relationships: [
+          {
+            id: 9001,
+            group: '1',
+            relationshipType: 'RB',
+            toTerminologyId: 'C789',
+            toName: 'Deep relationship target',
+            terminology: 'NCIMTH'
+          }
+        ],
+        totalCount: 1
+      }
+    ).as('contentDeepRelationships');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/C123/NCIMTH/latest/mappings?query=',
+      (request) => {
+        expect(request.body).not.to.have.property('sortField');
+        request.reply({
+          mappings: [
+            {
+              id: 9101,
+              group: '1',
+              rank: '1',
+              relationshipType: 'SY',
+              toTerminologyId: 'MAP123',
+              toName: 'Mapped target',
+              advice: 'Map advice'
+            }
+          ],
+          totalCount: 1
+        });
+      }
+    ).as('contentMappings');
+    cy.intercept('POST', /\/umls-server-rest\/content\/validate\/concept.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('checkId')).to.equal('DEFAULT');
+      expect(request.body).to.include({
+        id: 123,
+        terminologyId: 'C123'
+      });
+
+      request.reply({
+        comments: ['Validation checked DEFAULT.'],
+        errors: [],
+        valid: true,
+        warnings: ['Validation warning before approval.']
+      });
+    }).as('validateConcept');
+    cy.intercept('POST', /\/umls-server-rest\/content\/validate\/atom.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(request.body).to.include({
+        id: 1001,
+        terminologyId: 'A123'
+      });
+
+      request.reply({
+        comments: ['Atom validation checked project rules.'],
+        errors: [],
+        valid: true,
+        warnings: ['Atom validation warning for review.']
+      });
+    }).as('validateAtom');
+    cy.intercept('POST', '/umls-server-rest/edit/concept?projectId=3', (request) => {
+      expect(request.body).to.include({
+        id: 123,
+        publishable: false,
+        terminologyId: 'C123',
+        workflowStatus: 'NEEDS_REVIEW'
+      });
+      request.reply('');
+    }).as('updateConcept');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/edit/atom?projectId=3&conceptId=123',
+      (request) => {
+        expect(request.body).to.include({
+          id: 1001,
+          language: 'SPA',
+          name: 'Simple edited atom',
+          publishable: false,
+          suppressible: true,
+          termType: 'SY',
+          terminology: 'NCIMTH',
+          terminologyId: 'A123',
+          workflowStatus: 'READY'
+        });
+        request.reply('');
+      }
+    ).as('updateSimpleAtom');
+    cy.intercept('POST', '/umls-server-rest/content/concept/123/note', (request) => {
+      expect(request.body).to.equal('New curator note');
+      request.reply('');
+    }).as('addConceptNote');
+    cy.intercept('DELETE', '/umls-server-rest/content/concept/note/7001', '').as(
+      'removeConceptNote'
+    );
+    const editActivityId = 'wrk25b_snomedct_us_default_002';
+    cy.intercept('POST', /\/umls-server-rest\/meta\/concept\/approve.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Review warning before approval.']
+      });
+    }).as('approveConcept');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/concept\/merge.*/, (request) => {
+      const url = new URL(request.url);
+      const reverseOrder = url.searchParams.get('conceptId') === '789';
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+
+      if (reverseOrder) {
+        expect(url.searchParams.get('conceptId')).to.equal('789');
+        expect(url.searchParams.get('conceptId2')).to.equal('123');
+        expect(url.searchParams.get('lastModified')).to.equal('1770000001000');
+      } else {
+        expect(url.searchParams.get('conceptId')).to.equal('123');
+        expect(url.searchParams.get('conceptId2')).to.equal('789');
+        expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      }
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: [
+            reverseOrder
+              ? 'Reverse concept merge completed.'
+              : 'Concept merge completed.'
+          ],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: [
+          reverseOrder
+            ? 'Reverse concept merge warning for review.'
+            : 'Concept merge warning for review.'
+        ]
+      });
+    }).as('mergeConcept');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/atom\/move.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('conceptId2')).to.equal('987');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.deep.equal([1001]);
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Atom move completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Atom move warning for review.']
+      });
+    }).as('moveAtoms');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/concept\/split.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(url.searchParams.get('copyRelationships')).to.equal('true');
+      expect(url.searchParams.get('copySemanticTypes')).to.equal('true');
+      expect(url.searchParams.get('relationshipType')).to.equal('RN');
+      expect(request.body).to.deep.equal([1001]);
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Concept split completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Concept split warning for review.']
+      });
+    }).as('splitConcept');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/atom\/remove\/1001.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Atom removal completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Atom removal warning for review.']
+      });
+    }).as('removeAtom');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/atom\/add.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.include({
+        codeId: 'NOCODE',
+        conceptId: '',
+        descriptorId: '',
+        language: 'ENG',
+        name: 'Added test atom',
+        publishable: true,
+        termType: 'PT',
+        terminology: 'NCIMTH',
+        terminologyId: '',
+        version: 'latest',
+        workflowStatus: 'NEEDS_REVIEW'
+      });
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Atom add completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Atom add warning for review.']
+      });
+    }).as('addAtom');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/atom\/update.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.include({
+        id: 1001,
+        name: 'Preferred test atom',
+        terminologyId: 'A123'
+      });
+
+      if (request.body.publishable === false) {
+        expect(request.body.workflowStatus).to.equal('READY');
+
+        if (url.searchParams.get('overrideWarnings') === 'true') {
+          request.reply({
+            comments: ['Atom update completed.'],
+            errors: [],
+            valid: true,
+            warnings: []
+          });
+          return;
+        }
+
+        request.reply({
+          errors: [],
+          valid: true,
+          warnings: ['Atom update warning for review.']
+        });
+        return;
+      }
+
+      expect(request.body.workflowStatus).to.equal('NEEDS_REVIEW');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Atom status update completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Atom status update warning for review.']
+      });
+    }).as('updateAtom');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/sty\/add.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(url.searchParams.get('semanticType')).to.equal('Finding');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Semantic type add completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Semantic type add warning for review.']
+      });
+    }).as('addSemanticType');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/sty\/remove\/3001.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Semantic type removal completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Semantic type removal warning for review.']
+      });
+    }).as('removeSemanticType');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/attribute\/add.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.include({
+        name: 'Editor_Note',
+        value: 'Needs review'
+      });
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Attribute add completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Attribute add warning for review.']
+      });
+    }).as('addAttribute');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/attribute\/remove\/4001.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Attribute removal completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Attribute removal warning for review.']
+      });
+    }).as('removeAttribute');
+    cy.intercept(
+      'GET',
+      '/umls-server-rest/content/inverseRelationshipType/NCIMTH/latest/RO',
+      'RN'
+    ).as('inverseRelationshipType');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/relationship\/add.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.include({
+        additionalRelationshipType: '',
+        assertedDirection: false,
+        fromId: 123,
+        fromName: 'Full test concept',
+        fromTerminology: 'NCIMTH',
+        fromTerminologyId: 'C123',
+        fromVersion: 'latest',
+        hierarchical: false,
+        inferred: false,
+        obsolete: false,
+        published: false,
+        relationshipType: 'RN',
+        stated: false,
+        suppressible: false,
+        terminology: 'NCIMTH',
+        terminologyId: '',
+        toId: 456,
+        toName: 'Related target concept',
+        toTerminology: 'NCIMTH',
+        toTerminologyId: 'C456',
+        toVersion: 'latest',
+        type: 'RELATIONSHIP',
+        version: 'latest',
+        workflowStatus: 'NEEDS_REVIEW'
+      });
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Relationship add completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Relationship add warning for review.']
+      });
+    }).as('addRelationship');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/relationships\/add.*/, (request) => {
+      const url = new URL(request.url);
+      const relationships = request.body as Array<Record<string, unknown>>;
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(relationships).to.have.length(2);
+      expect(relationships.map((relationship) => relationship.toId)).to.deep.equal([
+        456,
+        654
+      ]);
+      relationships.forEach((relationship) => {
+        expect(relationship).to.include({
+          additionalRelationshipType: '',
+          assertedDirection: false,
+          fromId: 123,
+          fromName: 'Full test concept',
+          fromTerminology: 'NCIMTH',
+          fromTerminologyId: 'C123',
+          fromVersion: 'latest',
+          hierarchical: false,
+          inferred: false,
+          obsolete: false,
+          published: false,
+          relationshipType: 'RN',
+          stated: false,
+          suppressible: false,
+          terminology: 'NCIMTH',
+          terminologyId: '',
+          toTerminology: 'NCIMTH',
+          toVersion: 'latest',
+          type: 'RELATIONSHIP',
+          version: 'latest',
+          workflowStatus: 'NEEDS_REVIEW'
+        });
+      });
+      expect(relationships[0]).to.include({
+        toId: 456,
+        toName: 'Related target concept',
+        toTerminologyId: 'C456'
+      });
+      expect(relationships[1]).to.include({
+        toId: 654,
+        toName: 'Additional relationship target',
+        toTerminologyId: 'C654'
+      });
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Relationship batch add completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Relationship batch add warning for review.']
+      });
+    }).as('addRelationships');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/relationship\/remove\/5001.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({
+          comments: ['Relationship removal completed.'],
+          errors: [],
+          valid: true,
+          warnings: []
+        });
+        return;
+      }
+
+      request.reply({
+        errors: [],
+        valid: true,
+        warnings: ['Relationship removal warning for review.']
+      });
+    }).as('removeRelationship');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/action\/undo.*/, (request) => {
+      const url = new URL(request.url);
+
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('molecularActionId')).to.equal('9901');
+      expect(url.searchParams.get('activityId')).to.equal('ACT-UNDO');
+      expect(url.searchParams.get('force')).to.equal('true');
+
+      request.reply({
+        comments: ['Undo action finished.'],
+        errors: [],
+        valid: true,
+        warnings: ['Undo warning for review.']
+      });
+    }).as('undoAction');
+    const approvalConfirmations: string[] = [];
+    cy.on('window:confirm', (message) => {
+      approvalConfirmations.push(message);
+      return true;
+    });
+
+    cy.visit('/edit', {
+      onBeforeLoad(window) {
+        window.localStorage.setItem('user', JSON.stringify(storedUser));
+      }
+    });
+    cy.window().then((window) => {
+      cy.stub(window, 'open')
+        .callsFake(() => null)
+        .as('windowOpen');
+    });
+    cy.wait('@contentEditConfig');
+    cy.wait('@contentTerminologies');
+    cy.wait('@contentProject');
+    cy.contains('Search').should('be.visible');
+    cy.get('#content-query').type('C123');
+    cy.contains('button', 'Search').click();
+    cy.wait('@contentSearch');
+    cy.wait('@contentDetail');
+    cy.wait('@semanticTypeOptions');
+    cy.contains('Test concept').should('be.visible');
+    cy.contains('C123').should('be.visible');
+    cy.contains('READY').should('be.visible');
+    cy.contains('Full test concept').should('be.visible');
+    cy.contains('Preferred test atom').should('be.visible');
+    cy.contains('A fuller concept definition.').should('be.visible');
+    cy.get('section[aria-label="Definitions"]').scrollIntoView().within(() => {
+      cy.get('[data-definition-id="2001"]').within(() => {
+        cy.get('strong').should('contain.text', 'concept');
+        cy.contains('Second definition line.').should('be.visible');
+      });
+      cy.get('[data-definition-id="2002"]').within(() => {
+        cy.contains('Atom definition line one').should('be.visible');
+        cy.contains('Atom definition line two').should('be.visible');
+        cy.contains('.status-pill', 'Atom').should('be.visible');
+        cy.contains('.status-pill', 'Suppressible').should('be.visible');
+      });
+    });
+    cy.contains('Neoplastic Process').should('be.visible');
+    cy.contains('Concept_Status: Reviewed').should('be.visible');
+    cy.contains('C456').should('be.visible');
+    cy.get('section[aria-label="Atoms"]').within(() => {
+      cy.contains('tr', 'Preferred test atom').within(() => {
+        cy.contains('button', 'Code Concepts').should('not.be.disabled').click();
+      });
+    });
+    cy.wait('@atomCodeConcepts');
+    cy.get('section[aria-labelledby="content-code-concepts-title"]').within(() => {
+      cy.contains('Code CODE123').should('be.visible');
+      cy.contains('Earlier shared code concept').should('be.visible');
+      cy.contains('Later shared code concept').should('be.visible');
+      cy.get('tbody tr').first().should('contain.text', 'C321');
+    });
+    cy.get('#content-context-filter').type('Tree');
+    cy.contains('button', 'Load Contexts').should('not.be.disabled').click();
+    cy.wait('@contextTreePositions');
+    cy.get('section[aria-labelledby="content-contexts-title"]').within(() => {
+      cy.contains('2 context(s)').should('be.visible');
+      cy.contains('Tree test context').should('be.visible');
+      cy.contains('Root test context').should('be.visible');
+    });
+    cy.contains('Concept Validation').should('be.visible');
+    cy.get('#content-validation-check').select('DEFAULT');
+    cy.contains('button', 'Validate Concept').should('not.be.disabled').click();
+    cy.wait('@validateConcept');
+    cy.contains('Validation warning before approval.').should('be.visible');
+    cy.contains('Validation checked DEFAULT.').should('be.visible');
+    cy.contains('Concept validation completed.').should('be.visible');
+    cy.get('section[aria-labelledby="content-approval-title"]').scrollIntoView().within(() => {
+      cy.contains('Concept Approval').should('be.visible');
+      cy.contains('Timestamp').should('be.visible');
+      cy.contains('1770000000000').should('be.visible');
+      cy.contains('Activity id is required.').should('be.visible');
+    });
+    cy.get('#content-edit-activity-id').type(editActivityId);
+    cy.get('section[aria-labelledby="content-approval-title"]').within(() => {
+      cy.contains('Activity id is required.').should('not.exist');
+    });
+    cy.get('section[aria-labelledby="content-edit-popouts-title"]').within(() => {
+      cy.contains('Edit Popouts').should('be.visible');
+      cy.contains('C123').should('be.visible');
+      cy.contains(editActivityId).should('be.visible');
+      cy.contains('button', 'Semantic Types').should('be.visible');
+      cy.contains('button', 'Code Concepts').should('be.visible');
+      cy.contains('button', 'Relationships').should('be.visible');
+      cy.contains('button', 'Contexts').should('be.visible');
+      cy.contains('button', 'Atoms').should('not.be.disabled').click();
+    });
+    cy.get('@windowOpen').should('have.been.calledOnce');
+    cy.get('@windowOpen')
+      .its('firstCall.args.0')
+      .should('include', '/edit/atoms?')
+      .and('include', 'type=CONCEPT')
+      .and('include', 'terminology=NCIMTH')
+      .and('include', 'version=latest')
+      .and('include', 'terminologyId=C123')
+      .and('include', 'componentId=123')
+      .and('include', 'projectId=3')
+      .and('include', `activityId=${editActivityId}`);
+    cy.contains('Concept Update').should('be.visible');
+    cy.get('#content-concept-update-status').select('NEEDS_REVIEW');
+    cy.get('#content-concept-update-publishable').should('be.checked').uncheck();
+    cy.contains('button', 'Update Concept').should('not.be.disabled').click();
+    cy.wait('@updateConcept');
+    cy.contains('Concept updated.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('section[aria-label="Atoms"]').within(() => {
+      cy.contains('tr', 'Preferred test atom').within(() => {
+        cy.contains('button', 'Simple Edit').should('not.be.disabled').click();
+      });
+    });
+    cy.get('#content-atom-simple-edit-name')
+      .should('have.value', 'Preferred test atom')
+      .clear()
+      .type('Simple edited atom');
+    cy.get('#content-atom-simple-edit-termgroup').select('NCIMTH/SY');
+    cy.get('#content-atom-simple-edit-language').clear().type('SPA');
+    cy.get('#content-atom-simple-edit-publishable').should('be.checked').uncheck();
+    cy.get('#content-atom-simple-edit-suppressible').check();
+    cy.contains('button', 'Save Simple Atom').should('not.be.disabled').click();
+    cy.wait('@updateSimpleAtom');
+    cy.contains('Atom simple edit saved.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('section[aria-label="Atoms"]').within(() => {
+      cy.contains('tr', 'Preferred test atom').within(() => {
+        cy.contains('button', /^\s*Edit\s*$/).should('not.be.disabled').click();
+      });
+    });
+    cy.get('#content-atom-edit-publishable').should('be.checked').uncheck();
+    cy.contains('button', 'Update Atom').should('not.be.disabled').click();
+    cy.wait('@updateAtom');
+    cy.contains('Atom update warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Update Atom')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@updateAtom');
+    cy.contains('Atom updated.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-approval-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Approve Concept').should('not.be.disabled').click();
+    cy.wait('@approveConcept');
+    cy.contains('Review warning before approval.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Approve')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@approveConcept');
+    cy.contains('Concept approved.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Concept Merge').should('be.visible');
+    cy.get('#content-merge-target-query').type('C789');
+    cy.contains('button', 'Find Merge Target').should('not.be.disabled').click();
+    cy.wait('@mergeTargetSearch');
+    cy.contains('Merge target concept').should('be.visible');
+    cy.get('section[aria-labelledby="content-merge-title"]').within(() => {
+      cy.contains('button', 'Select').should('not.be.disabled').click();
+      cy.contains('Selected target: C789 Merge target concept').should('be.visible');
+    });
+    cy.get('#content-merge-target-id').should('have.value', '789');
+    cy.get('#content-merge-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Merge Concept').should('not.be.disabled').click();
+    cy.wait('@mergeConcept');
+    cy.contains('Concept merge warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Merge Concept')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@mergeConcept');
+    cy.contains('Concept merged.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-merge-target-query').type('C789');
+    cy.contains('button', 'Find Merge Target').should('not.be.disabled').click();
+    cy.wait('@mergeTargetSearch');
+    cy.get('section[aria-labelledby="content-merge-title"]').within(() => {
+      cy.contains('button', 'Select').should('not.be.disabled').click();
+      cy.get('#content-merge-reverse-order').check();
+      cy.contains('Merge from C789 into C123.').should('be.visible');
+    });
+    cy.contains('button', 'Merge Concept').should('not.be.disabled').click();
+    cy.wait('@mergeConcept');
+    cy.contains('Reverse concept merge warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Merge Concept')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@mergeConcept');
+    cy.contains('Reverse concept merge completed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('section[aria-labelledby="content-notes-title"]').within(() => {
+      cy.contains('Curator report note').should('be.visible');
+      cy.get('#content-note-text').type('New curator note');
+      cy.contains('button', 'Add Note').should('not.be.disabled').click();
+    });
+    cy.wait('@addConceptNote');
+    cy.contains('Note added.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('section[aria-labelledby="content-notes-title"]').within(() => {
+      cy.contains('button', 'Remove').should('not.be.disabled').click();
+    });
+    cy.wait('@removeConceptNote');
+    cy.contains('Note removed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Atom Add').should('be.visible');
+    cy.get('#content-atom-add-termgroup').should('have.value', 'NCIMTH/PT');
+    cy.get('#content-atom-add-language').should('have.value', 'ENG');
+    cy.get('#content-atom-add-code').should('have.value', 'NOCODE');
+    cy.get('#content-atom-add-status').should('have.value', 'NEEDS_REVIEW');
+    cy.get('#content-atom-add-activity').should('have.value', editActivityId);
+    cy.get('#content-atom-add-name').type('Added test atom');
+    cy.contains('button', 'Add Atom').should('not.be.disabled').click();
+    cy.wait('@addAtom');
+    cy.contains('Atom add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add Atom')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@addAtom');
+    cy.contains('Atom added.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Atom Move').should('be.visible');
+    cy.get('#content-atom-move-1001').check();
+    cy.contains('1 atom(s) selected').should('be.visible');
+    cy.get('#content-atom-move-target-query').type('C987');
+    cy.contains('button', 'Find Move Target').should('not.be.disabled').click();
+    cy.wait('@atomMoveTargetSearch');
+    cy.contains('Atom move target concept').should('be.visible');
+    cy.get('section[aria-labelledby="content-atom-move-title"]').within(() => {
+      cy.contains('button', 'Select').should('not.be.disabled').click();
+      cy.contains('Selected target: C987 Atom move target concept').should('be.visible');
+    });
+    cy.get('#content-atom-move-target-id').should('have.value', '987');
+    cy.get('#content-atom-move-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Move Selected Atoms').should('not.be.disabled').click();
+    cy.wait('@moveAtoms');
+    cy.contains('Atom move warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Move Selected Atoms')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@moveAtoms');
+    cy.contains('Atom move completed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Concept Split').should('be.visible');
+    cy.get('#content-atom-split-1001').check();
+    cy.contains('1 atom(s) selected').should('be.visible');
+    cy.get('#content-concept-split-copy').check();
+    cy.get('#content-concept-split-relationship').should('have.value', 'RO');
+    cy.get('#content-concept-split-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Split Selected Atoms').should('not.be.disabled').click();
+    cy.wait('@inverseRelationshipType');
+    cy.wait('@splitConcept');
+    cy.contains('Concept split warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Split Selected Atoms')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@splitConcept');
+    cy.contains('Concept split completed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Atom Removal').should('be.visible');
+    cy.contains('Atom Validation').should('be.visible');
+    cy.get('section[aria-label="Atoms"]').within(() => {
+      cy.contains('button', 'Validate').should('not.be.disabled').click();
+    });
+    cy.wait('@validateAtom');
+    cy.contains('Atom validation warning for review.').should('be.visible');
+    cy.contains('Atom validation checked project rules.').should('be.visible');
+    cy.contains('Atom validation completed.').should('be.visible');
+    cy.contains('Atom Status Update').should('be.visible');
+    cy.get('#content-atom-update-activity').should('have.value', editActivityId);
+    cy.get('#content-atom-update-status').should('have.value', 'NEEDS_REVIEW');
+    cy.get('section[aria-label="Atoms"]').within(() => {
+      cy.contains('button', 'Update Status').should('not.be.disabled').click();
+    });
+    cy.wait('@updateAtom');
+    cy.contains('Atom status update warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Update Atom Status')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@updateAtom');
+    cy.contains('Atom status updated.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-atom-removal-activity').should('have.value', editActivityId);
+    cy.get('section[aria-label="Atoms"]').within(() => {
+      cy.contains('button', 'Remove').should('not.be.disabled').click();
+    });
+    cy.wait('@removeAtom');
+    cy.contains('Atom removal warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Remove Atom')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@removeAtom');
+    cy.contains('Atom removed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Semantic Type Add / Removal').should('be.visible');
+    cy.get('#content-semantic-type-add-value').select('Finding');
+    cy.get('#content-semantic-type-add-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Add Semantic Type').should('not.be.disabled').click();
+    cy.wait('@addSemanticType');
+    cy.contains('Semantic type add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add Semantic Type')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@addSemanticType');
+    cy.contains('Semantic type added.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-semantic-type-removal-activity').should('have.value', editActivityId);
+    cy.get('section[aria-label="Semantic types"]').within(() => {
+      cy.contains('button', 'Remove').should('not.be.disabled').click();
+    });
+    cy.wait('@removeSemanticType');
+    cy.contains('Semantic type removal warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Remove Semantic Type')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@removeSemanticType');
+    cy.contains('Semantic type removed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Attribute Add / Removal').should('be.visible');
+    cy.get('#content-attribute-add-name').type('Editor_Note');
+    cy.get('#content-attribute-add-value').type('Needs review');
+    cy.get('#content-attribute-add-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Add Attribute').should('not.be.disabled').click();
+    cy.wait('@addAttribute');
+    cy.contains('Attribute add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add Attribute')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@addAttribute');
+    cy.contains('Attribute added.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-attribute-removal-activity').should('have.value', editActivityId);
+    cy.get('section[aria-label="Attributes"]').within(() => {
+      cy.contains('button', 'Remove').should('not.be.disabled').click();
+    });
+    cy.wait('@removeAttribute');
+    cy.contains('Attribute removal warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Remove Attribute')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@removeAttribute');
+    cy.contains('Attribute removed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.contains('Relationship Add / Removal').should('be.visible');
+    cy.get('#content-relationship-target-query').type('C456');
+    cy.contains('button', 'Find Target').should('not.be.disabled').click();
+    cy.wait('@relationshipTargetSearch');
+    cy.contains('Related target concept').should('be.visible');
+    cy.get('section[aria-labelledby="content-relationship-mutation-title"]').within(() => {
+      cy.contains('button', 'Select').should('not.be.disabled').click();
+      cy.contains('Selected target: C456 Related target concept').should('be.visible');
+    });
+    cy.get('#content-relationship-add-target').should('have.value', '456');
+    cy.get('#content-relationship-add-type').should('have.value', 'RO');
+    cy.get('#content-relationship-add-activity').should('have.value', editActivityId);
+    cy.contains('button', 'Add Relationship').should('not.be.disabled').click();
+    cy.wait('@inverseRelationshipType');
+    cy.wait('@addRelationship');
+    cy.contains('Relationship add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add Relationship')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@addRelationship');
+    cy.contains('Relationship added.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-relationship-target-query').clear().type('C456');
+    cy.contains('button', 'Find Target').should('not.be.disabled').click();
+    cy.wait('@relationshipTargetSearch');
+    cy.get('section[aria-labelledby="content-relationship-mutation-title"]').within(() => {
+      cy.contains('tr', 'C456').within(() => {
+        cy.contains('button', 'Add Target').should('not.be.disabled').click();
+      });
+      cy.contains('tr', 'C654').within(() => {
+        cy.contains('button', 'Add Target').should('not.be.disabled').click();
+      });
+      cy.contains('2 relationship target(s) selected').should('be.visible');
+    });
+    cy.contains('button', 'Add Selected Relationships')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@inverseRelationshipType');
+    cy.wait('@addRelationships');
+    cy.contains('Relationship batch add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add Selected Relationships')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@addRelationships');
+    cy.contains('Relationships added.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.get('#content-relationship-removal-activity').should('have.value', editActivityId);
+    cy.get('section[aria-label="Relationships"]').within(() => {
+      cy.contains('button', 'Remove').should('not.be.disabled').click();
+    });
+    cy.wait('@removeRelationship');
+    cy.contains('Relationship removal warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Remove Relationship')
+      .should('not.be.disabled')
+      .click();
+    cy.wait('@removeRelationship');
+    cy.contains('Relationship removed.').should('be.visible');
+    cy.wait('@contentDetail');
+    cy.wrap(approvalConfirmations).should('deep.equal', [
+      'Update concept "C123"?',
+      'Save simple atom "Preferred test atom"?',
+      'Update atom "Preferred test atom"?',
+      'Override warnings and update atom "Preferred test atom"?',
+      'Approve concept "C123"?',
+      'Override warnings and approve concept "C123"?',
+      'Merge concept "C123" into concept "C789"?',
+      'Override warnings and merge concept "C123" into concept "C789"?',
+      'Merge concept "C789" into concept "C123"?',
+      'Override warnings and merge concept "C789" into concept "C123"?',
+      'Remove this note?',
+      'Add atom "Added test atom"?',
+      'Override warnings and add atom "Added test atom"?',
+      'Move 1 atom(s) to concept "C987"?',
+      'Override warnings and move 1 atom(s) to concept "C987"?',
+      'Split 1 atom(s) from concept "C123"?',
+      'Override warnings and split 1 atom(s) from concept "C123"?',
+      'Update atom "Preferred test atom" status to NEEDS_REVIEW?',
+      'Override warnings and update atom "Preferred test atom" status to NEEDS_REVIEW?',
+      'Remove atom "Preferred test atom"?',
+      'Override warnings and remove atom "Preferred test atom"?',
+      'Add semantic type "Finding"?',
+      'Override warnings and add semantic type "Finding"?',
+      'Remove semantic type "Neoplastic Process"?',
+      'Override warnings and remove semantic type "Neoplastic Process"?',
+      'Add attribute "Editor_Note: Needs review"?',
+      'Override warnings and add attribute "Editor_Note: Needs review"?',
+      'Remove attribute "Concept_Status: Reviewed"?',
+      'Override warnings and remove attribute "Concept_Status: Reviewed"?',
+      'Add relationship "RO" to concept #456?',
+      'Override warnings and add relationship "RO" to concept #456?',
+      'Add 2 relationship(s) of type "RO"?',
+      'Override warnings and add 2 relationship(s) of type "RO"?',
+      'Remove relationship "PAR C456"?',
+      'Override warnings and remove relationship "PAR C456"?'
+    ]);
+
+    cy.visit('/content/simple/CONCEPT/NCIMTH/latest/C123', {
+      onBeforeLoad(window) {
+        window.localStorage.setItem('user', JSON.stringify(storedUser));
+      }
+    });
+    cy.wait('@contentEditConfig');
+    cy.wait('@contentTerminologies');
+    cy.wait('@contentProject');
+    cy.wait('@contentDetail');
+    cy.wait('@contentReport');
+    cy.wait('@contentTrees');
+    cy.wait('@contentDeepRelationships');
+    cy.wait('@contentMappings');
+    cy.contains('CONCEPT Report').should('be.visible');
+    cy.contains('Full test concept').should('be.visible');
+    cy.contains('Preferred test atom').should('be.visible');
+    cy.contains('A fuller concept definition.').should('be.visible');
+    cy.get('section[aria-labelledby="content-report-definitions-title"]').within(() => {
+      cy.get('[data-definition-id="2001"] strong').should('contain.text', 'concept');
+      cy.get('[data-definition-id="2002"]').should(
+        'contain.text',
+        'Atom definition line two'
+      );
+    });
+    cy.contains('Test subset').should('be.visible');
+    cy.contains('Curator report note').should('be.visible');
+    cy.contains('Tree test node').should('be.visible');
+    cy.contains('Deep relationship target').should('be.visible');
+    cy.contains('Mapped target').should('be.visible');
+    cy.contains('Legacy concept report').should('be.visible');
+    cy.contains('Legacy atom context').should('be.visible');
+    cy.get('pre').should('contain.text', 'Legacy concept report\nLegacy atom context');
+    cy.contains('Project 3 | Role AUTHOR').should('be.visible');
+
+    cy.visit(
+      `/edit/atoms?type=CONCEPT&terminology=NCIMTH&version=latest&terminologyId=C123&componentId=123&projectId=3&activityId=${editActivityId}`,
+      {
+        onBeforeLoad(window) {
+          window.localStorage.setItem('user', JSON.stringify(storedUser));
+        }
+      }
+    );
+    cy.wait('@contentEditConfig');
+    cy.contains('Edit Foundation').should('be.visible');
+    cy.contains('Atoms').should('be.visible');
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').within(() => {
+      cy.contains('Selected Context').should('be.visible');
+      cy.contains('CONCEPT').should('be.visible');
+      cy.contains('NCIMTH').should('be.visible');
+      cy.contains('latest').should('be.visible');
+      cy.contains('C123').should('be.visible');
+      cy.contains('123').should('be.visible');
+      cy.contains(editActivityId).should('be.visible');
+      cy.contains('a', 'Open Full Edit Detail')
+        .should('have.attr', 'href')
+        .and('include', '/edit?')
+        .and('include', 'terminologyId=C123');
+    });
+    cy.contains('a', 'Relationships')
+      .should('have.attr', 'href')
+      .and('include', '/edit/relationships?')
+      .and('include', 'terminologyId=C123');
+    cy.contains('metaEditingService -> /meta/*').should('be.visible');
+    cy.contains('Staged Mutation Actions').should('be.visible');
+    cy.contains('POST /meta/concept/approve').should('be.visible');
+    cy.contains('Validation errors block commit').should('be.visible');
+    cy.contains('Undo / Redo Action').should('be.visible');
+    cy.get('#edit-action-id').type('9901');
+    cy.get('#edit-action-activity').type('ACT-UNDO');
+    cy.contains('Molecular action id is required.').should('not.exist');
+    cy.contains('Activity id is required.').should('not.exist');
+    cy.contains('Force action').click();
+    cy.contains('button', 'Undo Action').should('not.be.disabled').click();
+    cy.wait('@undoAction');
+    cy.contains('Undo warning for review.').should('be.visible');
+    cy.contains('Undo action finished.').should('be.visible');
+    cy.contains('Undo completed with warnings.').should('be.visible');
+    cy.wrap(approvalConfirmations).should(
+      'include',
+      'Undo molecular action 9901 with force?'
+    );
+
+    cy.visit('/contexts', {
+      onBeforeLoad(window) {
+        window.localStorage.setItem('user', JSON.stringify(storedUser));
+      }
+    });
+    cy.wait('@contentEditConfig');
+    cy.contains('Edit Foundation').should('be.visible');
+    cy.contains('contexts').should('be.visible');
   });
 
   it('supports the admin project, user, and project-role mutation slices', () => {
@@ -1076,6 +2564,7 @@ describe('Angular 20 shell', () => {
     let workflowWorklistAuthors: string[] = [];
     let workflowWorklistReviewerAvailable = false;
     let workflowWorklistReviewers: string[] = [];
+    let workflowWorklistReviewerTime: number | null = null;
     let workflowWorklistStateHistory: Record<string, string> = {
       Created: '2026-06-10T08:30:00Z'
     };
@@ -1238,6 +2727,7 @@ describe('Angular 20 shell', () => {
       name: 'wrk26a_demotions_default_001',
       notes: workflowWorklistNotes,
       reviewerAvailable: workflowWorklistReviewerAvailable,
+      reviewerTime: workflowWorklistReviewerTime,
       reviewers: workflowWorklistReviewers,
       stats: {
         actionsCt: 2,
@@ -1774,6 +3264,26 @@ describe('Angular 20 shell', () => {
         totalCount: processes.length
       });
     }).as('runningProcesses');
+    cy.intercept(
+      'GET',
+      /\/umls-server-rest\/process\/\d+\/log\?projectId=5.*/,
+      'Process execution log'
+    ).as('processExecutionLog');
+    cy.intercept(
+      'GET',
+      /\/umls-server-rest\/process\/\d+\/progress\?projectId=5.*/,
+      '45'
+    ).as('processExecutionProgress');
+    cy.intercept(
+      'GET',
+      /\/umls-server-rest\/process\/algo\/\d+\/log\?projectId=5.*/,
+      'Algorithm execution log'
+    ).as('algorithmExecutionLog');
+    cy.intercept(
+      'GET',
+      /\/umls-server-rest\/process\/algo\/\d+\/progress\?projectId=5.*/,
+      '55'
+    ).as('algorithmExecutionProgress');
 
     cy.intercept(
       {
@@ -1927,6 +3437,11 @@ describe('Angular 20 shell', () => {
       ],
       totalCount: 1
     }).as('workflowEpochs');
+    cy.intercept('GET', '/umls-server-rest/workflow/epoch?projectId=5', {
+      active: true,
+      id: 410,
+      name: '26a'
+    }).as('currentWorkflowEpoch');
 
     cy.intercept('POST', '/umls-server-rest/workflow/checklist/find?projectId=5', (request) => {
       const checklists = [
@@ -1991,6 +3506,16 @@ describe('Angular 20 shell', () => {
         request.reply(workflowWorklist());
       }
     ).as('workflowWorklistDetail');
+
+    cy.intercept('POST', '/umls-server-rest/workflow/worklist?projectId=5', (request) => {
+      expect(request.body).to.include({
+        id: 430,
+        name: 'wrk26a_demotions_default_001',
+        reviewerTime: 3900
+      });
+      workflowWorklistReviewerTime = request.body.reviewerTime;
+      request.reply({});
+    }).as('updateWorklist');
 
     cy.intercept(
       'GET',
@@ -2633,7 +4158,6 @@ describe('Angular 20 shell', () => {
     cy.wait([
       '@processConfigs',
       '@processExecutions',
-      '@runningProcesses',
       '@processConfigDetail',
       '@processExecutionDetail'
     ]);
@@ -3400,7 +4924,15 @@ describe('Angular 20 shell', () => {
     cy.get('section[aria-labelledby="workflow-list-detail-title"]')
       .contains('button', 'Finish')
       .click();
+    cy.get('[role="dialog"]')
+      .should('be.visible')
+      .and('contain.text', 'Finish wrk26a_demotions_default_001')
+      .and('contain.text', 'REVIEWER');
+    cy.get('#workflow-finish-hours').type('1');
+    cy.get('#workflow-finish-minutes').type('5');
+    cy.get('[role="dialog"]').contains('button', 'Finish').click();
     cy.wait([
+      '@updateWorklist',
       '@performWorkflowAction',
       '@workflowConfigs',
       '@workflowEpochs',

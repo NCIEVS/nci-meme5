@@ -771,6 +771,12 @@ export class OperationalApiService {
     });
   }
 
+  updateWorklist(projectId: number, worklist: Worklist): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/workflow/worklist`, worklist, {
+      params: new HttpParams().set('projectId', projectId)
+    });
+  }
+
   performWorkflowAction(
     projectId: number,
     worklistId: number,

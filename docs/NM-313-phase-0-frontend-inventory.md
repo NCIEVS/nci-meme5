@@ -122,7 +122,7 @@ Important properties:
 | --- | --- | --- | --- |
 | `server.servlet.context-path` | `/umls-server-rest` | `/umls-server-rest` | Existing backend context path |
 | `base.url` | `http://localhost:${server.port}${server.servlet.context-path}` | `http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}` | Existing REST test base |
-| `deploy.enabled.tabs` | `content,metadata,workflow,edit,admin,process,inversion` | `workflow,edit,admin,process,inversion` | Local default does not enable `terminology` or `metadata` from `setenv.sh` |
+| `deploy.enabled.tabs` | `metadata,workflow,edit,admin,process,inversion` | `workflow,edit,admin,process,inversion` | Local default enables the migrated Angular 20 feature tabs; content display/edit is owned by `edit` |
 | `deploy.landing.enabled` | `true` | `true` | Controls `/landing` and root route |
 | `deploy.license.enabled` | `true` | `true` | Controls `/license` and license cookie check |
 | `deploy.login.enabled` | `true` | `true` | Controls `/login`; source tab also requires login |
@@ -136,11 +136,11 @@ Phase 1/2 implication:
 - The first read-only feature slice may need local test overrides such as:
 
 ```bash
-export DEPLOY_ENABLED_TABS=terminology,metadata,workflow,edit,admin,process,inversion
+export DEPLOY_ENABLED_TABS=workflow,edit,admin,process,inversion
 ```
 
-or the Angular 20 feature should be available under `/ui20` independently of
-legacy tab visibility while it is being tested.
+or the Angular 20 feature can be tested with a smaller tab list that still
+includes the route under active development.
 
 ## Route Ownership Inventory
 

@@ -1188,6 +1188,71 @@
   </meme-dialog>
 }
 
+@if (finishWorkflowForm(); as form) {
+  <meme-dialog
+    title="Finish {{ form.worklist.name || 'worklist' }}"
+    [closeDisabled]="finishWorkflowFormRunning()"
+    (closed)="closeFinishWorkflowForm()"
+  >
+    <form class="dialog-form" (ngSubmit)="submitFinishWorkflowForm()">
+      @if (form.errors.length) {
+        <ul class="form-errors">
+          @for (error of form.errors; track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+
+      <div class="form-grid">
+        <div class="form-field full-span">
+          <span>Role</span>
+          <strong>{{ form.role }}</strong>
+        </div>
+        <label class="form-field" for="workflow-finish-hours">
+          <span>Hours</span>
+          <input
+            id="workflow-finish-hours"
+            type="number"
+            min="0"
+            max="23"
+            [ngModel]="form.hours ?? ''"
+            (ngModelChange)="updateFinishWorkflowForm('hours', $event)"
+            name="workflow-finish-hours"
+          />
+        </label>
+        <label class="form-field" for="workflow-finish-minutes">
+          <span>Minutes</span>
+          <input
+            id="workflow-finish-minutes"
+            type="number"
+            min="0"
+            max="59"
+            [ngModel]="form.minutes ?? ''"
+            (ngModelChange)="updateFinishWorkflowForm('minutes', $event)"
+            name="workflow-finish-minutes"
+          />
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="closeFinishWorkflowForm()"
+          [disabled]="finishWorkflowFormRunning()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="finishWorkflowFormRunning() || !(form.hours || form.minutes)"
+        >
+          {{ finishWorkflowFormRunning() ? 'Finishing' : 'Finish' }}
+        </button>
+      </div>
+    </form>
+  </meme-dialog>
+}
+
 @if (checklistCreationForm(); as form) {
   <meme-dialog
     title="Add Checklist"

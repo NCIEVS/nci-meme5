@@ -1080,6 +1080,110 @@ Phase 6 initial implementation notes:
 
 ### Phase 7: Content And Edit Workflows
 
+Status: inventory and Angular 20 route foundation started on 2026-06-22.
+The new UI treats Edit as the owner for content display and modification. The
+`/edit` tab opens the content workbench, while `/content` and mode-based
+content report URLs remain as Edit-authorized deep links rather than a
+separate Content tab. A typed read-only content API scaffold is in place for
+the first search/detail slice, and read-only content list search is wired for
+concept, code, and descriptor search-result rows. Selecting a search result now
+loads the full component detail by terminology/version/terminologyId and renders
+read-only atoms, definitions, semantic types, attributes, and relationship
+summaries. Mode-based report routes now load component detail directly from the
+route context and render a first read-only report view without requiring a
+search, including the legacy preformatted report payload from `/report`.
+The report view also loads first-page read-only expansions for hierarchies,
+deep relationships, mappings, subset memberships, and notes when those legacy
+content endpoints return data.
+A typed mutation API scaffold now covers the first safety-critical `/edit` and
+`/meta` calls. The selected concept detail panel now exposes the first live
+guarded edit action: concept approval through `POST /meta/concept/approve`,
+including project `editingEnabled` checks, author-level role gating,
+`lastModified` stale-update visibility, activity id input, browser confirmation,
+validation error display, and the legacy-style warning-only override retry.
+The selected concept workbench also has a shared current Activity ID field so
+approval/add/remove panels can reuse the assigned workflow/worklist activity
+while still allowing per-action overrides.
+The selected concept panel also exposes the legacy simple concept update path
+through `POST /edit/concept`, currently scoped to workflow status and
+publishable edits with project editing state, author-level role gating, browser
+confirmation, inline failures, and post-save component refresh.
+The same selected concept panel also exposes read-only concept validation
+through `POST /content/validate/concept`, with optional project validation-check
+selection and inline errors, warnings, and comments.
+Selected atom rows now expose read-only atom validation through
+`POST /content/validate/atom`, with inline validation errors, warnings, and
+comments before fuller atom add/update parity.
+Selected atom rows also expose a read-only code-concepts lookup for atoms with
+a code id, using the legacy `atoms.codeId:<code>` concept query and rendering
+the matching concepts in the Edit workbench before fuller popout parity.
+Selected atom rows also expose the legacy simple atom update path through
+`POST /edit/atom`, scoped to atom name, termgroup, language, publishable, and
+suppressible fields with project editing state, author-level role gating,
+browser confirmation, inline failures, and component refresh.
+Selected atom rows now expose a fuller guarded atom edit path through
+`POST /meta/atom/update`, preserving the legacy immutable update fields and
+allowing PN atom publishable edits with warning override and component refresh.
+The selected concept panel now includes a live contexts browser backed by
+`POST /content/concept/{terminology}/{version}/{terminologyId}/treePositions/deep`,
+with text filtering, context row display, and guarded Open actions for
+supported component types.
+The edit workbench also exposes guarded undo/redo controls for molecular
+actions through `POST /meta/action/undo` and `POST /meta/action/redo`, requiring
+project editing state, author-level role, molecular action id, activity id, and
+browser confirmation before execution.
+Workflow finish parity now preserves the legacy time-entry sequence: the
+Angular workflow worklist Finish action collects hours/minutes, updates
+author/reviewer time through `POST /workflow/worklist`, then performs
+`FINISH` through `/workflow/worklist/action`.
+The selected concept panel now also exposes a limited merge path through
+`POST /meta/concept/merge`, with target concept search/select, manual target
+concept id input, default or reverse merge order, activity id, the correct
+from-concept `lastModified`, warning override, and refresh safeguards.
+The selected concept atom list now exposes the first guarded atom mutation:
+atom removal through `POST /meta/atom/remove/{id}`, with activity id,
+`lastModified`, project editing state, browser confirmation, validation result
+display, and warning-only override retry.
+The selected concept panel also exposes guarded atom add through
+`POST /meta/atom/add`, using project `newAtomTermgroups`, project/default
+language, required source identifiers, workflow status, activity id,
+`lastModified`, validation result display, and warning-only override retry.
+It also exposes the first guarded atom update path through
+`POST /meta/atom/update` by updating a selected atom's workflow status to the
+legacy-supported `NEEDS_REVIEW` or `READY_FOR_PUBLICATION` values, keeping the
+request limited to backend-allowed atom status fields and preserving the same
+activity id, `lastModified`, warning override, and refresh safeguards.
+Selected concept atoms now also have limited move coverage through
+`POST /meta/atom/move`, with row-level atom selection, target concept
+search/select, manual target concept id, activity id, `lastModified`, warning
+override, and refresh safeguards. Fuller legacy merge/move/split modal parity
+remains a later Phase 7 refinement.
+Selected concept atoms now also have limited split coverage through
+`POST /meta/concept/split`, with row-level atom selection, copy
+relationships/semantic-types control, legacy inverse relationship lookup,
+activity id, `lastModified`, warning override, and refresh safeguards.
+The selected concept semantic type list now exposes the same guarded removal
+pattern through `POST /meta/sty/remove/{id}`.
+It also loads semantic type metadata from `/metadata/sty/{terminology}/{version}`
+and exposes guarded semantic type add through `POST /meta/sty/add`.
+The selected concept attribute and relationship sections now expose matching
+guarded removal paths through `POST /meta/attribute/remove/{id}` and
+`POST /meta/relationship/remove/{id}`.
+The relationship section also exposes guarded explicit add paths through
+`POST /meta/relationship/add` and `POST /meta/relationships/add`, using the
+legacy accepted relationship type list, the legacy inverse-relationship lookup,
+target concept search/select, selected multi-target batching, manual target
+concept id input, activity id, `lastModified`, warning override, and refresh
+safeguards. Broader legacy relationship workbench modal parity remains a later
+visual/interaction refinement.
+The selected concept attribute section also exposes guarded attribute add
+through `POST /meta/attribute/add`, with name/value inputs and warning override.
+Selected component notes are also surfaced in the workbench, with add/remove
+coverage through `POST /content/{type}/{id}/note` and
+`DELETE /content/{type}/note/{noteId}`. These remain legacy content-note
+operations rather than activity-bound `/meta` edits, and refresh the selected
+component detail after each mutation.
+
 Goals:
 
 - Migrate the highest-risk workflows last.
@@ -1116,6 +1220,153 @@ Acceptance:
 - Hotkeys and focus behavior are documented and tested where important.
 - Unsaved-change and destructive-action guards are explicit.
 - Content/edit routes have the strongest e2e coverage in the migration.
+
+Phase 7 initial inventory notes:
+
+- Legacy AngularJS routes:
+  - `/content` uses `ContentCtrl` and `app/page/content/content.html`
+  - `/content/:mode/:type/:terminology/:version/:terminologyId` uses
+    mode-specific content templates such as `simple.html`
+  - `/content/:mode/:type/:terminology/:id` supports shorter report links
+  - `/edit` uses `EditCtrl` and `app/page/edit/edit.html`
+  - `/edit/semantic-types` uses `SemanticTypesCtrl`
+  - `/edit/codeConcepts` uses `CodeConceptsCtrl`
+  - `/edit/atoms` uses `AtomsCtrl`
+  - `/edit/relationships` uses `RelationshipsCtrl`
+  - `/contexts` uses `ContextsCtrl`; it is not nested under `/edit`, but is
+    part of the edit popout family
+- Legacy read-only content REST groups:
+  - component detail: `GET /content/{type}/{id}` and
+    `GET /content/{type}/{terminology}/{version}/{terminologyId}`
+  - component search/list: `POST /content/{type}/{terminology}/{version}`
+    with `query` plus PFS payload
+  - exact concept query lookup:
+    `POST /content/concept/{terminology}/{version}/get`
+  - autocomplete:
+    `GET /content/{type}/{terminology}/{version}/autocomplete/{searchTerm}`
+  - relationship/facet expansion: relationships, deep relationships, trees,
+    tree children, tree roots, subsets, mappings, members, notes, and
+    validation endpoints under `/content`
+- Legacy mutation REST groups:
+  - simple edit service uses `/edit` for simple atom, semantic type, concept,
+    and bulk concept remove calls
+  - meta editing service uses `/meta` for atom, attribute, relationship,
+    semantic type, merge, move, split, approve, undo, and redo calls
+  - edit mutations rely on `lastModified`, `activityId`, warning override
+    prompts, and action error/warning modals; Angular 20 must preserve these
+    safety semantics before write actions are enabled
+- Angular 20 foundation added:
+  - `/edit` backed by `ContentComponent` so the Edit tab displays the content
+    workbench
+  - explicit `/content` and mode-based content routes backed by
+    `ContentComponent` as Edit-authorized deep links
+  - explicit edit popout and `/contexts` routes backed by
+    `EditWorkbenchComponent`
+  - selected concept popout launchers for semantic types, code concepts, atoms,
+    relationships, and contexts; the Angular routes now preserve selected
+    concept, project, and activity context through query params and offer a
+    return link into the full Edit detail
+  - `ContentEditApiService` and typed content models for read-only search and
+    detail endpoint construction
+  - read-only content list search through
+    `POST /content/{type}/{terminology}/{version}?query=...`, including current
+    terminology defaults, legacy suppressible/anonymous PFS restrictions,
+    paging, sorting, result selection, and Cypress smoke coverage
+  - selected-result detail loading through
+    `GET /content/{type}/{terminology}/{version}/{terminologyId}` with project
+    context, rendering read-only atoms, definitions, semantic types,
+    attributes, and relationship summaries for report-view preparation
+  - definition rendering now preserves safe rich text markup, plain-text line
+    breaks, atom-source indicators, and suppressible/obsolete indicators in
+    both Edit detail and report sections without carrying forward TinyMCE
+  - mode-based report rendering for `/content/:mode/:type/:terminology/:version/:terminologyId`
+    so simple report links load detail directly and show read-only report
+    sections plus the legacy `/report/{type}/{id}` preformatted payload without
+    exposing a separate Content tab
+  - report expansion calls for first-page hierarchies, deep relationships,
+    mappings, subset memberships, and notes, with independent error handling so
+    one report-adjacent endpoint does not blank the component report
+  - typed mutation API scaffold for concept update, atom add/update/remove,
+    concept approval, and undo/redo, plus validation-result helpers for
+    hard errors versus warning-only override paths
+  - selected concept approval in the content detail panel, including activity id
+    input, project `editingEnabled` lookup, stale-update timestamp visibility,
+    browser confirmation, validation errors, warning-only override retry, and
+    Cypress smoke coverage with mocked `/meta/concept/approve` calls
+  - shared selected-concept Activity ID fallback for guarded mutation panels,
+    with per-action override fields retained for cases that need different
+    activities
+  - selected concept simple update through `/edit/concept`, scoped to workflow
+    status and publishable updates, with project editing checks, author-level
+    role gating, confirmation, and component refresh
+  - selected concept validation through `/content/validate/concept`, including
+    project validation-check options and inline errors, warnings, and comments
+  - selected atom validation through `/content/validate/atom`, including inline
+    errors, warnings, and comments ahead of fuller atom add/update parity
+  - selected atom code-concepts lookup through the existing concept search
+    endpoint with `atoms.codeId:<code>` query semantics, rendering matching
+    concepts in the Edit workbench with Cypress smoke coverage
+  - selected atom simple update through `/edit/atom`, scoped to name,
+    termgroup, language, publishable, and suppressible fields, with project
+    editing checks, author-level role gating, confirmation, and component
+    refresh
+  - selected atom edit through `/meta/atom/update`, currently scoped to the
+    legacy PN publishable edit field while preserving read-only atom identity
+    fields, warning override, and post-action component refresh
+  - live selected concept contexts through
+    `/content/concept/{terminology}/{version}/{terminologyId}/treePositions/deep`,
+    including text filter, tree-position table display, and Cypress coverage
+  - edit workbench undo/redo controls for `/meta/action/undo|redo`, including
+    activity id, molecular action id, force confirmation, validation result
+    display, and mocked Cypress coverage
+  - worklist finish workflow time entry through `/workflow/worklist` followed
+    by `/workflow/worklist/action?action=FINISH`, matching the legacy
+    hours/minutes author/reviewer time sequence with Cypress coverage
+  - limited concept merge through `/meta/concept/merge`, including target
+    concept search/select, manual target concept id input, default/reverse
+    merge order, warning override, and post-action component refresh
+  - selected concept atom removal through `/meta/atom/remove/{id}`, including
+    activity id, `lastModified`, validation errors/warnings, explicit warning
+    override retry, and post-action component refresh
+  - selected concept atom add through `/meta/atom/add`, using project
+    `newAtomTermgroups`, project/default language, source identifiers, workflow
+    status, warning override, and post-action component refresh
+  - selected concept atom status update through `/meta/atom/update`, currently
+    scoped to the legacy atom workflow statuses with the same warning override
+    and refresh safeguards
+  - limited selected concept atom move through `/meta/atom/move`, including
+    row-level atom selection, target concept search/select, manual target
+    concept id input, warning override, and post-action component refresh
+  - limited selected concept split through `/meta/concept/split`, including
+    row-level atom selection, copy related-data flag, legacy inverse
+    relationship lookup, warning override, and post-action component refresh
+  - selected concept semantic type removal through `/meta/sty/remove/{id}`,
+    with the same activity id, `lastModified`, warning override, and refresh
+    safeguards
+  - selected concept semantic type add through `/meta/sty/add`, populated from
+    `/metadata/sty/{terminology}/{version}` and guarded by the same activity id,
+    `lastModified`, warning override, and refresh safeguards
+  - selected concept attribute and relationship removal through
+    `/meta/attribute/remove/{id}` and `/meta/relationship/remove/{id}`, with
+    the same activity id, `lastModified`, warning override, and refresh
+    safeguards
+  - limited selected concept relationship add through
+    `/meta/relationship/add`, including target concept search/select, manual
+    target concept id input, legacy inverse-relationship lookup, warning
+    override, and post-action component refresh
+  - selected concept relationship batch add through `/meta/relationships/add`,
+    including selected target concept list management, legacy inverse
+    relationship lookup, warning override, and post-action component refresh
+  - selected concept attribute add through `/meta/attribute/add`, with name and
+    value inputs plus the same activity id, `lastModified`, warning override,
+    and refresh safeguards
+  - selected component note add/remove through
+    `/content/{type}/{id}/note` and `/content/{type}/note/{noteId}`, including
+    inline error display and post-action component refresh
+  - edit workbench readiness panel documenting staged mutation actions and
+    safety gates before any live write buttons are exposed
+  - helper coverage for PFS payloads, content type path normalization, and
+    list-response normalization
 
 ### Phase 8: Cutover And AngularJS Retirement
 

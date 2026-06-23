@@ -83,6 +83,14 @@ interface WorkflowLifecycleButton {
   label: string;
 }
 
+interface WorkflowFinishForm {
+  errors: string[];
+  hours: number | null;
+  minutes: number | null;
+  role: WorkflowAssignmentRole;
+  worklist: Checklist & Partial<Worklist>;
+}
+
 type WorkflowListSortOrder = 'clusterId' | 'indexedData' | 'RANDOM';
 
 interface WorkflowChecklistCreationForm {
@@ -148,6 +156,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly exportingConfigId = signal<number | null>(null);
   protected readonly exportingWorkflowItemKey = signal<string | null>(null);
   protected readonly filter = signal('');
+  protected readonly finishWorkflowForm = signal<WorkflowFinishForm | null>(null);
   protected readonly generatingWorkflowReportKey = signal<string | null>(null);
   protected readonly importWorkflowDialogOpen = signal(false);
   protected readonly importWorkflowFile = signal<File | null>(null);
@@ -2163,7 +2172,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       actions.push({ action: 'STAMP', label: 'Stamp' });
     }
 
-    if (kind === 'worklist' && this.canPerformReviewAssignedAction(item)) {
+    if (kind === 'worklist' && this.canFinishWorklist(item)) {
       actions.push({ action: 'FINISH', label: 'Finish' });
     }
 
@@ -2228,6 +2237,11 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     item: Checklist & Partial<Worklist>,
     action: WorkflowLifecycleAction
   ): void {
+    if (action === 'FINISH' && kind === 'worklist') {
+      this.openFinishWorkflowForm(item);
+      return;
+    }
+
     const projectId = this.projectId();
     const userName = this.currentUserName();
 
@@ -2273,6 +2287,135 @@ export class WorkflowComponent implements OnInit, OnDestroy {
         );
       }
     });
+  }
+
+  protected openFinishWorkflowForm(worklist: Checklist & Partial<Worklist>): void {
+    if (!worklist.id || !this.currentUserName()) {
+      return;
+    }
+
+    this.finishWorkflowForm.set({
+      errors: [],
+      hours: null,
+      minutes: null,
+      role: this.finishWorkflowRole(worklist),
+      worklist
+    });
+  }
+
+  protected closeFinishWorkflowForm(): void {
+    if (this.finishWorkflowFormRunning()) {
+      return;
+    }
+
+    this.finishWorkflowForm.set(null);
+  }
+
+  protected updateFinishWorkflowForm(
+    field: 'hours' | 'minutes',
+    value: string | number | null
+  ): void {
+    const form = this.finishWorkflowForm();
+
+    if (!form) {
+      return;
+    }
+
+    const parsedValue = value === '' || value === null ? null : Number(value);
+    const nextValue =
+      typeof parsedValue === 'number' && Number.isFinite(parsedValue)
+        ? parsedValue
+        : null;
+    this.finishWorkflowForm.set({
+      ...form,
+      errors: [],
+      [field]: nextValue
+    });
+  }
+
+  protected finishWorkflowFormRunning(): boolean {
+    const form = this.finishWorkflowForm();
+
+    return Boolean(
+      form?.worklist && this.actingWorkflowItemKey() === this.workflowItemKey('worklist', form.worklist)
+    );
+  }
+
+  protected submitFinishWorkflowForm(): void {
+    const projectId = this.projectId();
+    const userName = this.currentUserName();
+    const form = this.finishWorkflowForm();
+
+    if (!projectId || !userName || !form?.worklist.id) {
+      return;
+    }
+
+    const hours = form.hours ?? 0;
+    const minutes = form.minutes ?? 0;
+    const errors: string[] = [];
+
+    if (hours < 0) {
+      errors.push('Invalid number of hours, < 0');
+    }
+    if (hours > 23) {
+      errors.push('Invalid number of hours, > 24');
+    }
+    if (minutes < 0) {
+      errors.push('Invalid number of minutes, < 0');
+    }
+    if (minutes > 59) {
+      errors.push('Invalid number of minutes, > 59');
+    }
+    if (!hours && !minutes) {
+      errors.push('Time spent is required.');
+    }
+
+    if (errors.length) {
+      this.finishWorkflowForm.set({
+        ...form,
+        errors
+      });
+      return;
+    }
+
+    const seconds = hours * 60 * 60 + minutes * 60;
+    const updatedWorklist: Worklist = {
+      ...form.worklist,
+      authorTime: form.role === 'AUTHOR' ? seconds : form.worklist.authorTime,
+      reviewerTime: form.role === 'REVIEWER' ? seconds : form.worklist.reviewerTime
+    };
+    const itemKey = this.workflowItemKey('worklist', form.worklist);
+
+    this.actingWorkflowItemKey.set(itemKey);
+    this.api
+      .updateWorklist(projectId, updatedWorklist)
+      .pipe(
+        concatMap(() =>
+          this.api.performWorkflowAction(
+            projectId,
+            form.worklist.id!,
+            userName,
+            form.role,
+            'FINISH'
+          )
+        ),
+        finalize(() => this.actingWorkflowItemKey.set(null))
+      )
+      .subscribe({
+        next: (finishedWorklist) => {
+          this.finishWorkflowForm.set(null);
+          this.replaceWorklist(finishedWorklist);
+          this.notifications.success('Worklist finished.');
+          this.load();
+        },
+        error: () => {
+          this.finishWorkflowForm.set({
+            ...form,
+            errors: ['Worklist could not be finished.']
+          });
+          this.notifications.error('Worklist could not be finished.');
+        }
+      });
   }
 
   protected assignmentDescription(worklist: Checklist & Partial<Worklist>): string {
@@ -2770,16 +2913,30 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     );
   }
 
-  private canPerformReviewAssignedAction(
+  private canFinishWorklist(
     worklist: Checklist & Partial<Worklist>
   ): boolean {
+    const role = this.finishWorkflowRole(worklist);
+    const status = worklist.workflowStatus ?? '';
+    const userName = this.currentUserName();
+
     return (
       this.canPerformWorkflowLifecycleActions() &&
       Boolean(worklist.id) &&
-      Boolean(this.currentUserName()) &&
-      Boolean(worklist.reviewers?.length) &&
-      this.latestWorkflowState(worklist) === 'Review Assigned'
+      Boolean(userName) &&
+      ((role === 'AUTHOR' &&
+        status === 'EDITING_DONE' &&
+        this.includesAssignmentName(worklist.authors, userName)) ||
+        (role === 'REVIEWER' &&
+          status === 'READY_FOR_PUBLICATION' &&
+          this.includesAssignmentName(worklist.reviewers, userName)))
     );
+  }
+
+  private finishWorkflowRole(
+    worklist: Checklist & Partial<Worklist>
+  ): WorkflowAssignmentRole {
+    return worklist.reviewers?.length ? 'REVIEWER' : 'AUTHOR';
   }
 
   private canStampWorkflowItem(
