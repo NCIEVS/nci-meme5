@@ -4,6 +4,7 @@ import { TAB_DEFINITIONS } from './core/config/runtime-config.models';
 import { featureAccessGuard } from './core/startup/feature-access.guard';
 import { startupGuard } from './core/startup/startup.guard';
 import { AdminComponent } from './features/admin/admin.component';
+import { InversionComponent } from './features/operations/inversion.component';
 import { ProcessComponent } from './features/operations/process.component';
 import { WorkflowComponent } from './features/operations/workflow.component';
 import { FeaturePlaceholderComponent } from './pages/feature-placeholder/feature-placeholder.component';
@@ -15,7 +16,7 @@ import { StartupComponent } from './pages/startup/startup.component';
 const tabRoutes: Routes = Object.keys(TAB_DEFINITIONS)
   .filter(
     (tabKey) =>
-      !['admin', 'edit', 'process', 'workflow'].includes(tabKey)
+      !['admin', 'edit', 'inversion', 'process', 'workflow'].includes(tabKey)
   )
   .map((tabKey) => ({
     path: TAB_DEFINITIONS[tabKey].link,
@@ -145,6 +146,15 @@ export const routes: Routes = [
       workbench: 'contexts'
     },
     title: 'NCI-META Context Editor'
+  },
+  {
+    path: 'inversion',
+    component: InversionComponent,
+    canActivate: [featureAccessGuard],
+    data: {
+      tabKey: 'inversion'
+    },
+    title: 'NCI-META Inversion'
   },
   {
     path: 'process',

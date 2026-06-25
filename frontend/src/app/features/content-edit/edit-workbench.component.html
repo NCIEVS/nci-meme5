@@ -6,12 +6,8 @@
     </div>
     <div class="summary-set" aria-label="Edit foundation counts">
       <div class="summary">
-        <strong>{{ routeInventory.length }}</strong>
-        <span>routes</span>
-      </div>
-      <div class="summary">
-        <strong>{{ mutationInventory.length }}</strong>
-        <span>mutation groups</span>
+        <strong>{{ loadedConcept()?.name || loadedConcept()?.terminologyId || 'n/a' }}</strong>
+        <span>concept</span>
       </div>
       <div class="summary">
         <strong>{{ projectId() ?? 'n/a' }}</strong>
@@ -46,232 +42,881 @@
     }
   </nav>
 
-  @if (selectedContext(); as context) {
-    <section class="list-panel" aria-labelledby="edit-selected-context-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="edit-selected-context-title">Selected Context</h2>
-          <p>
-            {{ context.terminologyId || context.componentId || 'n/a' }}
-            {{ context.terminology || '' }} {{ context.version || '' }}
-          </p>
-        </div>
-      </div>
-      <div class="detail-body">
-        <dl>
-          @for (entry of selectedContextEntries(); track entry.label) {
-            <dt>{{ entry.label }}</dt>
-            <dd>{{ entry.value }}</dd>
+  @switch (activeWorkbench()) {
+
+    @case ('semantic-types') {
+      <ng-container *ngTemplateOutlet="conceptHeader" />
+      @if (loadedConcept(); as concept) {
+        <section class="list-panel" aria-labelledby="wb-sty-list-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-sty-list-title">Semantic Types</h2>
+              <p>{{ conceptSemanticTypes().length }} semantic type(s) on {{ concept.name || concept.terminologyId }}</p>
+            </div>
+            <div class="form-actions">
+              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">
+                Refresh
+              </button>
+            </div>
+          </div>
+          <label class="form-field" for="wb-activity-sty">
+            Activity ID
+            <input
+              id="wb-activity-sty"
+              type="text"
+              [ngModel]="workbenchActivityId()"
+              (ngModelChange)="setWorkbenchActivityId($event)"
+            />
+          </label>
+
+          <!-- Remove warnings / errors -->
+          @if (semanticTypeRemovalErrors().length) {
+            <ul class="form-errors">
+              @for (e of semanticTypeRemovalErrors(); track e) { <li>{{ e }}</li> }
+            </ul>
           }
-        </dl>
-        <div class="form-actions">
+          @if (semanticTypeRemovalWarnings().length) {
+            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              @for (w of semanticTypeRemovalWarnings(); track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+          @if (semanticTypeRemovalNeedsOverride()) {
+            <div class="form-actions">
+              <button type="button" (click)="removeSemanticTypeFromConcept(semanticTypeRemovalPendingType()!, true)">
+                Override Warnings and Remove
+              </button>
+            </div>
+          }
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Semantic Type</th>
+                  <th>ID</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (sty of conceptSemanticTypes(); track sty.id) {
+                  <tr>
+                    <td>{{ sty.semanticType }}</td>
+                    <td>{{ sty.id }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        (click)="removeSemanticTypeFromConcept(sty)"
+                        [disabled]="!canRemoveSemanticType(sty) || removingSemanticTypeId() === sty.id"
+                      >
+                        {{ removingSemanticTypeId() === sty.id ? 'Removing...' : 'Remove' }}
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="3">No semantic types.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="list-panel" aria-labelledby="wb-sty-add-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-sty-add-title">Add Semantic Type</h2>
+              <p>Select an available type and confirm.</p>
+            </div>
+          </div>
+
+          @if (semanticTypeOptionsError()) {
+            <p class="form-errors">{{ semanticTypeOptionsError() }}</p>
+            <div class="form-actions">
+              <button type="button" (click)="loadSemanticTypeOptions()">Retry</button>
+            </div>
+          }
+          @if (!semanticTypeOptionsError()) {
+            <label class="form-field" for="wb-sty-add-select">
+              Semantic Type
+              <select
+                id="wb-sty-add-select"
+                [ngModel]="semanticTypeAddValue()"
+                (ngModelChange)="setSemanticTypeAddValue($event)"
+                [disabled]="loadingSemanticTypeOptions()"
+              >
+                <option value="">-- select --</option>
+                @for (opt of availableSemanticTypeOptions(); track opt.typeId) {
+                  <option [value]="semanticTypeOptionValue(opt)">
+                    {{ semanticTypeOptionDisplay(opt) }}
+                  </option>
+                }
+              </select>
+            </label>
+          }
+
+          @if (semanticTypeAddErrors().length) {
+            <ul class="form-errors">
+              @for (e of semanticTypeAddErrors(); track e) { <li>{{ e }}</li> }
+            </ul>
+          }
+          @if (semanticTypeAddWarnings().length) {
+            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              @for (w of semanticTypeAddWarnings(); track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+          @if (semanticTypeAddReadiness().reasons.length) {
+            <ul class="form-errors" style="background:#f5f5f5;border-color:#bbb;color:#555;">
+              @for (r of semanticTypeAddReadiness().reasons; track r) { <li>{{ r }}</li> }
+            </ul>
+          }
+
+          <div class="form-actions">
+            @if (semanticTypeAddNeedsOverride()) {
+              <button
+                type="button"
+                (click)="addSemanticTypeToConcept(true)"
+                [disabled]="addingSemanticType()"
+              >
+                Override Warnings and Add
+              </button>
+            }
+            <button
+              type="button"
+              (click)="addSemanticTypeToConcept()"
+              [disabled]="!semanticTypeAddReadiness().canExecute || addingSemanticType()"
+            >
+              {{ addingSemanticType() ? 'Adding...' : 'Add Semantic Type' }}
+            </button>
+          </div>
+        </section>
+      }
+      <ng-container *ngTemplateOutlet="undoRedoPanel" />
+    }
+
+    @case ('atoms') {
+      <ng-container *ngTemplateOutlet="conceptHeader" />
+      @if (loadedConcept(); as concept) {
+        <section class="list-panel" aria-labelledby="wb-atoms-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-atoms-title">Atoms</h2>
+              <p>{{ conceptAtoms().length }} atom(s) on {{ concept.name || concept.terminologyId }}</p>
+            </div>
+            <div class="form-actions">
+              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">Refresh</button>
+            </div>
+          </div>
+
+          <div class="split-grid">
+            <label class="form-field" for="wb-activity-atoms">
+              Activity ID
+              <input
+                id="wb-activity-atoms"
+                type="text"
+                [ngModel]="workbenchActivityId()"
+                (ngModelChange)="setWorkbenchActivityId($event)"
+              />
+            </label>
+            <label class="form-field" for="wb-atom-status">
+              Set Workflow Status To
+              <select
+                id="wb-atom-status"
+                [ngModel]="atomUpdateStatus()"
+                (ngModelChange)="setAtomUpdateStatus($event)"
+              >
+                @for (s of atomStatusOptions; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          @if (atomMutationBaseReadiness().reasons.length) {
+            <ul class="form-errors" style="background:#f5f5f5;border-color:#bbb;color:#555;">
+              @for (r of atomMutationBaseReadiness().reasons; track r) { <li>{{ r }}</li> }
+            </ul>
+          }
+
+          <!-- Update result -->
+          @if (atomUpdateErrors().length) {
+            <ul class="form-errors">
+              @for (e of atomUpdateErrors(); track e) { <li>{{ e }}</li> }
+            </ul>
+          }
+          @if (atomUpdateWarnings().length) {
+            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              @for (w of atomUpdateWarnings(); track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+          @if (atomUpdateNeedsOverride()) {
+            <div class="form-actions">
+              <button type="button" (click)="updateAtomStatus(atomUpdatePendingAtom()!, true)">
+                Override Warnings and Update
+              </button>
+            </div>
+          }
+
+          <!-- Removal result -->
+          @if (atomRemovalErrors().length) {
+            <ul class="form-errors">
+              @for (e of atomRemovalErrors(); track e) { <li>{{ e }}</li> }
+            </ul>
+          }
+          @if (atomRemovalWarnings().length) {
+            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              @for (w of atomRemovalWarnings(); track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+          @if (atomRemovalNeedsOverride()) {
+            <div class="form-actions">
+              <button type="button" (click)="removeAtomFromConcept(atomRemovalPendingAtom()!, true)">
+                Override Warnings and Remove
+              </button>
+            </div>
+          }
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Term Type</th>
+                  <th>Terminology</th>
+                  <th>Code</th>
+                  <th>Status</th>
+                  <th>Update Status</th>
+                  <th>Remove</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (atom of conceptAtoms(); track atom.id) {
+                  <tr>
+                    <td>{{ atom.name }}</td>
+                    <td>{{ atom.termType }}</td>
+                    <td>{{ atom.terminology }}</td>
+                    <td>{{ atom.codeId }}</td>
+                    <td>{{ atom.workflowStatus }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        (click)="updateAtomStatus(atom)"
+                        [disabled]="!canUpdateAtomStatus(atom) || updatingAtomId() === atom.id"
+                      >
+                        {{ updatingAtomId() === atom.id ? 'Updating...' : 'Set Status' }}
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        (click)="removeAtomFromConcept(atom)"
+                        [disabled]="!canRemoveAtom(atom) || removingAtomId() === atom.id"
+                      >
+                        {{ removingAtomId() === atom.id ? 'Removing...' : 'Remove' }}
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="7">No atoms.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+      <ng-container *ngTemplateOutlet="undoRedoPanel" />
+    }
+
+    @case ('relationships') {
+      <ng-container *ngTemplateOutlet="conceptHeader" />
+      @if (loadedConcept(); as concept) {
+        <section class="list-panel" aria-labelledby="wb-rels-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-rels-title">Relationships</h2>
+              <p>{{ conceptRelationships().length }} relationship(s) on {{ concept.name || concept.terminologyId }}</p>
+            </div>
+            <div class="form-actions">
+              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">Refresh</button>
+            </div>
+          </div>
+
+          <label class="form-field" for="wb-activity-rels">
+            Activity ID
+            <input
+              id="wb-activity-rels"
+              type="text"
+              [ngModel]="workbenchActivityId()"
+              (ngModelChange)="setWorkbenchActivityId($event)"
+            />
+          </label>
+
+          <!-- Removal feedback -->
+          @if (relationshipRemovalErrors().length) {
+            <ul class="form-errors">
+              @for (e of relationshipRemovalErrors(); track e) { <li>{{ e }}</li> }
+            </ul>
+          }
+          @if (relationshipRemovalWarnings().length) {
+            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              @for (w of relationshipRemovalWarnings(); track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+          @if (relationshipRemovalNeedsOverride()) {
+            <div class="form-actions">
+              <button type="button" (click)="removeRelationshipFromConcept(relationshipRemovalPendingRelationship()!, true)">
+                Override Warnings and Remove
+              </button>
+            </div>
+          }
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>To</th>
+                  <th>Status</th>
+                  <th>Remove</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (rel of conceptRelationships(); track rel.id) {
+                  <tr>
+                    <td>{{ rel.relationshipType }}</td>
+                    <td>{{ rel.toTerminologyId || rel.toId }}</td>
+                    <td>{{ rel.workflowStatus }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        (click)="removeRelationshipFromConcept(rel)"
+                        [disabled]="!canRemoveRelationship(rel) || removingRelationshipId() === rel.id"
+                      >
+                        {{ removingRelationshipId() === rel.id ? 'Removing...' : 'Remove' }}
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4">No relationships.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="list-panel" aria-labelledby="wb-rel-add-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-rel-add-title">Add Relationship</h2>
+              <p>Enter the target concept id and relationship type.</p>
+            </div>
+          </div>
+
+          <div class="split-grid">
+            <label class="form-field" for="wb-rel-type">
+              Relationship Type
+              <select
+                id="wb-rel-type"
+                [ngModel]="relationshipAddType()"
+                (ngModelChange)="setRelationshipAddType($event)"
+              >
+                @for (t of relationshipTypeOptions; track t) {
+                  <option [value]="t">{{ t }}</option>
+                }
+              </select>
+            </label>
+            <label class="form-field" for="wb-rel-target">
+              Target Concept ID
+              <input
+                id="wb-rel-target"
+                type="number"
+                min="1"
+                [ngModel]="relationshipAddTargetConceptId()"
+                (ngModelChange)="setRelationshipAddTargetConceptId($event)"
+              />
+            </label>
+          </div>
+
+          @if (relationshipAddErrors().length) {
+            <ul class="form-errors">
+              @for (e of relationshipAddErrors(); track e) { <li>{{ e }}</li> }
+            </ul>
+          }
+          @if (relationshipAddWarnings().length) {
+            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              @for (w of relationshipAddWarnings(); track w) { <li>{{ w }}</li> }
+            </ul>
+          }
+          @if (relationshipAddReadiness().reasons.length) {
+            <ul class="form-errors" style="background:#f5f5f5;border-color:#bbb;color:#555;">
+              @for (r of relationshipAddReadiness().reasons; track r) { <li>{{ r }}</li> }
+            </ul>
+          }
+
+          <div class="form-actions">
+            @if (relationshipAddNeedsOverride()) {
+              <button
+                type="button"
+                (click)="addRelationshipToConcept(true)"
+                [disabled]="addingRelationship()"
+              >
+                Override Warnings and Add
+              </button>
+            }
+            <button
+              type="button"
+              (click)="addRelationshipToConcept()"
+              [disabled]="!relationshipAddReadiness().canExecute || addingRelationship()"
+            >
+              {{ addingRelationship() ? 'Adding...' : 'Add Relationship' }}
+            </button>
+          </div>
+        </section>
+      }
+      <ng-container *ngTemplateOutlet="undoRedoPanel" />
+    }
+
+    @case ('code-concepts') {
+      <ng-container *ngTemplateOutlet="conceptHeader" />
+      @if (loadedConcept(); as concept) {
+        <section class="list-panel" aria-labelledby="wb-code-atoms-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-code-atoms-title">Atoms</h2>
+              <p>Click an atom to find concepts sharing its code.</p>
+            </div>
+            <div class="form-actions">
+              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">Refresh</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Term Type</th>
+                  <th>Terminology</th>
+                  <th>Code</th>
+                  <th>Find Code Concepts</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (atom of conceptAtoms(); track atom.id) {
+                  <tr [class.active]="codeConceptTarget()?.id === atom.id">
+                    <td>{{ atom.name }}</td>
+                    <td>{{ atom.termType }}</td>
+                    <td>{{ atom.terminology }}</td>
+                    <td>{{ atom.codeId }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        (click)="findCodeConcepts(atom)"
+                        [disabled]="loadingCodeConcepts() || !atom.codeId"
+                      >
+                        {{ loadingCodeConcepts() && codeConceptTarget()?.id === atom.id ? 'Loading...' : 'Find' }}
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="5">No atoms.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        @if (codeConceptTarget()) {
+          <section class="list-panel" aria-labelledby="wb-code-results-title">
+            <div class="panel-header">
+              <div>
+                <h2 id="wb-code-results-title">Code Concepts</h2>
+                <p>
+                  Concepts sharing code "{{ codeConceptTarget()!.codeId }}"
+                  &mdash; {{ codeConceptTotalCount() }} result(s)
+                </p>
+              </div>
+            </div>
+            @if (codeConceptError()) {
+              <p class="form-errors">{{ codeConceptError() }}</p>
+            }
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Terminology ID</th>
+                    <th>Terminology</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (result of codeConceptResults(); track result.id) {
+                    <tr>
+                      <td>{{ result.name }}</td>
+                      <td>{{ result.terminologyId }}</td>
+                      <td>{{ result.terminology }}</td>
+                      <td>{{ result.workflowStatus }}</td>
+                    </tr>
+                  } @empty {
+                    @if (!loadingCodeConcepts()) {
+                      <tr><td colspan="4">No code concepts found.</td></tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        }
+      }
+    }
+
+    @case ('contexts') {
+      <ng-container *ngTemplateOutlet="conceptHeader" />
+      @if (loadedConcept(); as concept) {
+        <section class="list-panel" aria-labelledby="wb-contexts-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="wb-contexts-title">Context Tree Positions</h2>
+              <p>
+                {{ contextTreePositionCount() }} position(s) for
+                {{ concept.name || concept.terminologyId }}
+              </p>
+            </div>
+            <div class="form-actions">
+              <button type="button" (click)="loadContextTreePositions()" [disabled]="loadingContextTreePositions()">
+                {{ loadingContextTreePositions() ? 'Loading...' : 'Refresh' }}
+              </button>
+            </div>
+          </div>
+
+          <label class="form-field" for="wb-ctx-filter">
+            Filter
+            <input
+              id="wb-ctx-filter"
+              type="text"
+              placeholder="Filter by name or id..."
+              [ngModel]="contextFilter()"
+              (ngModelChange)="setContextFilter($event)"
+            />
+          </label>
+
+          @if (contextTreePositionError()) {
+            <p class="form-errors">{{ contextTreePositionError() }}</p>
+          }
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Node ID</th>
+                  <th>Name</th>
+                  <th>Terminology</th>
+                  <th>Ancestor Path</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (pos of filteredContextTreePositions(); track pos.nodeId) {
+                  <tr>
+                    <td>{{ pos.nodeTerminologyId }}</td>
+                    <td>{{ pos.nodeName }}</td>
+                    <td>{{ pos.terminology }}</td>
+                    <td title="{{ pos.ancestorPath }}">
+                      {{ pos.ancestorPath ? pos.ancestorPath.substring(0, 60) + (pos.ancestorPath.length > 60 ? '...' : '') : '' }}
+                    </td>
+                  </tr>
+                } @empty {
+                  @if (!loadingContextTreePositions()) {
+                    <tr><td colspan="4">No tree positions found.</td></tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (filteredContextTreePositions().length < contextTreePositionCount()) {
+            <p style="padding:.5rem 1rem;color:#777;font-size:.85rem;">
+              Showing {{ filteredContextTreePositions().length }} of {{ contextTreePositionCount() }} positions (filtered).
+            </p>
+          }
+        </section>
+      }
+    }
+
+    @default {
+      <!-- Main workbench: inventory + undo/redo + safety gates -->
+
+      @if (selectedContext(); as context) {
+        <section class="list-panel" aria-labelledby="edit-selected-context-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="edit-selected-context-title">Selected Context</h2>
+              <p>
+                {{ context.terminologyId || context.componentId || 'n/a' }}
+                {{ context.terminology || '' }} {{ context.version || '' }}
+              </p>
+            </div>
+          </div>
+          <div class="detail-body">
+            <dl>
+              @for (entry of selectedContextEntries(); track entry.label) {
+                <dt>{{ entry.label }}</dt>
+                <dd>{{ entry.value }}</dd>
+              }
+            </dl>
+            <div class="form-actions">
+              <a
+                class="legacy-link"
+                [routerLink]="'/edit'"
+                [queryParams]="editDetailQueryParams()"
+              >
+                Open Full Edit Detail
+              </a>
+            </div>
+          </div>
+        </section>
+      }
+
+      <div class="split-grid">
+        <section class="list-panel" aria-labelledby="edit-routes-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="edit-routes-title">Legacy Routes</h2>
+              <p>Angular route coverage captured for the edit workbench family.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Route</th>
+                  <th>Legacy Source</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of routeInventory; track item.label) {
+                  <tr>
+                    <td>{{ item.label }}</td>
+                    <td>{{ item.legacySource }}</td>
+                    <td>{{ item.notes }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="list-panel" aria-labelledby="edit-mutations-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="edit-mutations-title">Mutation Surface</h2>
+              <p>Endpoint groups held for focused, safety-first implementation slices.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Group</th>
+                  <th>Legacy Source</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of mutationInventory; track item.label) {
+                  <tr>
+                    <td>{{ item.label }}</td>
+                    <td>{{ item.legacySource }}</td>
+                    <td>{{ item.notes }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="split-grid">
+        <section class="list-panel" aria-labelledby="edit-staged-actions-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="edit-staged-actions-title">Staged Mutation Actions</h2>
+              <p>Typed API coverage is in place; live buttons stay disabled until safety gates are wired.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Endpoint</th>
+                  <th>Readiness Gate</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of stagedActions; track item.action) {
+                  <tr>
+                    <td>{{ item.action }}</td>
+                    <td>{{ item.endpoint }}</td>
+                    <td>{{ item.readiness }}</td>
+                    <td>
+                      <button type="button" disabled>
+                        {{ editRoleReady() ? 'Safety Pending' : 'Role Required' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="list-panel" aria-labelledby="edit-safety-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="edit-safety-title">Safety Gates</h2>
+              <p>Required before enabling mutation execution in the Angular workbench.</p>
+            </div>
+          </div>
+          <div class="detail-body">
+            <ul class="sample-results">
+              @for (check of safetyChecks; track check) {
+                <li>{{ check }}</li>
+              }
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <ng-container *ngTemplateOutlet="undoRedoPanel" />
+    }
+  }
+</section>
+
+<!-- Shared: concept loading header for non-main workbenches -->
+<ng-template #conceptHeader>
+  <section class="list-panel" aria-labelledby="wb-concept-header-title">
+    <div class="panel-header">
+      <div>
+        <h2 id="wb-concept-header-title">Concept</h2>
+        @if (loadedConcept(); as concept) {
+          <p>{{ concept.name || concept.terminologyId }} &mdash; {{ concept.terminology }} {{ concept.version }}</p>
+        } @else if (loadingConcept()) {
+          <p>Loading...</p>
+        } @else if (conceptLoadError()) {
+          <p>{{ conceptLoadError() }}</p>
+        } @else {
+          <p>No concept loaded.</p>
+        }
+      </div>
+      <div class="form-actions">
+        @if (conceptLoadError() || (!loadedConcept() && !loadingConcept())) {
+          <button type="button" (click)="loadConcept()" [disabled]="loadingConcept()">
+            Load Concept
+          </button>
+        }
+        @if (selectedContext()) {
           <a
             class="legacy-link"
             [routerLink]="'/edit'"
             [queryParams]="editDetailQueryParams()"
           >
-            Open Full Edit Detail
+            Open Full Edit
           </a>
-        </div>
-      </div>
-    </section>
-  }
-
-  <div class="split-grid">
-    <section class="list-panel" aria-labelledby="edit-routes-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="edit-routes-title">Legacy Routes</h2>
-          <p>Angular route coverage captured for the edit workbench family.</p>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Route</th>
-              <th>Legacy Source</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of routeInventory; track item.label) {
-              <tr>
-                <td>{{ item.label }}</td>
-                <td>{{ item.legacySource }}</td>
-                <td>{{ item.notes }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="list-panel" aria-labelledby="edit-mutations-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="edit-mutations-title">Mutation Surface</h2>
-          <p>Endpoint groups held for focused, safety-first implementation slices.</p>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Group</th>
-              <th>Legacy Source</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of mutationInventory; track item.label) {
-              <tr>
-                <td>{{ item.label }}</td>
-                <td>{{ item.legacySource }}</td>
-                <td>{{ item.notes }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <div class="split-grid">
-    <section class="list-panel" aria-labelledby="edit-staged-actions-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="edit-staged-actions-title">Staged Mutation Actions</h2>
-          <p>Typed API coverage is in place; live buttons stay disabled until safety gates are wired.</p>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Action</th>
-              <th>Endpoint</th>
-              <th>Readiness Gate</th>
-              <th>State</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of stagedActions; track item.action) {
-              <tr>
-                <td>{{ item.action }}</td>
-                <td>{{ item.endpoint }}</td>
-                <td>{{ item.readiness }}</td>
-                <td>
-                  <button type="button" disabled>
-                    {{ editRoleReady() ? 'Safety Pending' : 'Role Required' }}
-                  </button>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="list-panel" aria-labelledby="edit-action-controls-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="edit-action-controls-title">Undo / Redo Action</h2>
-          <p>Run a molecular action reversal or replay with explicit confirmation.</p>
-        </div>
-      </div>
-      <div class="detail-body">
-        <label class="form-field" for="edit-action-id">
-          Molecular Action ID
-          <input
-            id="edit-action-id"
-            type="number"
-            min="1"
-            [ngModel]="actionMolecularActionId()"
-            (ngModelChange)="setActionMolecularActionId($event)"
-          />
-        </label>
-        <label class="form-field" for="edit-action-activity">
-          Activity ID
-          <input
-            id="edit-action-activity"
-            type="text"
-            [ngModel]="actionActivityId()"
-            (ngModelChange)="setActionActivityId($event)"
-          />
-        </label>
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            [ngModel]="actionForce()"
-            (ngModelChange)="setActionForce($event)"
-          />
-          Force action
-        </label>
-        @if (actionReadiness().reasons.length) {
-          <ul class="form-errors">
-            @for (reason of actionReadiness().reasons; track reason) {
-              <li>{{ reason }}</li>
-            }
-          </ul>
         }
-        @if (actionErrors().length) {
-          <ul class="form-errors">
-            @for (error of actionErrors(); track error) {
-              <li>{{ error }}</li>
-            }
-          </ul>
-        }
-        @if (actionWarnings().length) {
-          <ul
-            class="form-errors"
-            style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-          >
-            @for (warning of actionWarnings(); track warning) {
-              <li>{{ warning }}</li>
-            }
-          </ul>
-        }
-        @if (actionComments().length) {
-          <div class="form-messages">
-            @for (comment of actionComments(); track comment) {
-              <p>{{ comment }}</p>
-            }
-          </div>
-        }
-        <div class="form-actions">
-          <button
-            type="button"
-            (click)="performAction('undo')"
-            [disabled]="!actionReadiness().canExecute || runningAction() !== null"
-          >
-            {{ runningAction() === 'undo' ? 'Undoing...' : 'Undo Action' }}
-          </button>
-          <button
-            type="button"
-            (click)="performAction('redo')"
-            [disabled]="!actionReadiness().canExecute || runningAction() !== null"
-          >
-            {{ runningAction() === 'redo' ? 'Redoing...' : 'Redo Action' }}
-          </button>
-        </div>
       </div>
-    </section>
+    </div>
+    @if (!selectedContext()) {
+      <p style="padding:.5rem 1rem;color:#a33;">
+        No concept context detected. Open this window from the main Edit tab with a concept selected.
+      </p>
+    }
+  </section>
+</ng-template>
 
-    <section class="list-panel" aria-labelledby="edit-safety-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="edit-safety-title">Safety Gates</h2>
-          <p>Required before enabling mutation execution in the Angular workbench.</p>
-        </div>
+<!-- Shared: undo/redo panel -->
+<ng-template #undoRedoPanel>
+  <section class="list-panel" aria-labelledby="edit-action-controls-title">
+    <div class="panel-header">
+      <div>
+        <h2 id="edit-action-controls-title">Undo / Redo Action</h2>
+        <p>Run a molecular action reversal or replay with explicit confirmation.</p>
       </div>
-      <div class="detail-body">
-        <ul class="sample-results">
-          @for (check of safetyChecks; track check) {
-            <li>{{ check }}</li>
+    </div>
+    <div class="detail-body">
+      <label class="form-field" for="edit-action-id">
+        Molecular Action ID
+        <input
+          id="edit-action-id"
+          type="number"
+          min="1"
+          [ngModel]="actionMolecularActionId()"
+          (ngModelChange)="setActionMolecularActionId($event)"
+        />
+      </label>
+      <label class="form-field" for="edit-action-activity">
+        Activity ID
+        <input
+          id="edit-action-activity"
+          type="text"
+          [ngModel]="actionActivityId()"
+          (ngModelChange)="setActionActivityId($event)"
+        />
+      </label>
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          [ngModel]="actionForce()"
+          (ngModelChange)="setActionForce($event)"
+        />
+        Force action
+      </label>
+      @if (actionReadiness().reasons.length) {
+        <ul class="form-errors">
+          @for (reason of actionReadiness().reasons; track reason) {
+            <li>{{ reason }}</li>
           }
         </ul>
+      }
+      @if (actionErrors().length) {
+        <ul class="form-errors">
+          @for (error of actionErrors(); track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+      @if (actionWarnings().length) {
+        <ul
+          class="form-errors"
+          style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
+        >
+          @for (warning of actionWarnings(); track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+      @if (actionComments().length) {
+        <div class="form-messages">
+          @for (comment of actionComments(); track comment) {
+            <p>{{ comment }}</p>
+          }
+        </div>
+      }
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="performAction('undo')"
+          [disabled]="!actionReadiness().canExecute || runningAction() !== null"
+        >
+          {{ runningAction() === 'undo' ? 'Undoing...' : 'Undo Action' }}
+        </button>
+        <button
+          type="button"
+          (click)="performAction('redo')"
+          [disabled]="!actionReadiness().canExecute || runningAction() !== null"
+        >
+          {{ runningAction() === 'redo' ? 'Redoing...' : 'Redo Action' }}
+        </button>
       </div>
-    </section>
-  </div>
-</section>
+    </div>
+  </section>
+</ng-template>

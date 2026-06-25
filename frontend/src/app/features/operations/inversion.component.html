@@ -1,0 +1,243 @@
+<section class="operations-view" aria-labelledby="inversion-title">
+  <header class="view-header">
+    <div>
+      <p class="kicker">Source ID Ranges</p>
+      <h1 id="inversion-title">Inversion</h1>
+    </div>
+    <div class="summary-set" aria-label="Inversion context">
+      <div class="summary">
+        <strong>{{ ranges().length }}</strong>
+        <span>results</span>
+      </div>
+      <div class="summary">
+        <strong>{{ projectId() ?? 'n/a' }}</strong>
+        <span>project</span>
+      </div>
+    </div>
+  </header>
+
+  @if (projectId()) {
+    <p class="context-panel">
+      Request and retrieve source atom ID ranges for project {{ projectId() }} with role
+      {{ projectRole() }}.
+    </p>
+
+    <section class="list-panel" aria-labelledby="inversion-ranges-title">
+      <div class="panel-header">
+        <h2 id="inversion-ranges-title">Source Atom Id Ranges</h2>
+      </div>
+
+      <form class="toolbar" (ngSubmit)="search()" aria-label="Source ID range search">
+        <label for="inversion-vsab">Versioned Terminology (VSAB)</label>
+        <input
+          id="inversion-vsab"
+          type="text"
+          [ngModel]="vsab()"
+          (ngModelChange)="vsab.set($event)"
+          name="inversion-vsab"
+          placeholder="e.g. MTH_2018AB"
+        />
+        <button type="submit" [disabled]="loading() || !vsab().trim()">
+          {{ loading() ? 'Searching…' : 'Search' }}
+        </button>
+        <button
+          type="button"
+          [disabled]="loading() || !vsab().trim()"
+          (click)="openRequestDialog()"
+        >
+          Request Range
+        </button>
+        <button
+          type="button"
+          [disabled]="loading() || !vsab().trim()"
+          (click)="openAdjustDialog()"
+        >
+          Submit Adjustment
+        </button>
+      </form>
+
+      @if (searchError()) {
+        <p class="form-errors">{{ searchError() }}</p>
+      }
+
+      <div class="table-wrap">
+        <table aria-label="Source ID ranges">
+          <thead>
+            <tr>
+              <th>SAB</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th># Requested</th>
+              <th>Created</th>
+              <th>Last Modified</th>
+              @if (canRemoveRanges()) {
+                <th></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (range of ranges(); track range.id) {
+              <tr>
+                <td>{{ range.terminology }}</td>
+                <td>{{ range.beginSourceId }}</td>
+                <td>{{ range.endSourceId }}</td>
+                <td>{{ numberOfIds(range) }}</td>
+                <td>{{ toDateString(range.timestamp) }}</td>
+                <td>{{ toDateString(range.lastModified) }}</td>
+                @if (canRemoveRanges()) {
+                  <td>
+                    <button
+                      type="button"
+                      (click)="removeRange(range)"
+                      [disabled]="removingId() === range.id"
+                    >
+                      {{ removingId() === range.id ? 'Removing…' : 'Remove' }}
+                    </button>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              @if (!loading()) {
+                <tr>
+                  <td [attr.colspan]="canRemoveRanges() ? 7 : 6" class="muted">
+                    No results. Enter a versioned terminology and click Search.
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  } @else {
+    <p class="context-panel">
+      Select a project in the legacy-compatible session before opening Inversion.
+    </p>
+  }
+</section>
+
+@if (requestDialogOpen()) {
+  <meme-dialog
+    title="Request Source Atom Id Range"
+    [closeDisabled]="submittingRequest()"
+    (closed)="closeRequestDialog()"
+  >
+    <form class="dialog-form" (ngSubmit)="submitRequest()">
+      @if (requestForm().errors.length) {
+        <ul class="form-errors">
+          @for (e of requestForm().errors; track e) {
+            <li>{{ e }}</li>
+          }
+        </ul>
+      }
+
+      <label class="form-field">
+        <span>Versioned Source Abbreviation</span>
+        <span class="muted">{{ vsab() }}</span>
+      </label>
+
+      <label class="form-field" for="request-num-ids">
+        Number of IDs
+        <input
+          id="request-num-ids"
+          type="number"
+          min="1"
+          [ngModel]="requestForm().numberOfIds"
+          (ngModelChange)="setRequestNumberOfIds($event)"
+          name="request-num-ids"
+          placeholder="e.g. 10000"
+          [disabled]="submittingRequest()"
+          required
+        />
+      </label>
+
+      @if (isSnomedVsab()) {
+        <label class="form-field" for="request-begin-id">
+          Begin Source ID
+          <input
+            id="request-begin-id"
+            type="number"
+            min="1"
+            [ngModel]="requestForm().beginSourceId"
+            (ngModelChange)="setRequestBeginSourceId($event)"
+            name="request-begin-id"
+            placeholder="e.g. 1534679"
+            [disabled]="submittingRequest()"
+          />
+        </label>
+      }
+
+      <div class="form-actions">
+        <button type="submit" [disabled]="submittingRequest()">
+          {{ submittingRequest() ? 'Requesting…' : 'Request' }}
+        </button>
+        <button type="button" (click)="closeRequestDialog()" [disabled]="submittingRequest()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </meme-dialog>
+}
+
+@if (adjustDialogOpen()) {
+  <meme-dialog
+    title="Submit Source Atom Id Range Adjustment"
+    [closeDisabled]="submittingAdjust()"
+    (closed)="closeAdjustDialog()"
+  >
+    <form class="dialog-form" (ngSubmit)="submitAdjust()">
+      @if (adjustForm().errors.length) {
+        <ul class="form-errors">
+          @for (e of adjustForm().errors; track e) {
+            <li>{{ e }}</li>
+          }
+        </ul>
+      }
+
+      <label class="form-field">
+        <span>Versioned Source Abbreviation</span>
+        <span class="muted">{{ vsab() }}</span>
+      </label>
+
+      <label class="form-field" for="adjust-num-ids">
+        Number of IDs
+        <input
+          id="adjust-num-ids"
+          type="number"
+          min="1"
+          [ngModel]="adjustForm().numberOfIds"
+          (ngModelChange)="setAdjustNumberOfIds($event)"
+          name="adjust-num-ids"
+          placeholder="e.g. 10000"
+          [disabled]="submittingAdjust()"
+          required
+        />
+      </label>
+
+      @if (isSnomedVsab()) {
+        <label class="form-field" for="adjust-begin-id">
+          Begin Source ID
+          <input
+            id="adjust-begin-id"
+            type="number"
+            min="1"
+            [ngModel]="adjustForm().beginSourceId"
+            (ngModelChange)="setAdjustBeginSourceId($event)"
+            name="adjust-begin-id"
+            placeholder="e.g. 1534679"
+            [disabled]="submittingAdjust()"
+          />
+        </label>
+      }
+
+      <div class="form-actions">
+        <button type="submit" [disabled]="submittingAdjust()">
+          {{ submittingAdjust() ? 'Submitting…' : 'Submit Adjustment' }}
+        </button>
+        <button type="button" (click)="closeAdjustDialog()" [disabled]="submittingAdjust()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </meme-dialog>
+}

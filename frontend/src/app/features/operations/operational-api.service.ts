@@ -21,6 +21,8 @@ import {
   ProcessExecution,
   ProcessStep,
   SearchResultListResponse,
+  SourceIdRange,
+  SourceIdRangeListResponse,
   WorkflowBin,
   WorkflowBinDefinition,
   WorkflowConfig,
@@ -1040,5 +1042,49 @@ export class OperationalApiService {
         responseType: 'text'
       })
       .pipe(map((id) => Number(id)));
+  }
+
+  getSourceIdRanges(projectId: number, terminology: string): Observable<SourceIdRange[]> {
+    return this.http
+      .get<SourceIdRangeListResponse>(
+        `${this.baseUrl}/inversion/range/${projectId}/${encodeURIComponent(terminology)}`
+      )
+      .pipe(map((response) => response.sourceIdRanges ?? []));
+  }
+
+  requestSourceIdRange(
+    projectId: number,
+    terminology: string,
+    numberOfIds: number,
+    beginSourceId?: number | null
+  ): Observable<SourceIdRange> {
+    let params = new HttpParams();
+    if (beginSourceId != null) {
+      params = params.set('beginSourceId', String(beginSourceId));
+    }
+    return this.http.get<SourceIdRange>(
+      `${this.baseUrl}/inversion/range/${projectId}/${encodeURIComponent(terminology)}/${numberOfIds}`,
+      { params }
+    );
+  }
+
+  updateSourceIdRange(
+    projectId: number,
+    terminology: string,
+    numberOfIds: number,
+    beginSourceId?: number | null
+  ): Observable<SourceIdRange> {
+    let params = new HttpParams();
+    if (beginSourceId != null) {
+      params = params.set('beginSourceId', String(beginSourceId));
+    }
+    return this.http.get<SourceIdRange>(
+      `${this.baseUrl}/inversion/range/update/${projectId}/${encodeURIComponent(terminology)}/${numberOfIds}`,
+      { params }
+    );
+  }
+
+  removeSourceIdRange(sourceIdRangeId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/inversion/range/${sourceIdRangeId}`);
   }
 }

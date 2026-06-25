@@ -1727,29 +1727,21 @@ describe('Angular 20 shell', () => {
       }
     );
     cy.wait('@contentEditConfig');
+    cy.wait('@contentDetail');
     cy.contains('Edit Foundation').should('be.visible');
     cy.contains('Atoms').should('be.visible');
-    cy.get('section[aria-labelledby="edit-selected-context-title"]').within(() => {
-      cy.contains('Selected Context').should('be.visible');
-      cy.contains('CONCEPT').should('be.visible');
-      cy.contains('NCIMTH').should('be.visible');
-      cy.contains('latest').should('be.visible');
-      cy.contains('C123').should('be.visible');
-      cy.contains('123').should('be.visible');
-      cy.contains(editActivityId).should('be.visible');
-      cy.contains('a', 'Open Full Edit Detail')
-        .should('have.attr', 'href')
-        .and('include', '/edit?')
-        .and('include', 'terminologyId=C123');
-    });
+    // Atoms workbench case rendered — @default inventory NOT shown
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').should('not.exist');
+    cy.get('section[aria-labelledby="wb-concept-header-title"]').should('be.visible');
+    cy.contains('Full test concept').should('be.visible');
+    cy.get('section[aria-labelledby="wb-atoms-title"]').should('be.visible');
+    cy.contains('Preferred test atom').should('be.visible');
+    cy.get('#wb-activity-atoms').should('have.value', editActivityId);
     cy.contains('a', 'Relationships')
       .should('have.attr', 'href')
       .and('include', '/edit/relationships?')
       .and('include', 'terminologyId=C123');
-    cy.contains('metaEditingService -> /meta/*').should('be.visible');
-    cy.contains('Staged Mutation Actions').should('be.visible');
-    cy.contains('POST /meta/concept/approve').should('be.visible');
-    cy.contains('Validation errors block commit').should('be.visible');
+    // Undo/redo panel is still present in the atoms workbench case
     cy.contains('Undo / Redo Action').should('be.visible');
     cy.get('#edit-action-id').type('9901');
     cy.get('#edit-action-activity').type('ACT-UNDO');
@@ -1766,14 +1758,341 @@ describe('Angular 20 shell', () => {
       'Undo molecular action 9901 with force?'
     );
 
-    cy.visit('/contexts', {
-      onBeforeLoad(window) {
-        window.localStorage.setItem('user', JSON.stringify(storedUser));
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/NCIMTH/latest/C123/treePositions/deep?query=',
+      {
+        totalCount: 2,
+        treePositions: [
+          {
+            ancestorPath: '1~2',
+            nodeId: 777,
+            nodeName: 'Tree test context',
+            nodeTerminology: 'NCIMTH',
+            nodeTerminologyId: 'C777',
+            nodeVersion: 'latest',
+            terminology: 'NCIMTH',
+            type: 'CONCEPT',
+            version: 'latest'
+          },
+          {
+            ancestorPath: '',
+            nodeId: 888,
+            nodeName: 'Root test context',
+            nodeTerminology: 'NCIMTH',
+            nodeTerminologyId: 'C888',
+            nodeVersion: 'latest',
+            terminology: 'NCIMTH',
+            type: 'CONCEPT',
+            version: 'latest'
+          }
+        ]
       }
-    });
+    ).as('wbContextTreePositions');
+
+    cy.visit(
+      `/contexts?type=CONCEPT&terminology=NCIMTH&version=latest&terminologyId=C123&componentId=123&projectId=3&activityId=${editActivityId}`,
+      {
+        onBeforeLoad(window) {
+          window.localStorage.setItem('user', JSON.stringify(storedUser));
+        }
+      }
+    );
     cy.wait('@contentEditConfig');
+    cy.wait('@contentDetail');
+    cy.wait('@wbContextTreePositions');
     cy.contains('Edit Foundation').should('be.visible');
     cy.contains('contexts').should('be.visible');
+    cy.get('section[aria-labelledby="wb-contexts-title"]').should('be.visible');
+    cy.contains('Tree test context').should('be.visible');
+    cy.contains('Root test context').should('be.visible');
+  });
+
+  it('loads the edit popup workbenches with concept and mutations', () => {
+    const editActivityId = 'wrk25b_snomedct_us_default_002';
+    const storedUser = {
+      applicationRole: 'USER',
+      authToken: 'DSS',
+      name: 'Deborah Shapiro',
+      id: 11,
+      projectRoleMap: { '3': 'AUTHOR' },
+      userName: 'dss',
+      userPreferences: {
+        id: 22,
+        lastProjectId: 3,
+        lastProjectRole: 'AUTHOR',
+        lastTab: '/edit',
+        userName: 'dss',
+        properties: {}
+      }
+    };
+    const wbUrl = (path: string) =>
+      `/${path}?type=CONCEPT&terminology=NCIMTH&version=latest&terminologyId=C123&componentId=123&projectId=3&activityId=${editActivityId}`;
+    const withUser = {
+      onBeforeLoad(window: Window) {
+        window.localStorage.setItem('user', JSON.stringify(storedUser));
+      }
+    };
+
+    cy.intercept('GET', '/umls-server-rest/configure/properties', {
+      ...config,
+      'deploy.enabled.tabs': 'edit',
+      'deploy.license.enabled': 'false'
+    }).as('wbConfig');
+    cy.intercept('GET', '/umls-server-rest/project/3', {
+      editingEnabled: true,
+      id: 3,
+      name: 'NCI-META Editing',
+      terminology: 'NCIMTH',
+      version: 'latest',
+      userRoleMap: { dss: 'AUTHOR' }
+    }).as('wbProject');
+    cy.intercept(
+      'GET',
+      '/umls-server-rest/content/concept/NCIMTH/latest/C123?projectId=3',
+      {
+        id: 123,
+        lastModified: 1770000000000,
+        name: 'Full test concept',
+        publishable: true,
+        terminology: 'NCIMTH',
+        terminologyId: 'C123',
+        type: 'CONCEPT',
+        version: 'latest',
+        workflowStatus: 'READY',
+        atoms: [
+          {
+            codeId: 'CODE123',
+            id: 1001,
+            name: 'Preferred test atom',
+            publishable: true,
+            termType: 'PN',
+            terminology: 'NCIMTH',
+            terminologyId: 'A123',
+            workflowStatus: 'READY'
+          }
+        ],
+        semanticTypes: [{ id: 3001, semanticType: 'Neoplastic Process' }],
+        relationships: [{ id: 5001, relationshipType: 'PAR', toTerminologyId: 'C456' }]
+      }
+    ).as('wbConcept');
+    cy.intercept('GET', '/umls-server-rest/metadata/sty/NCIMTH/latest', {
+      totalCount: 2,
+      types: [
+        { abbreviation: 'T191', expandedForm: 'Neoplastic Process', typeId: 'T191' },
+        { abbreviation: 'T033', expandedForm: 'Finding', typeId: 'T033' }
+      ]
+    }).as('wbStyOptions');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/sty\/add.*/, (request) => {
+      const url = new URL(request.url);
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(url.searchParams.get('semanticType')).to.equal('Finding');
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({ comments: ['Semantic type add completed.'], errors: [], valid: true, warnings: [] });
+        return;
+      }
+      request.reply({ errors: [], valid: true, warnings: ['Semantic type add warning for review.'] });
+    }).as('wbAddSty');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/sty\/remove\/3001.*/, (request) => {
+      const url = new URL(request.url);
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({ comments: ['Semantic type removal completed.'], errors: [], valid: true, warnings: [] });
+        return;
+      }
+      request.reply({ errors: [], valid: true, warnings: ['Semantic type removal warning for review.'] });
+    }).as('wbRemoveSty');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/atom\/update.*/, (request) => {
+      const url = new URL(request.url);
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.include({ id: 1001, workflowStatus: 'NEEDS_REVIEW' });
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({ comments: ['Atom status update completed.'], errors: [], valid: true, warnings: [] });
+        return;
+      }
+      request.reply({ errors: [], valid: true, warnings: ['Atom status update warning for review.'] });
+    }).as('wbUpdateAtom');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/relationship\/add.*/, (request) => {
+      const url = new URL(request.url);
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      expect(request.body).to.include({
+        fromId: 123,
+        fromName: 'Full test concept',
+        fromTerminology: 'NCIMTH',
+        fromTerminologyId: 'C123',
+        relationshipType: 'RO',
+        toId: 456,
+        workflowStatus: 'NEEDS_REVIEW'
+      });
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({ comments: ['Relationship add completed.'], errors: [], valid: true, warnings: [] });
+        return;
+      }
+      request.reply({ errors: [], valid: true, warnings: ['Relationship add warning for review.'] });
+    }).as('wbAddRel');
+    cy.intercept('POST', /\/umls-server-rest\/meta\/relationship\/remove\/5001.*/, (request) => {
+      const url = new URL(request.url);
+      expect(url.searchParams.get('projectId')).to.equal('3');
+      expect(url.searchParams.get('conceptId')).to.equal('123');
+      expect(url.searchParams.get('activityId')).to.equal(editActivityId);
+      expect(url.searchParams.get('lastModified')).to.equal('1770000000000');
+      if (url.searchParams.get('overrideWarnings') === 'true') {
+        request.reply({ comments: ['Relationship removal completed.'], errors: [], valid: true, warnings: [] });
+        return;
+      }
+      request.reply({ errors: [], valid: true, warnings: ['Relationship removal warning for review.'] });
+    }).as('wbRemoveRel');
+    cy.intercept(
+      'POST',
+      '/umls-server-rest/content/concept/NCIMTH/latest/C123/treePositions/deep?query=',
+      {
+        totalCount: 2,
+        treePositions: [
+          { nodeId: 777, nodeName: 'Tree test context', nodeTerminologyId: 'C777', terminology: 'NCIMTH', ancestorPath: '1~2' },
+          { nodeId: 888, nodeName: 'Root test context', nodeTerminologyId: 'C888', terminology: 'NCIMTH', ancestorPath: '' }
+        ]
+      }
+    ).as('wbTreePositions');
+    cy.intercept(
+      'POST',
+      /\/umls-server-rest\/content\/concept\/NCIMTH\/latest\?query=atoms\.codeId(?::|%3A)CODE123/,
+      {
+        objects: [
+          { id: 321, terminology: 'NCIMTH', terminologyId: 'C321', type: 'CONCEPT', name: 'Earlier shared code concept', version: 'latest' },
+          { id: 999, terminology: 'NCIMTH', terminologyId: 'C999', type: 'CONCEPT', name: 'Later shared code concept', version: 'latest' }
+        ],
+        totalCount: 2
+      }
+    ).as('wbCodeConcepts');
+
+    const confirmations: string[] = [];
+    cy.on('window:confirm', (msg) => { confirmations.push(msg); return true; });
+
+    // ── Semantic types workbench ──────────────────────────────────────────────
+    cy.visit(wbUrl('edit/semantic-types'), withUser);
+    cy.wait('@wbConfig');
+    cy.wait('@wbConcept');
+    cy.wait('@wbStyOptions');
+    // Correct case renders — not the @default inventory shell
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').should('not.exist');
+    cy.get('section[aria-labelledby="wb-concept-header-title"]').should('be.visible');
+    cy.contains('Full test concept').should('be.visible');
+    cy.get('section[aria-labelledby="wb-sty-list-title"]').should('be.visible');
+    cy.contains('Neoplastic Process').should('be.visible');
+    cy.get('#wb-activity-sty').should('have.value', editActivityId);
+    // Add semantic type — warning first, then override
+    cy.get('#wb-sty-add-select').select('Finding');
+    cy.contains('button', 'Add Semantic Type').should('not.be.disabled').click();
+    cy.wait('@wbAddSty');
+    cy.contains('Semantic type add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add').should('not.be.disabled').click();
+    cy.wait('@wbAddSty');
+    cy.contains('Semantic type added.').should('be.visible');
+    cy.wait('@wbConcept');
+    // Remove semantic type — warning first, then override
+    cy.get('section[aria-labelledby="wb-sty-list-title"]').within(() => {
+      cy.contains('tr', 'Neoplastic Process').within(() => {
+        cy.contains('button', 'Remove').should('not.be.disabled').click();
+      });
+    });
+    cy.wait('@wbRemoveSty');
+    cy.contains('Semantic type removal warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Remove').should('not.be.disabled').click();
+    cy.wait('@wbRemoveSty');
+    cy.contains('Semantic type removed.').should('be.visible');
+    cy.wait('@wbConcept');
+
+    // ── Atoms workbench ───────────────────────────────────────────────────────
+    cy.visit(wbUrl('edit/atoms'), withUser);
+    cy.wait('@wbConfig');
+    cy.wait('@wbConcept');
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').should('not.exist');
+    cy.get('section[aria-labelledby="wb-atoms-title"]').should('be.visible');
+    cy.contains('Preferred test atom').should('be.visible');
+    cy.get('#wb-activity-atoms').should('have.value', editActivityId);
+    cy.get('#wb-atom-status').select('NEEDS_REVIEW');
+    cy.contains('tr', 'Preferred test atom').within(() => {
+      cy.contains('button', 'Set Status').should('not.be.disabled').click();
+    });
+    cy.wait('@wbUpdateAtom');
+    cy.contains('Atom status update warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Update').should('not.be.disabled').click();
+    cy.wait('@wbUpdateAtom');
+    cy.contains('Atom status updated.').should('be.visible');
+    cy.wait('@wbConcept');
+
+    // ── Relationships workbench ───────────────────────────────────────────────
+    cy.visit(wbUrl('edit/relationships'), withUser);
+    cy.wait('@wbConfig');
+    cy.wait('@wbConcept');
+    cy.wait('@wbProject');
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').should('not.exist');
+    cy.get('section[aria-labelledby="wb-rels-title"]').should('be.visible');
+    cy.contains('PAR').should('be.visible');
+    cy.get('#wb-activity-rels').should('have.value', editActivityId);
+    // Add relationship
+    cy.get('#wb-rel-type').select('RO');
+    cy.get('#wb-rel-target').type('456');
+    cy.contains('button', 'Add Relationship').should('not.be.disabled').click();
+    cy.wait('@wbAddRel');
+    cy.contains('Relationship add warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Add').should('not.be.disabled').click();
+    cy.wait('@wbAddRel');
+    cy.contains('Relationship added.').should('be.visible');
+    cy.wait('@wbConcept');
+    // Remove existing relationship
+    cy.get('section[aria-labelledby="wb-rels-title"]').within(() => {
+      cy.contains('tr', 'PAR').within(() => {
+        cy.contains('button', 'Remove').should('not.be.disabled').click();
+      });
+    });
+    cy.wait('@wbRemoveRel');
+    cy.contains('Relationship removal warning for review.').should('be.visible');
+    cy.contains('button', 'Override Warnings and Remove').should('not.be.disabled').click();
+    cy.wait('@wbRemoveRel');
+    cy.contains('Relationship removed.').should('be.visible');
+    cy.wait('@wbConcept');
+
+    // ── Code concepts workbench ───────────────────────────────────────────────
+    cy.visit(wbUrl('edit/codeConcepts'), withUser);
+    cy.wait('@wbConfig');
+    cy.wait('@wbConcept');
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').should('not.exist');
+    cy.get('section[aria-labelledby="wb-code-atoms-title"]').should('be.visible');
+    cy.contains('Preferred test atom').should('be.visible');
+    cy.contains('tr', 'Preferred test atom').within(() => {
+      cy.contains('button', 'Find').should('not.be.disabled').click();
+    });
+    cy.wait('@wbCodeConcepts');
+    cy.get('section[aria-labelledby="wb-code-results-title"]').should('be.visible');
+    cy.contains('Earlier shared code concept').should('be.visible');
+    cy.contains('Later shared code concept').should('be.visible');
+
+    // ── Contexts workbench ────────────────────────────────────────────────────
+    cy.visit(wbUrl('contexts'), withUser);
+    cy.wait('@wbConfig');
+    cy.wait('@wbConcept');
+    cy.wait('@wbTreePositions');
+    cy.get('section[aria-labelledby="edit-selected-context-title"]').should('not.exist');
+    cy.get('section[aria-labelledby="wb-contexts-title"]').should('be.visible');
+    cy.contains('Tree test context').should('be.visible');
+    cy.contains('Root test context').should('be.visible');
+    // Client-side filter
+    cy.get('#wb-ctx-filter').type('Tree');
+    cy.contains('Root test context').should('not.exist');
+    cy.contains('Tree test context').should('be.visible');
   });
 
   it('supports the admin project, user, and project-role mutation slices', () => {
@@ -2442,6 +2761,112 @@ describe('Angular 20 shell', () => {
     cy.wait(['@staleSessionConfig', '@adminAuthFailure']);
     cy.location('pathname').should('equal', '/login');
     cy.window().its('localStorage.user').should('be.undefined');
+  });
+
+  it('supports the inversion source ID range slices', () => {
+    const inversionUser = {
+      applicationRole: 'USER',
+      authToken: 'DSS',
+      name: 'Deborah Shapiro',
+      projectRoleMap: { '3': 'AUTHOR' },
+      userName: 'dss',
+      userPreferences: {
+        lastProjectId: 3,
+        lastProjectRole: 'AUTHOR',
+        lastTab: '/inversion',
+        properties: {}
+      }
+    };
+    const withInversionUser = {
+      onBeforeLoad(win: Window) {
+        win.localStorage.setItem('user', JSON.stringify(inversionUser));
+      }
+    };
+
+    cy.intercept('GET', '/umls-server-rest/configure/properties', {
+      ...config,
+      'deploy.enabled.tabs': 'inversion',
+      'deploy.license.enabled': 'false'
+    }).as('invConfig');
+
+    cy.intercept('GET', '/umls-server-rest/inversion/range/3/MTH_2026AB', {
+      sourceIdRanges: [
+        {
+          id: 101,
+          terminology: 'MTH',
+          beginSourceId: 5000001,
+          endSourceId: 5100000,
+          timestamp: 1748000000000,
+          lastModified: 1749000000000
+        }
+      ],
+      totalCount: 1
+    }).as('invSearch');
+
+    cy.intercept('GET', '/umls-server-rest/inversion/range/3/MTH_2026AB/20000', {
+      id: 102,
+      terminology: 'MTH',
+      beginSourceId: 5100001,
+      endSourceId: 5120000,
+      timestamp: 1749100000000,
+      lastModified: 1749100000000
+    }).as('invRequest');
+
+    cy.intercept('GET', '/umls-server-rest/inversion/range/update/3/MTH_2026AB/25000', {
+      id: 101,
+      terminology: 'MTH',
+      beginSourceId: 5000001,
+      endSourceId: 5025000,
+      timestamp: 1748000000000,
+      lastModified: 1749200000000
+    }).as('invAdjust');
+
+    cy.intercept('DELETE', '/umls-server-rest/inversion/range/101', {}).as('invDelete');
+
+    // ── Load inversion tab ────────────────────────────────────────────────────
+    cy.visit('/inversion', withInversionUser);
+    cy.wait('@invConfig');
+    cy.get('h1').contains('Inversion').should('be.visible');
+    cy.get('h2').contains('Source Atom Id Ranges').should('be.visible');
+    cy.contains('Select a project').should('not.exist');
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    cy.get('#inversion-vsab').type('MTH_2026AB');
+    cy.contains('button', 'Search').click();
+    cy.wait('@invSearch');
+    cy.contains('td', 'MTH').should('be.visible');
+    cy.contains('td', '5000001').should('be.visible');
+    cy.contains('td', '5100000').should('be.visible');
+    cy.contains('td', '100000').should('be.visible');
+
+    // ── Request Range dialog ──────────────────────────────────────────────────
+    cy.contains('button', 'Request Range').click();
+    cy.get('#request-num-ids').should('be.visible').type('20000');
+    cy.get('meme-dialog').contains('button', 'Request').click();
+    cy.wait('@invRequest');
+    cy.get('meme-dialog').should('not.exist');
+    cy.contains('5100001').should('be.visible');
+    cy.contains('5120000').should('be.visible');
+
+    // ── Re-search before adjustment ───────────────────────────────────────────
+    cy.contains('button', 'Search').click();
+    cy.wait('@invSearch');
+
+    // ── Submit Adjustment dialog ──────────────────────────────────────────────
+    cy.contains('button', 'Submit Adjustment').click();
+    cy.get('#adjust-num-ids').should('be.visible').type('25000');
+    cy.get('meme-dialog').contains('button', 'Submit Adjustment').click();
+    cy.wait('@invAdjust');
+    cy.get('meme-dialog').should('not.exist');
+    cy.contains('5025000').should('be.visible');
+
+    // ── Remove (AUTHOR can see Remove button) ─────────────────────────────────
+    cy.contains('button', 'Search').click();
+    cy.wait('@invSearch');
+    cy.on('window:confirm', () => true);
+    cy.contains('button', 'Remove').click();
+    cy.wait('@invDelete');
+    cy.contains('td', 'MTH').should('not.exist');
   });
 
   it('supports the phase 6 process and workflow slices', () => {

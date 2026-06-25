@@ -815,159 +815,18 @@
               </div>
             </section>
 
-            <section class="step-panel" aria-labelledby="content-merge-title">
+            <section class="step-panel" aria-label="Concept Merge">
               <div class="section-header">
-                <h3 id="content-merge-title">Concept Merge</h3>
+                <h3>Concept Merge</h3>
               </div>
-              <label class="form-field" for="content-merge-target-query">
-                Find Target Concept
-                <input
-                  id="content-merge-target-query"
-                  type="search"
-                  [ngModel]="mergeTargetQuery()"
-                  (ngModelChange)="setMergeTargetQuery($event)"
-                  placeholder="Search by concept id or name"
-                />
-              </label>
               <div class="form-actions">
                 <button
                   type="button"
-                  (click)="searchMergeTargets()"
-                  [disabled]="!mergeTargetQuery().trim() || searchingMergeTargets()"
+                  (click)="openMergeDialog()"
                 >
-                  {{ searchingMergeTargets() ? 'Searching...' : 'Find Merge Target' }}
+                  Merge Concept
                 </button>
               </div>
-              @if (mergeTargetSearchError(); as mergeSearchError) {
-                <p class="form-errors compact-empty">{{ mergeSearchError }}</p>
-              }
-              @if (selectedMergeTarget(); as selectedTarget) {
-                <p class="empty compact-empty">
-                  Selected target:
-                  {{ selectedTarget.terminologyId || selectedTarget.id }}
-                  {{ conceptSearchTargetDisplay(selectedTarget) }}
-                </p>
-              }
-              @if (loadingMergeTargetDetail()) {
-                <p class="empty compact-empty">Loading target concept detail...</p>
-              }
-              @if (mergeTargetDetailError(); as mergeDetailError) {
-                <p class="form-errors compact-empty">{{ mergeDetailError }}</p>
-              }
-              @if (mergeTargetResults().length) {
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Concept</th>
-                        <th>Name</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (target of mergeTargetResults(); track target.id ?? target.terminologyId ?? $index) {
-                        <tr>
-                          <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
-                          <td>{{ conceptSearchTargetDisplay(target) }}</td>
-                          <td>
-                            <button
-                              type="button"
-                              (click)="selectMergeTarget(target)"
-                              [disabled]="!target.id"
-                            >
-                              Select
-                            </button>
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-              <label class="form-field" for="content-merge-target-id">
-                Target Concept ID
-                <input
-                  id="content-merge-target-id"
-                  type="number"
-                  min="1"
-                  [ngModel]="mergeTargetConceptId()"
-                  (ngModelChange)="setMergeTargetConceptId($event)"
-                  placeholder="Enter target concept id"
-                />
-              </label>
-              <label class="checkbox-label" for="content-merge-reverse-order">
-                <input
-                  id="content-merge-reverse-order"
-                  type="checkbox"
-                  [ngModel]="mergeReverseOrder()"
-                  (ngModelChange)="setMergeReverseOrder($event)"
-                />
-                Reverse merge order
-              </label>
-              <p class="empty compact-empty">
-                Merge from {{ mergeFromLabel() }} into {{ mergeToLabel() }}.
-              </p>
-              <label class="form-field" for="content-merge-activity">
-                Merge Activity ID
-                <input
-                  id="content-merge-activity"
-                  type="text"
-                  [ngModel]="activityIdValue(mergeActivityId())"
-                  (ngModelChange)="setMergeActivityId($event)"
-                  placeholder="Enter the editing activity id"
-                />
-              </label>
-              @if (mergeReadiness().reasons.length) {
-                <ul class="form-errors">
-                  @for (reason of mergeReadiness().reasons; track reason) {
-                    <li>{{ reason }}</li>
-                  }
-                </ul>
-              }
-              @if (mergeErrors().length) {
-                <ul class="form-errors">
-                  @for (error of mergeErrors(); track error) {
-                    <li>{{ error }}</li>
-                  }
-                </ul>
-              }
-              @if (mergeWarnings().length) {
-                <ul
-                  class="form-errors"
-                  style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                >
-                  @for (warning of mergeWarnings(); track warning) {
-                    <li>{{ warning }}</li>
-                  }
-                </ul>
-              }
-              @if (mergeComments().length) {
-                <div class="form-messages">
-                  @for (comment of mergeComments(); track comment) {
-                    <p>{{ comment }}</p>
-                  }
-                </div>
-              }
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="mergeConcept()"
-                  [disabled]="!mergeReadiness().canExecute || mergingConcept()"
-                >
-                  {{ mergingConcept() ? 'Merging...' : 'Merge Concept' }}
-                </button>
-              </div>
-              @if (mergeNeedsWarningOverride()) {
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="mergeConcept(true)"
-                    [disabled]="!mergeReadiness().canExecute || mergingConcept()"
-                  >
-                    Override Warnings and Merge Concept
-                  </button>
-                </div>
-              }
             </section>
 
             <section class="step-panel" aria-labelledby="content-atom-add-title">
@@ -1218,238 +1077,6 @@
                 }
               </section>
 
-              <section class="step-panel" aria-labelledby="content-atom-move-title">
-                <div class="section-header">
-                  <h3 id="content-atom-move-title">Atom Move</h3>
-                </div>
-                <p class="empty compact-empty">
-                  {{ selectedAtomMoveCount() }} atom(s) selected
-                </p>
-                <label class="form-field" for="content-atom-move-target-query">
-                  Find Target Concept
-                  <input
-                    id="content-atom-move-target-query"
-                    type="search"
-                    [ngModel]="atomMoveTargetQuery()"
-                    (ngModelChange)="setAtomMoveTargetQuery($event)"
-                    placeholder="Search by concept id or name"
-                  />
-                </label>
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="searchAtomMoveTargets()"
-                    [disabled]="!atomMoveTargetQuery().trim() || searchingAtomMoveTargets()"
-                  >
-                    {{ searchingAtomMoveTargets() ? 'Searching...' : 'Find Move Target' }}
-                  </button>
-                </div>
-                @if (atomMoveTargetSearchError(); as moveTargetSearchError) {
-                  <p class="form-errors compact-empty">{{ moveTargetSearchError }}</p>
-                }
-                @if (selectedAtomMoveTarget(); as selectedTarget) {
-                  <p class="empty compact-empty">
-                    Selected target:
-                    {{ selectedTarget.terminologyId || selectedTarget.id }}
-                    {{ conceptSearchTargetDisplay(selectedTarget) }}
-                  </p>
-                }
-                @if (atomMoveTargetResults().length) {
-                  <div class="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Concept</th>
-                          <th>Name</th>
-                          <th>Action</th>
-                          <th>Batch</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (target of atomMoveTargetResults(); track target.id ?? target.terminologyId ?? $index) {
-                          <tr>
-                            <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
-                            <td>{{ conceptSearchTargetDisplay(target) }}</td>
-                            <td>
-                              <button
-                                type="button"
-                                (click)="selectAtomMoveTarget(target)"
-                                [disabled]="!target.id"
-                              >
-                                Select
-                              </button>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                }
-                <label class="form-field" for="content-atom-move-target-id">
-                  Target Concept ID
-                  <input
-                    id="content-atom-move-target-id"
-                    type="number"
-                    min="1"
-                    [ngModel]="atomMoveTargetConceptId()"
-                    (ngModelChange)="setAtomMoveTargetConceptId($event)"
-                    placeholder="Enter target concept id"
-                  />
-                </label>
-                <label class="form-field" for="content-atom-move-activity">
-                  Move Activity ID
-                  <input
-                    id="content-atom-move-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(atomMoveActivityId())"
-                    (ngModelChange)="setAtomMoveActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (atomMoveReadiness().reasons.length) {
-                  <ul class="form-errors">
-                    @for (reason of atomMoveReadiness().reasons; track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomMoveErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of atomMoveErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomMoveWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of atomMoveWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomMoveComments().length) {
-                  <div class="form-messages">
-                    @for (comment of atomMoveComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="moveSelectedAtoms()"
-                    [disabled]="!atomMoveReadiness().canExecute || movingAtoms()"
-                  >
-                    {{ movingAtoms() ? 'Moving...' : 'Move Selected Atoms' }}
-                  </button>
-                </div>
-                @if (atomMoveNeedsWarningOverride()) {
-                  <div class="form-actions">
-                    <button
-                      type="button"
-                      (click)="moveSelectedAtoms(true)"
-                      [disabled]="!atomMoveReadiness().canExecute || movingAtoms()"
-                    >
-                      Override Warnings and Move Selected Atoms
-                    </button>
-                  </div>
-                }
-              </section>
-
-              <section class="step-panel" aria-labelledby="content-concept-split-title">
-                <div class="section-header">
-                  <h3 id="content-concept-split-title">Concept Split</h3>
-                </div>
-                <p class="empty compact-empty">
-                  {{ selectedAtomSplitCount() }} atom(s) selected
-                </p>
-                <label class="checkbox-label" for="content-concept-split-copy">
-                  <input
-                    id="content-concept-split-copy"
-                    type="checkbox"
-                    [ngModel]="atomSplitCopyRelated()"
-                    (ngModelChange)="setAtomSplitCopyRelated($event)"
-                  />
-                  Copy relationships and semantic types
-                </label>
-                <label class="form-field" for="content-concept-split-relationship">
-                  Relationship To Current Concept
-                  <select
-                    id="content-concept-split-relationship"
-                    [ngModel]="atomSplitRelationshipType()"
-                    (ngModelChange)="setAtomSplitRelationshipType($event)"
-                  >
-                    @for (type of relationshipAddTypeOptions(component); track type) {
-                      <option [value]="type">{{ type }}</option>
-                    }
-                  </select>
-                </label>
-                <label class="form-field" for="content-concept-split-activity">
-                  Split Activity ID
-                  <input
-                    id="content-concept-split-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(atomSplitActivityId())"
-                    (ngModelChange)="setAtomSplitActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (atomSplitReadiness().reasons.length) {
-                  <ul class="form-errors">
-                    @for (reason of atomSplitReadiness().reasons; track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomSplitErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of atomSplitErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomSplitWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of atomSplitWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomSplitComments().length) {
-                  <div class="form-messages">
-                    @for (comment of atomSplitComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="splitSelectedAtoms()"
-                    [disabled]="!atomSplitReadiness().canExecute || splittingConcept()"
-                  >
-                    {{ splittingConcept() ? 'Splitting...' : 'Split Selected Atoms' }}
-                  </button>
-                </div>
-                @if (atomSplitNeedsWarningOverride()) {
-                  <div class="form-actions">
-                    <button
-                      type="button"
-                      (click)="splitSelectedAtoms(true)"
-                      [disabled]="!atomSplitReadiness().canExecute || splittingConcept()"
-                    >
-                      Override Warnings and Split Selected Atoms
-                    </button>
-                  </div>
-                }
-              </section>
-
               <section class="step-panel" aria-labelledby="content-atom-mutation-title">
                 <div class="section-header">
                   <h3 id="content-atom-mutation-title">Atom Removal</h3>
@@ -1514,6 +1141,22 @@
             <section class="step-panel" aria-label="Atoms">
               <div class="section-header">
                 <h3>Atoms</h3>
+                @if (selectedAtomMoveCount() > 0) {
+                  <button
+                    type="button"
+                    (click)="openAtomMoveDialog()"
+                  >
+                    Move {{ selectedAtomMoveCount() }} Atom(s)
+                  </button>
+                }
+                @if (selectedAtomSplitCount() > 0) {
+                  <button
+                    type="button"
+                    (click)="openAtomSplitDialog()"
+                  >
+                    Split {{ selectedAtomSplitCount() }} Atom(s)
+                  </button>
+                }
               </div>
               <div class="table-wrap">
                 <table>
@@ -2721,3 +2364,439 @@
     </div>
   }
 </section>
+
+@if (mergeDialogOpen()) {
+  <meme-dialog
+    title="Merge Concept"
+    [closeDisabled]="mergingConcept()"
+    (closed)="closeMergeDialog()"
+  >
+    <div class="dialog-form">
+      <dl>
+        <dt>From</dt>
+        <dd>{{ mergeFromLabel() }}</dd>
+        <dt>Into</dt>
+        <dd>{{ mergeToLabel() }}</dd>
+      </dl>
+
+      <label class="form-field" for="content-merge-target-query">
+        Find Target Concept
+        <input
+          id="content-merge-target-query"
+          type="search"
+          [ngModel]="mergeTargetQuery()"
+          (ngModelChange)="setMergeTargetQuery($event)"
+          placeholder="Search by concept id or name"
+        />
+      </label>
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="searchMergeTargets()"
+          [disabled]="!mergeTargetQuery().trim() || searchingMergeTargets()"
+        >
+          {{ searchingMergeTargets() ? 'Searching...' : 'Find Merge Target' }}
+        </button>
+      </div>
+      @if (mergeTargetSearchError(); as mergeSearchError) {
+        <p class="form-errors compact-empty">{{ mergeSearchError }}</p>
+      }
+      @if (loadingMergeTargetDetail()) {
+        <p class="empty compact-empty">Loading target concept detail...</p>
+      }
+      @if (mergeTargetDetailError(); as mergeDetailError) {
+        <p class="form-errors compact-empty">{{ mergeDetailError }}</p>
+      }
+      @if (mergeTargetResults().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Concept</th>
+                <th>Name</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (target of mergeTargetResults(); track target.id ?? target.terminologyId ?? $index) {
+                <tr [class.selected-row]="selectedMergeTarget()?.id === target.id">
+                  <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
+                  <td>{{ conceptSearchTargetDisplay(target) }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      (click)="selectMergeTarget(target)"
+                      [disabled]="!target.id"
+                    >
+                      Select
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <label class="form-field" for="content-merge-target-id">
+        Target Concept ID
+        <input
+          id="content-merge-target-id"
+          type="number"
+          min="1"
+          [ngModel]="mergeTargetConceptId()"
+          (ngModelChange)="setMergeTargetConceptId($event)"
+          placeholder="Enter target concept id"
+        />
+      </label>
+      <label class="checkbox-label" for="content-merge-reverse-order">
+        <input
+          id="content-merge-reverse-order"
+          type="checkbox"
+          [ngModel]="mergeReverseOrder()"
+          (ngModelChange)="setMergeReverseOrder($event)"
+        />
+        Reverse merge order
+      </label>
+      @if (selectedMergeTarget() || mergeTargetConceptId()) {
+        <p class="empty compact-empty">
+          Merge from {{ mergeFromLabel() }} into {{ mergeToLabel() }}.
+        </p>
+      }
+      <label class="form-field" for="content-merge-activity">
+        Merge Activity ID
+        <input
+          id="content-merge-activity"
+          type="text"
+          [ngModel]="activityIdValue(mergeActivityId())"
+          (ngModelChange)="setMergeActivityId($event)"
+          placeholder="Enter the editing activity id"
+        />
+      </label>
+      @if (mergeReadiness().reasons.length) {
+        <ul class="form-errors">
+          @for (reason of mergeReadiness().reasons; track reason) {
+            <li>{{ reason }}</li>
+          }
+        </ul>
+      }
+      @if (mergeErrors().length) {
+        <ul class="form-errors">
+          @for (error of mergeErrors(); track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+      @if (mergeWarnings().length) {
+        <ul class="form-errors" style="background: #fff7e6; border-color: #e8c16d; color: #744f11;">
+          @for (warning of mergeWarnings(); track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+      @if (mergeComments().length) {
+        <div class="form-messages">
+          @for (comment of mergeComments(); track comment) {
+            <p>{{ comment }}</p>
+          }
+        </div>
+      }
+      <div class="form-actions">
+        @if (mergeNeedsWarningOverride()) {
+          <button
+            type="button"
+            (click)="mergeConcept(true)"
+            [disabled]="!mergeReadiness().canExecute || mergingConcept()"
+          >
+            Override Warnings and Merge Concept
+          </button>
+        }
+        <button
+          type="button"
+          (click)="mergeConcept()"
+          [disabled]="!mergeReadiness().canExecute || mergingConcept()"
+        >
+          {{ mergingConcept() ? 'Merging...' : 'Merge Concept' }}
+        </button>
+        <button type="button" (click)="closeMergeDialog()" [disabled]="mergingConcept()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
+
+@if (atomMoveDialogOpen()) {
+  <meme-dialog
+    title="Move Atoms"
+    [closeDisabled]="movingAtoms()"
+    (closed)="closeAtomMoveDialog()"
+  >
+    <div class="dialog-form">
+      @if (atomsForMove().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Atom</th>
+                <th>TT</th>
+                <th>Code / Concept / Descriptor</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (atom of atomsForMove(); track atom.id) {
+                <tr>
+                  <td>{{ atomDisplay(atom) }}</td>
+                  <td>{{ atom.termType || 'n/a' }}</td>
+                  <td>{{ atom.codeId || '' }} {{ atom.conceptId || '' }} {{ atom.descriptorId || '' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <label class="form-field" for="content-atom-move-target-query">
+        Find Target Concept
+        <input
+          id="content-atom-move-target-query"
+          type="search"
+          [ngModel]="atomMoveTargetQuery()"
+          (ngModelChange)="setAtomMoveTargetQuery($event)"
+          placeholder="Search by concept id or name"
+        />
+      </label>
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="searchAtomMoveTargets()"
+          [disabled]="!atomMoveTargetQuery().trim() || searchingAtomMoveTargets()"
+        >
+          {{ searchingAtomMoveTargets() ? 'Searching...' : 'Find Move Target' }}
+        </button>
+      </div>
+      @if (atomMoveTargetSearchError(); as moveTargetSearchError) {
+        <p class="form-errors compact-empty">{{ moveTargetSearchError }}</p>
+      }
+      @if (selectedAtomMoveTarget(); as selectedTarget) {
+        <p class="empty compact-empty">
+          Selected target: {{ selectedTarget.terminologyId || selectedTarget.id }}
+          {{ conceptSearchTargetDisplay(selectedTarget) }}
+        </p>
+      }
+      @if (atomMoveTargetResults().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Concept</th>
+                <th>Name</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (target of atomMoveTargetResults(); track target.id ?? target.terminologyId ?? $index) {
+                <tr [class.selected-row]="selectedAtomMoveTarget()?.id === target.id">
+                  <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
+                  <td>{{ conceptSearchTargetDisplay(target) }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      (click)="selectAtomMoveTarget(target)"
+                      [disabled]="!target.id"
+                    >
+                      Select
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      <label class="form-field" for="content-atom-move-target-id">
+        Target Concept ID
+        <input
+          id="content-atom-move-target-id"
+          type="number"
+          min="1"
+          [ngModel]="atomMoveTargetConceptId()"
+          (ngModelChange)="setAtomMoveTargetConceptId($event)"
+          placeholder="Enter target concept id"
+        />
+      </label>
+      <label class="form-field" for="content-atom-move-activity">
+        Move Activity ID
+        <input
+          id="content-atom-move-activity"
+          type="text"
+          [ngModel]="activityIdValue(atomMoveActivityId())"
+          (ngModelChange)="setAtomMoveActivityId($event)"
+          placeholder="Enter the editing activity id"
+        />
+      </label>
+      @if (atomMoveReadiness().reasons.length) {
+        <ul class="form-errors">
+          @for (reason of atomMoveReadiness().reasons; track reason) {
+            <li>{{ reason }}</li>
+          }
+        </ul>
+      }
+      @if (atomMoveErrors().length) {
+        <ul class="form-errors">
+          @for (error of atomMoveErrors(); track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+      @if (atomMoveWarnings().length) {
+        <ul class="form-errors" style="background: #fff7e6; border-color: #e8c16d; color: #744f11;">
+          @for (warning of atomMoveWarnings(); track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+      @if (atomMoveComments().length) {
+        <div class="form-messages">
+          @for (comment of atomMoveComments(); track comment) {
+            <p>{{ comment }}</p>
+          }
+        </div>
+      }
+      <div class="form-actions">
+        @if (atomMoveNeedsWarningOverride()) {
+          <button
+            type="button"
+            (click)="moveSelectedAtoms(true)"
+            [disabled]="!atomMoveReadiness().canExecute || movingAtoms()"
+          >
+            Override Warnings and Move Selected Atoms
+          </button>
+        }
+        <button
+          type="button"
+          (click)="moveSelectedAtoms()"
+          [disabled]="!atomMoveReadiness().canExecute || movingAtoms()"
+        >
+          {{ movingAtoms() ? 'Moving...' : 'Move Selected Atoms' }}
+        </button>
+        <button type="button" (click)="closeAtomMoveDialog()" [disabled]="movingAtoms()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
+
+@if (atomSplitDialogOpen()) {
+  <meme-dialog
+    title="Split Concept"
+    [closeDisabled]="splittingConcept()"
+    (closed)="closeAtomSplitDialog()"
+  >
+    <div class="dialog-form">
+      @if (atomsForSplit().length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Atom</th>
+                <th>TT</th>
+                <th>Code / Concept / Descriptor</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (atom of atomsForSplit(); track atom.id) {
+                <tr>
+                  <td>{{ atomDisplay(atom) }}</td>
+                  <td>{{ atom.termType || 'n/a' }}</td>
+                  <td>{{ atom.codeId || '' }} {{ atom.conceptId || '' }} {{ atom.descriptorId || '' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <label class="checkbox-label" for="content-concept-split-copy">
+        <input
+          id="content-concept-split-copy"
+          type="checkbox"
+          [ngModel]="atomSplitCopyRelated()"
+          (ngModelChange)="setAtomSplitCopyRelated($event)"
+        />
+        Copy relationships and semantic types
+      </label>
+      <label class="form-field" for="content-concept-split-relationship">
+        Relationship To Current Concept
+        <select
+          id="content-concept-split-relationship"
+          [ngModel]="atomSplitRelationshipType()"
+          (ngModelChange)="setAtomSplitRelationshipType($event)"
+        >
+          @for (type of relationshipAddTypeOptions(selectedComponent()!); track type) {
+            <option [value]="type">{{ type }}</option>
+          }
+        </select>
+      </label>
+      <label class="form-field" for="content-concept-split-activity">
+        Split Activity ID
+        <input
+          id="content-concept-split-activity"
+          type="text"
+          [ngModel]="activityIdValue(atomSplitActivityId())"
+          (ngModelChange)="setAtomSplitActivityId($event)"
+          placeholder="Enter the editing activity id"
+        />
+      </label>
+      @if (atomSplitReadiness().reasons.length) {
+        <ul class="form-errors">
+          @for (reason of atomSplitReadiness().reasons; track reason) {
+            <li>{{ reason }}</li>
+          }
+        </ul>
+      }
+      @if (atomSplitErrors().length) {
+        <ul class="form-errors">
+          @for (error of atomSplitErrors(); track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+      @if (atomSplitWarnings().length) {
+        <ul class="form-errors" style="background: #fff7e6; border-color: #e8c16d; color: #744f11;">
+          @for (warning of atomSplitWarnings(); track warning) {
+            <li>{{ warning }}</li>
+          }
+        </ul>
+      }
+      @if (atomSplitComments().length) {
+        <div class="form-messages">
+          @for (comment of atomSplitComments(); track comment) {
+            <p>{{ comment }}</p>
+          }
+        </div>
+      }
+      <div class="form-actions">
+        @if (atomSplitNeedsWarningOverride()) {
+          <button
+            type="button"
+            (click)="splitSelectedAtoms(true)"
+            [disabled]="!atomSplitReadiness().canExecute || splittingConcept()"
+          >
+            Override Warnings and Split Selected Atoms
+          </button>
+        }
+        <button
+          type="button"
+          (click)="splitSelectedAtoms()"
+          [disabled]="!atomSplitReadiness().canExecute || splittingConcept()"
+        >
+          {{ splittingConcept() ? 'Splitting...' : 'Split Selected Atoms' }}
+        </button>
+        <button type="button" (click)="closeAtomSplitDialog()" [disabled]="splittingConcept()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}

@@ -1,5 +1,6 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   ActivatedRoute,
@@ -11,17 +12,40 @@ import { finalize, map } from 'rxjs';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { OperationalApiService } from '../operations/operational-api.service';
+import { buildContentPfs } from './content-edit-api.helpers';
+import { ContentEditApiService } from './content-edit-api.service';
+import {
+  ContentAtom,
+  ContentComponent as ContentComponentDetail,
+  ContentRelationship,
+  ContentSearchResult,
+  ContentSemanticType,
+  ContentSemanticTypeMetadata,
+  ContentTreePosition
+} from './content-edit.models';
 import {
   buildActionMutationReadiness,
+  buildAtomMutationReadiness,
+  buildRelationshipAddReadiness,
+  buildRelationshipMutationReadiness,
+  buildSemanticTypeAddReadiness,
+  buildSemanticTypeMutationReadiness,
   validationBlocksCommit,
   validationErrors,
+  validationNeedsWarningOverride,
   validationWarnings
 } from './edit-mutation.helpers';
 import { EditMutationApiService } from './edit-mutation-api.service';
 import {
+  EditAddRelationshipRequest,
+  EditAddSemanticTypeRequest,
   EditMutationReadiness,
-  EditValidationResult,
-  EditUndoRedoRequest
+  EditRemoveAtomRequest,
+  EditRemoveRelationshipRequest,
+  EditRemoveSemanticTypeRequest,
+  EditUpdateAtomRequest,
+  EditUndoRedoRequest,
+  EditValidationResult
 } from './edit-mutation.models';
 
 interface EditInventoryItem {
@@ -59,11 +83,27 @@ interface EditWorkbenchContextEntry {
 
 @Component({
   selector: 'meme-edit-workbench',
-  imports: [FormsModule, RouterLink, RouterLinkActive],
+  imports: [FormsModule, NgTemplateOutlet, RouterLink, RouterLinkActive],
   templateUrl: './edit-workbench.component.html',
   styleUrl: '../operations/operations.component.css'
 })
 export class EditWorkbenchComponent implements OnInit {
+  constructor() {
+    // Safety net: if routeWorkbench signal resolves after ngOnInit (e.g. lazy-load
+    // timing in a popup window), trigger concept loading reactively.
+    effect(() => {
+      const workbench = this.activeWorkbench();
+      if (workbench === 'main') return;
+      const alreadyTriggered = untracked(
+        () => this.loadedConcept() !== null || this.loadingConcept() || this.conceptLoadError() !== null
+      );
+      if (!alreadyTriggered) {
+        untracked(() => this.loadConcept());
+      }
+    });
+  }
+
+  private readonly contentApi = inject(ContentEditApiService);
   private readonly mutationApi = inject(EditMutationApiService);
   private readonly notifications = inject(NotificationService);
   private readonly operationsApi = inject(OperationalApiService);
@@ -74,13 +114,21 @@ export class EditWorkbenchComponent implements OnInit {
       map((data) => String(data['workbench'] ?? 'main'))
     ),
     {
-      initialValue: String(this.route.snapshot.data['workbench'] ?? 'main')
+      initialValue: String(
+        this.route.snapshot.routeConfig?.data?.['workbench'] ?? 'main'
+      )
     }
   );
   private readonly queryParamMap = toSignal(this.route.queryParamMap, {
     initialValue: this.route.snapshot.queryParamMap
   });
 
+  protected readonly relationshipTypeOptions = [
+    'RO', 'RB', 'RN', 'BRO', 'BRB', 'BRN', 'XR', 'PAR', 'CHD', 'SIB'
+  ];
+  protected readonly atomStatusOptions = ['NEEDS_REVIEW', 'READY_FOR_PUBLICATION'];
+
+  // Undo/redo action state
   protected readonly actionActivityId = signal('');
   protected readonly actionForce = signal(false);
   protected readonly actionMolecularActionId = signal('');
@@ -90,6 +138,60 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly projectEditingEnabled = signal<boolean | null>(null);
   protected readonly runningAction = signal<'redo' | 'undo' | null>(null);
 
+  // Concept loading
+  protected readonly loadedConcept = signal<ContentComponentDetail | null>(null);
+  protected readonly loadingConcept = signal(false);
+  protected readonly conceptLoadError = signal<string | null>(null);
+
+  // Shared workbench editing
+  protected readonly workbenchActivityId = signal('');
+
+  // Semantic types workbench
+  protected readonly semanticTypeOptions = signal<ContentSemanticTypeMetadata[]>([]);
+  protected readonly loadingSemanticTypeOptions = signal(false);
+  protected readonly semanticTypeOptionsError = signal<string | null>(null);
+  protected readonly addingSemanticType = signal(false);
+  protected readonly semanticTypeAddValue = signal('');
+  protected readonly semanticTypeAddResult = signal<EditValidationResult | null>(null);
+  protected readonly semanticTypeAddPendingValue = signal<string | null>(null);
+  protected readonly removingSemanticTypeId = signal<number | null>(null);
+  protected readonly semanticTypeRemovalResult = signal<EditValidationResult | null>(null);
+  protected readonly semanticTypeRemovalPendingType = signal<ContentSemanticType | null>(null);
+
+  // Atoms workbench
+  protected readonly atomUpdateStatus = signal('NEEDS_REVIEW');
+  protected readonly atomRemovalResult = signal<EditValidationResult | null>(null);
+  protected readonly atomRemovalPendingAtom = signal<ContentAtom | null>(null);
+  protected readonly atomUpdateResult = signal<EditValidationResult | null>(null);
+  protected readonly atomUpdatePendingAtom = signal<ContentAtom | null>(null);
+  protected readonly removingAtomId = signal<number | null>(null);
+  protected readonly updatingAtomId = signal<number | null>(null);
+
+  // Relationships workbench
+  protected readonly addingRelationship = signal(false);
+  protected readonly relationshipAddType = signal('RO');
+  protected readonly relationshipAddTargetConceptId = signal('');
+  protected readonly relationshipAddResult = signal<EditValidationResult | null>(null);
+  protected readonly relationshipAddPendingRelationship = signal<ContentRelationship | null>(null);
+  protected readonly removingRelationshipId = signal<number | null>(null);
+  protected readonly relationshipRemovalResult = signal<EditValidationResult | null>(null);
+  protected readonly relationshipRemovalPendingRelationship = signal<ContentRelationship | null>(null);
+
+  // Code concepts workbench
+  protected readonly codeConceptTarget = signal<ContentAtom | null>(null);
+  protected readonly codeConceptResults = signal<ContentSearchResult[]>([]);
+  protected readonly codeConceptTotalCount = signal(0);
+  protected readonly loadingCodeConcepts = signal(false);
+  protected readonly codeConceptError = signal<string | null>(null);
+
+  // Contexts workbench
+  protected readonly contextFilter = signal('');
+  protected readonly contextTreePositions = signal<ContentTreePosition[]>([]);
+  protected readonly contextTreePositionCount = signal(0);
+  protected readonly contextTreePositionError = signal<string | null>(null);
+  protected readonly loadingContextTreePositions = signal(false);
+
+  // Existing computed
   protected readonly projectId = computed(() => this.projectContext.projectId());
   protected readonly projectRole = computed(
     () => this.projectContext.projectRole() || 'n/a'
@@ -201,82 +303,212 @@ export class EditWorkbenchComponent implements OnInit {
     });
   });
 
-  ngOnInit(): void {
-    this.loadProjectContext();
-  }
+  // Concept-derived computed
+  protected readonly conceptLastModified = computed(() =>
+    this.toEpochMillis(this.loadedConcept()?.lastModified)
+  );
+  protected readonly conceptTerminology = computed(
+    () => this.loadedConcept()?.terminology || this.selectedContext()?.terminology || ''
+  );
+  protected readonly conceptVersion = computed(
+    () => this.loadedConcept()?.version || this.selectedContext()?.version || ''
+  );
+  protected readonly conceptSemanticTypes = computed<ContentSemanticType[]>(
+    () => Array.from(this.loadedConcept()?.semanticTypes ?? [])
+  );
+  protected readonly conceptAtoms = computed<ContentAtom[]>(
+    () => Array.from(this.loadedConcept()?.atoms ?? [])
+  );
+  protected readonly conceptRelationships = computed<ContentRelationship[]>(
+    () => Array.from(this.loadedConcept()?.relationships ?? [])
+  );
+  protected readonly availableSemanticTypeOptions = computed<ContentSemanticTypeMetadata[]>(() => {
+    const existing = new Set(
+      this.conceptSemanticTypes()
+        .map((sty) => sty.semanticType?.trim())
+        .filter((v): v is string => Boolean(v))
+    );
+    return this.semanticTypeOptions().filter((opt) => {
+      const value = opt.expandedForm || opt.abbreviation || opt.typeId || '';
+      return value && !existing.has(value);
+    });
+  });
+  protected readonly semanticTypeAddReadiness = computed<EditMutationReadiness>(() => {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const reasons = [
+      ...buildSemanticTypeAddReadiness(
+        projectId,
+        concept?.id,
+        this.semanticTypeAddValue(),
+        this.workbenchActivityId(),
+        this.conceptLastModified(),
+        this.projectRole(),
+        this.projectEditingEnabled() !== false
+      ).reasons
+    ];
 
-  protected setActionActivityId(value: string): void {
-    this.actionActivityId.set(value);
-  }
-
-  protected setActionForce(value: boolean): void {
-    this.actionForce.set(value);
-  }
-
-  protected setActionMolecularActionId(value: string): void {
-    this.actionMolecularActionId.set(value);
-  }
-
-  protected performAction(action: 'redo' | 'undo'): void {
-    const request = this.buildActionRequest();
-
-    if (!request || !this.actionReadiness().canExecute) {
-      return;
+    if (!concept) {
+      reasons.push('Concept must be loaded.');
+    }
+    if (this.loadingSemanticTypeOptions()) {
+      reasons.push('Semantic type options are loading.');
+    }
+    if (this.semanticTypeOptionsError()) {
+      reasons.push('Semantic type options could not be loaded.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && this.projectEditingEnabled() === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
     }
 
-    const label = action === 'undo' ? 'Undo' : 'Redo';
-    const forceLabel = request.force ? ' with force' : '';
+    return { canExecute: reasons.length === 0, reasons: Array.from(new Set(reasons)) };
+  });
+  protected readonly atomMutationBaseReadiness = computed<EditMutationReadiness>(() => {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const reasons = buildAtomMutationReadiness(
+      projectId,
+      concept?.id,
+      null,
+      this.workbenchActivityId(),
+      this.conceptLastModified(),
+      this.projectRole(),
+      this.projectEditingEnabled() !== false
+    ).reasons.filter((r) => r !== 'Atom id is required.');
 
-    if (
-      !window.confirm(
-        `${label} molecular action ${request.molecularActionId}${forceLabel}?`
-      )
-    ) {
-      return;
+    if (!concept) {
+      reasons.push('Concept must be loaded.');
+    }
+    if (!this.atomUpdateStatus().trim()) {
+      reasons.push('Target status is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && this.projectEditingEnabled() === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
     }
 
-    this.runningAction.set(action);
-    this.actionResult.set(null);
-    const actionRequest =
-      action === 'undo'
-        ? this.mutationApi.undoAction(request)
-        : this.mutationApi.redoAction(request);
+    return { canExecute: reasons.length === 0, reasons: Array.from(new Set(reasons)) };
+  });
+  protected readonly relationshipAddReadiness = computed<EditMutationReadiness>(() => {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const targetId = this.parsePositiveInteger(this.relationshipAddTargetConceptId());
+    const reasons = [
+      ...buildRelationshipAddReadiness(
+        projectId,
+        concept?.id,
+        targetId,
+        this.relationshipAddType(),
+        this.workbenchActivityId(),
+        this.conceptLastModified(),
+        this.projectRole(),
+        this.projectEditingEnabled() !== false
+      ).reasons
+    ];
 
-    actionRequest
-      .pipe(finalize(() => this.runningAction.set(null)))
-      .subscribe({
-        next: (result) => {
-          this.actionResult.set(result);
-          if (validationBlocksCommit(result)) {
-            this.notifications.error(`${label} failed validation.`);
-            return;
-          }
-          if (validationWarnings(result).length) {
-            this.notifications.success(`${label} completed with warnings.`);
-            return;
-          }
-          this.notifications.success(`${label} completed.`);
-        },
-        error: () => {
-          this.notifications.error(`${label} could not be completed.`);
-        }
-      });
-  }
+    if (!concept) {
+      reasons.push('Concept must be loaded.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && this.projectEditingEnabled() === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return { canExecute: reasons.length === 0, reasons: Array.from(new Set(reasons)) };
+  });
+  protected readonly relationshipRemovalBaseReadiness = computed<EditMutationReadiness>(() => {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const reasons = buildRelationshipMutationReadiness(
+      projectId,
+      concept?.id,
+      null,
+      this.workbenchActivityId(),
+      this.conceptLastModified(),
+      this.projectRole(),
+      this.projectEditingEnabled() !== false
+    ).reasons.filter((r) => r !== 'Relationship id is required.');
+
+    if (!concept) {
+      reasons.push('Concept must be loaded.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && this.projectEditingEnabled() === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return { canExecute: reasons.length === 0, reasons: Array.from(new Set(reasons)) };
+  });
+
+  // Per-result feedback computed
+  protected readonly semanticTypeAddErrors = computed(() => validationErrors(this.semanticTypeAddResult()));
+  protected readonly semanticTypeAddWarnings = computed(() => validationWarnings(this.semanticTypeAddResult()));
+  protected readonly semanticTypeAddNeedsOverride = computed(
+    () => Boolean(this.semanticTypeAddPendingValue()) && validationNeedsWarningOverride(this.semanticTypeAddResult())
+  );
+  protected readonly semanticTypeRemovalErrors = computed(() => validationErrors(this.semanticTypeRemovalResult()));
+  protected readonly semanticTypeRemovalWarnings = computed(() => validationWarnings(this.semanticTypeRemovalResult()));
+  protected readonly semanticTypeRemovalNeedsOverride = computed(
+    () => Boolean(this.semanticTypeRemovalPendingType()) && validationNeedsWarningOverride(this.semanticTypeRemovalResult())
+  );
+  protected readonly atomUpdateErrors = computed(() => validationErrors(this.atomUpdateResult()));
+  protected readonly atomUpdateWarnings = computed(() => validationWarnings(this.atomUpdateResult()));
+  protected readonly atomUpdateNeedsOverride = computed(
+    () => Boolean(this.atomUpdatePendingAtom()) && validationNeedsWarningOverride(this.atomUpdateResult())
+  );
+  protected readonly atomRemovalErrors = computed(() => validationErrors(this.atomRemovalResult()));
+  protected readonly atomRemovalWarnings = computed(() => validationWarnings(this.atomRemovalResult()));
+  protected readonly atomRemovalNeedsOverride = computed(
+    () => Boolean(this.atomRemovalPendingAtom()) && validationNeedsWarningOverride(this.atomRemovalResult())
+  );
+  protected readonly relationshipAddErrors = computed(() => validationErrors(this.relationshipAddResult()));
+  protected readonly relationshipAddWarnings = computed(() => validationWarnings(this.relationshipAddResult()));
+  protected readonly relationshipAddNeedsOverride = computed(
+    () => Boolean(this.relationshipAddPendingRelationship()) && validationNeedsWarningOverride(this.relationshipAddResult())
+  );
+  protected readonly relationshipRemovalErrors = computed(() => validationErrors(this.relationshipRemovalResult()));
+  protected readonly relationshipRemovalWarnings = computed(() => validationWarnings(this.relationshipRemovalResult()));
+  protected readonly relationshipRemovalNeedsOverride = computed(
+    () => Boolean(this.relationshipRemovalPendingRelationship()) && validationNeedsWarningOverride(this.relationshipRemovalResult())
+  );
+  protected readonly filteredContextTreePositions = computed<ContentTreePosition[]>(() => {
+    const filter = this.contextFilter().trim().toLowerCase();
+    if (!filter) {
+      return this.contextTreePositions();
+    }
+    return this.contextTreePositions().filter((pos) => {
+      const display = `${pos.nodeTerminologyId ?? ''} ${pos.nodeName ?? ''} ${pos.terminology ?? ''}`.toLowerCase();
+      return display.includes(filter);
+    });
+  });
 
   protected readonly workbenchLinks: EditWorkbenchLink[] = [
     { label: 'Main', route: '/edit', workbench: 'main' },
-    {
-      label: 'Semantic Types',
-      route: '/edit/semantic-types',
-      workbench: 'semantic-types'
-    },
+    { label: 'Semantic Types', route: '/edit/semantic-types', workbench: 'semantic-types' },
     { label: 'Code Concepts', route: '/edit/codeConcepts', workbench: 'code-concepts' },
     { label: 'Atoms', route: '/edit/atoms', workbench: 'atoms' },
-    {
-      label: 'Relationships',
-      route: '/edit/relationships',
-      workbench: 'relationships'
-    },
+    { label: 'Relationships', route: '/edit/relationships', workbench: 'relationships' },
     { label: 'Contexts', route: '/contexts', workbench: 'contexts' }
   ];
 
@@ -372,6 +604,660 @@ export class EditWorkbenchComponent implements OnInit {
     'Destructive actions require confirmation and post-action component refresh'
   ];
 
+  ngOnInit(): void {
+    this.loadProjectContext();
+    const context = this.selectedContext();
+    if (context?.activityId) {
+      this.workbenchActivityId.set(context.activityId);
+    }
+    if (context) {
+      this.loadConcept();
+    }
+  }
+
+  // --- Existing undo/redo setters ---
+
+  protected setActionActivityId(value: string): void {
+    this.actionActivityId.set(value);
+  }
+
+  protected setActionForce(value: boolean): void {
+    this.actionForce.set(value);
+  }
+
+  protected setActionMolecularActionId(value: string): void {
+    this.actionMolecularActionId.set(value);
+  }
+
+  protected performAction(action: 'redo' | 'undo'): void {
+    const request = this.buildActionRequest();
+
+    if (!request || !this.actionReadiness().canExecute) {
+      return;
+    }
+
+    const label = action === 'undo' ? 'Undo' : 'Redo';
+    const forceLabel = request.force ? ' with force' : '';
+
+    if (
+      !window.confirm(
+        `${label} molecular action ${request.molecularActionId}${forceLabel}?`
+      )
+    ) {
+      return;
+    }
+
+    this.runningAction.set(action);
+    this.actionResult.set(null);
+    const actionRequest =
+      action === 'undo'
+        ? this.mutationApi.undoAction(request)
+        : this.mutationApi.redoAction(request);
+
+    actionRequest
+      .pipe(finalize(() => this.runningAction.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.actionResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.notifications.error(`${label} failed validation.`);
+            return;
+          }
+          if (validationWarnings(result).length) {
+            this.notifications.success(`${label} completed with warnings.`);
+            return;
+          }
+          this.notifications.success(`${label} completed.`);
+        },
+        error: () => {
+          this.notifications.error(`${label} could not be completed.`);
+        }
+      });
+  }
+
+  // --- Workbench setters ---
+
+  protected setWorkbenchActivityId(value: string): void {
+    this.workbenchActivityId.set(value);
+  }
+
+  protected setAtomUpdateStatus(value: string): void {
+    this.atomUpdateStatus.set(value);
+  }
+
+  protected setRelationshipAddType(value: string): void {
+    this.relationshipAddType.set(value);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddResult.set(null);
+  }
+
+  protected setRelationshipAddTargetConceptId(value: string): void {
+    this.relationshipAddTargetConceptId.set(value);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddResult.set(null);
+  }
+
+  protected setSemanticTypeAddValue(value: string): void {
+    this.semanticTypeAddValue.set(value);
+    this.semanticTypeAddPendingValue.set(null);
+    this.semanticTypeAddResult.set(null);
+  }
+
+  protected setContextFilter(value: string): void {
+    this.contextFilter.set(value);
+  }
+
+  // --- Concept loading ---
+
+  protected loadConcept(): void {
+    const context = this.selectedContext();
+    const projectId = this.projectId();
+
+    if (!context) {
+      this.conceptLoadError.set(
+        'No concept context in query params. Open this window from the main Edit tab.'
+      );
+      return;
+    }
+
+    const terminology = context.terminology;
+    const version = context.version;
+    const terminologyId = context.terminologyId;
+    const componentId = context.componentId ? Number(context.componentId) : null;
+
+    const request =
+      terminology && version && terminologyId
+        ? this.contentApi.getComponentByTerminologyId(
+            'CONCEPT', terminology, version, terminologyId, projectId
+          )
+        : componentId && Number.isFinite(componentId)
+          ? this.contentApi.getComponentById('CONCEPT', componentId, projectId)
+          : null;
+
+    if (!request) {
+      this.conceptLoadError.set(
+        'Context does not have enough identifiers to load the concept.'
+      );
+      return;
+    }
+
+    this.loadingConcept.set(true);
+    this.loadedConcept.set(null);
+    this.conceptLoadError.set(null);
+
+    request
+      .pipe(finalize(() => this.loadingConcept.set(false)))
+      .subscribe({
+        next: (concept) => {
+          if (!concept) {
+            this.conceptLoadError.set('Concept could not be found.');
+            return;
+          }
+          this.loadedConcept.set(concept);
+          const workbench = String(
+            this.route.snapshot.data?.['workbench'] ??
+            this.route.snapshot.routeConfig?.data?.['workbench'] ??
+            this.activeWorkbench()
+          );
+          if (workbench === 'semantic-types') {
+            this.loadSemanticTypeOptions();
+          }
+          if (workbench === 'contexts') {
+            this.loadContextTreePositions();
+          }
+        },
+        error: () => {
+          this.conceptLoadError.set('Concept could not be loaded.');
+          this.notifications.error('Concept could not be loaded.');
+        }
+      });
+  }
+
+  protected refreshConcept(): void {
+    this.atomRemovalPendingAtom.set(null);
+    this.atomRemovalResult.set(null);
+    this.atomUpdatePendingAtom.set(null);
+    this.atomUpdateResult.set(null);
+    this.semanticTypeAddPendingValue.set(null);
+    this.semanticTypeAddResult.set(null);
+    this.semanticTypeRemovalPendingType.set(null);
+    this.semanticTypeRemovalResult.set(null);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddResult.set(null);
+    this.relationshipRemovalPendingRelationship.set(null);
+    this.relationshipRemovalResult.set(null);
+    this.loadConcept();
+  }
+
+  // --- Semantic types workbench ---
+
+  protected loadSemanticTypeOptions(): void {
+    const terminology = this.conceptTerminology();
+    const version = this.conceptVersion();
+
+    if (!terminology || !version) {
+      return;
+    }
+
+    this.loadingSemanticTypeOptions.set(true);
+    this.semanticTypeOptionsError.set(null);
+
+    this.contentApi
+      .getSemanticTypes(terminology, version)
+      .pipe(finalize(() => this.loadingSemanticTypeOptions.set(false)))
+      .subscribe({
+        next: (options) => {
+          this.semanticTypeOptions.set(
+            [...options].sort((a, b) =>
+              this.semanticTypeOptionDisplay(a).localeCompare(this.semanticTypeOptionDisplay(b))
+            )
+          );
+        },
+        error: () => {
+          this.semanticTypeOptionsError.set('Semantic type options could not be loaded.');
+        }
+      });
+  }
+
+  protected addSemanticTypeToConcept(overrideWarnings = false): void {
+    const request = this.buildAddSemanticTypeRequest(overrideWarnings);
+    if (!request || !this.semanticTypeAddReadiness().canExecute) {
+      return;
+    }
+    const label = overrideWarnings ? 'Override warnings and add' : 'Add';
+    if (!window.confirm(`${label} semantic type "${request.semanticType}"?`)) {
+      return;
+    }
+    this.addingSemanticType.set(true);
+    this.semanticTypeAddResult.set(null);
+    this.mutationApi
+      .addSemanticTypeToConcept(request)
+      .pipe(finalize(() => this.addingSemanticType.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.semanticTypeAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.semanticTypeAddPendingValue.set(null);
+            this.notifications.error('Semantic type add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.semanticTypeAddPendingValue.set(request.semanticType);
+            this.notifications.error(
+              'Semantic type add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+          this.semanticTypeAddPendingValue.set(null);
+          this.semanticTypeAddValue.set('');
+          this.notifications.success('Semantic type added.');
+          this.loadConcept();
+        },
+        error: () => {
+          this.notifications.error('Semantic type could not be added.');
+        }
+      });
+  }
+
+  protected canRemoveSemanticType(type: ContentSemanticType): boolean {
+    if (this.removingSemanticTypeId() !== null || !type.id) {
+      return false;
+    }
+    return buildSemanticTypeMutationReadiness(
+      this.projectId(),
+      this.loadedConcept()?.id,
+      type.id,
+      this.workbenchActivityId(),
+      this.conceptLastModified(),
+      this.projectRole(),
+      this.projectEditingEnabled() !== false
+    ).canExecute;
+  }
+
+  protected removeSemanticTypeFromConcept(
+    type: ContentSemanticType,
+    overrideWarnings = false
+  ): void {
+    const request = this.buildRemoveSemanticTypeRequest(type, overrideWarnings);
+    if (!request || !this.canRemoveSemanticType(type)) {
+      return;
+    }
+    const label = overrideWarnings ? 'Override warnings and remove' : 'Remove';
+    if (!window.confirm(`${label} semantic type "${type.semanticType}"?`)) {
+      return;
+    }
+    this.removingSemanticTypeId.set(type.id ?? null);
+    this.semanticTypeRemovalResult.set(null);
+    this.mutationApi
+      .removeSemanticTypeFromConcept(request)
+      .pipe(finalize(() => this.removingSemanticTypeId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.semanticTypeRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.semanticTypeRemovalPendingType.set(null);
+            this.notifications.error('Semantic type removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.semanticTypeRemovalPendingType.set(type);
+            this.notifications.error(
+              'Semantic type removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+          this.semanticTypeRemovalPendingType.set(null);
+          this.notifications.success('Semantic type removed.');
+          this.loadConcept();
+        },
+        error: () => {
+          this.notifications.error('Semantic type could not be removed.');
+        }
+      });
+  }
+
+  // --- Atoms workbench ---
+
+  protected canUpdateAtomStatus(atom: ContentAtom): boolean {
+    if (this.updatingAtomId() !== null || !atom.id || !this.atomUpdateStatus().trim()) {
+      return false;
+    }
+    return buildAtomMutationReadiness(
+      this.projectId(),
+      this.loadedConcept()?.id,
+      atom.id,
+      this.workbenchActivityId(),
+      this.conceptLastModified(),
+      this.projectRole(),
+      this.projectEditingEnabled() !== false
+    ).canExecute;
+  }
+
+  protected updateAtomStatus(atom: ContentAtom, overrideWarnings = false): void {
+    const request = this.buildUpdateAtomStatusRequest(atom, overrideWarnings);
+    if (!request || !this.canUpdateAtomStatus(atom)) {
+      return;
+    }
+    const workflowStatus = this.atomUpdateStatus();
+    const label = overrideWarnings ? 'Override warnings and update' : 'Update';
+    if (!window.confirm(`${label} atom "${this.atomDisplay(atom)}" status to "${workflowStatus}"?`)) {
+      return;
+    }
+    this.updatingAtomId.set(atom.id ?? null);
+    this.atomUpdateResult.set(null);
+    this.mutationApi
+      .updateAtomOnConcept(request)
+      .pipe(finalize(() => this.updatingAtomId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.atomUpdateResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomUpdatePendingAtom.set(null);
+            this.notifications.error('Atom status update failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomUpdatePendingAtom.set(request.atom);
+            this.notifications.error(
+              'Atom status update returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+          this.atomUpdatePendingAtom.set(null);
+          this.notifications.success('Atom status updated.');
+          this.loadConcept();
+        },
+        error: () => {
+          this.notifications.error('Atom status could not be updated.');
+        }
+      });
+  }
+
+  protected canRemoveAtom(atom: ContentAtom): boolean {
+    if (this.removingAtomId() !== null || !atom.id) {
+      return false;
+    }
+    return buildAtomMutationReadiness(
+      this.projectId(),
+      this.loadedConcept()?.id,
+      atom.id,
+      this.workbenchActivityId(),
+      this.conceptLastModified(),
+      this.projectRole(),
+      this.projectEditingEnabled() !== false
+    ).canExecute;
+  }
+
+  protected removeAtomFromConcept(atom: ContentAtom, overrideWarnings = false): void {
+    const request = this.buildRemoveAtomRequest(atom, overrideWarnings);
+    if (!request || !this.canRemoveAtom(atom)) {
+      return;
+    }
+    const label = overrideWarnings ? 'Override warnings and remove' : 'Remove';
+    if (!window.confirm(`${label} atom "${this.atomDisplay(atom)}"?`)) {
+      return;
+    }
+    this.removingAtomId.set(atom.id ?? null);
+    this.atomRemovalResult.set(null);
+    this.mutationApi
+      .removeAtomFromConcept(request)
+      .pipe(finalize(() => this.removingAtomId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.atomRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.atomRemovalPendingAtom.set(null);
+            this.notifications.error('Atom removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.atomRemovalPendingAtom.set(atom);
+            this.notifications.error(
+              'Atom removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+          this.atomRemovalPendingAtom.set(null);
+          this.notifications.success('Atom removed.');
+          this.loadConcept();
+        },
+        error: () => {
+          this.notifications.error('Atom could not be removed.');
+        }
+      });
+  }
+
+  // --- Relationships workbench ---
+
+  protected addRelationshipToConcept(overrideWarnings = false): void {
+    const request = this.buildAddRelationshipRequest(overrideWarnings);
+    if (!request || !this.relationshipAddReadiness().canExecute) {
+      return;
+    }
+    const rel = request.relationship;
+    const label = overrideWarnings ? 'Override warnings and add' : 'Add';
+    if (!window.confirm(`${label} ${rel.relationshipType} relationship to concept ${rel.toId}?`)) {
+      return;
+    }
+    this.addingRelationship.set(true);
+    this.relationshipAddResult.set(null);
+    this.mutationApi
+      .addRelationshipToConcept(request)
+      .pipe(finalize(() => this.addingRelationship.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.relationshipAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.relationshipAddPendingRelationship.set(null);
+            this.notifications.error('Relationship add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.relationshipAddPendingRelationship.set(rel);
+            this.notifications.error(
+              'Relationship add returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+          this.relationshipAddPendingRelationship.set(null);
+          this.relationshipAddTargetConceptId.set('');
+          this.notifications.success('Relationship added.');
+          this.loadConcept();
+        },
+        error: () => {
+          this.notifications.error('Relationship could not be added.');
+        }
+      });
+  }
+
+  protected canRemoveRelationship(rel: ContentRelationship): boolean {
+    if (this.removingRelationshipId() !== null || !rel.id) {
+      return false;
+    }
+    return buildRelationshipMutationReadiness(
+      this.projectId(),
+      this.loadedConcept()?.id,
+      rel.id,
+      this.workbenchActivityId(),
+      this.conceptLastModified(),
+      this.projectRole(),
+      this.projectEditingEnabled() !== false
+    ).canExecute;
+  }
+
+  protected removeRelationshipFromConcept(
+    rel: ContentRelationship,
+    overrideWarnings = false
+  ): void {
+    const request = this.buildRemoveRelationshipRequest(rel, overrideWarnings);
+    if (!request || !this.canRemoveRelationship(rel)) {
+      return;
+    }
+    const label = overrideWarnings ? 'Override warnings and remove' : 'Remove';
+    if (
+      !window.confirm(
+        `${label} ${rel.relationshipType} relationship to ${rel.toTerminologyId || rel.toId}?`
+      )
+    ) {
+      return;
+    }
+    this.removingRelationshipId.set(rel.id ?? null);
+    this.relationshipRemovalResult.set(null);
+    this.mutationApi
+      .removeRelationshipFromConcept(request)
+      .pipe(finalize(() => this.removingRelationshipId.set(null)))
+      .subscribe({
+        next: (result) => {
+          this.relationshipRemovalResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.relationshipRemovalPendingRelationship.set(null);
+            this.notifications.error('Relationship removal failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.relationshipRemovalPendingRelationship.set(rel);
+            this.notifications.error(
+              'Relationship removal returned warnings. Review and override to continue.'
+            );
+            return;
+          }
+          this.relationshipRemovalPendingRelationship.set(null);
+          this.notifications.success('Relationship removed.');
+          this.loadConcept();
+        },
+        error: () => {
+          this.notifications.error('Relationship could not be removed.');
+        }
+      });
+  }
+
+  // --- Code concepts workbench ---
+
+  protected findCodeConcepts(atom: ContentAtom): void {
+    const codeId = atom.codeId?.trim();
+    const terminology = this.conceptTerminology();
+    const version = this.conceptVersion();
+
+    if (!codeId || !terminology || !version) {
+      return;
+    }
+
+    this.codeConceptTarget.set(atom);
+    this.codeConceptResults.set([]);
+    this.codeConceptTotalCount.set(0);
+    this.codeConceptError.set(null);
+    this.loadingCodeConcepts.set(true);
+
+    this.contentApi
+      .findComponents(
+        'CONCEPT',
+        terminology,
+        version,
+        `atoms.codeId:${codeId}`,
+        buildContentPfs(1, 25, 'name', true, '')
+      )
+      .pipe(finalize(() => this.loadingCodeConcepts.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.codeConceptResults.set(response.items);
+          this.codeConceptTotalCount.set(response.totalCount);
+        },
+        error: () => {
+          this.codeConceptError.set('Code concepts could not be loaded.');
+          this.notifications.error('Code concepts could not be loaded.');
+        }
+      });
+  }
+
+  // --- Contexts workbench ---
+
+  protected loadContextTreePositions(): void {
+    const concept = this.loadedConcept();
+    const terminology = this.conceptTerminology();
+    const version = this.conceptVersion();
+    const terminologyId = concept?.terminologyId;
+
+    if (!terminology || !version || !terminologyId) {
+      this.contextTreePositionError.set(
+        'Concept must be loaded with terminology identifiers.'
+      );
+      return;
+    }
+
+    this.contextTreePositionError.set(null);
+    this.contextTreePositions.set([]);
+    this.contextTreePositionCount.set(0);
+    this.loadingContextTreePositions.set(true);
+
+    this.contentApi
+      .findDeepTreePositions(
+        terminology,
+        version,
+        terminologyId,
+        '',
+        buildContentPfs(1, 200, 'terminology', true, '')
+      )
+      .pipe(finalize(() => this.loadingContextTreePositions.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.contextTreePositions.set(response.items);
+          this.contextTreePositionCount.set(response.totalCount);
+        },
+        error: () => {
+          this.contextTreePositionError.set('Context tree positions could not be loaded.');
+          this.notifications.error('Context tree positions could not be loaded.');
+        }
+      });
+  }
+
+  // --- Display helpers ---
+
+  protected atomDisplay(atom: ContentAtom): string {
+    return (
+      [atom.name, atom.termType, atom.terminology].filter(Boolean).join(' / ') ||
+      String(atom.id ?? 'n/a')
+    );
+  }
+
+  protected semanticTypeOptionDisplay(opt: ContentSemanticTypeMetadata): string {
+    const label = opt.expandedForm || opt.abbreviation || opt.typeId || 'n/a';
+    return opt.typeId && opt.typeId !== label ? `${label} [${opt.typeId}]` : label;
+  }
+
+  protected semanticTypeOptionValue(opt: ContentSemanticTypeMetadata): string {
+    return opt.expandedForm || opt.abbreviation || opt.typeId || '';
+  }
+
+  protected contextPositionDisplay(pos: ContentTreePosition): string {
+    return (
+      [pos.nodeTerminologyId, pos.nodeName].filter(Boolean).join(' ') ||
+      pos.terminology ||
+      'n/a'
+    );
+  }
+
+  // --- Private request builders ---
+
+  private toEpochMillis(value: string | number | null | undefined): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (!value) {
+      return null;
+    }
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private parsePositiveInteger(value: string | number | null | undefined): number | null {
+    const parsed = Number(String(value ?? '').trim());
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
   private loadProjectContext(): void {
     const projectId = this.projectId();
 
@@ -410,6 +1296,162 @@ export class EditWorkbenchComponent implements OnInit {
       force: this.actionForce(),
       molecularActionId,
       projectId
+    };
+  }
+
+  private buildAddSemanticTypeRequest(
+    overrideWarnings: boolean
+  ): EditAddSemanticTypeRequest | null {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+    const pendingValue = overrideWarnings ? this.semanticTypeAddPendingValue() : null;
+    const semanticType = pendingValue || this.semanticTypeAddValue().trim();
+
+    if (!projectId || !concept?.id || !semanticType || !lastModified || !activityId) {
+      return null;
+    }
+
+    return { activityId, conceptId: concept.id, lastModified, overrideWarnings, projectId, semanticType };
+  }
+
+  private buildRemoveSemanticTypeRequest(
+    type: ContentSemanticType,
+    overrideWarnings: boolean
+  ): EditRemoveSemanticTypeRequest | null {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+
+    if (!projectId || !concept?.id || !type.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: concept.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      semanticTypeId: type.id
+    };
+  }
+
+  private buildUpdateAtomStatusRequest(
+    atom: ContentAtom,
+    overrideWarnings: boolean
+  ): EditUpdateAtomRequest | null {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+    const workflowStatus = this.atomUpdateStatus().trim();
+    const pendingAtom = overrideWarnings ? this.atomUpdatePendingAtom() : null;
+    const updatedAtom =
+      pendingAtom && pendingAtom.id === atom.id
+        ? pendingAtom
+        : { ...atom, workflowStatus };
+
+    if (!projectId || !concept?.id || !atom.id || !lastModified || !activityId || !workflowStatus) {
+      return null;
+    }
+
+    return { activityId, atom: updatedAtom, conceptId: concept.id, lastModified, overrideWarnings, projectId };
+  }
+
+  private buildRemoveAtomRequest(
+    atom: ContentAtom,
+    overrideWarnings: boolean
+  ): EditRemoveAtomRequest | null {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+
+    if (!projectId || !concept?.id || !atom.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return { activityId, atomId: atom.id, conceptId: concept.id, lastModified, overrideWarnings, projectId };
+  }
+
+  private buildAddRelationshipRequest(
+    overrideWarnings: boolean
+  ): EditAddRelationshipRequest | null {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+    const pendingRelationship = overrideWarnings
+      ? this.relationshipAddPendingRelationship()
+      : null;
+    const targetId =
+      pendingRelationship?.toId ??
+      this.parsePositiveInteger(this.relationshipAddTargetConceptId());
+    const relationshipType = this.relationshipAddType().trim();
+
+    if (
+      !projectId || !concept?.id || !targetId ||
+      !concept.terminology || !concept.version ||
+      !lastModified || !activityId || !relationshipType
+    ) {
+      return null;
+    }
+
+    const relationship: ContentRelationship = pendingRelationship ?? {
+      additionalRelationshipType: '',
+      assertedDirection: false,
+      fromId: concept.id,
+      fromName: concept.name,
+      fromTerminology: concept.terminology,
+      fromTerminologyId: concept.terminologyId,
+      fromVersion: concept.version,
+      group: null,
+      hierarchical: false,
+      inferred: false,
+      name: null,
+      obsolete: false,
+      published: false,
+      relationshipType,
+      stated: false,
+      suppressible: false,
+      terminology: concept.terminology,
+      terminologyId: '',
+      toId: targetId,
+      toName: '',
+      toTerminology: concept.terminology,
+      toTerminologyId: '',
+      toVersion: concept.version,
+      type: 'RELATIONSHIP',
+      version: concept.version,
+      workflowStatus: 'NEEDS_REVIEW'
+    };
+
+    return { activityId, conceptId: concept.id, lastModified, overrideWarnings, projectId, relationship };
+  }
+
+  private buildRemoveRelationshipRequest(
+    rel: ContentRelationship,
+    overrideWarnings: boolean
+  ): EditRemoveRelationshipRequest | null {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+
+    if (!projectId || !concept?.id || !rel.id || !lastModified || !activityId) {
+      return null;
+    }
+
+    return {
+      activityId,
+      conceptId: concept.id,
+      lastModified,
+      overrideWarnings,
+      projectId,
+      relationshipId: rel.id
     };
   }
 

@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { DialogComponent } from '../../shared/dialog/dialog.component';
 import { finalize, map, of, switchMap } from 'rxjs';
 
 import { ProjectContextService } from '../../core/navigation/project-context.service';
@@ -80,7 +81,7 @@ interface EditPopoutLink {
 
 @Component({
   selector: 'meme-content',
-  imports: [FormsModule],
+  imports: [FormsModule, DialogComponent],
   templateUrl: './content.component.html',
   styleUrl: '../operations/operations.component.css'
 })
@@ -267,6 +268,9 @@ export class ContentComponent implements OnInit {
   protected readonly mergeTargetResults = signal<ContentSearchResult[]>([]);
   protected readonly mergeTargetSearchError = signal<string | null>(null);
   protected readonly mergingConcept = signal(false);
+  protected readonly mergeDialogOpen = signal(false);
+  protected readonly atomMoveDialogOpen = signal(false);
+  protected readonly atomSplitDialogOpen = signal(false);
   protected readonly query = signal('');
   protected readonly results = signal<ContentSearchResult[]>([]);
   protected readonly reportDeepRelationships = signal<ContentRelationship[]>([]);
@@ -483,6 +487,18 @@ export class ContentComponent implements OnInit {
   protected readonly selectedAtomSplitCount = computed(
     () => this.selectedAtomSplitIds().length
   );
+  protected readonly atomsForMove = computed(() => {
+    const ids = new Set(this.selectedAtomMoveIds());
+    return (this.selectedComponent()?.atoms ?? []).filter(
+      (a): a is ContentAtom => a.id != null && ids.has(a.id)
+    );
+  });
+  protected readonly atomsForSplit = computed(() => {
+    const ids = new Set(this.selectedAtomSplitIds());
+    return (this.selectedComponent()?.atoms ?? []).filter(
+      (a): a is ContentAtom => a.id != null && ids.has(a.id)
+    );
+  });
   protected readonly atomMoveReadiness = computed<EditMutationReadiness>(() => {
     const component = this.selectedComponent();
     const projectId = this.projectId();
@@ -2684,6 +2700,7 @@ export class ContentComponent implements OnInit {
           this.selectedAtomMoveIds.set([]);
           this.atomMoveTargetConceptId.set('');
           this.selectedAtomMoveTarget.set(null);
+          this.atomMoveDialogOpen.set(false);
           this.notifications.success('Atom move completed.');
           this.loadSelectedComponent(this.selectedResult());
         },
@@ -2760,6 +2777,7 @@ export class ContentComponent implements OnInit {
 
           this.atomSplitPendingRequest.set(null);
           this.selectedAtomSplitIds.set([]);
+          this.atomSplitDialogOpen.set(false);
           this.notifications.success('Concept split completed.');
           this.loadSelectedComponent(this.selectedResult());
         },
@@ -2767,6 +2785,36 @@ export class ContentComponent implements OnInit {
           this.notifications.error('Concept could not be split.');
         }
       });
+  }
+
+  protected openMergeDialog(): void {
+    this.mergeDialogOpen.set(true);
+  }
+
+  protected closeMergeDialog(): void {
+    this.mergeDialogOpen.set(false);
+    this.mergeResult.set(null);
+    this.mergePendingTarget.set(null);
+  }
+
+  protected openAtomMoveDialog(): void {
+    this.atomMoveDialogOpen.set(true);
+  }
+
+  protected closeAtomMoveDialog(): void {
+    this.atomMoveDialogOpen.set(false);
+    this.atomMoveResult.set(null);
+    this.atomMovePendingRequest.set(null);
+  }
+
+  protected openAtomSplitDialog(): void {
+    this.atomSplitDialogOpen.set(true);
+  }
+
+  protected closeAtomSplitDialog(): void {
+    this.atomSplitDialogOpen.set(false);
+    this.atomSplitResult.set(null);
+    this.atomSplitPendingRequest.set(null);
   }
 
   protected searchMergeTargets(): void {
@@ -2896,6 +2944,7 @@ export class ContentComponent implements OnInit {
           this.mergePendingTarget.set(null);
           this.mergeTargetConceptId.set('');
           this.selectedMergeTarget.set(null);
+          this.mergeDialogOpen.set(false);
           this.notifications.success(
             this.mergeReverseOrder()
               ? 'Reverse concept merge completed.'

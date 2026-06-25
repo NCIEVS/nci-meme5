@@ -1194,15 +1194,12 @@ High-risk areas:
 - content search/detail/edit
 - atoms
 - relationships
-- definitions
 - attributes
 - semantic types
 - contexts
 - merge/move/split
 - finish workflow
 - code concepts
-- TinyMCE/rich text behavior
-- hotkeys
 - popout windows
 - websocket-driven notifications
 
@@ -1210,14 +1207,11 @@ Approach:
 
 - Break edit workflows into narrow workbench slices.
 - Prefer read-only detail parity before write operations.
-- Build a keyboard shortcut strategy deliberately.
-- Replace TinyMCE and legacy popout patterns only after a focused spike.
 - Use production-like local data for smoke testing before user acceptance.
 
 Acceptance:
 
 - Critical edit operations match legacy behavior.
-- Hotkeys and focus behavior are documented and tested where important.
 - Unsaved-change and destructive-action guards are explicit.
 - Content/edit routes have the strongest e2e coverage in the migration.
 
@@ -1368,7 +1362,196 @@ Phase 7 initial inventory notes:
   - helper coverage for PFS payloads, content type path normalization, and
     list-response normalization
 
-### Phase 8: Cutover And AngularJS Retirement
+### Phase 8: Visual Parity Pass
+
+Status: not started as of 2026-06-25. All migrated tabs are functionally
+complete but each was built as a minimum-viable functional slice without
+attention to layout, spacing, density, or interaction patterns from the legacy
+UI. This phase brings the Angular 20 UI into visual and interaction alignment
+with what MEME editors already know before those tabs become the default.
+
+Doing visual parity in one dedicated sweep rather than per-screen allows shared
+CSS decisions — color palette, spacing scale, table density, panel geometry,
+button placement, form-field sizing — to be made once and applied consistently.
+Per-screen cleanup done earlier would force each screen to be revisited the
+moment a shared pattern is changed.
+
+Goals:
+
+- Match the visual grammar of the legacy AngularJS UI closely enough that
+  experienced editors feel at home without retraining.
+- Centralize all visual decisions in shared CSS custom properties and a small
+  number of shared class patterns so each screen inherits changes automatically.
+- Eliminate the per-component CSS fragmentation that has accumulated: some
+  components use `admin.component.css`, others use `operations.component.css`,
+  and the content-edit component has no separate CSS file at all.
+- Verify each screen side-by-side against the live legacy UI before the tab is
+  considered parity-complete.
+
+Approach:
+
+The work proceeds in four ordered layers. Later layers benefit from earlier ones
+and should not start until the earlier layer is stable.
+
+**Layer 1: Design-token foundation**
+
+Establish a shared set of CSS custom properties in `frontend/src/styles.css`
+that capture the core visual decisions extracted from the legacy stylesheet
+(`src/main/webapp/css/style.css` and `tsApp.css`):
+
+- Color palette: background, surface, border, text primary/secondary/muted,
+  brand accent, error/warning/success state colors.
+- Spacing scale: a small set of named gap/padding sizes (--space-xs through
+  --space-xl) used consistently rather than arbitrary px values in each
+  component.
+- Typography: font family, base size, line height, heading scale, monospace
+  family for IDs/codes.
+- Table density: row height, cell padding, header weight and background matching
+  the legacy ng-table style.
+- Form geometry: input height, label weight, field gap, disabled appearance.
+- Panel geometry: section header height and weight, step-panel border and
+  background, toolbar gap.
+- Z-index scale: overlay, dialog, notification tiers.
+
+These tokens replace the ad-hoc px values currently scattered across
+`admin.component.css`, `operations.component.css`, `dialog.component.css`, and
+the inline styles in content templates.
+
+**Layer 2: Shared component pass**
+
+Update the reusable shared components before touching any feature screen, since
+these appear on every migrated tab. A fix here multiplies across all screens
+for free:
+
+- `meme-dialog` — visual match to the legacy `$uibModal` overlay: backdrop
+  opacity, dialog width, header style, close-button placement, footer
+  (form-actions) alignment.
+- `meme-notifications` — match legacy toast position, color coding, and
+  auto-dismiss timing.
+- `meme-loading` — match legacy spinner style and placement.
+- Global table styles — create a shared `.meme-table` class (or apply styles
+  via the `:host` token in a shared stylesheet) that matches legacy ng-table
+  density: font size, row height, hover highlight, header background and
+  border.
+- Global button styles — primary, secondary, danger, and disabled appearances
+  consistent with legacy Bootstrap-derived button styles.
+- Global form-field styles — `label + input`, `select`, `textarea`, and
+  `form-errors` aligned to legacy form patterns.
+- Global panel styles — `.step-panel`, `.section-header`, `.toolbar`,
+  `.context-panel`, `.list-panel` classes aligned to legacy panel geometry and
+  header weight.
+
+**Layer 3: Per-screen parity pass**
+
+Work through each tab in the same order as functional migration. For each
+screen, open the legacy UI and the Angular 20 UI side-by-side and record
+differences in layout, spacing, table density, button placement, and section
+organization, then apply targeted fixes.
+
+*Shell and navigation*
+- Header: logo placement, project selector appearance, active-tab highlight,
+  user/logout button placement.
+- Footer: text and link alignment.
+- Tab bar: selected-tab indicator, disabled-tab appearance, tab label casing.
+
+*Admin tab*
+- User list: column widths, action-button alignment, role badge appearance.
+- Project list: column widths, expand/collapse geometry.
+- Add/edit user dialog: label alignment, field spacing, role checkboxes layout.
+- Project detail view: validation table, precedence table, section headers.
+
+*Operations tab (Inversion)*
+- Toolbar: VSAB input width, button grouping.
+- ID-ranges table: column widths and density.
+- Request / Adjust dialogs: field layout, button placement.
+
+*Workflow tab*
+- Worklist and checklist tables: column widths, status badge appearance,
+  action-button placement.
+- Worklist detail / finish dialog: time-entry field layout, button placement.
+
+*Process tab*
+- Process config list and execution list: column widths, status indicator,
+  action buttons.
+- Algorithm config detail: step-panel organization, field layout.
+
+*Edit / Content tab*
+This is the largest and most visible screen. Priority order within the tab:
+
+1. Overall layout — two-column split (search/list on left, detail on right)
+   matching legacy edit.html panel geometry.
+2. Search toolbar — input width, button grouping, paging controls.
+3. Result list — row density, selected-row highlight, concept-id/name column
+   widths.
+4. Concept detail header — concept name size and weight, ID display, status
+   badges (workflow status, publishable, approved).
+5. Step-panel organization — section header height/weight/border, collapse
+   behavior if applicable, spacing between panels.
+6. Atom table — column widths, move/split checkbox column, action-button
+   placement, suppressible/obsolete row indicators.
+7. Merge / Move / Split dialogs — source-context block at top, selected-atoms
+   preview, target-search field and results, form-actions alignment.
+8. Semantic types, relationships, attributes, notes sections — each section
+   header and table matching legacy panel appearance.
+9. Undo/redo and approve controls — placement and visual weight matching
+   legacy toolbar actions.
+10. Contexts browser — tree-position row density, filter field placement.
+
+**Layer 4: Acceptance and review**
+
+After each tab's screen pass is complete, conduct a side-by-side review with
+a user familiar with the legacy UI. The review should cover:
+
+- No major layout surprises for an editor who knows the legacy screen.
+- Key data (concept ID, atom name, status) visible without horizontal scrolling
+  at the standard browser window width used by editors.
+- Dialogs open and close with the expected animation and backdrop.
+- Error and warning messages visually prominent (red/yellow band, not just
+  small inline text).
+- Empty states and loading states consistent across all tabs.
+
+High-risk areas:
+
+- Edit/Content tab: the largest screen; most at risk for accumulated one-off
+  CSS decisions from functional migration phases.
+- Table density: legacy ng-table uses a tighter row height than browser-default
+  tables; too-tall rows on wide tables consume screen real estate editors
+  depend on.
+- Form-field sizing: legacy Bootstrap input height is specific; mismatched
+  heights in dialogs look immediately wrong.
+- Color fidelity: brand accent color, header background, and step-panel
+  background are visible on every screen and should be exact.
+
+Out of scope for this phase:
+
+- Drag-and-drop or sortable widgets not present in the current Angular 20 UI.
+- Pixel-perfect match; the goal is visual familiarity, not a screenshot diff.
+- Legacy browser libraries (angular-ui-tree, TinyMCE visual skin) are not
+  ported; their Angular 20 replacements should look appropriate but need not
+  match exactly.
+- Dark mode or accessibility contrast upgrades beyond what the legacy UI
+  provided; those belong in a separate accessibility ticket.
+
+Deliverables:
+
+- Populated `--meme-*` CSS custom property set in `styles.css`.
+- Shared table, button, form, and panel class patterns documented in a short
+  `frontend/docs/visual-system.md` note so future screens can follow them
+  without re-inventing.
+- Per-tab parity checklist completed (layout, density, dialogs, states).
+- No screen has more than cosmetic differences from its legacy counterpart.
+
+Acceptance:
+
+- An editor familiar with the legacy UI can navigate all migrated tabs without
+  remarking on visual or layout surprises.
+- Shared CSS custom properties account for all colors, spacing sizes, and
+  typography decisions — no arbitrary px or hex values in per-component CSS
+  that are not derived from a token.
+- Every migrated screen passes side-by-side review by at least one user before
+  Phase 9 begins.
+
+### Phase 9: Cutover And AngularJS Retirement
 
 Goals:
 
@@ -1410,7 +1593,8 @@ Use this order as the default unless stakeholder testing suggests otherwise:
 7. content read-only detail/search
 8. edit workbench and mutation-heavy content workflows
 9. websocket-heavy and popout-heavy workflows
-10. AngularJS removal
+10. visual parity pass (design tokens, shared components, per-tab review)
+11. AngularJS removal
 
 Rationale:
 
@@ -1419,8 +1603,12 @@ Rationale:
   users, projects, roles, validation, precedence, and reload state.
 - Sources, Terminology, and Metadata are explicitly out of Angular 20 scope, so
   early parity work should stay on Admin before moving into Process/Workflow.
-- Content/edit should come late because productivity, data safety, hotkeys,
-  websocket behavior, and popouts all matter.
+- Content/edit should come late because productivity, data safety, websocket
+  behavior, and popouts all matter.
+- Visual parity is deliberately deferred until all functional screens are
+  complete so shared CSS decisions (tokens, panel classes, table density) can
+  be made once and applied consistently across every tab rather than being
+  re-litigated per screen.
 
 ## Testing Strategy
 

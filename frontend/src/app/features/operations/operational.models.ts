@@ -232,3 +232,17 @@ export interface WorkflowEpoch {
   lastModified?: string | number | null;
   name?: string | null;
 }
+
+export interface SourceIdRange {
+  beginSourceId?: number | null;
+  endSourceId?: number | null;
+  id?: number | null;
+  lastModified?: string | number | null;
+  terminology?: string | null;
+  timestamp?: string | number | null;
+}
+
+export interface SourceIdRangeListResponse {
+  sourceIdRanges?: SourceIdRange[];
+  totalCount?: number;
+}
