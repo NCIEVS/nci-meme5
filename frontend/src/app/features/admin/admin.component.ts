@@ -134,6 +134,26 @@ export class AdminComponent implements OnInit {
   protected readonly validationDataForm = signal<ValidationDataForm | null>(null);
   protected readonly validationDataFormErrors = signal<string[]>([]);
   protected readonly workflowPaths = signal<string[]>([]);
+
+  // User & Project Management section
+  protected readonly candidateProjects = signal<AdminProject[]>([]);
+  protected readonly candidateProjectFilter = signal('');
+  protected readonly candidateProjectPage = signal(1);
+  protected readonly candidateProjectPageSize = signal(10);
+  protected readonly candidateProjectTotalCount = signal(0);
+  protected readonly loadingCandidateProjects = signal(false);
+  protected readonly selectedCandidateProject = signal<AdminProject | null>(null);
+  protected readonly unassignedUsers = signal<AdminUser[]>([]);
+  protected readonly unassignedUserFilter = signal('');
+  protected readonly unassignedUserPage = signal(1);
+  protected readonly unassignedUserPageSize = signal(10);
+  protected readonly unassignedUserTotalCount = signal(0);
+  protected readonly assignedUsers = signal<AdminUser[]>([]);
+  protected readonly assignedUserFilter = signal('');
+  protected readonly assignedUserPage = signal(1);
+  protected readonly assignedUserPageSize = signal(10);
+  protected readonly assignedUserTotalCount = signal(0);
+  protected readonly upmRoles = signal<Record<string, string>>({});
   protected readonly workflowPathOptions = computed(() => {
     const currentWorkflowPath = this.projectForm()?.workflowPath;
     const paths = this.workflowPaths();
@@ -178,6 +198,15 @@ export class AdminComponent implements OnInit {
   protected readonly userTotalPages = computed(() =>
     this.pageCount(this.userTotalCount(), this.userPageSize())
   );
+  protected readonly candidateProjectTotalPages = computed(() =>
+    this.pageCount(this.candidateProjectTotalCount(), this.candidateProjectPageSize())
+  );
+  protected readonly unassignedUserTotalPages = computed(() =>
+    this.pageCount(this.unassignedUserTotalCount(), this.unassignedUserPageSize())
+  );
+  protected readonly assignedUserTotalPages = computed(() =>
+    this.pageCount(this.assignedUserTotalCount(), this.assignedUserPageSize())
+  );
   protected readonly canAddProjects = computed(() =>
     ['ADMINISTRATOR', 'USER'].includes(this.auth.currentUser().applicationRole ?? '')
   );
@@ -199,6 +228,10 @@ export class AdminComponent implements OnInit {
     this.loadProjectConfiguration();
     this.loadProjects();
     this.loadUsers();
+
+    if (this.currentUser().applicationRole === 'ADMINISTRATOR') {
+      this.loadCandidateProjects();
+    }
   }
 
   protected loadProjects(
@@ -881,6 +914,306 @@ export class AdminComponent implements OnInit {
         }
       });
   }
+
+  // ---------- User & Project Management methods ----------
+
+  protected loadCandidateProjects(): void {
+    this.loadingCandidateProjects.set(true);
+    const filter = this.candidateProjectFilter().trim();
+    this.api
+      .findProjects(
+        buildPfs(
+          this.candidateProjectPage(),
+          this.candidateProjectPageSize(),
+          'lastModified',
+          false,
+          filter
+        )
+      )
+      .pipe(finalize(() => this.loadingCandidateProjects.set(false)))
+      .subscribe({
+        next: (state) => {
+          // Only show projects where the current user has ADMINISTRATOR role
+          const currentUserNames = [
+            this.currentUser().userName,
+            this.currentUser().authToken
+          ].filter((v): v is string => Boolean(v)).map((v) => v.toLocaleLowerCase());
+          const adminProjects = state.items.filter((project) =>
+            Object.entries(project.userRoleMap ?? {}).some(
+              ([userName, role]) =>
+                currentUserNames.includes(userName.toLocaleLowerCase()) &&
+                role === 'ADMINISTRATOR'
+            )
+          );
+          this.candidateProjects.set(adminProjects);
+          this.candidateProjectTotalCount.set(adminProjects.length);
+        },
+        error: () => {
+          this.notifications.error('Candidate projects could not be loaded.');
+        }
+      });
+  }
+
+  protected selectCandidateProject(project: AdminProject): void {
+    this.selectedCandidateProject.set(project);
+    this.unassignedUserPage.set(1);
+    this.assignedUserPage.set(1);
+    this.loadUnassignedUsers();
+    this.loadAssignedUsers();
+  }
+
+  protected loadUnassignedUsers(): void {
+    const project = this.selectedCandidateProject();
+
+    if (!project) {
+      this.unassignedUsers.set([]);
+      this.unassignedUserTotalCount.set(0);
+      return;
+    }
+
+    const assignedUserNames = new Set(
+      Object.keys(project.userRoleMap ?? {}).map((name) => name.toLocaleLowerCase())
+    );
+
+    this.api
+      .findUsers(
+        buildPfs(
+          this.unassignedUserPage(),
+          this.unassignedUserPageSize(),
+          'userName',
+          true,
+          this.unassignedUserFilter().trim()
+        )
+      )
+      .subscribe({
+        next: (state) => {
+          const unassigned = state.items.filter(
+            (user) => !assignedUserNames.has((user.userName ?? '').toLocaleLowerCase())
+          );
+          this.unassignedUsers.set(unassigned);
+          this.unassignedUserTotalCount.set(unassigned.length);
+          // Seed default role for each unassigned user
+          const defaultRole = this.projectRoles()[0] ?? 'AUTHOR';
+          const roles = { ...this.upmRoles() };
+          unassigned.forEach((user) => {
+            if (user.userName && !roles[user.userName]) {
+              roles[user.userName] = defaultRole;
+            }
+          });
+          this.upmRoles.set(roles);
+        },
+        error: () => {
+          this.notifications.error('Unassigned users could not be loaded.');
+        }
+      });
+  }
+
+  protected loadAssignedUsers(): void {
+    const project = this.selectedCandidateProject();
+
+    if (!project) {
+      this.assignedUsers.set([]);
+      this.assignedUserTotalCount.set(0);
+      return;
+    }
+
+    const assignedUserNames = new Set(
+      Object.keys(project.userRoleMap ?? {}).map((name) => name.toLocaleLowerCase())
+    );
+
+    this.api
+      .findUsers(
+        buildPfs(
+          this.assignedUserPage(),
+          this.assignedUserPageSize(),
+          'userName',
+          true,
+          this.assignedUserFilter().trim()
+        )
+      )
+      .subscribe({
+        next: (state) => {
+          const assigned = state.items.filter(
+            (user) => assignedUserNames.has((user.userName ?? '').toLocaleLowerCase())
+          );
+          this.assignedUsers.set(assigned);
+          this.assignedUserTotalCount.set(assigned.length);
+        },
+        error: () => {
+          this.notifications.error('Assigned users could not be loaded.');
+        }
+      });
+  }
+
+  protected upmRoleForUser(userName: string | null | undefined): string {
+    return this.upmRoles()[userName ?? ''] ?? this.projectRoles()[0] ?? 'AUTHOR';
+  }
+
+  protected setUpmRoleForUser(userName: string | null | undefined, role: string): void {
+    if (!userName) {
+      return;
+    }
+    this.upmRoles.update((roles) => ({ ...roles, [userName]: role }));
+  }
+
+  protected upmAssignedRole(user: AdminUser, project: AdminProject | null): string {
+    if (!project || !user.userName) {
+      return 'n/a';
+    }
+    const entry = Object.entries(project.userRoleMap ?? {}).find(
+      ([name]) => name.toLocaleLowerCase() === (user.userName ?? '').toLocaleLowerCase()
+    );
+    return entry?.[1] ?? 'n/a';
+  }
+
+  protected upmAssignUser(user: AdminUser): void {
+    const project = this.selectedCandidateProject();
+    const userName = user.userName?.trim() ?? '';
+    const role = this.upmRoleForUser(userName);
+    const projectId = project?.id;
+
+    if (!project || projectId === null || projectId === undefined || !userName) {
+      this.notifications.error('Could not assign user to project.');
+      return;
+    }
+
+    this.savingProjectAssignment.set(true);
+    this.api
+      .assignUserToProject(projectId, userName, role)
+      .pipe(finalize(() => this.savingProjectAssignment.set(false)))
+      .subscribe({
+        next: (updatedProject) => {
+          this.notifications.success(`${userName} assigned to project.`);
+          this.selectedCandidateProject.set(updatedProject);
+          this.loadUnassignedUsers();
+          this.loadAssignedUsers();
+          this.loadProjects();
+          this.loadUsers();
+        },
+        error: () => {
+          this.notifications.error('User could not be assigned to project.');
+        }
+      });
+  }
+
+  protected upmUnassignUser(user: AdminUser): void {
+    const project = this.selectedCandidateProject();
+    const userName = user.userName?.trim() ?? '';
+    const projectId = project?.id;
+
+    if (!project || projectId === null || projectId === undefined || !userName) {
+      this.notifications.error('Could not remove user from project.');
+      return;
+    }
+
+    if (!window.confirm(`Remove ${userName} from ${project.name ?? 'project'}?`)) {
+      return;
+    }
+
+    this.savingProjectAssignment.set(true);
+    this.api
+      .unassignUserFromProject(projectId, userName)
+      .pipe(finalize(() => this.savingProjectAssignment.set(false)))
+      .subscribe({
+        next: (updatedProject) => {
+          this.notifications.success(`${userName} removed from project.`);
+          this.selectedCandidateProject.set(updatedProject);
+          this.loadUnassignedUsers();
+          this.loadAssignedUsers();
+          this.loadProjects();
+          this.loadUsers();
+        },
+        error: () => {
+          this.notifications.error('User could not be removed from project.');
+        }
+      });
+  }
+
+  protected setCandidateProjectFilter(value: string): void {
+    this.candidateProjectFilter.set(value);
+    this.candidateProjectPage.set(1);
+    this.loadCandidateProjects();
+  }
+
+  protected setCandidateProjectPageSize(value: string): void {
+    this.candidateProjectPageSize.set(Number(value));
+    this.candidateProjectPage.set(1);
+    this.loadCandidateProjects();
+  }
+
+  protected previousCandidateProjectPage(): void {
+    if (this.candidateProjectPage() === 1) {
+      return;
+    }
+    this.candidateProjectPage.update((page) => page - 1);
+    this.loadCandidateProjects();
+  }
+
+  protected nextCandidateProjectPage(): void {
+    if (this.candidateProjectPage() === this.candidateProjectTotalPages()) {
+      return;
+    }
+    this.candidateProjectPage.update((page) => page + 1);
+    this.loadCandidateProjects();
+  }
+
+  protected setUnassignedUserFilter(value: string): void {
+    this.unassignedUserFilter.set(value);
+    this.unassignedUserPage.set(1);
+    this.loadUnassignedUsers();
+  }
+
+  protected setUnassignedUserPageSize(value: string): void {
+    this.unassignedUserPageSize.set(Number(value));
+    this.unassignedUserPage.set(1);
+    this.loadUnassignedUsers();
+  }
+
+  protected previousUnassignedUserPage(): void {
+    if (this.unassignedUserPage() === 1) {
+      return;
+    }
+    this.unassignedUserPage.update((page) => page - 1);
+    this.loadUnassignedUsers();
+  }
+
+  protected nextUnassignedUserPage(): void {
+    if (this.unassignedUserPage() === this.unassignedUserTotalPages()) {
+      return;
+    }
+    this.unassignedUserPage.update((page) => page + 1);
+    this.loadUnassignedUsers();
+  }
+
+  protected setAssignedUserFilter(value: string): void {
+    this.assignedUserFilter.set(value);
+    this.assignedUserPage.set(1);
+    this.loadAssignedUsers();
+  }
+
+  protected setAssignedUserPageSize(value: string): void {
+    this.assignedUserPageSize.set(Number(value));
+    this.assignedUserPage.set(1);
+    this.loadAssignedUsers();
+  }
+
+  protected previousAssignedUserPage(): void {
+    if (this.assignedUserPage() === 1) {
+      return;
+    }
+    this.assignedUserPage.update((page) => page - 1);
+    this.loadAssignedUsers();
+  }
+
+  protected nextAssignedUserPage(): void {
+    if (this.assignedUserPage() === this.assignedUserTotalPages()) {
+      return;
+    }
+    this.assignedUserPage.update((page) => page + 1);
+    this.loadAssignedUsers();
+  }
+
+  // ---------- end User & Project Management ----------
 
   protected setProjectFilter(value: string): void {
     const wasFiltered = Boolean(this.projectFilter().trim());

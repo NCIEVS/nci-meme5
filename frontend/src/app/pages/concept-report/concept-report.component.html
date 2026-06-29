@@ -1,0 +1,16 @@
+<div class="crp-popup-shell">
+  @if (loading()) {
+    <p class="crp-popup-status">Loading…</p>
+  } @else if (error()) {
+    <p class="crp-popup-status crp-popup-error">{{ error() }}</p>
+  } @else {
+    <meme-concept-report-panel
+      [concept]="concept()"
+      [projectId]="projectId()"
+      [projectRole]="null"
+      [editingEnabled]="false"
+      [initialTab]="initialTab()"
+      (linkClicked)="openLinkedConcept($event)"
+    />
+  }
+</div>

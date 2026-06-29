@@ -4,151 +4,135 @@
       <p class="kicker">Workflow Foundation</p>
       <h1 id="workflow-title">Workflow</h1>
     </div>
-    <div class="summary-set" aria-label="Workflow record counts">
-      <div class="summary">
-        <strong>{{ configs().length }}</strong>
-        <span>configs</span>
-      </div>
-      <div class="summary">
-        <strong>{{ bins().length }}</strong>
-        <span>bins</span>
-      </div>
-      <div class="summary">
-        <strong>{{ worklists().length }}</strong>
-        <span>worklists</span>
-      </div>
-      <div class="summary">
-        <strong>{{ currentEpoch()?.name || 'n/a' }}</strong>
-        <span>current epoch</span>
-      </div>
-    </div>
   </header>
 
   @if (projectId()) {
-    <p class="context-panel">
-      Showing workflow data for project {{ projectId() }} with role {{ projectRole() }}.
-      @if (!canManageWorkflow()) {
-        Workflow configuration import/export requires project administrator access.
+    <div class="toolbar context-toolbar">
+      <label for="wf-project-select">Project</label>
+      @if (availableProjects().length > 1) {
+        <select
+          id="wf-project-select"
+          [ngModel]="projectId()?.toString()"
+          (ngModelChange)="selectProject($event)"
+          name="wf-project-select"
+        >
+          @for (proj of availableProjects(); track proj.id) {
+            <option [value]="proj.id?.toString()">{{ proj.name }}</option>
+          }
+        </select>
+      } @else {
+        <span class="readonly-value">{{ availableProjects()[0]?.name ?? projectId() }}</span>
+      }
+      <label for="wf-role-select">Role</label>
+      @if (availableRoles().length > 1) {
+        <select
+          id="wf-role-select"
+          [ngModel]="projectRole()"
+          (ngModelChange)="selectRole($event)"
+          name="wf-role-select"
+        >
+          @for (role of availableRoles(); track role) {
+            <option [value]="role">{{ role }}</option>
+          }
+        </select>
+      } @else {
+        <span class="readonly-value">{{ projectRole() }}</span>
       }
       <span class="status-pill" [class.running]="workflowLiveConnected()">
-        {{ workflowLiveConnected() ? 'Live updates connected' : 'Live updates reconnecting' }}
+        {{ workflowLiveConnected() ? 'Live' : 'Reconnecting' }}
       </span>
-    </p>
+    </div>
 
-    <form class="toolbar" (ngSubmit)="load()" aria-label="Workflow filter">
-      <label for="workflow-filter">Filter</label>
-      <input
-        id="workflow-filter"
-        type="search"
-        [ngModel]="filter()"
-        (ngModelChange)="setFilter($event)"
-        name="workflow-filter"
-        placeholder="Checklist or worklist query"
-      />
-      <button type="submit" [disabled]="loading()">
-        {{ loading() ? 'Loading' : 'Search' }}
-      </button>
-      <button type="button" (click)="clearFilter()" [disabled]="loading() || !filter()">
-        Clear
-      </button>
-      @if (canImportChecklists()) {
-        <button type="button" (click)="startImportChecklist()">
-          Import Checklist
-        </button>
-        <button type="button" (click)="startComputeChecklist()">
-          Compute Checklist
-        </button>
-      }
-    </form>
-
-    <div class="stacked-grid">
-      <section class="list-panel" aria-labelledby="workflow-configs-title">
-        <div class="panel-header">
-          <div>
-            <h2 id="workflow-configs-title">Workflow Configs</h2>
-            <p>Select a config type to load its bins.</p>
-          </div>
-          <div class="action-row">
-            @if (canManageWorkflow()) {
-              <button type="button" (click)="startAddWorkflowConfig()">
-                Add Config
-              </button>
-              <button type="button" (click)="startImportWorkflowConfig()">
-                Import Workflow
-              </button>
-              @if (selectedWorkflowConfig(); as selectedConfig) {
-                <button type="button" (click)="startEditWorkflowConfig(selectedConfig)">
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  (click)="exportWorkflowConfig(selectedConfig)"
-                  [disabled]="exportingConfigId() === selectedConfig.id"
-                >
-                  {{ exportingConfigId() === selectedConfig.id ? 'Exporting' : 'Export' }}
-                </button>
-                <button
-                  type="button"
-                  class="danger"
-                  (click)="removeWorkflowConfig(selectedConfig)"
-                  [disabled]="deletingConfigId() === selectedConfig.id"
-                >
-                  {{ deletingConfigId() === selectedConfig.id ? 'Removing' : 'Delete' }}
-                </button>
-              }
-            }
-            <button type="button" (click)="load()" [disabled]="loading()">Refresh</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          @if (configs().length) {
-            <table>
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Definitions</th>
-                  <th>Query Style</th>
-                  <th>Mutually Exclusive</th>
-                  <th>Admin</th>
-                  <th>Modified</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (config of configs(); track config.id ?? config.type) {
-                  <tr
-                    [class.selected]="selectedConfigType() === config.type"
-                    (click)="selectConfigType(config.type || '')"
-                    (keyup.enter)="selectConfigType(config.type || '')"
-                    tabindex="0"
-                  >
-                    <td>{{ config.type || 'n/a' }}</td>
-                    <td>{{ config.workflowBinDefinitions?.length ?? 0 }}</td>
-                    <td>{{ config.queryStyle || 'n/a' }}</td>
-                    <td>{{ config.mutuallyExclusive ? 'Yes' : 'No' }}</td>
-                    <td>{{ config.adminConfig ? 'Yes' : 'No' }}</td>
-                    <td>{{ displayDate(config.lastModified) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          } @else {
-            <p class="empty">No workflow configs found.</p>
+    <details class="accordion-panel" open>
+      <summary class="accordion-heading">
+        <span class="accordion-arrow">&#9658;</span>
+        Bins
+      </summary>
+      <div class="accordion-body">
+      <div class="toolbar bins-toolbar">
+        @if (canEditWorkflowEpochs()) {
+          <button type="button" (click)="startEditEpochs()">
+            epoch: {{ currentEpoch()?.name || 'None' }}
+          </button>
+        }
+        <label for="wf-config-select">Config</label>
+        <select
+          id="wf-config-select"
+          [ngModel]="selectedConfigType()"
+          (ngModelChange)="selectConfigType($event)"
+          name="wf-config-select"
+        >
+          <option value="">Select config</option>
+          @for (config of configs(); track config.id ?? config.type) {
+            <option [value]="config.type ?? ''">{{ config.type || 'Unknown' }}</option>
           }
-        </div>
-      </section>
+        </select>
+        @if (canManageWorkflow()) {
+          <button type="button" class="btn-primary" (click)="startAddWorkflowConfig()">Add Config</button>
+          <div class="icon-actions">
+            <button type="button" class="icon-btn" title="Import Workflow" (click)="startImportWorkflowConfig()">⬆</button>
+            @if (selectedWorkflowConfig(); as selectedConfig) {
+              <button
+                type="button"
+                class="icon-btn"
+                title="Edit Config"
+                (click)="startEditWorkflowConfig(selectedConfig)"
+              >✎</button>
+              <button
+                type="button"
+                class="icon-btn"
+                title="{{ exportingConfigId() === selectedConfig.id ? 'Exporting…' : 'Export Config' }}"
+                (click)="exportWorkflowConfig(selectedConfig)"
+                [disabled]="exportingConfigId() === selectedConfig.id"
+              >⬇</button>
+              <button
+                type="button"
+                class="icon-btn danger"
+                title="{{ deletingConfigId() === selectedConfig.id ? 'Removing…' : 'Delete Config' }}"
+                (click)="removeWorkflowConfig(selectedConfig)"
+                [disabled]="deletingConfigId() === selectedConfig.id"
+              >✕</button>
+            }
+          </div>
+        }
+        <button type="button" (click)="load()" [disabled]="loading()">Refresh</button>
+      </div>
 
-      <div class="split-grid workflow-bin-grid">
-        <section class="list-panel" aria-labelledby="workflow-bins-title">
+      <section class="list-panel" aria-labelledby="workflow-bins-title">
           <div class="panel-header">
             <div>
               <h2 id="workflow-bins-title">Bins</h2>
-              <p>{{ selectedConfigType() || 'No config selected' }}</p>
+              <p>
+                {{ selectedConfigType() || 'No config selected' }}
+                @if (currentEpoch()?.name) {
+                  &nbsp;<span class="epoch-badge">epoch: {{ currentEpoch()!.name }}</span>
+                }
+              </p>
             </div>
+            @if (bins().length) {
+              <form class="list-search-bar" (ngSubmit)="$event.preventDefault()" aria-label="Search bins">
+                <input
+                  type="search"
+                  placeholder="Filter bins…"
+                  [ngModel]="binFilter()"
+                  (ngModelChange)="setBinFilter($event)"
+                  name="bin-filter"
+                />
+              </form>
+              <div class="list-pager">
+                <button type="button" class="icon-btn" title="Previous page"
+                  [disabled]="binPage() <= 1" (click)="binPage.set(binPage() - 1)">‹</button>
+                <span>{{ binPage() }} / {{ binTotalPages() }}</span>
+                <button type="button" class="icon-btn" title="Next page"
+                  [disabled]="binPage() >= binTotalPages()" (click)="binPage.set(binPage() + 1)">›</button>
+              </div>
+            }
             @if (selectedWorkflowConfig(); as selectedConfig) {
               <div class="action-row">
                 @if (canManageWorkflowListActions()) {
                   <button
                     type="button"
+                    class="btn-primary"
                     (click)="regenerateWorkflowBins()"
                     [disabled]="binRegenerationRunning() || loadingBins()"
                   >
@@ -159,18 +143,18 @@
                     (click)="recomputeConceptStatus(false)"
                     [disabled]="recomputingConceptStatus() !== null"
                   >
-                    {{ recomputingConceptStatus() === 'initialize' ? 'Initializing' : 'Initialize' }}
+                    {{ recomputingConceptStatus() === 'initialize' ? 'Initializing' : 'Initialize Status' }}
                   </button>
                   <button
                     type="button"
                     (click)="recomputeConceptStatus(true)"
                     [disabled]="recomputingConceptStatus() !== null"
                   >
-                    {{ recomputingConceptStatus() === 'update' ? 'Updating' : 'Update' }}
+                    {{ recomputingConceptStatus() === 'update' ? 'Updating' : 'Update Status' }}
                   </button>
                 }
                 @if (canManageWorkflow()) {
-                  <button type="button" (click)="startAddWorkflowBinDefinition(selectedConfig)">
+                  <button type="button" class="btn-primary" (click)="startAddWorkflowBinDefinition(selectedConfig)">
                     Add Bin
                   </button>
                 }
@@ -201,18 +185,18 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (bin of bins(); track bin.id ?? bin.name) {
+                  @for (bin of pagedBins(); track bin.id ?? bin.name) {
                     @for (stats of binStatRows(bin); track stats.clusterType ?? $index; let first = $first) {
                       <tr
                         [class.selected]="selectedBin()?.id === bin.id"
                         [class.disabled-row]="!isBinEnabled(bin)"
                         [draggable]="first && canReorderWorkflowBinDefinition(bin)"
-                        (click)="selectBin(bin)"
+                        (click)="selectBin(bin, stats.clusterType ?? 'all')"
                         (dragend)="clearWorkflowBinDefinitionDrag()"
                         (dragover)="dragOverWorkflowBinDefinition($event, bin)"
                         (dragstart)="startWorkflowBinDefinitionDrag($event, bin)"
                         (drop)="dropWorkflowBinDefinition($event, bin)"
-                        (keyup.enter)="selectBin(bin)"
+                        (keyup.enter)="selectBin(bin, stats.clusterType ?? 'all')"
                         tabindex="0"
                       >
                         @if (first) {
@@ -220,8 +204,75 @@
                             {{ bin.rank ?? 'n/a' }}
                           </td>
                           <td [attr.rowspan]="binStatRows(bin).length">
+                            @if (bin.description) {
+                              <span class="bin-info-icon" title="{{ bin.description }}">ℹ</span>
+                            }
                             <strong>{{ bin.name || 'n/a' }}</strong>
-                            <div class="muted">{{ bin.description || 'No description.' }}</div>
+                            @if (canManageWorkflow()) {
+                              <div class="bin-name-actions">
+                                <input
+                                  type="checkbox"
+                                  [checked]="isBinEnabled(bin)"
+                                  (click)="$event.stopPropagation(); toggleBinEnabled(bin)"
+                                  title="Enable/Disable Bin"
+                                >
+                                @if (isBinEnabled(bin)) {
+                                  <button
+                                    type="button"
+                                    class="icon-btn"
+                                    title="Edit Bin"
+                                    (click)="$event.stopPropagation(); startEditWorkflowBinDefinition(bin)"
+                                    [disabled]="loadingBinDefinition() || reorderingWorkflowBins()"
+                                  >✎</button>
+                                  @if (selectedConfigType() !== 'MUTUALLY_EXCLUSIVE') {
+                                    <button
+                                      type="button"
+                                      class="icon-btn"
+                                      title="{{ regeneratingBinId() === bin.id ? 'Regenerating…' : 'Regenerate Bin' }}"
+                                      (click)="$event.stopPropagation(); regenerateWorkflowBin(bin)"
+                                      [disabled]="binRegenerationRunning()"
+                                    >↻</button>
+                                  }
+                                  @if (isAutofixConfig(selectedWorkflowConfig() ?? {}) && bin.autofix) {
+                                    <button
+                                      type="button"
+                                      class="icon-btn"
+                                      title="Run Autofix"
+                                      (click)="$event.stopPropagation(); startRunAutofix(bin)"
+                                    >⚙</button>
+                                  }
+                                  <button
+                                    type="button"
+                                    class="icon-btn"
+                                    title="Clone Bin"
+                                    (click)="$event.stopPropagation(); startCloneWorkflowBin(bin)"
+                                  >⎘</button>
+                                  @if (canReorderWorkflowBinDefinition(bin)) {
+                                    <button
+                                      type="button"
+                                      class="icon-btn"
+                                      title="Move bin up"
+                                      (click)="$event.stopPropagation(); moveWorkflowBinDefinition(bin, -1)"
+                                      [disabled]="!canMoveWorkflowBinDefinition(bin, -1)"
+                                    >↑</button>
+                                    <button
+                                      type="button"
+                                      class="icon-btn"
+                                      title="Move bin down"
+                                      (click)="$event.stopPropagation(); moveWorkflowBinDefinition(bin, 1)"
+                                      [disabled]="!canMoveWorkflowBinDefinition(bin, 1)"
+                                    >↓</button>
+                                  }
+                                  <button
+                                    type="button"
+                                    class="icon-btn danger"
+                                    title="Remove Bin"
+                                    (click)="$event.stopPropagation(); removeWorkflowBinDefinition(bin)"
+                                    [disabled]="deletingBinId() === bin.id"
+                                  >✕</button>
+                                }
+                              </div>
+                            }
                           </td>
                           <td
                             class="workflow-bin-dates"
@@ -237,67 +288,32 @@
                         <td>{{ binStatValue(stats, 'assigned') }}</td>
                         <td>{{ binStatValue(stats, 'unassigned') }}</td>
                         @if (canShowWorkflowBinActions()) {
-                          <td>
-                            <div class="inline-actions">
-                              @if (canManageWorkflowListActions() && first && selectedConfigType() !== 'MUTUALLY_EXCLUSIVE') {
+                          <td class="nobreak">
+                            <div class="icon-actions">
+                              @if (canManageWorkflowListActions() && isBinEnabled(bin) && stats.clusterType === 'all' && selectedConfigType() !== 'MUTUALLY_EXCLUSIVE') {
                                 <button
                                   type="button"
+                                  class="icon-btn"
+                                  title="{{ regeneratingBinId() === bin.id ? 'Regenerating…' : 'Regenerate Bin' }}"
                                   (click)="$event.stopPropagation(); regenerateWorkflowBin(bin)"
-                                  [disabled]="binRegenerationRunning() || !isBinEnabled(bin)"
-                                >
-                                  {{ regeneratingBinId() === bin.id ? 'Running' : 'Run' }}
-                                </button>
-                              }
-                              @if (canManageWorkflow() && first) {
-                                @if (canReorderWorkflowBinDefinition(bin)) {
-                                  <button
-                                    type="button"
-                                    title="Move workflow bin definition up"
-                                    (click)="$event.stopPropagation(); moveWorkflowBinDefinition(bin, -1)"
-                                    [disabled]="!canMoveWorkflowBinDefinition(bin, -1)"
-                                  >
-                                    Up
-                                  </button>
-                                  <button
-                                    type="button"
-                                    title="Move workflow bin definition down"
-                                    (click)="$event.stopPropagation(); moveWorkflowBinDefinition(bin, 1)"
-                                    [disabled]="!canMoveWorkflowBinDefinition(bin, 1)"
-                                  >
-                                    Down
-                                  </button>
-                                }
-                                <button
-                                  type="button"
-                                  (click)="$event.stopPropagation(); startEditWorkflowBinDefinition(bin)"
-                                  [disabled]="loadingBinDefinition() || reorderingWorkflowBins()"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  class="danger"
-                                  (click)="$event.stopPropagation(); removeWorkflowBinDefinition(bin)"
-                                  [disabled]="deletingBinId() === bin.id"
-                                >
-                                  {{ deletingBinId() === bin.id ? 'Removing' : 'Delete' }}
-                                </button>
+                                  [disabled]="binRegenerationRunning()"
+                                >↻</button>
                               }
                               @if (canCreateChecklistForStat(bin, stats)) {
                                 <button
                                   type="button"
+                                  class="icon-btn"
+                                  title="Add Checklist"
                                   (click)="$event.stopPropagation(); startAddChecklist(bin, stats)"
-                                >
-                                  Add Checklist
-                                </button>
+                                >☑</button>
                               }
                               @if (canCreateWorklistForStat(bin, stats)) {
                                 <button
                                   type="button"
+                                  class="icon-btn"
+                                  title="Add Worklist"
                                   (click)="$event.stopPropagation(); startAddWorklist(bin, stats)"
-                                >
-                                  Add Worklist
-                                </button>
+                                >☰</button>
                               }
                             </div>
                           </td>
@@ -310,608 +326,979 @@
             } @else if (loadingBins()) {
               <p class="empty">Loading bins.</p>
             } @else {
-              <p class="empty">No bins found.</p>
+              <p class="empty-alert">No bins found.</p>
             }
           </div>
         </section>
 
-        <aside class="detail-panel" aria-label="Selected workflow bin details">
-          @if (selectedBin(); as bin) {
+      @if (selectedBin(); as bin) {
+        <div class="bin-records-grid">
+          <!-- Left: cluster / tracking records list -->
+          <section class="list-panel" aria-labelledby="bin-records-title">
             <div class="panel-header">
-              <div>
-                <h2>{{ bin.name || 'Workflow bin' }}</h2>
-                <p>{{ bin.description || 'No description available.' }}</p>
-              </div>
-            </div>
-            <div class="detail-body">
-              <dl>
-                <dt>ID</dt>
-                <dd>{{ bin.id ?? 'n/a' }}</dd>
-                <dt>Type</dt>
-                <dd>{{ bin.type || selectedConfigType() || 'n/a' }}</dd>
-                <dt>Terminology</dt>
-                <dd>{{ bin.terminology || 'n/a' }} {{ bin.version || '' }}</dd>
-                <dt>Records</dt>
-                <dd>{{ binCount(bin) }}</dd>
-                <dt>Required</dt>
-                <dd>{{ bin.required ? 'Yes' : 'No' }}</dd>
-                <dt>Editable</dt>
-                <dd>{{ bin.editable ? 'Yes' : 'No' }}</dd>
-                <dt>Created</dt>
-                <dd>{{ displayDate(bin.timestamp) }}</dd>
-                <dt>Run Time</dt>
-                <dd>{{ displayRunTime(bin.creationTime) }}</dd>
-                <dt>Modified</dt>
-                <dd>{{ displayDate(bin.lastModified) }}</dd>
-              </dl>
-            </div>
-          } @else {
-            <p class="empty">Select a bin to see details.</p>
-          }
-        </aside>
-      </div>
-
-      <div class="split-grid">
-        <section class="list-panel" aria-labelledby="worklists-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="worklists-title">Worklists</h2>
-              <p>Project worklists returned by the backend.</p>
-            </div>
-          </div>
-          <div class="table-wrap">
-            @if (worklists().length) {
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Epoch</th>
-                    <th>Bin</th>
-                    <th>Status</th>
-                    <th>Records</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (worklist of worklists(); track worklist.id ?? worklist.name) {
-                    <tr
-                      [class.selected]="isWorkflowItemSelected('worklist', worklist)"
-                      (click)="viewWorkflowItem('worklist', worklist)"
-                      (keyup.enter)="viewWorkflowItem('worklist', worklist)"
-                      tabindex="0"
-                    >
-                      <td>{{ worklist.name || 'n/a' }}</td>
-                      <td>{{ worklist.epoch || 'n/a' }}</td>
-                      <td>{{ worklist.workflowBinName || 'n/a' }}</td>
-                      <td>{{ worklist.workflowStatus || 'n/a' }}</td>
-                      <td>{{ recordCount(worklist) }}</td>
-                      <td>
-                        <div class="inline-actions">
-                          <button
-                            type="button"
-                            (click)="$event.stopPropagation(); viewWorkflowItem('worklist', worklist)"
-                            [disabled]="loadingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                          >
-                            {{ loadingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Loading' : 'View' }}
-                          </button>
-                          <button
-                            type="button"
-                            (click)="$event.stopPropagation(); exportWorkflowItem('worklist', worklist)"
-                            [disabled]="exportingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                          >
-                            {{ exportingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Exporting' : 'Export' }}
-                          </button>
-                          @for (
-                            listAction of workflowListActions('worklist', worklist);
-                            track listAction.action
-                          ) {
-                            <button
-                              type="button"
-                              [class.warning]="listAction.action === 'UNAPPROVE'"
-                              (click)="$event.stopPropagation(); performWorkflowListAction('worklist', worklist, listAction.action)"
-                              [disabled]="isWorkflowItemActionRunning('worklist', worklist)"
-                            >
-                              {{ isWorkflowItemActionRunning('worklist', worklist) ? 'Working' : listAction.label }}
-                            </button>
-                          }
-                          @if (canManageWorkflowListActions()) {
-                            <button
-                              type="button"
-                              class="danger"
-                              (click)="$event.stopPropagation(); removeWorkflowItem('worklist', worklist)"
-                              [disabled]="deletingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                            >
-                              {{ deletingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Removing' : 'Delete' }}
-                            </button>
-                          }
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else {
-              <p class="empty">No worklists found.</p>
-            }
-          </div>
-        </section>
-
-        <section class="list-panel" aria-labelledby="checklists-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="checklists-title">Checklists</h2>
-              <p>Project checklists returned by the backend.</p>
-            </div>
-          </div>
-          <div class="table-wrap">
-            @if (checklists().length) {
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Records</th>
-                    <th>Modified</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (checklist of checklists(); track checklist.id ?? checklist.name) {
-                    <tr
-                      [class.selected]="isWorkflowItemSelected('checklist', checklist)"
-                      (click)="viewWorkflowItem('checklist', checklist)"
-                      (keyup.enter)="viewWorkflowItem('checklist', checklist)"
-                      tabindex="0"
-                    >
-                      <td>{{ checklist.name || 'n/a' }}</td>
-                      <td>{{ checklist.description || 'n/a' }}</td>
-                      <td>{{ recordCount(checklist) }}</td>
-                      <td>{{ displayDate(checklist.lastModified) }}</td>
-                      <td>
-                        <div class="inline-actions">
-                          <button
-                            type="button"
-                            (click)="$event.stopPropagation(); viewWorkflowItem('checklist', checklist)"
-                            [disabled]="loadingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
-                          >
-                            {{ loadingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Loading' : 'View' }}
-                          </button>
-                          <button
-                            type="button"
-                            (click)="$event.stopPropagation(); exportWorkflowItem('checklist', checklist)"
-                            [disabled]="exportingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
-                          >
-                            {{ exportingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Exporting' : 'Export' }}
-                          </button>
-                          @for (
-                            listAction of workflowListActions('checklist', checklist);
-                            track listAction.action
-                          ) {
-                            <button
-                              type="button"
-                              [class.warning]="listAction.action === 'UNAPPROVE'"
-                              (click)="$event.stopPropagation(); performWorkflowListAction('checklist', checklist, listAction.action)"
-                              [disabled]="isWorkflowItemActionRunning('checklist', checklist)"
-                            >
-                              {{ isWorkflowItemActionRunning('checklist', checklist) ? 'Working' : listAction.label }}
-                            </button>
-                          }
-                          @if (canManageWorkflowListActions()) {
-                            <button
-                              type="button"
-                              class="danger"
-                              (click)="$event.stopPropagation(); removeWorkflowItem('checklist', checklist)"
-                              [disabled]="deletingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
-                            >
-                              {{ deletingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Removing' : 'Delete' }}
-                            </button>
-                          }
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else {
-              <p class="empty">No checklists found.</p>
-            }
-          </div>
-        </section>
-      </div>
-
-      @if (workflowListDetail(); as detail) {
-        <section
-          class="detail-panel workflow-list-detail"
-          aria-labelledby="workflow-list-detail-title"
-        >
-          <div class="panel-header">
-            <div>
-              <h2 id="workflow-list-detail-title">
-                {{ workflowListDetailTitle(detail) }}
-              </h2>
-              <p>Selected {{ workflowItemLabel(detail.kind).toLocaleLowerCase() }} details and log.</p>
-            </div>
-            <button type="button" (click)="closeWorkflowListDetail()">Close</button>
-          </div>
-          <div class="detail-body">
-            <dl>
-              <dt>ID</dt>
-              <dd>{{ detail.item.id ?? 'n/a' }}</dd>
-              <dt>Name</dt>
-              <dd>{{ detail.item.name || 'n/a' }}</dd>
-              <dt>Description</dt>
-              <dd>{{ detail.item.description || 'n/a' }}</dd>
-              @if (detail.kind === 'worklist') {
-                <dt>Epoch</dt>
-                <dd>{{ detail.item.epoch || 'n/a' }}</dd>
-                <dt>Bin</dt>
-                <dd>{{ detail.item.workflowBinName || 'n/a' }}</dd>
-                <dt>Status</dt>
-                <dd>{{ detail.item.workflowStatus || 'n/a' }}</dd>
-                <dt>Workflow State</dt>
-                <dd>{{ latestWorkflowState(detail.item) }}</dd>
-                <dt>Team</dt>
-                <dd>{{ detail.item.team || 'n/a' }}</dd>
-                <dt>Authoring Time</dt>
-                <dd>{{ displayRunTime(detail.item.authorTime) }}</dd>
-                <dt>Reviewer Time</dt>
-                <dd>{{ displayRunTime(detail.item.reviewerTime) }}</dd>
-              }
-              <dt>Records</dt>
-              <dd>{{ recordCount(detail.item) }}</dd>
-              <dt>Modified</dt>
-              <dd>{{ displayDate(detail.item.lastModified) }}</dd>
-            </dl>
-
-            <section class="step-panel workflow-notes" aria-label="Workflow item notes">
-              <div class="panel-header compact">
-                <div>
-                  <h3>Notes</h3>
-                  <p>
-                    {{ workflowNotes(detail.item).length }}
-                    {{ workflowNotes(detail.item).length === 1 ? 'note' : 'notes' }}
-                  </p>
-                </div>
-              </div>
-
-              @if (workflowNotes(detail.item).length) {
-                <div class="note-list">
-                  @for (note of workflowNotes(detail.item); track note.id ?? note.note) {
-                    <article class="note-item">
-                      <div class="note-body" [innerHTML]="note.note || ''"></div>
-                      <div class="note-meta">
-                        <span>{{ displayDate(note.lastModified ?? note.timestamp) }}</span>
-                        <span>{{ note.lastModifiedBy || 'n/a' }}</span>
-                        @if (canManageWorkflowNotes()) {
-                          <button
-                            type="button"
-                            class="danger"
-                            (click)="removeWorkflowNote(detail, note)"
-                            [disabled]="removingWorkflowNoteId() === note.id"
-                          >
-                            {{ removingWorkflowNoteId() === note.id ? 'Removing' : 'Remove' }}
-                          </button>
-                        }
-                      </div>
-                    </article>
-                  }
-                </div>
-              } @else {
-                <p class="empty compact-empty">No notes.</p>
-              }
-
-              @if (canManageWorkflowNotes()) {
-                <form class="note-form" (ngSubmit)="addWorkflowNote(detail)">
-                  <label class="form-field full-span" for="workflow-note-text">
-                    <span>Add Note</span>
-                    <textarea
-                      id="workflow-note-text"
-                      [ngModel]="workflowNoteText()"
-                      (ngModelChange)="setWorkflowNoteText($event)"
-                      name="workflow-note-text"
-                      rows="3"
-                    ></textarea>
-                  </label>
-                  <div class="form-actions">
-                    <button
-                      type="submit"
-                      [disabled]="isWorkflowNoteAddRunning(detail) || !workflowNoteText().trim()"
-                    >
-                      {{ isWorkflowNoteAddRunning(detail) ? 'Adding' : 'Add Note' }}
-                    </button>
-                  </div>
-                </form>
-              }
-            </section>
-
-            @if (workflowListActions(detail.kind, detail.item).length) {
-              <section class="step-panel" aria-label="Workflow item actions">
-                <div class="panel-header compact">
-                  <div>
-                    <h3>Workflow Actions</h3>
-                    <p>{{ workflowItemLabel(detail.kind) }} mutation actions.</p>
-                  </div>
-                  <div class="inline-actions">
-                    @for (
-                      listAction of workflowListActions(detail.kind, detail.item);
-                      track listAction.action
-                    ) {
-                      <button
-                        type="button"
-                        [class.warning]="listAction.action === 'UNAPPROVE'"
-                        (click)="performWorkflowListAction(detail.kind, detail.item, listAction.action)"
-                        [disabled]="isWorkflowItemActionRunning(detail.kind, detail.item)"
-                      >
-                        {{ isWorkflowItemActionRunning(detail.kind, detail.item) ? 'Working' : listAction.label }}
-                      </button>
-                    }
-                  </div>
-                </div>
-              </section>
-            }
-
-            @if (detail.kind === 'worklist') {
-              <section class="step-panel" aria-label="Worklist assignments">
-                <div class="panel-header compact">
-                  <div>
-                    <h3>Assignments</h3>
-                    <p>{{ assignmentDescription(detail.item) }}</p>
-                  </div>
-                  @if (workflowAssignmentActions(detail.item).length) {
-                    <div class="inline-actions">
-                      @for (
-                        assignmentAction of workflowAssignmentActions(detail.item);
-                        track assignmentAction.action
-                      ) {
-                        <button
-                          type="button"
-                          (click)="performWorkflowAssignment(detail.item, assignmentAction.action)"
-                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                        >
-                          {{ isWorkflowAssignmentRunning(detail.item) ? 'Working' : assignmentAction.label }}
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-                <dl>
-                  <dt>Authors</dt>
-                  <dd>
-                    @if (assignedWorkflowUsers(detail.item, 'AUTHOR').length) {
-                      <div class="assignee-list">
-                        @for (author of assignedWorkflowUsers(detail.item, 'AUTHOR'); track author) {
-                          <span class="assignee-chip">
-                            <span>{{ author }}</span>
-                            @if (canRemoveAssignedWorkflowUser(detail.item, author, 'AUTHOR')) {
-                              <button
-                                type="button"
-                                class="danger"
-                                (click)="removeAssignedWorkflowUser(detail.item, author, 'AUTHOR')"
-                                [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                              >
-                                Remove
-                              </button>
-                            }
-                            @if (canReassignAssignedWorkflowUser(detail.item, author, 'AUTHOR')) {
-                              <button
-                                type="button"
-                                class="warning"
-                                (click)="reassignAssignedWorkflowUser(detail.item, author, 'AUTHOR')"
-                                [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                              >
-                                Reassign
-                              </button>
-                            }
-                          </span>
-                        }
-                      </div>
-                    } @else {
-                      n/a
-                    }
-                  </dd>
-                  <dt>Reviewers</dt>
-                  <dd>
-                    @if (assignedWorkflowUsers(detail.item, 'REVIEWER').length) {
-                      <div class="assignee-list">
-                        @for (reviewer of assignedWorkflowUsers(detail.item, 'REVIEWER'); track reviewer) {
-                          <span class="assignee-chip">
-                            <span>{{ reviewer }}</span>
-                            @if (canRemoveAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')) {
-                              <button
-                                type="button"
-                                class="danger"
-                                (click)="removeAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')"
-                                [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                              >
-                                Remove
-                              </button>
-                            }
-                            @if (canReassignAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')) {
-                              <button
-                                type="button"
-                                class="warning"
-                                (click)="reassignAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')"
-                                [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                              >
-                                Reassign
-                              </button>
-                            }
-                          </span>
-                        }
-                      </div>
-                    } @else {
-                      n/a
-                    }
-                  </dd>
-                </dl>
-
-                @if (canManageWorklistAssignments() && workflowAssignmentTargetRole(detail.item)) {
-                  <form
-                    class="assignment-form"
-                    (ngSubmit)="assignWorkflowToSelectedUser(detail.item)"
-                  >
-                    <label class="form-field" for="workflow-assignment-user">
-                      <span>Assign User</span>
-                      <select
-                        id="workflow-assignment-user"
-                        [ngModel]="selectedWorkflowAssignmentUserName()"
-                        (ngModelChange)="setWorkflowAssignmentUserName($event)"
-                        name="workflow-assignment-user"
-                        [disabled]="loadingWorkflowProjectUsers() || isWorkflowAssignmentRunning(detail.item)"
-                      >
-                        <option value="">
-                          {{ loadingWorkflowProjectUsers() ? 'Loading users' : 'Select user' }}
-                        </option>
-                        @for (user of assignableWorkflowUsers(detail.item); track user.userName ?? user.id) {
-                          <option [value]="user.userName ?? ''">
-                            {{ user.userName || user.name || 'Unnamed user' }}
-                            @if (user.team) {
-                              ({{ user.team }})
-                            }
-                          </option>
-                        }
-                      </select>
-                    </label>
-                    <label class="form-field full-span" for="workflow-assignment-note">
-                      <span>Assignment Note</span>
-                      <textarea
-                        id="workflow-assignment-note"
-                        [ngModel]="assignmentNoteText()"
-                        (ngModelChange)="setAssignmentNoteText($event)"
-                        name="workflow-assignment-note"
-                        rows="2"
-                      ></textarea>
-                    </label>
-                    <div class="form-actions">
-                      <button
-                        type="submit"
-                        [disabled]="isWorkflowAssignmentRunning(detail.item) || !selectedWorkflowAssignmentUserName()"
-                      >
-                        {{ isWorkflowAssignmentRunning(detail.item) ? 'Assigning' : 'Assign Selected User' }}
-                      </button>
-                    </div>
-                  </form>
+              <h2 id="bin-records-title">
+                {{ bin.name }}: {{ selectedClusterType() }}
+                @if (!loadingBinRecords()) {
+                  ({{ binRecordsTotal() }})
                 }
-              </section>
-
-              <section class="step-panel" aria-label="Worklist concept reports">
-                <div class="panel-header compact">
-                  <div>
-                    <h3>Concept Reports</h3>
-                    @if (loadingWorkflowReport()) {
-                      <p>Checking generated reports.</p>
-                    } @else if (workflowReportFileName(); as reportFileName) {
-                      <p>{{ reportFileName }}</p>
-                    } @else {
-                      <p>No generated concept report found.</p>
-                    }
-                  </div>
-                  <div class="inline-actions">
-                    @if (workflowReportFileName()) {
-                      <button
-                        type="button"
-                        (click)="downloadWorkflowReport(detail.item)"
-                        [disabled]="isWorkflowReportActionRunning(detail.item)"
-                      >
-                        {{ downloadingWorkflowReportKey() === workflowItemKey('worklist', detail.item) ? 'Downloading' : 'Download Report' }}
-                      </button>
-                      <button
-                        type="button"
-                        class="danger"
-                        (click)="removeWorkflowReport(detail.item)"
-                        [disabled]="isWorkflowReportActionRunning(detail.item)"
-                      >
-                        {{ removingWorkflowReportKey() === workflowItemKey('worklist', detail.item) ? 'Removing' : 'Remove Report' }}
-                      </button>
-                    } @else if (canGenerateWorkflowReports()) {
-                      <button
-                        type="button"
-                        (click)="generateWorkflowReport(detail.item)"
-                        [disabled]="loadingWorkflowReport() || isWorkflowReportActionRunning(detail.item)"
-                      >
-                        {{ generatingWorkflowReportKey() === workflowItemKey('worklist', detail.item) ? 'Generating' : 'Generate Report' }}
-                      </button>
-                    }
-                  </div>
-                </div>
-              </section>
-            }
-
-            @if (statEntries(detail.item).length) {
-              <section class="step-panel" aria-label="Workflow item stats">
-                <h3>Stats</h3>
-                <dl>
-                  @for (stat of statEntries(detail.item); track stat.key) {
-                    <dt>{{ stat.key }}</dt>
-                    <dd>{{ stat.value }}</dd>
-                  }
-                </dl>
-              </section>
-            }
-
-            <section class="log-panel" aria-label="Workflow item log">
-              <h3>Log</h3>
-              <pre>{{ detail.log || 'No log entries found.' }}</pre>
-            </section>
-          </div>
-        </section>
-      }
-
-      <section class="list-panel" aria-labelledby="epochs-title">
-        <div class="panel-header">
-          <div>
-            <h2 id="epochs-title">Epochs</h2>
-            <p>Supported project workflow epochs.</p>
-          </div>
-          @if (canEditWorkflowEpochs()) {
-            <div class="action-row">
-              <button type="button" (click)="startEditEpochs()">
-                Edit Epochs
-              </button>
+              </h2>
             </div>
+            <div class="table-wrap">
+              @if (loadingBinRecords()) {
+                <p class="empty">Loading clusters…</p>
+              } @else if (binRecords().length) {
+                <table class="slim-table">
+                  <thead>
+                    <tr>
+                      <th>Cluster</th>
+                      <th></th>
+                      <th>Concept ID</th>
+                      <th>Concept Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (record of binRecords(); track record.clusterId ?? $index) {
+                      @for (concept of (record.concepts ?? []); track concept.id ?? $index; let ci = $first) {
+                        <tr
+                          [class.selected]="selectedConcept()?.id === concept.id"
+                          (click)="selectConcept(concept)"
+                          (keyup.enter)="selectConcept(concept)"
+                          tabindex="0"
+                        >
+                          @if (ci) {
+                            <td [attr.rowspan]="(record.concepts ?? []).length">{{ record.clusterId ?? 'n/a' }}</td>
+                            <td [attr.rowspan]="(record.concepts ?? []).length">
+                              @if (record.workflowStatus === 'NEEDS_REVIEW') {
+                                <span class="wf-badge needs-review" title="Needs Review">N</span>
+                              } @else {
+                                <span class="wf-badge reviewed" title="Reviewed">R</span>
+                              }
+                            </td>
+                          }
+                          <td>{{ concept.id ?? 'n/a' }}</td>
+                          <td>{{ concept.name || 'n/a' }}</td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <p class="empty">No tracking records found for this bin.</p>
+              }
+            </div>
+          </section>
+
+          <!-- Right: Report / Interactive / Actions panel -->
+          <section class="report-panel" aria-label="Concept report">
+            <div class="panel-header report-tab-bar">
+              <ul class="report-tabs" role="tablist">
+                <li role="presentation" [class.active]="reportMode() === 'Report'">
+                  <button type="button" role="tab" (click)="setReportMode('Report')">Report</button>
+                </li>
+                <li role="presentation" [class.active]="reportMode() === 'Interactive'">
+                  <button type="button" role="tab" (click)="setReportMode('Interactive')">Interactive</button>
+                </li>
+                <li role="presentation" [class.active]="reportMode() === 'Actions'">
+                  <button type="button" role="tab" (click)="setReportMode('Actions')">Actions</button>
+                </li>
+              </ul>
+            </div>
+            <div class="report-body">
+              @if (!selectedConcept()) {
+                <p class="empty">Select a concept from the cluster list.</p>
+              } @else if (reportMode() === 'Report') {
+                <p class="empty report-placeholder">
+                  Report for concept {{ selectedConcept()!.id }}: {{ selectedConcept()!.name }}
+                </p>
+              } @else if (reportMode() === 'Interactive') {
+                <p class="empty report-placeholder">
+                  Interactive view for concept {{ selectedConcept()!.id }}: {{ selectedConcept()!.name }}
+                </p>
+              } @else {
+                <p class="empty report-placeholder">
+                  Actions for concept {{ selectedConcept()!.id }}: {{ selectedConcept()!.name }}
+                </p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+      </div><!-- /accordion-body Bins -->
+    </details><!-- /Bins -->
+
+    <details class="accordion-panel" open>
+      <summary class="accordion-heading">
+        <span class="accordion-arrow">&#9658;</span>
+        Checklists ({{ checklistsTotal() }})
+      </summary>
+      <div class="accordion-body">
+        <div class="wl-4grid">
+          <section class="list-panel" aria-labelledby="checklists-title">
+            <div class="panel-header">
+              <h2 id="checklists-title" class="sr-only">Checklists</h2>
+              <form class="list-search-bar" (ngSubmit)="setChecklistFilter(checklistFilter())" aria-label="Search checklists">
+                <input
+                  type="search"
+                  placeholder="Filter checklists…"
+                  [ngModel]="checklistFilter()"
+                  (ngModelChange)="setChecklistFilter($event)"
+                  name="checklist-filter"
+                />
+              </form>
+              <div class="list-pager">
+                <button type="button" class="icon-btn" title="Previous page"
+                        [disabled]="checklistPage() <= 1"
+                        (click)="checklistPageTo(checklistPage() - 1)">‹</button>
+                <span>{{ checklistPage() }} / {{ checklistTotalPages() }}</span>
+                <button type="button" class="icon-btn" title="Next page"
+                        [disabled]="checklistPage() >= checklistTotalPages()"
+                        (click)="checklistPageTo(checklistPage() + 1)">›</button>
+              </div>
+              @if (canImportChecklists()) {
+                <div class="icon-actions">
+                  <button type="button" class="icon-btn" title="Import Checklist" (click)="startImportChecklist()">⬆</button>
+                  <button type="button" class="icon-btn" title="Compute Checklist" (click)="startComputeChecklist()">⊕</button>
+                </div>
+              }
+            </div>
+            <div class="table-wrap">
+              @if (checklists().length) {
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Last Modified</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (checklist of checklists(); track checklist.id ?? checklist.name) {
+                      <tr
+                        [class.selected]="isWorkflowItemSelected('checklist', checklist)"
+                        (click)="viewWorkflowItem('checklist', checklist)"
+                        (keyup.enter)="viewWorkflowItem('checklist', checklist)"
+                        tabindex="0"
+                      >
+                        <td>{{ checklist.name || 'n/a' }}</td>
+                        <td>{{ displayDate(checklist.lastModified) }}</td>
+                        <td class="nobreak">
+                          <div class="icon-actions">
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              title="{{ loadingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Loading…' : 'View' }}"
+                              (click)="$event.stopPropagation(); viewWorkflowItem('checklist', checklist)"
+                              [disabled]="loadingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
+                            >⊞</button>
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              title="{{ exportingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Exporting…' : 'Export' }}"
+                              (click)="$event.stopPropagation(); exportWorkflowItem('checklist', checklist)"
+                              [disabled]="exportingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
+                            >⬇</button>
+                            @for (
+                              listAction of workflowListActions('checklist', checklist);
+                              track listAction.action
+                            ) {
+                              <button
+                                type="button"
+                                class="icon-btn"
+                                [class.warning]="listAction.action === 'UNAPPROVE'"
+                                [title]="listAction.label"
+                                (click)="$event.stopPropagation(); performWorkflowListAction('checklist', checklist, listAction.action)"
+                                [disabled]="isWorkflowItemActionRunning('checklist', checklist)"
+                              >{{ listAction.action === 'UNAPPROVE' ? '↩' : '✓' }}</button>
+                            }
+                            @if (canManageWorkflowListActions()) {
+                              <button
+                                type="button"
+                                class="icon-btn danger"
+                                title="{{ deletingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Removing…' : 'Delete' }}"
+                                (click)="$event.stopPropagation(); removeWorkflowItem('checklist', checklist)"
+                                [disabled]="deletingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
+                              >✕</button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <p class="empty-alert">No checklists found.</p>
+              }
+            </div>
+          </section>
+
+          <!-- NE: detail panel (header + metadata) -->
+          <div class="wl-detail-pane">
+            @if (workflowListDetail(); as detail) {
+              @if (detail.kind === 'checklist') {
+                <ng-container *ngTemplateOutlet="listDetailContent; context: { detail: detail }"></ng-container>
+              } @else {
+                <p class="empty">Select a checklist to view details.</p>
+              }
+            } @else {
+              <p class="empty">Select a checklist to view details.</p>
+            }
+          </div>
+
+          <!-- SW + SE: clusters and report — only when a checklist is selected -->
+          @if (workflowListDetail()?.kind === 'checklist') {
+            <ng-container *ngTemplateOutlet="clusterListPanel"></ng-container>
+            <ng-container *ngTemplateOutlet="listReportPanel"></ng-container>
           }
         </div>
+      </div><!-- /accordion-body Checklists -->
+    </details><!-- /Checklists -->
+
+    <details class="accordion-panel" open>
+      <summary class="accordion-heading">
+        <span class="accordion-arrow">&#9658;</span>
+        Worklists ({{ worklistsTotal() }})
+      </summary>
+      <div class="accordion-body">
+        <div class="wl-4grid">
+          <section class="list-panel" aria-labelledby="worklists-title">
+            <div class="panel-header">
+              <h2 id="worklists-title" class="sr-only">Worklists</h2>
+              <form class="list-search-bar" (ngSubmit)="setWorklistFilter(worklistFilter())" aria-label="Search worklists">
+                <input
+                  type="search"
+                  placeholder="Filter worklists…"
+                  [ngModel]="worklistFilter()"
+                  (ngModelChange)="setWorklistFilter($event)"
+                  name="worklist-filter"
+                />
+              </form>
+              <div class="list-pager">
+                <button type="button" class="icon-btn" title="Previous page"
+                        [disabled]="worklistPage() <= 1"
+                        (click)="worklistPageTo(worklistPage() - 1)">‹</button>
+                <span>{{ worklistPage() }} / {{ worklistTotalPages() }}</span>
+                <button type="button" class="icon-btn" title="Next page"
+                        [disabled]="worklistPage() >= worklistTotalPages()"
+                        (click)="worklistPageTo(worklistPage() + 1)">›</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              @if (worklists().length) {
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Editor / Team</th>
+                      <th>State</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (worklist of worklists(); track worklist.id ?? worklist.name) {
+                      <tr
+                        [class.selected]="isWorkflowItemSelected('worklist', worklist)"
+                        (click)="viewWorkflowItem('worklist', worklist)"
+                        (keyup.enter)="viewWorkflowItem('worklist', worklist)"
+                        tabindex="0"
+                      >
+                        <td>{{ worklist.name || 'n/a' }}</td>
+                        <td>
+                          <span>{{ joinEditors(worklist) || 'n/a' }}</span>
+                          @if (worklist.team) {
+                            <br /><small>{{ worklist.team }}</small>
+                          }
+                        </td>
+                        <td
+                          [ngClass]="{
+                            'wf-ready': worklist.workflowStatus === 'READY_FOR_PUBLICATION' || worklist.workflowStatus === 'PUBLISHED',
+                            'wf-needs-review': worklist.workflowStatus === 'NEEDS_REVIEW',
+                            'wf-demotion': worklist.workflowStatus === 'DEMOTION',
+                            'wf-embryo': worklist.workflowStatus === 'EMBRYO' || worklist.workflowStatus === 'UNRELEASABLE',
+                            'wf-obsolete': worklist.workflowStatus === 'OBSOLETE',
+                            'wf-rxnorm': worklist.workflowStatus === 'RXNORM'
+                          }"
+                        >{{ latestWorkflowState(worklist) || worklist.workflowStatus || 'n/a' }}</td>
+                        <td class="nobreak">
+                          <div class="icon-actions">
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              title="{{ loadingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Loading…' : 'View' }}"
+                              (click)="$event.stopPropagation(); viewWorkflowItem('worklist', worklist)"
+                              [disabled]="loadingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
+                            >⊞</button>
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              title="{{ exportingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Exporting…' : 'Export' }}"
+                              (click)="$event.stopPropagation(); exportWorkflowItem('worklist', worklist)"
+                              [disabled]="exportingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
+                            >⬇</button>
+                            @if (canManageWorklistAssignments()) {
+                              <button
+                                type="button"
+                                class="icon-btn"
+                                title="Assign"
+                                (click)="$event.stopPropagation(); openAssignmentDialog(worklist)"
+                                [disabled]="loadingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
+                              >⇧</button>
+                            }
+                            @for (
+                              listAction of workflowListActions('worklist', worklist);
+                              track listAction.action
+                            ) {
+                              <button
+                                type="button"
+                                class="icon-btn"
+                                [class.warning]="listAction.action === 'UNAPPROVE'"
+                                [title]="listAction.label"
+                                (click)="$event.stopPropagation(); performWorkflowListAction('worklist', worklist, listAction.action)"
+                                [disabled]="isWorkflowItemActionRunning('worklist', worklist)"
+                              >{{ listAction.action === 'UNAPPROVE' ? '↩' : '✓' }}</button>
+                            }
+                            @if (canManageWorkflowListActions()) {
+                              <button
+                                type="button"
+                                class="icon-btn danger"
+                                title="{{ deletingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Removing…' : 'Delete' }}"
+                                (click)="$event.stopPropagation(); removeWorkflowItem('worklist', worklist)"
+                                [disabled]="deletingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
+                              >✕</button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <p class="empty-alert">No worklists found.</p>
+              }
+            </div>
+          </section>
+
+          <!-- NE: detail panel (header + metadata) -->
+          <div class="wl-detail-pane">
+            @if (workflowListDetail(); as detail) {
+              @if (detail.kind === 'worklist') {
+                <ng-container *ngTemplateOutlet="listDetailContent; context: { detail: detail }"></ng-container>
+              } @else {
+                <p class="empty">Select a worklist to view details.</p>
+              }
+            } @else {
+              <p class="empty">Select a worklist to view details.</p>
+            }
+          </div>
+
+          <!-- SW + SE: clusters and report — only when a worklist is selected -->
+          @if (workflowListDetail()?.kind === 'worklist') {
+            <ng-container *ngTemplateOutlet="clusterListPanel"></ng-container>
+            <ng-container *ngTemplateOutlet="listReportPanel"></ng-container>
+          }
+        </div>
+      </div><!-- /accordion-body Worklists -->
+    </details><!-- /Worklists -->
+
+    @if (projectRole() !== 'AUTHOR') {
+      <details class="accordion-panel" open>
+        <summary class="accordion-heading">
+          <span class="accordion-arrow">&#9658;</span>
+          Reports
+        </summary>
+        <div class="accordion-body">
+          <div class="wl-4grid">
+
+            <!-- NW: report list -->
+            <section class="list-panel" aria-labelledby="reports-list-title">
+              <div class="panel-header">
+                <h2 id="reports-list-title" class="sr-only">Reports</h2>
+                <div class="action-row">
+                  <select
+                    [ngModel]="reportTypeSelection()"
+                    (ngModelChange)="selectReportType($event)"
+                    name="report-type-select"
+                  >
+                    <option [ngValue]="null">Select report type</option>
+                    @for (def of reportTypeList(); track def.id ?? def.name) {
+                      <option [ngValue]="def">{{ def.name }}</option>
+                    }
+                  </select>
+                  @if (canGenerateWorkflowReports() && reportTypeSelection()) {
+                    <button
+                      type="button"
+                      class="btn-primary"
+                      (click)="generateTopLevelReport()"
+                      [disabled]="generatingReport()"
+                    >{{ generatingReport() ? 'Generating' : 'Generate Report' }}</button>
+                  }
+                </div>
+                @if (reportTypeSelection()) {
+                  <div class="list-pager">
+                    <label for="reports-page-size">Per page</label>
+                    <select
+                      id="reports-page-size"
+                      [ngModel]="reportsPageSize()"
+                      (ngModelChange)="setReportsPageSize(+$event)"
+                      name="reports-page-size"
+                    >
+                      @for (size of reportsPageSizeOptions; track size) {
+                        <option [value]="size">{{ size }}</option>
+                      }
+                    </select>
+                    <button type="button" class="icon-btn" title="Previous page"
+                      [disabled]="reportsPage() <= 1" (click)="loadReports(reportsPage() - 1)">‹</button>
+                    <span>{{ reportsPage() }} / {{ reportsTotalPages() }}</span>
+                    <button type="button" class="icon-btn" title="Next page"
+                      [disabled]="reportsPage() >= reportsTotalPages()" (click)="loadReports(reportsPage() + 1)">›</button>
+                  </div>
+                }
+              </div>
+              <div class="table-wrap">
+                @if (loadingReports()) {
+                  <p class="empty">Loading…</p>
+                } @else if (!reportTypeSelection()) {
+                  <p class="empty-alert">No report type selected.</p>
+                } @else if (reports().length) {
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (report of reports(); track report.id) {
+                        <tr
+                          [class.selected]="selectedReport()?.id === report.id"
+                          (click)="selectReport(report)"
+                        >
+                          <td>{{ report.name }}</td>
+                          <td>{{ report.lastModified | date:'short' }}</td>
+                          <td class="nobreak">
+                            <div class="icon-actions">
+                              <button
+                                type="button"
+                                class="icon-btn danger"
+                                title="{{ removingReportId() === report.id ? 'Removing…' : 'Remove Report' }}"
+                                (click)="$event.stopPropagation(); removeTopLevelReport(report)"
+                                [disabled]="removingReportId() === report.id"
+                              >✕</button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <p class="empty-alert">No reports available.</p>
+                }
+              </div>
+            </section>
+
+            <!-- NE: report results -->
+            <section class="list-panel" aria-labelledby="reports-results-title">
+              <div class="panel-header">
+                <h2 id="reports-results-title">
+                  @if (selectedReport()) {
+                    {{ selectedReport()!.name }}
+                  } @else {
+                    Results
+                  }
+                </h2>
+                @if (selectedReport()) {
+                  <form class="list-search-bar" (ngSubmit)="$event.preventDefault()" aria-label="Filter results">
+                    <input
+                      type="search"
+                      placeholder="Filter results…"
+                      [ngModel]="resultsFilter()"
+                      (ngModelChange)="setResultsFilter($event)"
+                      name="results-filter"
+                    />
+                  </form>
+                  <div class="list-pager">
+                    <label for="results-page-size">Per page</label>
+                    <select
+                      id="results-page-size"
+                      [ngModel]="resultsPageSize()"
+                      (ngModelChange)="setResultsPageSize(+$event)"
+                      name="results-page-size"
+                    >
+                      @for (size of reportsPageSizeOptions; track size) {
+                        <option [value]="size">{{ size }}</option>
+                      }
+                    </select>
+                    <button type="button" class="icon-btn" title="Previous page"
+                      [disabled]="resultsPage() <= 1" (click)="resultsPage.set(resultsPage() - 1)">‹</button>
+                    <span>{{ resultsPage() }} / {{ resultsTotalPages() }}</span>
+                    <button type="button" class="icon-btn" title="Next page"
+                      [disabled]="resultsPage() >= resultsTotalPages()" (click)="resultsPage.set(resultsPage() + 1)">›</button>
+                  </div>
+                }
+              </div>
+              <div class="table-wrap">
+                @if (!selectedReport()) {
+                  <p class="empty">Select a report to view results.</p>
+                } @else if (pagedResults().length) {
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Value</th>
+                        <th>Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (result of pagedResults(); track result.id ?? $index) {
+                        <tr>
+                          <td>
+                            <ul class="value-list">
+                              @for (v of reportResultValues(result); track v) {
+                                <li>{{ v }}</li>
+                              }
+                            </ul>
+                          </td>
+                          <td>{{ result.ct }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                } @else {
+                  <p class="empty">No results for this report.</p>
+                }
+              </div>
+            </section>
+
+          </div>
+        </div><!-- /accordion-body Reports -->
+      </details><!-- /Reports -->
+    }
+
+    <ng-template #listDetailContent let-detail="detail">
+      <div class="wl-detail-header">
+        <strong>{{ workflowListDetailTitle(detail) }}</strong>
+        <div class="wl-detail-actions">
+          <button type="button" class="icon-btn" title="Notes ({{ workflowNotes(detail.item).length }})" (click)="openNotesDialog()">✎</button>
+          <button type="button" class="icon-btn" title="Log" (click)="openLogDialog()">☰</button>
+          @if (detail.kind === 'worklist') {
+            <button type="button" class="icon-btn" title="Concept Reports" (click)="openConceptReportsDialog()">⚑</button>
+          }
+          <button
+            type="button"
+            class="icon-btn"
+            title="{{ exportingWorkflowItemKey() === workflowItemKey(detail.kind, detail.item) ? 'Exporting…' : 'Export' }}"
+            (click)="exportWorkflowItem(detail.kind, detail.item)"
+            [disabled]="exportingWorkflowItemKey() === workflowItemKey(detail.kind, detail.item)"
+          >⬇</button>
+          <button type="button" class="icon-btn" title="Close" (click)="closeWorkflowListDetail()">✕</button>
+        </div>
+      </div>
+      <div class="detail-body">
+        <dl>
+          <dt>ID</dt>
+          <dd>{{ detail.item.id ?? 'n/a' }}</dd>
+          <dt>Name</dt>
+          <dd>{{ detail.item.name || 'n/a' }}</dd>
+          <dt>Description</dt>
+          <dd>{{ detail.item.description || 'n/a' }}</dd>
+          @if (detail.kind === 'worklist') {
+            <dt>Epoch</dt>
+            <dd>{{ detail.item.epoch || 'n/a' }}</dd>
+            <dt>Bin</dt>
+            <dd>{{ detail.item.workflowBinName || 'n/a' }}</dd>
+            <dt>Status</dt>
+            <dd
+              [ngClass]="{
+                'wf-ready': detail.item.workflowStatus === 'READY_FOR_PUBLICATION' || detail.item.workflowStatus === 'PUBLISHED',
+                'wf-needs-review': detail.item.workflowStatus === 'NEEDS_REVIEW',
+                'wf-demotion': detail.item.workflowStatus === 'DEMOTION',
+                'wf-embryo': detail.item.workflowStatus === 'EMBRYO' || detail.item.workflowStatus === 'UNRELEASABLE',
+                'wf-obsolete': detail.item.workflowStatus === 'OBSOLETE',
+                'wf-rxnorm': detail.item.workflowStatus === 'RXNORM'
+              }"
+            >{{ detail.item.workflowStatus || 'n/a' }}</dd>
+            <dt>Workflow State</dt>
+            <dd>{{ latestWorkflowState(detail.item) }}</dd>
+            <dt>Team</dt>
+            <dd>{{ detail.item.team || 'n/a' }}</dd>
+            <dt>Authoring Time</dt>
+            <dd>{{ displayRunTime(detail.item.authorTime) }}</dd>
+            <dt>Reviewer Time</dt>
+            <dd>{{ displayRunTime(detail.item.reviewerTime) }}</dd>
+          }
+          <dt>Records</dt>
+          <dd>{{ recordCount(detail.item) }}</dd>
+          <dt>Modified</dt>
+          <dd>{{ displayDate(detail.item.lastModified) }}</dd>
+        </dl>
+
+        @if (statEntries(detail.item).length) {
+          <section class="step-panel" aria-label="Workflow item stats">
+            <h3>Stats</h3>
+            <dl>
+              @for (stat of statEntries(detail.item); track stat.key) {
+                <dt>{{ stat.key }}</dt>
+                <dd>{{ stat.value }}</dd>
+              }
+            </dl>
+          </section>
+        }
+
+      </div>
+    </ng-template>
+
+    <ng-template #listReportPanel>
+      <section class="report-panel" aria-label="Concept report">
+        <div class="panel-header report-tab-bar">
+          <ul class="report-tabs" role="tablist">
+            <li role="presentation" [class.active]="listDetailReportMode() === 'Report'">
+              <button type="button" role="tab" (click)="setListDetailReportMode('Report')">Report</button>
+            </li>
+            <li role="presentation" [class.active]="listDetailReportMode() === 'Interactive'">
+              <button type="button" role="tab" (click)="setListDetailReportMode('Interactive')">Interactive</button>
+            </li>
+            <li role="presentation" [class.active]="listDetailReportMode() === 'Actions'">
+              <button type="button" role="tab" (click)="setListDetailReportMode('Actions')">Actions</button>
+            </li>
+          </ul>
+        </div>
+        <div class="report-body">
+          @if (!selectedListDetailConcept()) {
+            <p class="empty">Select a concept from the cluster list.</p>
+          } @else if (listDetailReportMode() === 'Report') {
+            <p class="empty report-placeholder">
+              Report for concept {{ selectedListDetailConcept()!.id }}: {{ selectedListDetailConcept()!.name }}
+            </p>
+          } @else if (listDetailReportMode() === 'Interactive') {
+            <p class="empty report-placeholder">
+              Interactive view for concept {{ selectedListDetailConcept()!.id }}: {{ selectedListDetailConcept()!.name }}
+            </p>
+          } @else {
+            <p class="empty report-placeholder">
+              Actions for concept {{ selectedListDetailConcept()!.id }}: {{ selectedListDetailConcept()!.name }}
+            </p>
+          }
+        </div>
+      </section>
+    </ng-template>
+
+    <ng-template #clusterListPanel>
+      <section class="list-panel" aria-labelledby="list-detail-records-title">
+        <div class="panel-header">
+          <h3 id="list-detail-records-title">
+            Clusters
+            @if (!loadingListDetailRecords()) {
+              ({{ listDetailRecordsTotal() }})
+            }
+          </h3>
+          <div class="list-pager">
+            <button type="button" class="icon-btn" title="Previous page"
+              [disabled]="listDetailRecordsPage() <= 1"
+              (click)="clusterPageTo(listDetailRecordsPage() - 1)">‹</button>
+            <span>{{ listDetailRecordsPage() }} / {{ listDetailRecordsTotalPages() }}</span>
+            <button type="button" class="icon-btn" title="Next page"
+              [disabled]="listDetailRecordsPage() >= listDetailRecordsTotalPages()"
+              (click)="clusterPageTo(listDetailRecordsPage() + 1)">›</button>
+          </div>
+        </div>
         <div class="table-wrap">
-          @if (epochs().length) {
-            <table>
+          @if (loadingListDetailRecords()) {
+            <p class="empty">Loading clusters…</p>
+          } @else if (listDetailRecords().length) {
+            <table class="slim-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Active</th>
-                  <th>Modified</th>
-                  @if (canEditWorkflowEpochs()) {
-                    <th>Actions</th>
-                  }
+                  <th>Cluster</th>
+                  <th></th>
+                  <th>Concept ID</th>
+                  <th>Concept Name</th>
                 </tr>
               </thead>
               <tbody>
-                @for (epoch of epochs(); track epoch.id ?? epoch.name) {
-                  <tr>
-                    <td>{{ epoch.name || 'n/a' }}</td>
-                    <td>{{ epoch.active ? 'Yes' : 'No' }}</td>
-                    <td>{{ displayDate(epoch.lastModified) }}</td>
-                    @if (canEditWorkflowEpochs()) {
-                      <td>
-                        <button
-                          type="button"
-                          class="danger"
-                          (click)="removeWorkflowEpoch(epoch)"
-                          [disabled]="deletingEpochId() === epoch.id"
-                        >
-                          {{ deletingEpochId() === epoch.id ? 'Removing' : 'Remove' }}
-                        </button>
-                      </td>
-                    }
-                  </tr>
+                @for (record of listDetailRecords(); track record.clusterId ?? $index) {
+                  @for (concept of (record.concepts ?? []); track concept.id ?? $index; let ci = $first) {
+                    <tr
+                      [class.selected]="selectedListDetailConcept()?.id === concept.id"
+                      (click)="selectListDetailConcept(concept)"
+                      (keyup.enter)="selectListDetailConcept(concept)"
+                      tabindex="0"
+                    >
+                      @if (ci) {
+                        <td [attr.rowspan]="(record.concepts ?? []).length">{{ record.clusterId ?? 'n/a' }}</td>
+                        <td [attr.rowspan]="(record.concepts ?? []).length">
+                          @if (record.workflowStatus === 'NEEDS_REVIEW') {
+                            <span class="wf-badge needs-review" title="Needs Review">N</span>
+                          } @else {
+                            <span class="wf-badge reviewed" title="Reviewed">R</span>
+                          }
+                        </td>
+                      }
+                      <td>{{ concept.id ?? 'n/a' }}</td>
+                      <td>{{ concept.name || 'n/a' }}</td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>
           } @else {
-            <p class="empty">No workflow epochs found.</p>
+            <p class="empty">No tracking records found.</p>
           }
         </div>
       </section>
-    </div>
+    </ng-template>
+
+    @if (notesDialogOpen()) {
+      @if (workflowListDetail(); as detail) {
+        <meme-dialog
+          [title]="'Notes — ' + workflowListDetailTitle(detail)"
+          (closed)="closeNotesDialog()"
+        >
+          @if (workflowNotes(detail.item).length) {
+            <div class="note-list">
+              @for (note of workflowNotes(detail.item); track note.id ?? note.note) {
+                <article class="note-item">
+                  <div class="note-body" [innerHTML]="note.note || ''"></div>
+                  <div class="note-meta">
+                    <span>{{ displayDate(note.lastModified ?? note.timestamp) }}</span>
+                    <span>{{ note.lastModifiedBy || 'n/a' }}</span>
+                    @if (canManageWorkflowNotes()) {
+                      <button
+                        type="button"
+                        class="danger"
+                        (click)="removeWorkflowNote(detail, note)"
+                        [disabled]="removingWorkflowNoteId() === note.id"
+                      >
+                        {{ removingWorkflowNoteId() === note.id ? 'Removing' : 'Remove' }}
+                      </button>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="empty">No notes.</p>
+          }
+          @if (canManageWorkflowNotes()) {
+            <form class="note-form" (ngSubmit)="addWorkflowNote(detail)" style="margin-top: 1rem">
+              <label class="form-field full-span" for="workflow-note-text">
+                <span>Add Note</span>
+                <textarea
+                  id="workflow-note-text"
+                  [ngModel]="workflowNoteText()"
+                  (ngModelChange)="setWorkflowNoteText($event)"
+                  name="workflow-note-text"
+                  rows="3"
+                ></textarea>
+              </label>
+              <div class="form-actions">
+                <button
+                  type="submit"
+                  [disabled]="isWorkflowNoteAddRunning(detail) || !workflowNoteText().trim()"
+                >
+                  {{ isWorkflowNoteAddRunning(detail) ? 'Adding' : 'Add Note' }}
+                </button>
+              </div>
+            </form>
+          }
+        </meme-dialog>
+      }
+    }
+
+    @if (logDialogOpen()) {
+      @if (workflowListDetail(); as detail) {
+        <meme-dialog
+          [title]="'Log — ' + workflowListDetailTitle(detail)"
+          (closed)="closeLogDialog()"
+        >
+          <pre class="log-content">{{ detail.log || 'No log entries found.' }}</pre>
+        </meme-dialog>
+      }
+    }
+
+    @if (conceptReportsDialogOpen()) {
+      @if (workflowListDetail(); as detail) {
+        <meme-dialog
+          [title]="'Concept Reports — ' + workflowListDetailTitle(detail)"
+          (closed)="closeConceptReportsDialog()"
+        >
+          <div class="concept-reports-dialog">
+            @if (loadingWorkflowReport()) {
+              <p>Checking generated reports…</p>
+            } @else if (workflowReportFileName(); as reportFileName) {
+              <p>{{ reportFileName }}</p>
+            } @else {
+              <p>No generated concept report found.</p>
+            }
+            <div class="form-actions" style="margin-top: 1rem">
+              @if (workflowReportFileName()) {
+                <button
+                  type="button"
+                  (click)="downloadWorkflowReport(detail.item)"
+                  [disabled]="isWorkflowReportActionRunning(detail.item)"
+                >
+                  {{ downloadingWorkflowReportKey() === workflowItemKey('worklist', detail.item) ? 'Downloading' : 'Download Report' }}
+                </button>
+                <button
+                  type="button"
+                  class="danger"
+                  (click)="removeWorkflowReport(detail.item)"
+                  [disabled]="isWorkflowReportActionRunning(detail.item)"
+                >
+                  {{ removingWorkflowReportKey() === workflowItemKey('worklist', detail.item) ? 'Removing' : 'Remove Report' }}
+                </button>
+              } @else if (canGenerateWorkflowReports()) {
+                <button
+                  type="button"
+                  class="btn-primary"
+                  (click)="generateWorkflowReport(detail.item)"
+                  [disabled]="loadingWorkflowReport() || isWorkflowReportActionRunning(detail.item)"
+                >
+                  {{ generatingWorkflowReportKey() === workflowItemKey('worklist', detail.item) ? 'Generating' : 'Generate Report' }}
+                </button>
+              }
+            </div>
+          </div>
+        </meme-dialog>
+      }
+    }
+
+    @if (assignmentDialogOpen()) {
+      @if (workflowListDetail(); as detail) {
+        <meme-dialog
+          [title]="'Assignments — ' + workflowListDetailTitle(detail)"
+          (closed)="closeAssignmentDialog()"
+        >
+          <div class="panel-header compact">
+            <p>{{ assignmentDescription(detail.item) }}</p>
+            @if (workflowAssignmentActions(detail.item).length) {
+              <div class="inline-actions">
+                @for (
+                  assignmentAction of workflowAssignmentActions(detail.item);
+                  track assignmentAction.action
+                ) {
+                  <button
+                    type="button"
+                    (click)="performWorkflowAssignment(detail.item, assignmentAction.action)"
+                    [disabled]="isWorkflowAssignmentRunning(detail.item)"
+                  >
+                    {{ isWorkflowAssignmentRunning(detail.item) ? 'Working' : assignmentAction.label }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+          <dl>
+            <dt>Authors</dt>
+            <dd>
+              @if (assignedWorkflowUsers(detail.item, 'AUTHOR').length) {
+                <div class="assignee-list">
+                  @for (author of assignedWorkflowUsers(detail.item, 'AUTHOR'); track author) {
+                    <span class="assignee-chip">
+                      <span>{{ author }}</span>
+                      @if (canRemoveAssignedWorkflowUser(detail.item, author, 'AUTHOR')) {
+                        <button
+                          type="button"
+                          class="danger"
+                          (click)="removeAssignedWorkflowUser(detail.item, author, 'AUTHOR')"
+                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
+                        >Remove</button>
+                      }
+                      @if (canReassignAssignedWorkflowUser(detail.item, author, 'AUTHOR')) {
+                        <button
+                          type="button"
+                          class="warning"
+                          (click)="reassignAssignedWorkflowUser(detail.item, author, 'AUTHOR')"
+                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
+                        >Reassign</button>
+                      }
+                    </span>
+                  }
+                </div>
+              } @else {
+                n/a
+              }
+            </dd>
+            <dt>Reviewers</dt>
+            <dd>
+              @if (assignedWorkflowUsers(detail.item, 'REVIEWER').length) {
+                <div class="assignee-list">
+                  @for (reviewer of assignedWorkflowUsers(detail.item, 'REVIEWER'); track reviewer) {
+                    <span class="assignee-chip">
+                      <span>{{ reviewer }}</span>
+                      @if (canRemoveAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')) {
+                        <button
+                          type="button"
+                          class="danger"
+                          (click)="removeAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')"
+                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
+                        >Remove</button>
+                      }
+                      @if (canReassignAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')) {
+                        <button
+                          type="button"
+                          class="warning"
+                          (click)="reassignAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')"
+                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
+                        >Reassign</button>
+                      }
+                    </span>
+                  }
+                </div>
+              } @else {
+                n/a
+              }
+            </dd>
+          </dl>
+
+          @if (canManageWorklistAssignments() && workflowAssignmentTargetRole(detail.item)) {
+            <form
+              class="assignment-form"
+              (ngSubmit)="assignWorkflowToSelectedUser(detail.item)"
+            >
+              <label class="form-field" for="assignment-dialog-user">
+                <span>Assign User</span>
+                <select
+                  id="assignment-dialog-user"
+                  [ngModel]="selectedWorkflowAssignmentUserName()"
+                  (ngModelChange)="setWorkflowAssignmentUserName($event)"
+                  name="assignment-dialog-user"
+                  [disabled]="loadingWorkflowProjectUsers() || isWorkflowAssignmentRunning(detail.item)"
+                >
+                  <option value="">
+                    {{ loadingWorkflowProjectUsers() ? 'Loading users' : 'Select user' }}
+                  </option>
+                  @for (user of assignableWorkflowUsers(detail.item); track user.userName ?? user.id) {
+                    <option [value]="user.userName ?? ''">
+                      {{ user.userName || user.name || 'Unnamed user' }}
+                      @if (user.team) { ({{ user.team }}) }
+                    </option>
+                  }
+                </select>
+              </label>
+              <label class="form-field full-span" for="assignment-dialog-note">
+                <span>Assignment Note</span>
+                <textarea
+                  id="assignment-dialog-note"
+                  [ngModel]="assignmentNoteText()"
+                  (ngModelChange)="setAssignmentNoteText($event)"
+                  name="assignment-dialog-note"
+                  rows="2"
+                ></textarea>
+              </label>
+              <div class="form-actions">
+                <button
+                  type="submit"
+                  class="btn-primary"
+                  [disabled]="isWorkflowAssignmentRunning(detail.item) || !selectedWorkflowAssignmentUserName()"
+                >
+                  {{ isWorkflowAssignmentRunning(detail.item) ? 'Assigning…' : 'Assign Selected User' }}
+                </button>
+              </div>
+            </form>
+          }
+        </meme-dialog>
+      }
+    }
+
   } @else {
     <p class="context-panel">
       Select a project in the legacy-compatible session before opening Workflow.
@@ -986,12 +1373,13 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeWorkflowConfigForm()"
           [disabled]="savingWorkflowConfig()"
         >
           Cancel
         </button>
-        <button type="submit" [disabled]="savingWorkflowConfig()">
+        <button type="submit" class="btn-primary" [disabled]="savingWorkflowConfig()">
           {{ savingWorkflowConfig() ? 'Saving' : 'Save' }}
         </button>
       </div>
@@ -1175,12 +1563,13 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeWorkflowBinDefinitionForm()"
           [disabled]="savingBinDefinition()"
         >
           Cancel
         </button>
-        <button type="submit" [disabled]="savingBinDefinition()">
+        <button type="submit" class="btn-primary" [disabled]="savingBinDefinition()">
           {{ savingBinDefinition() ? 'Saving' : 'Save' }}
         </button>
       </div>
@@ -1237,6 +1626,7 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeFinishWorkflowForm()"
           [disabled]="finishWorkflowFormRunning()"
         >
@@ -1244,6 +1634,7 @@
         </button>
         <button
           type="submit"
+          class="btn-primary"
           [disabled]="finishWorkflowFormRunning() || !(form.hours || form.minutes)"
         >
           {{ finishWorkflowFormRunning() ? 'Finishing' : 'Finish' }}
@@ -1356,12 +1747,13 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeChecklistCreationForm()"
           [disabled]="savingChecklist()"
         >
           Cancel
         </button>
-        <button type="submit" [disabled]="savingChecklist()">
+        <button type="submit" class="btn-primary" [disabled]="savingChecklist()">
           {{ savingChecklist() ? 'Creating' : 'Create' }}
         </button>
       </div>
@@ -1455,12 +1847,13 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeWorklistCreationForm()"
           [disabled]="savingWorklist()"
         >
           Cancel
         </button>
-        <button type="submit" [disabled]="savingWorklist()">
+        <button type="submit" class="btn-primary" [disabled]="savingWorklist()">
           {{ savingWorklist() ? 'Creating' : 'Create' }}
         </button>
       </div>
@@ -1531,12 +1924,13 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeEditEpochs()"
           [disabled]="savingEpoch() || deletingEpochId() !== null"
         >
           Close
         </button>
-        <button type="submit" [disabled]="savingEpoch() || !epochName().trim()">
+        <button type="submit" class="btn-primary" [disabled]="savingEpoch() || !epochName().trim()">
           {{ savingEpoch() ? 'Adding' : 'Add' }}
         </button>
       </div>
@@ -1588,6 +1982,7 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeImportChecklist()"
           [disabled]="importingChecklist()"
         >
@@ -1595,6 +1990,7 @@
         </button>
         <button
           type="submit"
+          class="btn-primary"
           [disabled]="importingChecklist() || !importChecklistName().trim() || !importChecklistFile()"
         >
           {{ importingChecklist() ? 'Importing' : 'Import' }}
@@ -1716,6 +2112,7 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeComputeChecklist()"
           [disabled]="computingChecklist() || testingChecklistComputeQuery()"
         >
@@ -1723,6 +2120,7 @@
         </button>
         <button
           type="submit"
+          class="btn-primary"
           [disabled]="computingChecklist() || !form.name.trim() || !form.query.trim()"
         >
           {{ computingChecklist() ? 'Computing' : 'Compute' }}
@@ -1764,6 +2162,7 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeImportWorkflowConfig()"
           [disabled]="importingWorkflowConfig()"
         >
@@ -1771,6 +2170,7 @@
         </button>
         <button
           type="submit"
+          class="btn-primary"
           [disabled]="importingWorkflowConfig() || !importWorkflowFile()"
         >
           {{ importingWorkflowConfig() ? 'Importing' : 'Import' }}

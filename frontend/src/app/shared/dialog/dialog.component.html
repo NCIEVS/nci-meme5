@@ -1,6 +1,6 @@
 <div class="dialog-layer">
   <div class="dialog-backdrop" aria-hidden="true"></div>
-  <section class="dialog-panel" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId">
+  <section class="dialog-panel" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId" [attr.data-size]="size">
     <header class="dialog-header">
       <h2 [id]="titleId">{{ title }}</h2>
       <button

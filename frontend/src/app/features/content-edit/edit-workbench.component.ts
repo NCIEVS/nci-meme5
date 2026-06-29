@@ -39,6 +39,7 @@ import { EditMutationApiService } from './edit-mutation-api.service';
 import {
   EditAddRelationshipRequest,
   EditAddSemanticTypeRequest,
+  EditApproveConceptRequest,
   EditMutationReadiness,
   EditRemoveAtomRequest,
   EditRemoveRelationshipRequest,
@@ -157,6 +158,13 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly removingSemanticTypeId = signal<number | null>(null);
   protected readonly semanticTypeRemovalResult = signal<EditValidationResult | null>(null);
   protected readonly semanticTypeRemovalPendingType = signal<ContentSemanticType | null>(null);
+
+  // STY available-list paging, sorting, filtering
+  protected readonly styFilter = signal('');
+  protected readonly styPage = signal(1);
+  protected readonly styPageSize = signal(5);
+  protected readonly stySortField = signal('typeId');
+  protected readonly stySortAscending = signal(false);
 
   // Atoms workbench
   protected readonly atomUpdateStatus = signal('NEEDS_REVIEW');
@@ -332,6 +340,42 @@ export class EditWorkbenchComponent implements OnInit {
       const value = opt.expandedForm || opt.abbreviation || opt.typeId || '';
       return value && !existing.has(value);
     });
+  });
+  protected readonly filteredSortedStys = computed<ContentSemanticTypeMetadata[]>(() => {
+    const filter = this.styFilter().trim().toLowerCase();
+    const field = this.stySortField();
+    const ascending = this.stySortAscending();
+    let list = this.availableSemanticTypeOptions();
+    if (filter) {
+      list = list.filter((s) =>
+        (s.expandedForm ?? '').toLowerCase().includes(filter) ||
+        (s.typeId ?? '').toLowerCase().includes(filter) ||
+        (s.treeNumber ?? '').toLowerCase().includes(filter)
+      );
+    }
+    return [...list].sort((a, b) => {
+      const av = String((a as Record<string, unknown>)[field] ?? '');
+      const bv = String((b as Record<string, unknown>)[field] ?? '');
+      return ascending ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  });
+  protected readonly styFilteredCount = computed(() => this.filteredSortedStys().length);
+  protected readonly styTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.styFilteredCount() / this.styPageSize()))
+  );
+  protected readonly styPageRange = computed(() => {
+    const total = this.styTotalPages();
+    const cur = this.styPage();
+    let start = Math.max(1, cur - 2);
+    const end = Math.min(total, start + 4);
+    start = Math.max(1, end - 4);
+    const range: number[] = [];
+    for (let p = start; p <= end; p++) range.push(p);
+    return range;
+  });
+  protected readonly pagedStys = computed<ContentSemanticTypeMetadata[]>(() => {
+    const start = (this.styPage() - 1) * this.styPageSize();
+    return this.filteredSortedStys().slice(start, start + this.styPageSize());
   });
   protected readonly semanticTypeAddReadiness = computed<EditMutationReadiness>(() => {
     const concept = this.loadedConcept();
@@ -787,6 +831,78 @@ export class EditWorkbenchComponent implements OnInit {
     this.relationshipRemovalPendingRelationship.set(null);
     this.relationshipRemovalResult.set(null);
     this.loadConcept();
+  }
+
+  // --- STY available-list helpers ---
+
+  protected setStyFilter(value: string): void {
+    this.styFilter.set(value);
+    this.styPage.set(1);
+  }
+
+  protected setStyPageSize(value: number): void {
+    this.styPageSize.set(Number(value));
+    this.styPage.set(1);
+  }
+
+  protected setStyPage(page: number): void {
+    const total = this.styTotalPages();
+    if (page >= 1 && page <= total) this.styPage.set(page);
+  }
+
+  protected setStySort(field: string): void {
+    if (this.stySortField() === field) {
+      this.stySortAscending.set(!this.stySortAscending());
+    } else {
+      this.stySortField.set(field);
+      this.stySortAscending.set(false);
+    }
+    this.styPage.set(1);
+  }
+
+  protected stySortIndicator(field: string): string {
+    return this.stySortField() === field ? (this.stySortAscending() ? '↑' : '↓') : '';
+  }
+
+  protected addSemanticTypeRow(expandedForm: string | null | undefined): void {
+    if (!expandedForm) return;
+    this.setSemanticTypeAddValue(expandedForm);
+    this.addSemanticTypeToConcept();
+  }
+
+  protected canApproveConcept(): boolean {
+    return (
+      !!this.projectEditingEnabled() &&
+      !!this.workbenchActivityId() &&
+      !!this.loadedConcept()?.id &&
+      !!this.conceptLastModified()
+    );
+  }
+
+  protected approveConcept(): void {
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const activityId = this.workbenchActivityId();
+    const lastModified = this.conceptLastModified();
+    if (!concept?.id || !projectId || !activityId || !lastModified) return;
+    const request: EditApproveConceptRequest = {
+      activityId,
+      conceptId: concept.id,
+      lastModified,
+      overrideWarnings: false,
+      projectId
+    };
+    this.mutationApi.approveConcept(request).subscribe({
+      next: (result) => {
+        if (validationBlocksCommit(result)) {
+          this.notifications.error('Concept approval failed validation.');
+          return;
+        }
+        this.notifications.success('Concept approved.');
+        this.refreshConcept();
+      },
+      error: () => this.notifications.error('Concept could not be approved.')
+    });
   }
 
   // --- Semantic types workbench ---

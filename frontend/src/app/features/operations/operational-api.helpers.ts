@@ -5,6 +5,7 @@ import {
 } from './operational.models';
 
 export type OperationalListKey =
+  | 'atoms'
   | 'bins'
   | 'checklists'
   | 'configs'

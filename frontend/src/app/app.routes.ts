@@ -38,6 +38,11 @@ const loadEditWorkbenchComponent = () =>
     (module) => module.EditWorkbenchComponent
   );
 
+const loadConceptReportComponent = () =>
+  import('./pages/concept-report/concept-report.component').then(
+    (module) => module.ConceptReportComponent
+  );
+
 export const routes: Routes = [
   {
     path: '',
@@ -182,6 +187,16 @@ export const routes: Routes = [
       tabKey: 'admin'
     },
     title: 'NCI-META Admin'
+  },
+  {
+    path: 'concept-report',
+    loadComponent: loadConceptReportComponent,
+    title: 'NCI-META Concept Report'
+  },
+  {
+    path: 'concept-report/:terminology/:version/:terminologyId',
+    loadComponent: loadConceptReportComponent,
+    title: 'NCI-META Concept Report'
   },
   ...tabRoutes,
   {

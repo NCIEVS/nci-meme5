@@ -1,3 +1,4 @@
+import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -28,12 +29,15 @@ import {
   ClusterTypeStats,
   KeyValuePair,
   PfsParameter,
+  TrackingRecord,
+  TrackingRecordConcept,
   WorkflowBin,
   WorkflowBinDefinition,
   WorkflowConfig,
   WorkflowEpoch,
   WorkflowAction,
   WorkflowNote,
+  WorkflowReport,
   OperationalProject,
   OperationalUser,
   Worklist
@@ -125,7 +129,7 @@ interface WorkflowChecklistComputeForm {
 
 @Component({
   selector: 'meme-workflow',
-  imports: [DialogComponent, FormsModule],
+  imports: [DatePipe, DialogComponent, FormsModule, NgClass, NgTemplateOutlet],
   templateUrl: './workflow.component.html',
   styleUrl: './operations.component.css'
 })
@@ -142,7 +146,26 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly actingWorkflowItemKey = signal<string | null>(null);
   protected readonly autofixAlgorithms = signal<KeyValuePair[]>([]);
   protected readonly bins = signal<WorkflowBin[]>([]);
+  protected readonly binFilter = signal('');
+  protected readonly binPage = signal(1);
+  protected readonly binPageSize = 10;
+  protected readonly filteredBins = computed(() => {
+    const q = this.binFilter().toLowerCase();
+    if (!q) return this.bins();
+    return this.bins().filter((b) => b.name?.toLowerCase().includes(q));
+  });
+  protected readonly binTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredBins().length / this.binPageSize))
+  );
+  protected readonly pagedBins = computed(() => {
+    const start = (this.binPage() - 1) * this.binPageSize;
+    return this.filteredBins().slice(start, start + this.binPageSize);
+  });
   protected readonly checklists = signal<Checklist[]>([]);
+  protected readonly checklistsTotal = signal(0);
+  protected readonly checklistFilter = signal('');
+  protected readonly checklistPage = signal(1);
+  protected readonly checklistPageSize = 10;
   protected readonly checklistCreationForm =
     signal<WorkflowChecklistCreationForm | null>(null);
   protected readonly checklistCreationFormErrors = signal<string[]>([]);
@@ -203,6 +226,55 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly epochName = signal('');
   protected readonly savingEpoch = signal(false);
   protected readonly selectedBin = signal<WorkflowBin | null>(null);
+  protected readonly selectedClusterType = signal<string>('all');
+  protected readonly binRecords = signal<TrackingRecord[]>([]);
+  protected readonly binRecordsTotal = signal(0);
+  protected readonly loadingBinRecords = signal(false);
+  protected readonly selectedConcept = signal<TrackingRecordConcept | null>(null);
+  protected readonly reportMode = signal<'Report' | 'Interactive' | 'Actions'>('Report');
+  protected readonly listDetailRecords = signal<TrackingRecord[]>([]);
+  protected readonly listDetailRecordsTotal = signal(0);
+  protected readonly listDetailRecordsPage = signal(1);
+  protected readonly listDetailRecordsPageSize = 20;
+  protected readonly listDetailRecordsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.listDetailRecordsTotal() / this.listDetailRecordsPageSize))
+  );
+  protected readonly loadingListDetailRecords = signal(false);
+  protected readonly selectedListDetailConcept = signal<TrackingRecordConcept | null>(null);
+  protected readonly listDetailReportMode = signal<'Report' | 'Interactive' | 'Actions'>('Report');
+  protected readonly assignmentDialogOpen = signal(false);
+  protected readonly notesDialogOpen = signal(false);
+  protected readonly logDialogOpen = signal(false);
+  protected readonly conceptReportsDialogOpen = signal(false);
+  protected readonly reportTypeSelection = signal<WorkflowBinDefinition | null>(null);
+  protected readonly reports = signal<WorkflowReport[]>([]);
+  protected readonly reportsTotal = signal(0);
+  protected readonly reportsPage = signal(1);
+  protected readonly reportsPageSize = signal(10);
+  protected readonly reportsPageSizeOptions = [10, 20, 50, 100];
+  protected readonly reportsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.reportsTotal() / this.reportsPageSize()))
+  );
+  protected readonly resultsFilter = signal('');
+  protected readonly resultsPage = signal(1);
+  protected readonly resultsPageSize = signal(10);
+  protected readonly filteredResults = computed(() => {
+    const q = this.resultsFilter().toLowerCase();
+    const results = this.selectedReport()?.results ?? [];
+    const filtered = q ? results.filter((r) => r.value?.toLowerCase().includes(q)) : results;
+    return [...filtered].sort((a, b) => (a.value ?? '').localeCompare(b.value ?? ''));
+  });
+  protected readonly resultsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredResults().length / this.resultsPageSize()))
+  );
+  protected readonly pagedResults = computed(() => {
+    const start = (this.resultsPage() - 1) * this.resultsPageSize();
+    return this.filteredResults().slice(start, start + this.resultsPageSize());
+  });
+  protected readonly selectedReport = signal<WorkflowReport | null>(null);
+  protected readonly loadingReports = signal(false);
+  protected readonly generatingReport = signal(false);
+  protected readonly removingReportId = signal<number | null>(null);
   protected readonly selectedConfigType = signal('');
   protected readonly selectedProject = signal<OperationalProject | null>(null);
   protected readonly selectedWorkflowAssignmentUserName = signal('');
@@ -233,12 +305,34 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     signal<WorkflowWorklistCreationForm | null>(null);
   protected readonly worklistCreationFormErrors = signal<string[]>([]);
   protected readonly worklists = signal<Worklist[]>([]);
+  protected readonly worklistsTotal = signal(0);
+  protected readonly worklistFilter = signal('');
+  protected readonly worklistPage = signal(1);
+  protected readonly worklistPageSize = 20;
   protected readonly workflowLiveConnected = this.workflowLiveUpdates.connected;
 
+  protected readonly worklistTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.worklistsTotal() / this.worklistPageSize))
+  );
+  protected readonly checklistTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.checklistsTotal() / this.checklistPageSize))
+  );
+
+  protected readonly availableProjects = signal<OperationalProject[]>([]);
   protected readonly projectId = computed(() => this.projectContext.projectId());
   protected readonly projectRole = computed(
     () => this.projectContext.projectRole() || 'n/a'
   );
+  protected readonly availableRoles = computed<string[]>(() => {
+    const user = this.auth.currentUser();
+    const projectId = this.projectId();
+    if (!projectId) return [];
+    const assigned = user.projectRoleMap?.[String(projectId)];
+    if (assigned === 'ADMINISTRATOR') return ['ADMINISTRATOR', 'REVIEWER', 'AUTHOR'];
+    if (assigned === 'REVIEWER') return ['REVIEWER', 'AUTHOR'];
+    if (assigned === 'AUTHOR') return ['AUTHOR'];
+    return assigned ? [assigned] : [];
+  });
   protected readonly canManageWorkflow = computed(
     () => this.projectContext.projectRole() === 'ADMINISTRATOR'
   );
@@ -292,6 +386,11 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       this.configs().find((config) => config.type === this.selectedConfigType()) ??
       null
   );
+  protected readonly reportTypeList = computed<WorkflowBinDefinition[]>(() =>
+    this.configs()
+      .filter((c) => c.queryStyle === 'REPORT')
+      .flatMap((c) => c.workflowBinDefinitions ?? [])
+  );
   protected readonly binRegenerationRunning = computed(
     () => this.regeneratingBins() || this.regeneratingBinId() !== null
   );
@@ -308,6 +407,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       (event) => this.handleWorkflowChangeEvent(event)
     );
     this.workflowLiveUpdates.connect();
+    this.loadProjects();
     this.load();
   }
 
@@ -324,24 +424,27 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const pfs = buildOperationalPfs(1, 20, 'lastModified', false, this.filter());
+    const wlPfs = buildOperationalPfs(this.worklistPage(), this.worklistPageSize, 'lastModified', false, this.worklistFilter());
+    const clPfs = buildOperationalPfs(this.checklistPage(), this.checklistPageSize, 'lastModified', false, this.checklistFilter());
     this.loading.set(true);
 
     forkJoin({
-      checklists: this.api.findChecklists(projectId, this.filter(), pfs),
+      checklists: this.api.findChecklists(projectId, this.checklistFilter(), clPfs),
       configs: this.api.getWorkflowConfigs(projectId),
       currentEpoch: this.api.getCurrentWorkflowEpoch(projectId),
       epochs: this.api.getWorkflowEpochs(projectId),
-      worklists: this.api.findWorklists(projectId, this.filter(), pfs)
+      worklists: this.api.findWorklists(projectId, this.worklistFilter(), wlPfs)
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: ({ checklists, configs, currentEpoch, epochs, worklists }) => {
           this.checklists.set(checklists.items);
-          this.configs.set(configs.items);
+          this.checklistsTotal.set(checklists.totalCount);
+          this.configs.set([...configs.items].sort((a, b) => (a.type ?? '').localeCompare(b.type ?? '')));
           this.currentEpoch.set(currentEpoch);
           this.epochs.set(this.sortWorkflowEpochs(epochs.items));
           this.worklists.set(worklists.items);
+          this.worklistsTotal.set(worklists.totalCount);
           this.ensureSelectedConfigType(configs.items);
           this.loadWorkflowAssignmentContext(projectId);
         },
@@ -349,6 +452,198 @@ export class WorkflowComponent implements OnInit, OnDestroy {
           this.notifications.error('Workflow information could not be loaded.');
         }
       });
+  }
+
+  protected loadProjects(): void {
+    const user = this.auth.currentUser();
+    const projectIds = Object.keys(user.projectRoleMap ?? {}).map(Number).filter(Boolean);
+    this.api.findProjectsByIds(projectIds).subscribe({
+      next: (projects) => this.availableProjects.set(projects),
+      error: () => {}
+    });
+  }
+
+  protected selectProject(idStr: string): void {
+    const user = this.auth.currentUser();
+    const prefs = user.userPreferences ?? {};
+    const id = Number(idStr);
+    const newPrefs = { ...prefs, lastProjectId: id, lastProjectRole: null };
+    this.api.updateUserPreferences(newPrefs).subscribe({
+      next: (saved) => {
+        this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+        this.load();
+      },
+      error: () => this.notifications.error('Could not switch project.')
+    });
+  }
+
+  protected selectRole(role: string): void {
+    const user = this.auth.currentUser();
+    const prefs = user.userPreferences ?? {};
+    const newPrefs = { ...prefs, lastProjectRole: role };
+    this.api.updateUserPreferences(newPrefs).subscribe({
+      next: (saved) => {
+        this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+        this.load();
+      },
+      error: () => this.notifications.error('Could not switch role.')
+    });
+  }
+
+  protected reloadWorklists(): void {
+    const projectId = this.projectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    const query = this.prepListQuery(this.worklistFilter());
+    const pfs = buildOperationalPfs(this.worklistPage(), this.worklistPageSize, 'lastModified', false, query);
+
+    this.api.findWorklists(projectId, query, pfs).subscribe({
+      next: (result) => {
+        this.worklists.set(result.items);
+        this.worklistsTotal.set(result.totalCount);
+      },
+      error: () => this.notifications.error('Worklists could not be reloaded.')
+    });
+  }
+
+  protected reloadChecklists(): void {
+    const projectId = this.projectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    const query = this.prepListQuery(this.checklistFilter());
+    const pfs = buildOperationalPfs(this.checklistPage(), this.checklistPageSize, 'lastModified', false, query);
+
+    this.api.findChecklists(projectId, query, pfs).subscribe({
+      next: (result) => {
+        this.checklists.set(result.items);
+        this.checklistsTotal.set(result.totalCount);
+      },
+      error: () => this.notifications.error('Checklists could not be reloaded.')
+    });
+  }
+
+  protected setWorklistFilter(value: string): void {
+    this.worklistFilter.set(value);
+    this.worklistPage.set(1);
+    this.reloadWorklists();
+  }
+
+  protected setChecklistFilter(value: string): void {
+    this.checklistFilter.set(value);
+    this.checklistPage.set(1);
+    this.reloadChecklists();
+  }
+
+  protected setBinFilter(value: string): void {
+    this.binFilter.set(value);
+    this.binPage.set(1);
+  }
+
+  protected selectReportType(def: WorkflowBinDefinition): void {
+    this.reportTypeSelection.set(def);
+    this.selectedReport.set(null);
+    this.resultsFilter.set('');
+    this.resultsPage.set(1);
+    this.reportsPage.set(1);
+    this.loadReports(1);
+  }
+
+  protected setReportsPageSize(value: number): void {
+    this.reportsPageSize.set(value);
+    this.reportsPage.set(1);
+    this.loadReports(1);
+  }
+
+  protected selectReport(report: WorkflowReport): void {
+    this.selectedReport.set(report);
+    this.resultsFilter.set('');
+    this.resultsPage.set(1);
+  }
+
+  protected setResultsFilter(value: string): void {
+    this.resultsFilter.set(value);
+    this.resultsPage.set(1);
+  }
+
+  protected setResultsPageSize(value: number): void {
+    this.resultsPageSize.set(value);
+    this.resultsPage.set(1);
+  }
+
+  protected loadReports(page = this.reportsPage()): void {
+    const projectId = this.projectId();
+    const def = this.reportTypeSelection();
+    if (!projectId || !def?.name) return;
+    const pfs = buildOperationalPfs(page, this.reportsPageSize(), 'name', true, '');
+    this.loadingReports.set(true);
+    this.api.findReports(projectId, def.name, pfs).subscribe({
+      next: (result) => {
+        this.reports.set(result.items);
+        this.reportsTotal.set(result.totalCount);
+        this.reportsPage.set(page);
+      },
+      error: () => this.notifications.error('Reports could not be loaded.'),
+      complete: () => this.loadingReports.set(false)
+    });
+  }
+
+  protected generateTopLevelReport(): void {
+    const projectId = this.projectId();
+    const def = this.reportTypeSelection();
+    if (!projectId || !def?.name || !def.query || !def.queryType) return;
+    this.generatingReport.set(true);
+    this.api.generateReport(projectId, def.name, def.query, def.queryType).subscribe({
+      next: () => {
+        this.notifications.success('Report generated.');
+        this.loadReports(1);
+      },
+      error: () => this.notifications.error('Report could not be generated.'),
+      complete: () => this.generatingReport.set(false)
+    });
+  }
+
+  protected removeTopLevelReport(report: WorkflowReport): void {
+    if (!report.id) return;
+    if (!window.confirm(`Remove report "${report.name}"?`)) return;
+    this.removingReportId.set(report.id);
+    this.api.removeReport(report.id).subscribe({
+      next: () => {
+        if (this.selectedReport()?.id === report.id) this.selectedReport.set(null);
+        this.loadReports(this.reportsPage());
+      },
+      error: () => this.notifications.error('Report could not be removed.'),
+      complete: () => this.removingReportId.set(null)
+    });
+  }
+
+  protected reportResultValues(result: { value?: string | null }): string[] {
+    return result.value?.split('@').filter(Boolean) ?? [];
+  }
+
+  private prepListQuery(raw: string): string {
+    const q = raw.trim();
+
+    if (!q) {
+      return '';
+    }
+
+    return q.includes('(') || q.includes(':') || q.includes('"') ? q : `${q}*`;
+  }
+
+  protected worklistPageTo(page: number): void {
+    this.worklistPage.set(page);
+    this.reloadWorklists();
+  }
+
+  protected checklistPageTo(page: number): void {
+    this.checklistPage.set(page);
+    this.reloadChecklists();
   }
 
   protected setFilter(value: string): void {
@@ -469,8 +764,130 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.loadBins(type);
   }
 
-  protected selectBin(bin: WorkflowBin): void {
+  protected selectBin(bin: WorkflowBin, clusterType = 'all'): void {
     this.selectedBin.set(bin);
+    this.selectedClusterType.set(clusterType);
+    this.selectedConcept.set(null);
+    this.reportMode.set('Report');
+    this.loadBinRecords(bin, clusterType);
+  }
+
+  private loadBinRecords(bin: WorkflowBin, clusterType = 'all'): void {
+    const projectId = this.projectId();
+
+    if (!projectId || !bin.id) {
+      return;
+    }
+
+    this.loadingBinRecords.set(true);
+    this.binRecords.set([]);
+    this.binRecordsTotal.set(0);
+
+    const queryRestriction =
+      clusterType === 'all' ? ''
+      : clusterType === 'default' ? ' NOT clusterType:[* TO *]'
+      : clusterType;
+
+    this.api
+      .findTrackingRecordsForBin(projectId, bin.id, {
+        startIndex: 0,
+        maxResults: 20,
+        sortField: 'clusterId',
+        ascending: true,
+        queryRestriction
+      })
+      .pipe(finalize(() => this.loadingBinRecords.set(false)))
+      .subscribe({
+        next: ({ records, totalCount }) => {
+          this.binRecords.set(records ?? []);
+          this.binRecordsTotal.set(totalCount ?? 0);
+        },
+        error: () => {
+          this.notifications.error('Workflow bin records could not be loaded.');
+        }
+      });
+  }
+
+  protected selectConcept(concept: TrackingRecordConcept): void {
+    this.selectedConcept.set(concept);
+    this.reportMode.set('Report');
+  }
+
+  protected setReportMode(mode: 'Report' | 'Interactive' | 'Actions'): void {
+    this.reportMode.set(mode);
+  }
+
+  protected selectListDetailConcept(concept: TrackingRecordConcept): void {
+    this.selectedListDetailConcept.set(concept);
+    this.listDetailReportMode.set('Report');
+  }
+
+  protected clusterPageTo(page: number): void {
+    const detail = this.workflowListDetail();
+    if (!detail) return;
+    this.loadListDetailRecords(detail.kind, detail.item, page);
+  }
+
+  protected setListDetailReportMode(mode: 'Report' | 'Interactive' | 'Actions'): void {
+    this.listDetailReportMode.set(mode);
+  }
+
+  protected openAssignmentDialog(worklist: Worklist): void {
+    this.selectedWorkflowAssignmentUserName.set('');
+    this.assignmentNoteText.set('');
+    this.viewWorkflowItem('worklist', worklist, () => this.assignmentDialogOpen.set(true));
+  }
+  protected closeAssignmentDialog(): void {
+    this.assignmentDialogOpen.set(false);
+    this.selectedWorkflowAssignmentUserName.set('');
+    this.assignmentNoteText.set('');
+  }
+  protected openNotesDialog(): void { this.notesDialogOpen.set(true); }
+  protected closeNotesDialog(): void { this.notesDialogOpen.set(false); }
+  protected openLogDialog(): void { this.logDialogOpen.set(true); }
+  protected closeLogDialog(): void { this.logDialogOpen.set(false); }
+  protected openConceptReportsDialog(): void { this.conceptReportsDialogOpen.set(true); }
+  protected closeConceptReportsDialog(): void { this.conceptReportsDialogOpen.set(false); }
+
+  private loadListDetailRecords(kind: WorkflowListKind, item: Checklist | Worklist, page = 1): void {
+    const projectId = this.projectId();
+
+    if (!projectId || !item.id) {
+      return;
+    }
+
+    this.listDetailRecordsPage.set(page);
+    this.loadingListDetailRecords.set(true);
+    this.listDetailRecords.set([]);
+    this.listDetailRecordsTotal.set(0);
+    this.selectedListDetailConcept.set(null);
+    this.listDetailReportMode.set('Report');
+
+    const startIndex = (page - 1) * this.listDetailRecordsPageSize;
+    const request =
+      kind === 'checklist'
+        ? this.api.findTrackingRecordsForChecklist(projectId, item.id, {
+            startIndex,
+            maxResults: this.listDetailRecordsPageSize,
+            sortField: 'clusterId',
+            ascending: true
+          })
+        : this.api.findTrackingRecordsForWorklist(projectId, item.id, {
+            startIndex,
+            maxResults: this.listDetailRecordsPageSize,
+            sortField: 'clusterId',
+            ascending: true
+          });
+
+    request.pipe(finalize(() => this.loadingListDetailRecords.set(false))).subscribe({
+      next: ({ records, totalCount }) => {
+        this.listDetailRecords.set(records ?? []);
+        this.listDetailRecordsTotal.set(totalCount ?? 0);
+      },
+      error: () => {
+        this.notifications.error('Tracking records could not be loaded.');
+      }
+    });
   }
 
   protected startAddWorkflowConfig(): void {
@@ -1013,6 +1430,44 @@ export class WorkflowComponent implements OnInit, OnDestroy {
           this.notifications.error('Workflow bin could not be regenerated.');
         }
       });
+  }
+
+  protected toggleBinEnabled(bin: WorkflowBin): void {
+    const projectId = this.projectId();
+    const type = this.selectedConfigType();
+
+    if (!projectId || !type || !bin.name) {
+      return;
+    }
+
+    this.api
+      .getWorkflowBinDefinition(projectId, bin.name, type)
+      .subscribe({
+        next: (definition) => {
+          if (!definition?.id) {
+            this.notifications.error('Workflow bin definition could not be loaded.');
+            return;
+          }
+
+          this.api
+            .updateWorkflowBinDefinition(projectId, { ...definition, enabled: !this.isBinEnabled(bin) })
+            .subscribe({
+              next: () => this.loadBins(type),
+              error: () => this.notifications.error('Workflow bin could not be updated.')
+            });
+        },
+        error: () => {
+          this.notifications.error('Workflow bin definition could not be loaded.');
+        }
+      });
+  }
+
+  protected startCloneWorkflowBin(bin: WorkflowBin): void {
+    this.notifications.success(`Clone bin "${bin.name || bin.id}" — not yet implemented.`);
+  }
+
+  protected startRunAutofix(bin: WorkflowBin): void {
+    this.notifications.success(`Run autofix for "${bin.name || bin.id}" — not yet implemented.`);
   }
 
   protected startAddChecklist(bin: WorkflowBin, stats: ClusterTypeStats): void {
@@ -1640,7 +2095,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       });
   }
 
-  protected viewWorkflowItem(kind: WorkflowListKind, item: Checklist | Worklist): void {
+  protected viewWorkflowItem(kind: WorkflowListKind, item: Checklist | Worklist, afterLoad?: () => void): void {
     const projectId = this.projectId();
 
     if (!projectId || !item.id) {
@@ -1672,12 +2127,15 @@ export class WorkflowComponent implements OnInit, OnDestroy {
             kind,
             log
           });
+          this.loadListDetailRecords(kind, detailItem);
 
           if (kind === 'worklist') {
             this.loadGeneratedConceptReport(detailItem);
           } else {
             this.workflowReportFileName.set(null);
           }
+
+          afterLoad?.();
         },
         error: () => {
           this.notifications.error(`${this.workflowItemLabel(kind)} details could not be loaded.`);
@@ -1691,6 +2149,15 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.assignmentNoteText.set('');
     this.workflowNoteText.set('');
     this.workflowReportFileName.set(null);
+    this.listDetailRecords.set([]);
+    this.listDetailRecordsTotal.set(0);
+    this.listDetailRecordsPage.set(1);
+    this.selectedListDetailConcept.set(null);
+    this.listDetailReportMode.set('Report');
+    this.assignmentDialogOpen.set(false);
+    this.notesDialogOpen.set(false);
+    this.logDialogOpen.set(false);
+    this.conceptReportsDialogOpen.set(false);
   }
 
   protected setWorkflowNoteText(value: string): void {
@@ -2436,6 +2903,12 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     return names?.length ? names.join(', ') : 'n/a';
   }
 
+  protected joinEditors(worklist: Partial<Worklist>): string {
+    const authors = worklist.authors?.filter(Boolean) ?? [];
+    const reviewers = worklist.reviewers?.filter(Boolean) ?? [];
+    return [...authors, ...reviewers].join(', ');
+  }
+
   protected latestWorkflowState(
     worklist: Checklist & Partial<Worklist>
   ): string {
@@ -2961,7 +3434,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   }
 
   private canUnapproveWorkflowItem(
-    kind: WorkflowListKind,
+    _kind: WorkflowListKind,
     item: Checklist & Partial<Worklist>
   ): boolean {
     return (
@@ -3332,6 +3805,8 @@ export class WorkflowComponent implements OnInit, OnDestroy {
             })
             .map((item) => item.bin);
           this.bins.set(sortedBins);
+          this.binFilter.set('');
+          this.binPage.set(1);
           this.selectedBin.set(
             sortedBins.find((bin) => bin.id === selectedBinId) ??
               sortedBins[0] ??

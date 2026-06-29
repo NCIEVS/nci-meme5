@@ -36,11 +36,16 @@ button {
   min-height: 40px;
   margin-top: 8px;
   color: #ffffff;
-  background: #245f7a;
-  border: 0;
+  background: #337ab7;
+  border: 1px solid #2e6da4;
   border-radius: 4px;
   cursor: pointer;
   font-weight: 700;
+}
+
+button:hover:not(:disabled) {
+  background: #286090;
+  border-color: #204d74;
 }
 
 button:disabled {

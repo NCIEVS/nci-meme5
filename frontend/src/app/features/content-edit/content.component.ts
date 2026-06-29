@@ -2,32 +2,45 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
-import { finalize, map, of, switchMap } from 'rxjs';
+import { ConceptReportPanelComponent, LinkedConceptInfo } from '../../shared/concept-report-panel/concept-report-panel.component';
+import { finalize, map, Observable, of, switchMap } from 'rxjs';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { OperationalApiService } from '../operations/operational-api.service';
+import { OperationalProject } from '../operations/operational.models';
 import {
   buildContentPfs,
   buildContentSearchPfs,
   contentTypePath
 } from './content-edit-api.helpers';
 import { ContentEditApiService } from './content-edit-api.service';
+import { WorkflowApiService } from './workflow-api.service';
+import {
+  WorkflowTrackingRecord,
+  WorkflowWorklist,
+  WorklistMode
+} from './workflow.models';
 import {
   ContentAtom,
   ContentAttribute,
   ContentComponent as ContentComponentDetail,
   ContentComponentType,
   ContentDefinition,
+  ContentKeyValuePair,
   ContentMapping,
+  ContentMetadata,
   ContentNote,
   ContentRelationship,
+  ContentRelationshipTypeDetail,
   ContentRouteMode,
   ContentSearchResult,
   ContentSemanticType,
   ContentSemanticTypeMetadata,
   ContentSubsetMember,
   ContentTerminology,
+  ContentTermTypeDetail,
   ContentTree,
   ContentTreePosition
 } from './content-edit.models';
@@ -81,16 +94,18 @@ interface EditPopoutLink {
 
 @Component({
   selector: 'meme-content',
-  imports: [FormsModule, DialogComponent],
+  imports: [FormsModule, DialogComponent, ConceptReportPanelComponent],
   templateUrl: './content.component.html',
   styleUrl: '../operations/operations.component.css'
 })
 export class ContentComponent implements OnInit {
   private readonly api = inject(ContentEditApiService);
+  private readonly auth = inject(AuthService);
   private readonly mutationApi = inject(EditMutationApiService);
   private readonly notifications = inject(NotificationService);
   private readonly operationsApi = inject(OperationalApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly workflowApi = inject(WorkflowApiService);
   protected readonly projectContext = inject(ProjectContextService);
 
   protected readonly componentTypes: SearchableContentType[] = [
@@ -296,6 +311,22 @@ export class ContentComponent implements OnInit {
   protected readonly selectedAtomMoveTarget = signal<ContentSearchResult | null>(null);
   protected readonly selectedMergeTarget = signal<ContentSearchResult | null>(null);
   protected readonly selectedResult = signal<ContentSearchResult | null>(null);
+
+  // Concept list (working set for editing)
+  protected readonly conceptList = signal<ContentComponentDetail[]>([]);
+  protected readonly finderLookupId = signal('');
+  protected readonly loadingFinderLookup = signal(false);
+  protected readonly finderDialogOpen = signal(false);
+  protected readonly finderQuery = signal('');
+  protected readonly finderResults = signal<ContentSearchResult[]>([]);
+  protected readonly finderResultsTotal = signal(0);
+  protected readonly finderResultsPage = signal(1);
+  protected readonly finderResultsPageSize = 10;
+  protected readonly loadingFinderResults = signal(false);
+  protected readonly finderSelectedResult = signal<ContentSearchResult | null>(null);
+  protected readonly finderPreviewConcept = signal<ContentComponentDetail | null>(null);
+
+
   protected readonly removingAttributeId = signal<number | null>(null);
   protected readonly removingAtomId = signal<number | null>(null);
   protected readonly removingComponentNoteId = signal<number | null>(null);
@@ -346,10 +377,95 @@ export class ContentComponent implements OnInit {
   protected readonly conceptValidationResult = signal<EditValidationResult | null>(null);
   protected readonly validatingConcept = signal(false);
 
+  // Metadata editing
+  protected readonly selectedMetadataTerminology = signal<ContentTerminology | null>(null);
+  protected readonly metadata = signal<ContentMetadata | null>(null);
+  protected readonly loadingMetadata = signal(false);
+  protected readonly metadataError = signal<string | null>(null);
+  protected readonly termTypesPage = signal(1);
+  protected readonly attributeNamesPage = signal(1);
+  protected readonly relationshipTypesPage = signal(1);
+  protected readonly additionalRelTypesPage = signal(1);
+  protected readonly termTypesFilter = signal('');
+  protected readonly attributeNamesFilter = signal('');
+  protected readonly relationshipTypesFilter = signal('');
+  protected readonly additionalRelTypesFilter = signal('');
+  protected readonly removingTermTypeKey = signal<string | null>(null);
+  protected readonly removingAttributeNameKey = signal<string | null>(null);
+  protected readonly removingRelationshipTypeKey = signal<string | null>(null);
+  protected readonly removingAdditionalRelTypeKey = signal<string | null>(null);
+  protected readonly metadataPageSize = 10;
+
+  // Term type / attribute name dialog
+  protected readonly metaTermTypeDialogMode = signal<
+    'addTermType' | 'editTermType' | 'addAttributeName' | 'editAttributeName' | null
+  >(null);
+  protected readonly metaTermTypeLoading = signal(false);
+  protected readonly metaTermTypeSubmitting = signal(false);
+  protected readonly metaTermTypeErrors = signal<string[]>([]);
+  protected readonly metaTermTypeFormAbbreviation = signal('');
+  protected readonly metaTermTypeFormExpandedForm = signal('');
+  protected readonly metaTermTypeFormSuppressible = signal(false);
+  protected readonly metaTermTypeFormObsolete = signal(false);
+  protected readonly metaTermTypeFormHierarchicalType = signal(false);
+  protected readonly metaTermTypeFormExclude = signal(false);
+  protected readonly metaTermTypeFormNormExclude = signal(false);
+  protected readonly metaTermTypeDetailStyle = signal<string | null>(null);
+  protected readonly metaTermTypeDetailUsageType = signal<string | null>(null);
+  protected readonly metaTermTypeDetailNameVariantType = signal<string | null>(null);
+  protected readonly metaTermTypeDetailCodeVariantType = signal<string | null>(null);
+
+  // Relationship type / additional rel type dialog
+  protected readonly metaRelTypeDialogMode = signal<
+    'addRelType' | 'editRelType' | 'addAddRelType' | 'editAddRelType' | null
+  >(null);
+  protected readonly metaRelTypeLoading = signal(false);
+  protected readonly metaRelTypeSubmitting = signal(false);
+  protected readonly metaRelTypeErrors = signal<string[]>([]);
+  protected readonly metaRelTypeFormAbbreviation = signal('');
+  protected readonly metaRelTypeFormExpandedForm = signal('');
+  protected readonly metaRelTypeInverseFormAbbreviation = signal('');
+  protected readonly metaRelTypeInverseFormExpandedForm = signal('');
+
+  // Worklists / Clusters
+  protected readonly worklistMode = signal<WorklistMode>('Available');
+  protected readonly worklists = signal<WorkflowWorklist[]>([]);
+  protected readonly worklistsTotalCount = signal(0);
+  protected readonly selectedWorklist = signal<WorkflowWorklist | null>(null);
+  protected readonly loadingWorklists = signal(false);
+  protected readonly worklistPage = signal(1);
+  protected readonly worklistPageSize = 10;
+  protected readonly worklistFilter = signal('');
+  protected readonly worklistSortField = signal<'name' | 'lastModified'>('lastModified');
+  protected readonly worklistSortAsc = signal(false);
+  protected readonly availableCt = signal(0);
+  protected readonly assignedCt = signal(0);
+  protected readonly doneCt = signal(0);
+  protected readonly checklistCt = signal(0);
+  protected readonly records = signal<WorkflowTrackingRecord[]>([]);
+  protected readonly recordsTotalCount = signal(0);
+  protected readonly selectedRecord = signal<WorkflowTrackingRecord | null>(null);
+  protected readonly loadingRecords = signal(false);
+  protected readonly recordsPage = signal(1);
+  protected readonly recordsPageSize = signal(10);
+  protected readonly recordsTypeFilter = signal('');
+  protected readonly recordsFilter = signal('');
+
   protected readonly projectId = computed(() => this.projectContext.projectId());
   protected readonly projectRole = computed(
     () => this.projectContext.projectRole() || 'n/a'
   );
+  protected readonly availableProjects = signal<OperationalProject[]>([]);
+  protected readonly availableRoles = computed<string[]>(() => {
+    const user = this.auth.currentUser();
+    const projectId = this.projectId();
+    if (!projectId) return [];
+    const assigned = user.projectRoleMap?.[String(projectId)];
+    if (assigned === 'ADMINISTRATOR') return ['ADMINISTRATOR', 'REVIEWER', 'AUTHOR'];
+    if (assigned === 'REVIEWER') return ['REVIEWER', 'AUTHOR'];
+    if (assigned === 'AUTHOR') return ['AUTHOR'];
+    return assigned ? [assigned] : [];
+  });
   protected readonly routeMode = computed<ContentRouteMode>(() => {
     const params = this.route.snapshot.paramMap;
     const queryParams = this.route.snapshot.queryParamMap;
@@ -372,6 +488,112 @@ export class ContentComponent implements OnInit {
   protected readonly totalPages = computed(() =>
     Math.max(1, Math.ceil(this.totalCount() / this.pageSize()))
   );
+
+  // Metadata paged arrays
+  private filterMeta(pairs: ContentKeyValuePair[], q: string): ContentKeyValuePair[] {
+    const f = q.toLowerCase().trim();
+    if (!f) return pairs;
+    return pairs.filter(
+      (e) => (e.key ?? '').toLowerCase().includes(f) || (e.value ?? '').toLowerCase().includes(f)
+    );
+  }
+
+  protected readonly filteredTermTypes = computed<ContentKeyValuePair[]>(() =>
+    this.filterMeta(this.metadata()?.termTypes ?? [], this.termTypesFilter())
+  );
+  protected readonly pagedTermTypes = computed<ContentKeyValuePair[]>(() => {
+    const start = (this.termTypesPage() - 1) * this.metadataPageSize;
+    return this.filteredTermTypes().slice(start, start + this.metadataPageSize);
+  });
+  protected readonly termTypesTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredTermTypes().length / this.metadataPageSize))
+  );
+
+  protected readonly filteredAttributeNames = computed<ContentKeyValuePair[]>(() =>
+    this.filterMeta(this.metadata()?.attributeNames ?? [], this.attributeNamesFilter())
+  );
+  protected readonly pagedAttributeNames = computed<ContentKeyValuePair[]>(() => {
+    const start = (this.attributeNamesPage() - 1) * this.metadataPageSize;
+    return this.filteredAttributeNames().slice(start, start + this.metadataPageSize);
+  });
+  protected readonly attributeNamesTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredAttributeNames().length / this.metadataPageSize))
+  );
+
+  protected readonly filteredRelationshipTypes = computed<ContentKeyValuePair[]>(() =>
+    this.filterMeta(this.metadata()?.relationshipTypes ?? [], this.relationshipTypesFilter())
+  );
+  protected readonly pagedRelationshipTypes = computed<ContentKeyValuePair[]>(() => {
+    const start = (this.relationshipTypesPage() - 1) * this.metadataPageSize;
+    return this.filteredRelationshipTypes().slice(start, start + this.metadataPageSize);
+  });
+  protected readonly relationshipTypesTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredRelationshipTypes().length / this.metadataPageSize))
+  );
+
+  protected readonly filteredAdditionalRelTypes = computed<ContentKeyValuePair[]>(() =>
+    this.filterMeta(this.metadata()?.additionalRelationshipTypes ?? [], this.additionalRelTypesFilter())
+  );
+  protected readonly pagedAdditionalRelTypes = computed<ContentKeyValuePair[]>(() => {
+    const start = (this.additionalRelTypesPage() - 1) * this.metadataPageSize;
+    return this.filteredAdditionalRelTypes().slice(start, start + this.metadataPageSize);
+  });
+  protected readonly additionalRelTypesTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredAdditionalRelTypes().length / this.metadataPageSize))
+  );
+
+  protected readonly worklistTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.worklistsTotalCount() / this.worklistPageSize))
+  );
+  protected readonly recordsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.recordsTotalCount() / this.recordsPageSize()))
+  );
+
+  protected readonly metaTermTypeDialogOpen = computed(() => this.metaTermTypeDialogMode() !== null);
+  protected readonly metaTermTypeDialogTitle = computed(() => {
+    const mode = this.metaTermTypeDialogMode();
+    if (mode === 'addTermType') return 'Add Term Type';
+    if (mode === 'editTermType') return 'Edit Term Type';
+    if (mode === 'addAttributeName') return 'Add Attribute Name';
+    if (mode === 'editAttributeName') return 'Edit Attribute Name';
+    return '';
+  });
+  protected readonly metaTermTypeIsTermType = computed(() =>
+    this.metaTermTypeDialogMode()?.includes('TermType') ?? false
+  );
+  protected readonly metaTermTypeIsEdit = computed(() =>
+    this.metaTermTypeDialogMode()?.startsWith('edit') ?? false
+  );
+  protected readonly metaTermTypeCanSubmit = computed(() => {
+    const abbrev = this.metaTermTypeFormAbbreviation().trim();
+    const expanded = this.metaTermTypeFormExpandedForm().trim();
+    return abbrev.length > 0 && expanded.length > 0;
+  });
+
+  protected readonly metaRelTypeDialogOpen = computed(() => this.metaRelTypeDialogMode() !== null);
+  protected readonly metaRelTypeDialogTitle = computed(() => {
+    const mode = this.metaRelTypeDialogMode();
+    if (mode === 'addRelType') return 'Add Relationship Type';
+    if (mode === 'editRelType') return 'Edit Relationship Type';
+    if (mode === 'addAddRelType') return 'Add Additional Relationship Type';
+    if (mode === 'editAddRelType') return 'Edit Additional Relationship Type';
+    return '';
+  });
+  protected readonly metaRelTypeIsEdit = computed(() =>
+    this.metaRelTypeDialogMode()?.startsWith('edit') ?? false
+  );
+  protected readonly metaRelTypeCanSubmit = computed(() => {
+    const abbrev = this.metaRelTypeFormAbbreviation().trim();
+    const expanded = this.metaRelTypeFormExpandedForm().trim();
+    if (!abbrev || !expanded) return false;
+    if (!this.metaRelTypeIsEdit()) {
+      const invAbbrev = this.metaRelTypeInverseFormAbbreviation().trim();
+      const invExpanded = this.metaRelTypeInverseFormExpandedForm().trim();
+      if (!invAbbrev || !invExpanded) return false;
+    }
+    return true;
+  });
+
   protected readonly isReportMode = computed(() => {
     const routeMode = this.routeMode();
 
@@ -1074,6 +1296,11 @@ export class ContentComponent implements OnInit {
     this.loadProjectContext();
     this.loadRouteComponent();
     this.loadCurrentTerminologies();
+    this.loadProjects();
+    if (this.projectRole() !== 'ADMINISTRATOR') {
+      this.loadWorklists();
+      this.loadTabCounts();
+    }
   }
 
   protected search(): void {
@@ -3637,6 +3864,12 @@ export class ContentComponent implements OnInit {
           );
           this.currentTerminologies.set(current);
           this.applyDefaultTerminology(current);
+          if (!this.selectedMetadataTerminology() && current.length) {
+            const match =
+              current.find((t) => t.terminology === this.terminology()) ?? current[0];
+            this.selectedMetadataTerminology.set(match);
+            this.loadMetadata();
+          }
         },
         error: () => {
           this.notifications.error('Current terminologies could not be loaded.');
@@ -4188,6 +4421,831 @@ export class ContentComponent implements OnInit {
       this.selectedComponent()?.version ||
       this.version()
     );
+  }
+
+  // Metadata editing
+
+  protected metaNotImplemented(msg: string): void {
+    this.notifications.error(msg);
+  }
+
+  protected selectMetadataTerminology(terminologyAbbrev: string): void {
+    const found = this.currentTerminologies().find(
+      (t) => t.terminology === terminologyAbbrev
+    ) ?? null;
+    this.selectedMetadataTerminology.set(found);
+    this.loadMetadata();
+  }
+
+  private loadMetadata(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) {
+      return;
+    }
+    this.loadingMetadata.set(true);
+    this.metadataError.set(null);
+    this.api
+      .getAllMetadata(t.terminology, t.version)
+      .pipe(finalize(() => this.loadingMetadata.set(false)))
+      .subscribe({
+        next: (meta) => {
+          this.metadata.set(meta);
+          this.termTypesPage.set(1);
+          this.attributeNamesPage.set(1);
+          this.relationshipTypesPage.set(1);
+          this.additionalRelTypesPage.set(1);
+          this.termTypesFilter.set('');
+          this.attributeNamesFilter.set('');
+          this.relationshipTypesFilter.set('');
+          this.additionalRelTypesFilter.set('');
+        },
+        error: () => this.metadataError.set('Metadata could not be loaded.')
+      });
+  }
+
+  protected removeTermType(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) {
+      return;
+    }
+    this.removingTermTypeKey.set(key);
+    this.api
+      .removeTermType(key, t.terminology, t.version)
+      .pipe(finalize(() => this.removingTermTypeKey.set(null)))
+      .subscribe({
+        next: () => this.loadMetadata(),
+        error: () => this.notifications.error(`Could not remove term type "${key}".`)
+      });
+  }
+
+  protected removeMetadataAttributeName(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) {
+      return;
+    }
+    this.removingAttributeNameKey.set(key);
+    this.api
+      .removeAttributeName(key, t.terminology, t.version)
+      .pipe(finalize(() => this.removingAttributeNameKey.set(null)))
+      .subscribe({
+        next: () => this.loadMetadata(),
+        error: () => this.notifications.error(`Could not remove attribute name "${key}".`)
+      });
+  }
+
+  protected removeMetadataRelationshipType(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) {
+      return;
+    }
+    this.removingRelationshipTypeKey.set(key);
+    this.api
+      .removeRelationshipType(key, t.terminology, t.version)
+      .pipe(finalize(() => this.removingRelationshipTypeKey.set(null)))
+      .subscribe({
+        next: () => this.loadMetadata(),
+        error: () => this.notifications.error(`Could not remove relationship type "${key}".`)
+      });
+  }
+
+  protected removeAdditionalRelType(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) {
+      return;
+    }
+    this.removingAdditionalRelTypeKey.set(key);
+    this.api
+      .removeAdditionalRelationshipType(key, t.terminology, t.version)
+      .pipe(finalize(() => this.removingAdditionalRelTypeKey.set(null)))
+      .subscribe({
+        next: () => this.loadMetadata(),
+        error: () =>
+          this.notifications.error(`Could not remove additional relationship type "${key}".`)
+      });
+  }
+
+  protected setTermTypesFilter(value: string): void {
+    this.termTypesFilter.set(value);
+    this.termTypesPage.set(1);
+  }
+
+  protected setAttributeNamesFilter(value: string): void {
+    this.attributeNamesFilter.set(value);
+    this.attributeNamesPage.set(1);
+  }
+
+  protected setRelationshipTypesFilter(value: string): void {
+    this.relationshipTypesFilter.set(value);
+    this.relationshipTypesPage.set(1);
+  }
+
+  protected setAdditionalRelTypesFilter(value: string): void {
+    this.additionalRelTypesFilter.set(value);
+    this.additionalRelTypesPage.set(1);
+  }
+
+  private resetTermTypeForm(): void {
+    this.metaTermTypeFormAbbreviation.set('');
+    this.metaTermTypeFormExpandedForm.set('');
+    this.metaTermTypeFormSuppressible.set(false);
+    this.metaTermTypeFormObsolete.set(false);
+    this.metaTermTypeFormHierarchicalType.set(false);
+    this.metaTermTypeFormExclude.set(false);
+    this.metaTermTypeFormNormExclude.set(false);
+    this.metaTermTypeDetailStyle.set(null);
+    this.metaTermTypeDetailUsageType.set(null);
+    this.metaTermTypeDetailNameVariantType.set(null);
+    this.metaTermTypeDetailCodeVariantType.set(null);
+    this.metaTermTypeErrors.set([]);
+  }
+
+  private populateTermTypeForm(detail: ContentTermTypeDetail): void {
+    this.metaTermTypeFormAbbreviation.set(detail.abbreviation ?? '');
+    this.metaTermTypeFormExpandedForm.set(detail.expandedForm ?? '');
+    this.metaTermTypeFormSuppressible.set(detail.suppressible ?? false);
+    this.metaTermTypeFormObsolete.set(detail.obsolete ?? false);
+    this.metaTermTypeFormHierarchicalType.set(detail.hierarchicalType ?? false);
+    this.metaTermTypeFormExclude.set(detail.exclude ?? false);
+    this.metaTermTypeFormNormExclude.set(detail.normExclude ?? false);
+    this.metaTermTypeDetailStyle.set(detail.style ?? null);
+    this.metaTermTypeDetailUsageType.set(detail.usageType ?? null);
+    this.metaTermTypeDetailNameVariantType.set(detail.nameVariantType ?? null);
+    this.metaTermTypeDetailCodeVariantType.set(detail.codeVariantType ?? null);
+  }
+
+  protected openAddTermType(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetTermTypeForm();
+    this.metaTermTypeDialogMode.set('addTermType');
+  }
+
+  protected openEditTermType(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetTermTypeForm();
+    this.metaTermTypeDialogMode.set('editTermType');
+    this.metaTermTypeLoading.set(true);
+    this.api
+      .getTermType(key, t.terminology, t.version)
+      .pipe(finalize(() => this.metaTermTypeLoading.set(false)))
+      .subscribe({
+        next: (detail) => this.populateTermTypeForm(detail),
+        error: () => this.metaTermTypeErrors.set(['Could not load term type details.'])
+      });
+  }
+
+  protected openAddAttributeName(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetTermTypeForm();
+    this.metaTermTypeDialogMode.set('addAttributeName');
+  }
+
+  protected openEditAttributeName(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetTermTypeForm();
+    this.metaTermTypeDialogMode.set('editAttributeName');
+    this.metaTermTypeLoading.set(true);
+    this.api
+      .getAttributeName(key, t.terminology, t.version)
+      .pipe(finalize(() => this.metaTermTypeLoading.set(false)))
+      .subscribe({
+        next: (detail) => this.populateTermTypeForm(detail),
+        error: () => this.metaTermTypeErrors.set(['Could not load attribute name details.'])
+      });
+  }
+
+  protected closeMetaTermTypeDialog(): void {
+    this.metaTermTypeDialogMode.set(null);
+  }
+
+  protected submitMetaTermTypeDialog(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    const mode = this.metaTermTypeDialogMode();
+    if (!mode) return;
+
+    const obj: ContentTermTypeDetail = {
+      abbreviation: this.metaTermTypeFormAbbreviation().trim(),
+      expandedForm: this.metaTermTypeFormExpandedForm().trim(),
+      terminology: t.terminology,
+      version: t.version
+    };
+    if (mode === 'editTermType' || mode === 'addTermType') {
+      obj.suppressible = this.metaTermTypeFormSuppressible();
+      obj.obsolete = this.metaTermTypeFormObsolete();
+      obj.hierarchicalType = this.metaTermTypeFormHierarchicalType();
+      obj.exclude = this.metaTermTypeFormExclude();
+      obj.normExclude = this.metaTermTypeFormNormExclude();
+    }
+
+    this.metaTermTypeSubmitting.set(true);
+    this.metaTermTypeErrors.set([]);
+
+    let call$: Observable<unknown>;
+    if (mode === 'addTermType') call$ = this.api.addTermType(obj);
+    else if (mode === 'editTermType') call$ = this.api.updateTermType(obj);
+    else if (mode === 'addAttributeName') call$ = this.api.addAttributeName(obj);
+    else call$ = this.api.updateAttributeName(obj);
+
+    call$.pipe(finalize(() => this.metaTermTypeSubmitting.set(false))).subscribe({
+      next: () => {
+        this.metaTermTypeDialogMode.set(null);
+        this.loadMetadata();
+      },
+      error: () => this.metaTermTypeErrors.set(['The operation could not be completed.'])
+    });
+  }
+
+  private resetRelTypeForm(): void {
+    this.metaRelTypeFormAbbreviation.set('');
+    this.metaRelTypeFormExpandedForm.set('');
+    this.metaRelTypeInverseFormAbbreviation.set('');
+    this.metaRelTypeInverseFormExpandedForm.set('');
+    this.metaRelTypeErrors.set([]);
+  }
+
+  protected openAddRelationshipType(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetRelTypeForm();
+    this.metaRelTypeDialogMode.set('addRelType');
+  }
+
+  protected openEditRelationshipType(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetRelTypeForm();
+    this.metaRelTypeDialogMode.set('editRelType');
+    this.metaRelTypeLoading.set(true);
+    this.api
+      .getRelationshipType(key, t.terminology, t.version)
+      .pipe(finalize(() => this.metaRelTypeLoading.set(false)))
+      .subscribe({
+        next: (detail) => {
+          this.metaRelTypeFormAbbreviation.set(detail.abbreviation ?? '');
+          this.metaRelTypeFormExpandedForm.set(detail.expandedForm ?? '');
+          this.metaRelTypeInverseFormAbbreviation.set(detail.inverseAbbreviation ?? '');
+        },
+        error: () => this.metaRelTypeErrors.set(['Could not load relationship type details.'])
+      });
+  }
+
+  protected openAddAdditionalRelType(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetRelTypeForm();
+    this.metaRelTypeDialogMode.set('addAddRelType');
+  }
+
+  protected openEditAdditionalRelType(key: string): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    this.resetRelTypeForm();
+    this.metaRelTypeDialogMode.set('editAddRelType');
+    this.metaRelTypeLoading.set(true);
+    this.api
+      .getAdditionalRelationshipType(key, t.terminology, t.version)
+      .pipe(finalize(() => this.metaRelTypeLoading.set(false)))
+      .subscribe({
+        next: (detail) => {
+          this.metaRelTypeFormAbbreviation.set(detail.abbreviation ?? '');
+          this.metaRelTypeFormExpandedForm.set(detail.expandedForm ?? '');
+          this.metaRelTypeInverseFormAbbreviation.set(detail.inverseAbbreviation ?? '');
+        },
+        error: () => this.metaRelTypeErrors.set(['Could not load additional relationship type details.'])
+      });
+  }
+
+  protected closeMetaRelTypeDialog(): void {
+    this.metaRelTypeDialogMode.set(null);
+  }
+
+  protected submitMetaRelTypeDialog(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t?.version) return;
+    const mode = this.metaRelTypeDialogMode();
+    if (!mode) return;
+
+    const obj: ContentRelationshipTypeDetail = {
+      abbreviation: this.metaRelTypeFormAbbreviation().trim(),
+      expandedForm: this.metaRelTypeFormExpandedForm().trim(),
+      terminology: t.terminology,
+      version: t.version
+    };
+
+    this.metaRelTypeSubmitting.set(true);
+    this.metaRelTypeErrors.set([]);
+
+    let call$: Observable<unknown>;
+    if (mode === 'addRelType') {
+      const inverse: ContentRelationshipTypeDetail = {
+        abbreviation: this.metaRelTypeInverseFormAbbreviation().trim(),
+        expandedForm: this.metaRelTypeInverseFormExpandedForm().trim(),
+        terminology: t.terminology,
+        version: t.version
+      };
+      call$ = this.api.addRelationshipType({ types: [obj, inverse] });
+    } else if (mode === 'editRelType') {
+      call$ = this.api.updateRelationshipType(obj);
+    } else if (mode === 'addAddRelType') {
+      const inverse: ContentRelationshipTypeDetail = {
+        abbreviation: this.metaRelTypeInverseFormAbbreviation().trim(),
+        expandedForm: this.metaRelTypeInverseFormExpandedForm().trim(),
+        terminology: t.terminology,
+        version: t.version
+      };
+      call$ = this.api.addAdditionalRelationshipType({ types: [obj, inverse] });
+    } else {
+      call$ = this.api.updateAdditionalRelationshipType(obj);
+    }
+
+    call$.pipe(finalize(() => this.metaRelTypeSubmitting.set(false))).subscribe({
+      next: () => {
+        this.metaRelTypeDialogMode.set(null);
+        this.loadMetadata();
+      },
+      error: () => this.metaRelTypeErrors.set(['The operation could not be completed.'])
+    });
+  }
+
+  // Concept list
+
+  protected addConceptToList(concept: ContentComponentDetail): void {
+    const list = this.conceptList();
+    if (list.some((c) => c.id === concept.id)) return;
+    this.conceptList.set([...list, concept].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)));
+  }
+
+  protected removeConceptFromList(concept: ContentComponentDetail): void {
+    this.conceptList.update((list) => list.filter((c) => c.id !== concept.id));
+    if (this.selectedComponent()?.id === concept.id) {
+      this.selectedComponent.set(null);
+    }
+  }
+
+  protected reloadConceptInList(concept: ContentComponentDetail): void {
+    const projectId = this.projectId();
+    if (!concept.id || !projectId) return;
+    this.api.getComponentById('concept', concept.id, projectId).subscribe({
+      next: (updated) => {
+        if (!updated) return;
+        this.conceptList.update((list) =>
+          list.map((c) => (c.id === concept.id ? updated : c)).sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+        );
+        if (this.selectedComponent()?.id === concept.id) {
+          this.selectedComponent.set(updated);
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  protected selectConceptFromList(concept: ContentComponentDetail): void {
+    this.selectedComponent.set(concept);
+    this.selectedResult.set(null);
+  }
+
+  protected lookupConceptById(): void {
+    const rawId = String(this.finderLookupId()).trim();
+    if (!rawId.match(/^[1-9]\d*$/)) return;
+    const id = Number(rawId);
+    const projectId = this.projectId();
+    if (!projectId) return;
+    this.loadingFinderLookup.set(true);
+    this.api.getComponentById('concept', id, projectId).pipe(
+      finalize(() => this.loadingFinderLookup.set(false))
+    ).subscribe({
+      next: (concept) => {
+        if (concept) { this.addConceptToList(concept); this.finderLookupId.set(''); }
+        else this.notifications.error('Concept not found.');
+      },
+      error: () => this.notifications.error('Concept not found.')
+    });
+  }
+
+  protected openFinderDialog(): void {
+    this.finderQuery.set('');
+    this.finderResults.set([]);
+    this.finderResultsTotal.set(0);
+    this.finderResultsPage.set(1);
+    this.finderSelectedResult.set(null);
+    this.finderPreviewConcept.set(null);
+    this.finderDialogOpen.set(true);
+  }
+
+  protected selectFinderResult(result: ContentSearchResult): void {
+    this.finderSelectedResult.set(result);
+    const projectId = this.projectId();
+    if (!result.id || !projectId) return;
+    this.api.getComponentById('concept', result.id, projectId).subscribe({
+      next: (concept) => this.finderPreviewConcept.set(concept)
+    });
+  }
+
+  protected closeFinderDialog(): void {
+    this.finderDialogOpen.set(false);
+  }
+
+  protected runFinderSearch(): void {
+    const q = this.finderQuery().trim();
+    if (!q) return;
+    const project = this.availableProjects().find((p) => p.id === this.projectId());
+    const terminology =
+      project?.terminology || this.terminology() || this.currentTerminologies()[0]?.terminology;
+    const version =
+      project?.version || this.version() || this.currentTerminologies()[0]?.version;
+    if (!terminology) {
+      this.notifications.error('No terminology available — select a project first.');
+      return;
+    }
+    this.loadingFinderResults.set(true);
+    const pfs = buildContentSearchPfs(
+      this.finderResultsPage(),
+      this.finderResultsPageSize,
+      null,
+      true,
+      'CONCEPT'
+    );
+    this.api.findComponents('CONCEPT', terminology, version ?? '', q, pfs)
+      .pipe(finalize(() => this.loadingFinderResults.set(false))).subscribe({
+        next: (resp) => {
+          this.finderResults.set(resp.items ?? []);
+          this.finderResultsTotal.set(resp.totalCount ?? 0);
+        },
+        error: () => this.notifications.error('Finder search failed.')
+      });
+  }
+
+  protected openLinkedConceptDialog(info: LinkedConceptInfo): void {
+    const params = new URLSearchParams();
+    const projectId = this.projectId();
+    if (projectId) params.set('projectId', String(projectId));
+    if (info.tab) params.set('tab', info.tab);
+
+    let url: string;
+    let windowName: string;
+    if (info.terminologyId && info.terminology && info.version) {
+      const query = params.toString();
+      url = `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}${query ? '?' + query : ''}`;
+      windowName = `concept_${info.terminologyId}`;
+    } else if (info.id) {
+      params.set('id', String(info.id));
+      url = `/concept-report?${params.toString()}`;
+      windowName = `concept_id_${info.id}`;
+    } else {
+      return;
+    }
+    window.open(url, windowName, 'width=700,height=700,scrollbars=yes');
+  }
+
+  protected addFinderResultToList(): void {
+    const result = this.finderSelectedResult();
+    if (!result) return;
+    const projectId = this.projectId();
+    if (!projectId || !result.id) return;
+    this.api.getComponentById('concept', result.id, projectId).subscribe({
+      next: (concept) => {
+        if (concept) { this.addConceptToList(concept); this.closeFinderDialog(); }
+      },
+      error: () => this.notifications.error('Could not load concept.')
+    });
+  }
+
+  protected addSearchResultToList(result: ContentSearchResult): void {
+    const projectId = this.projectId();
+    if (!result.id || !projectId) return;
+    this.api.getComponentById('concept', result.id, projectId).subscribe({
+      next: (concept) => { if (concept) this.addConceptToList(concept); },
+      error: () => this.notifications.error('Could not load concept.')
+    });
+  }
+
+  protected nextRecord(): void {
+    const worklist = this.selectedWorklist();
+    const record = this.selectedRecord();
+    const records = this.records();
+    if (!worklist || !record || !records.length) return;
+    const idx = records.findIndex((r) => r.id === record.id);
+    if (idx >= 0 && idx < records.length - 1) {
+      this.selectRecord(records[idx + 1]);
+      this.conceptList.set([]);
+      this.selectedComponent.set(null);
+    }
+  }
+
+  protected approveAndNext(): void {
+    const list = this.conceptList();
+    if (!list.length) { this.nextRecord(); return; }
+    let remaining = list.length;
+    for (const concept of list) {
+      if (!concept.id) { remaining--; continue; }
+      this.approveSelectedConcept(false);
+      remaining--;
+      if (remaining === 0) this.nextRecord();
+    }
+  }
+
+  // Project / Role selection
+
+  protected loadProjects(): void {
+    const user = this.auth.currentUser();
+    const projectIds = Object.keys(user.projectRoleMap ?? {}).map(Number).filter(Boolean);
+    this.operationsApi.findProjectsByIds(projectIds).subscribe({
+      next: (projects) => this.availableProjects.set(projects),
+      error: () => {}
+    });
+  }
+
+  protected selectProject(idStr: string): void {
+    const user = this.auth.currentUser();
+    const newPrefs = { ...user.userPreferences, lastProjectId: Number(idStr), lastProjectRole: null };
+    this.operationsApi.updateUserPreferences(newPrefs).subscribe({
+      next: (saved) => {
+        this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+      },
+      error: () => this.notifications.error('Could not switch project.')
+    });
+  }
+
+  protected selectRole(role: string): void {
+    const user = this.auth.currentUser();
+    const newPrefs = { ...user.userPreferences, lastProjectRole: role };
+    this.operationsApi.updateUserPreferences(newPrefs).subscribe({
+      next: (saved) => {
+        this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+      },
+      error: () => this.notifications.error('Could not switch role.')
+    });
+  }
+
+  // Worklist / Clusters
+
+  private worklistPfs(): import('./content-edit.models').ContentPfsParameter {
+    return {
+      ascending: this.worklistSortAsc(),
+      maxResults: this.worklistPageSize,
+      queryRestriction: this.worklistFilter().trim() || undefined,
+      sortField: this.worklistSortField(),
+      startIndex: (this.worklistPage() - 1) * this.worklistPageSize
+    };
+  }
+
+  private recordsPfs(): import('./content-edit.models').ContentPfsParameter {
+    const parts: string[] = [];
+    const typeFilter = this.recordsTypeFilter();
+    if (typeFilter === 'N') parts.push('workflowStatus:N*');
+    else if (typeFilter === 'R') parts.push('workflowStatus:R*');
+    const textFilter = this.recordsFilter().trim();
+    if (textFilter) parts.push(textFilter);
+    return {
+      ascending: true,
+      maxResults: this.recordsPageSize(),
+      queryRestriction: parts.length ? parts.join(' AND ') : undefined,
+      sortField: 'clusterId',
+      startIndex: (this.recordsPage() - 1) * this.recordsPageSize()
+    };
+  }
+
+  private worklistUser(): { projectId: number; userName: string; role: string } | null {
+    const projectId = this.projectId();
+    const userName = this.auth.currentUser().userName;
+    const role = this.projectRole();
+    if (!projectId || !userName || !role || role === 'n/a') return null;
+    return { projectId, userName, role };
+  }
+
+  protected loadWorklists(): void {
+    const ctx = this.worklistUser();
+    if (!ctx) return;
+    const mode = this.worklistMode();
+    this.loadingWorklists.set(true);
+    const pfs = this.worklistPfs();
+
+    const source$: Observable<{ worklists?: WorkflowWorklist[] | null; checklists?: WorkflowWorklist[] | null; objects?: WorkflowWorklist[] | null; totalCount?: number | null }> =
+      mode === 'Available'
+        ? this.workflowApi.findAvailableWorklists(ctx.projectId, ctx.userName, ctx.role, pfs)
+        : mode === 'Assigned'
+          ? this.workflowApi.findAssignedWorklists(ctx.projectId, ctx.userName, ctx.role, pfs)
+          : mode === 'Done'
+            ? this.workflowApi.findDoneWorklists(ctx.projectId, ctx.userName, ctx.role, pfs)
+            : this.workflowApi.findChecklists(ctx.projectId, this.worklistFilter().trim(), pfs);
+
+    source$.pipe(finalize(() => this.loadingWorklists.set(false))).subscribe({
+      next: (resp) => {
+        const items: WorkflowWorklist[] = resp.worklists ?? resp.checklists ?? resp.objects ?? [];
+        const total = resp.totalCount ?? 0;
+        this.worklists.set(items);
+        this.worklistsTotalCount.set(total);
+        // update the count for the active tab
+        if (mode === 'Available') this.availableCt.set(total);
+        else if (mode === 'Assigned') this.assignedCt.set(total);
+        else if (mode === 'Done') this.doneCt.set(total);
+        else this.checklistCt.set(total);
+      },
+      error: () => {}
+    });
+  }
+
+  private loadTabCounts(): void {
+    const ctx = this.worklistUser();
+    if (!ctx) return;
+    const minPfs: import('./content-edit.models').ContentPfsParameter = {
+      ascending: false, maxResults: 1, startIndex: 0, sortField: 'lastModified'
+    };
+    this.workflowApi.findAvailableWorklists(ctx.projectId, ctx.userName, ctx.role, minPfs)
+      .subscribe({ next: (r) => this.availableCt.set(r.totalCount ?? 0), error: () => {} });
+    this.workflowApi.findAssignedWorklists(ctx.projectId, ctx.userName, ctx.role, minPfs)
+      .subscribe({ next: (r) => this.assignedCt.set(r.totalCount ?? 0), error: () => {} });
+    this.workflowApi.findDoneWorklists(ctx.projectId, ctx.userName, ctx.role, minPfs)
+      .subscribe({ next: (r) => this.doneCt.set(r.totalCount ?? 0), error: () => {} });
+    this.workflowApi.findChecklists(ctx.projectId, '', minPfs)
+      .subscribe({ next: (r) => this.checklistCt.set(r.totalCount ?? 0), error: () => {} });
+  }
+
+  protected setWorklistMode(mode: WorklistMode): void {
+    this.worklistMode.set(mode);
+    this.worklistPage.set(1);
+    this.worklistFilter.set('');
+    this.selectedWorklist.set(null);
+    this.records.set([]);
+    this.recordsTotalCount.set(0);
+    this.selectedRecord.set(null);
+    this.loadWorklists();
+  }
+
+  protected setWorklistFilter(value: string): void {
+    this.worklistFilter.set(value);
+    this.worklistPage.set(1);
+    this.loadWorklists();
+  }
+
+  protected setWorklistSortField(field: 'name' | 'lastModified'): void {
+    if (this.worklistSortField() === field) {
+      this.worklistSortAsc.update((v) => !v);
+    } else {
+      this.worklistSortField.set(field);
+      this.worklistSortAsc.set(false);
+    }
+    this.worklistPage.set(1);
+    this.loadWorklists();
+  }
+
+  protected selectWorklist(worklist: WorkflowWorklist): void {
+    this.selectedWorklist.set(worklist);
+    this.recordsPage.set(1);
+    this.recordsTypeFilter.set('');
+    this.recordsFilter.set('');
+    this.selectedRecord.set(null);
+    this.records.set([]);
+    this.recordsTotalCount.set(0);
+    this.loadRecords();
+  }
+
+  protected loadRecords(): void {
+    const ctx = this.worklistUser();
+    const worklist = this.selectedWorklist();
+    if (!ctx || !worklist?.id) return;
+    const mode = this.worklistMode();
+    this.loadingRecords.set(true);
+    const pfs = this.recordsPfs();
+
+    const source$ = mode === 'Checklists'
+      ? this.workflowApi.findTrackingRecordsForChecklist(ctx.projectId, worklist.id, pfs)
+      : this.workflowApi.findTrackingRecordsForWorklist(ctx.projectId, worklist.id, pfs);
+
+    source$.pipe(finalize(() => this.loadingRecords.set(false))).subscribe({
+      next: (resp) => {
+        this.records.set(resp.records ?? resp.objects ?? []);
+        this.recordsTotalCount.set(resp.totalCount ?? 0);
+      },
+      error: () => {}
+    });
+  }
+
+  protected selectRecord(record: WorkflowTrackingRecord): void {
+    this.selectedRecord.set(record);
+  }
+
+  protected setRecordsTypeFilter(value: string): void {
+    this.recordsTypeFilter.set(value);
+    this.recordsPage.set(1);
+    this.loadRecords();
+  }
+
+  protected setRecordsFilter(value: string): void {
+    this.recordsFilter.set(value);
+    this.recordsPage.set(1);
+    this.loadRecords();
+  }
+
+  protected setRecordsPage(page: number): void {
+    this.recordsPage.set(page);
+    this.loadRecords();
+  }
+
+  protected getWorkflowState(worklist: WorkflowWorklist): string {
+    const history = worklist.workflowStateHistory;
+    if (!history) return '';
+    let maxTs = 0;
+    let maxState = '';
+    for (const [state, ts] of Object.entries(history)) {
+      if (ts > maxTs) { maxTs = ts; maxState = state; }
+    }
+    return maxState;
+  }
+
+  protected worklistSortIndicator(field: string): string {
+    if (this.worklistSortField() !== field) return '';
+    return this.worklistSortAsc() ? ' ▲' : ' ▼';
+  }
+
+  protected assignWorklistToSelf(worklist: WorkflowWorklist, event: Event): void {
+    event.stopPropagation();
+    const ctx = this.worklistUser();
+    if (!ctx || !worklist.id) return;
+    const role = worklist.workflowStatus === 'NEW' ? 'AUTHOR' : ctx.role;
+    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, role, 'ASSIGN')
+      .subscribe({
+        next: () => { this.loadWorklists(); this.loadTabCounts(); },
+        error: () => this.notifications.error('Could not claim worklist.')
+      });
+  }
+
+  protected unassignWorklist(worklist: WorkflowWorklist, event: Event): void {
+    event.stopPropagation();
+    const ctx = this.worklistUser();
+    if (!ctx || !worklist.id) return;
+    const role = (worklist.reviewers?.length ?? 0) === 0 ? 'AUTHOR' : ctx.role;
+    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, role, 'UNASSIGN')
+      .subscribe({
+        next: () => { this.loadWorklists(); this.loadTabCounts(); },
+        error: () => this.notifications.error('Could not unassign worklist.')
+      });
+  }
+
+  protected reassignWorklist(worklist: WorkflowWorklist, event: Event): void {
+    event.stopPropagation();
+    const ctx = this.worklistUser();
+    if (!ctx || !worklist.id) return;
+    const role = (worklist.reviewers?.length ?? 0) === 0 ? 'AUTHOR' : ctx.role;
+    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, role, 'REASSIGN')
+      .subscribe({
+        next: () => { this.loadWorklists(); this.loadTabCounts(); },
+        error: () => this.notifications.error('Could not reassign worklist.')
+      });
+  }
+
+  protected stampWorklist(worklist: WorkflowWorklist, event: Event): void {
+    event.stopPropagation();
+    const ctx = this.worklistUser();
+    if (!ctx || !worklist.id) return;
+    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, ctx.role, 'APPROVE')
+      .subscribe({
+        next: () => { this.loadWorklists(); this.loadTabCounts(); },
+        error: () => this.notifications.error('Could not stamp worklist.')
+      });
+  }
+
+  protected finishWorklist(worklist: WorkflowWorklist, event: Event): void {
+    event.stopPropagation();
+    const ctx = this.worklistUser();
+    if (!ctx || !worklist.id) return;
+    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, ctx.role, 'FINISH')
+      .subscribe({
+        next: () => { this.loadWorklists(); this.loadTabCounts(); },
+        error: () => this.notifications.error('Could not finish worklist.')
+      });
+  }
+
+  protected deleteWorklist(worklist: WorkflowWorklist, event: Event): void {
+    event.stopPropagation();
+    const ctx = this.worklistUser();
+    if (!ctx || !worklist.id) return;
+    const mode = this.worklistMode();
+    const remove$ = mode === 'Checklists'
+      ? this.workflowApi.removeChecklist(ctx.projectId, worklist.id)
+      : this.workflowApi.removeWorklist(ctx.projectId, worklist.id);
+    remove$.subscribe({
+      next: () => {
+        if (this.selectedWorklist()?.id === worklist.id) {
+          this.selectedWorklist.set(null);
+          this.records.set([]);
+          this.recordsTotalCount.set(0);
+        }
+        this.loadWorklists();
+        this.loadTabCounts();
+      },
+      error: () => this.notifications.error('Could not remove worklist.')
+    });
+  }
+
+  protected formatWorklistDate(ts: string | number | null | undefined): string {
+    if (!ts) return '';
+    const d = new Date(typeof ts === 'string' ? ts : Number(ts));
+    return isNaN(d.getTime()) ? String(ts) : d.toLocaleDateString();
   }
 
   private buildApproveConceptRequest(overrideWarnings: boolean) {

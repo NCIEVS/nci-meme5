@@ -1,0 +1,343 @@
+<div class="crp-panel">
+
+  <!-- Tab bar -->
+  <div class="crp-tabs" role="tablist">
+    <button type="button" role="tab" class="crp-tab"
+      [class.active]="activeTab() === 'Report'"
+      [attr.aria-selected]="activeTab() === 'Report'"
+      (click)="setTab('Report')">Report</button>
+    <button type="button" role="tab" class="crp-tab"
+      [class.active]="activeTab() === 'Interactive'"
+      [attr.aria-selected]="activeTab() === 'Interactive'"
+      (click)="setTab('Interactive')">Interactive</button>
+    <button type="button" role="tab" class="crp-tab"
+      [class.active]="activeTab() === 'Actions'"
+      [attr.aria-selected]="activeTab() === 'Actions'"
+      (click)="setTab('Actions')">Actions</button>
+  </div>
+
+  <!-- Tab bodies -->
+  <div class="crp-body">
+
+    @if (!concept) {
+      <p class="crp-empty">No concept selected.</p>
+    }
+
+    <!-- ── REPORT TAB ─────────────────────────────────── -->
+    @if (activeTab() === 'Report' && concept) {
+      @if (loadingReport()) {
+        <p class="crp-empty">Loading report…</p>
+      } @else if (reportError()) {
+        <p class="crp-error">{{ reportError() }}</p>
+      } @else if (reportHtml()) {
+        <div class="crp-report-html" [innerHTML]="reportHtml()" (click)="handleReportClick($event)"></div>
+      } @else {
+        <p class="crp-empty">No report available.</p>
+      }
+    }
+
+    <!-- ── INTERACTIVE TAB ────────────────────────────── -->
+    @if (activeTab() === 'Interactive' && concept) {
+      <div class="crp-interactive">
+
+        <!-- Concept header -->
+        <div class="crp-concept-header">
+          <span class="crp-tid">{{ concept.terminologyId }}</span>
+          <span class="crp-cname">{{ concept.name || 'Unnamed Concept' }}</span>
+          @if (!concept.publishable) { <span class="crp-label crp-label-default" title="Unpublishable">U</span> }
+          @if (concept.obsolete)     { <span class="crp-label crp-label-default" title="Obsolete">O</span> }
+          @if (concept.suppressible) { <span class="crp-label crp-label-warn"    title="Suppressible">S</span> }
+        </div>
+
+        <!-- Show/Hide Obsolete toggle -->
+        <div class="crp-toolbar">
+          <button type="button" class="crp-toggle-btn" (click)="showHidden.set(!showHidden())">
+            {{ showHidden() ? 'Hide' : 'Show' }} Obsolete
+          </button>
+        </div>
+
+        <!-- Semantic Types -->
+        @if ((concept.semanticTypes?.length ?? 0) > 0) {
+          <div class="crp-section">
+            <div class="crp-section-header" (click)="toggleSection('sty')">
+              <span class="crp-chevron">{{ secOpen()['sty'] ? '▼' : '▶' }}</span>
+              <strong>Semantic Types ({{ concept.semanticTypes?.length ?? 0 }})</strong>
+            </div>
+            @if (secOpen()['sty']) {
+              <ul class="crp-item-list">
+                @for (sty of concept.semanticTypes ?? []; track sty.id) {
+                  <li>{{ sty.semanticType }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <!-- Definitions (concept-level + atom-level merged, matching legacy behaviour) -->
+        @if (effectiveDefinitions().length > 0) {
+          <div class="crp-section">
+            <div class="crp-section-header" (click)="toggleSection('def')">
+              <span class="crp-chevron">{{ secOpen()['def'] ? '▼' : '▶' }}</span>
+              <strong>Definitions ({{ effectiveDefinitions().length }})</strong>
+            </div>
+            @if (secOpen()['def']) {
+              <ul class="crp-item-list">
+                @for (def of effectiveDefinitions(); track $index) {
+                  @if (showHidden() || (!def.suppressible && !def.obsolete)) {
+                    <li [class.crp-faded]="def.suppressible || def.obsolete">
+                      @if (def.atomElement) { <span class="crp-label crp-label-info" [title]="def.atomElementStr ?? ''">i</span> }
+                      @if (def.suppressible) { <span class="crp-label crp-label-warn" title="Suppressible">S</span> }
+                      @if (def.obsolete)     { <span class="crp-label crp-label-default" title="Obsolete">O</span> }
+                      <span class="crp-source">{{ def.terminology }}</span>
+                      {{ def.value }}
+                    </li>
+                  }
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <!-- Atoms -->
+        @if ((concept.atoms?.length ?? 0) > 0) {
+          <div class="crp-section">
+            <div class="crp-section-header" (click)="toggleSection('atoms')">
+              <span class="crp-chevron">{{ secOpen()['atoms'] ? '▼' : '▶' }}</span>
+              <strong>Atoms ({{ concept.atoms?.length ?? 0 }})</strong>
+            </div>
+            @if (secOpen()['atoms']) {
+              <ul class="crp-item-list">
+                @for (atom of concept.atoms ?? []; track atom.id; let i = $index) {
+                  @if (showHidden() || (!atom.suppressible && !atom.obsolete)) {
+                    <li [class.crp-faded]="atom.suppressible || atom.obsolete">
+                      <!-- per-atom expand toggle -->
+                      @if (atom.definitions?.length || atom.attributes?.length) {
+                        <span class="crp-atom-toggle" title="Show/hide details"
+                          (click)="toggleAtom(i); $event.stopPropagation()">{{ atomOpen()[i] ? '−' : '+' }}</span>
+                      } @else {
+                        <span class="crp-atom-toggle crp-atom-toggle-disabled" title="No details available">+</span>
+                      }
+                      @if (atom.suppressible) { <span class="crp-label crp-label-warn" title="Suppressible">S</span> }
+                      @if (atom.obsolete)     { <span class="crp-label crp-label-default" title="Obsolete">O</span> }
+                      {{ atom.name }}
+                      <span class="crp-atom-meta">
+                        [{{ atom.terminology }}&nbsp;/&nbsp;{{ atom.termType }}{{ atom.language ? ',&nbsp;' + atom.language : '' }}]
+                      </span>
+                      <!-- atom detail panel -->
+                      @if (atomOpen()[i]) {
+                        <div class="crp-atom-detail">
+                          @if (atom.definitions?.length) {
+                            <div class="crp-atom-detail-section">
+                              <span class="crp-atom-detail-label">Definitions</span>
+                              <ul class="crp-atom-detail-list">
+                                @for (d of atom.definitions!; track $index) {
+                                  <li>{{ d.value }}</li>
+                                }
+                              </ul>
+                            </div>
+                          }
+                          @if (atom.attributes?.length) {
+                            <div class="crp-atom-detail-section">
+                              <span class="crp-atom-detail-label">Attributes</span>
+                              <ul class="crp-atom-detail-list">
+                                @for (a of atom.attributes!; track $index) {
+                                  <li>
+                                    <span class="crp-label crp-label-info">{{ a.name }}</span>
+                                    = {{ a.value }}
+                                  </li>
+                                }
+                              </ul>
+                            </div>
+                          }
+                          @if (!atom.definitions?.length && !atom.attributes?.length) {
+                            <span class="crp-empty crp-atom-detail-empty">No details available.</span>
+                          }
+                        </div>
+                      }
+                    </li>
+                  }
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <!-- Attributes -->
+        @if ((concept.attributes?.length ?? 0) > 0) {
+          <div class="crp-section">
+            <div class="crp-section-header" (click)="toggleSection('attr')">
+              <span class="crp-chevron">{{ secOpen()['attr'] ? '▼' : '▶' }}</span>
+              <strong>Attributes ({{ concept.attributes?.length ?? 0 }})</strong>
+            </div>
+            @if (secOpen()['attr']) {
+              <ul class="crp-item-list crp-attr-list">
+                @for (attr of concept.attributes ?? []; track attr.id) {
+                  <li>
+                    <span class="crp-label crp-label-info">{{ attr.name }}</span>
+                    = {{ attr.value }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <!-- Relationships (fetched separately via API) -->
+        @if (rels().length > 0 || loadingRels()) {
+          <div class="crp-section">
+            <div class="crp-section-header" (click)="toggleSection('rels')">
+              <span class="crp-chevron">{{ secOpen()['rels'] ? '▼' : '▶' }}</span>
+              <strong>Relationships ({{ rels().length }})</strong>
+            </div>
+            @if (secOpen()['rels']) {
+              @if (loadingRels()) {
+                <p class="crp-empty">Loading…</p>
+              } @else {
+                <ul class="crp-item-list">
+                  @for (rel of rels(); track rel.id) {
+                    @if (showHidden() || (!rel.suppressible && !rel.obsolete)) {
+                      <li [class.crp-faded]="rel.suppressible || rel.obsolete">
+                        @if (rel.suppressible) { <span class="crp-label crp-label-warn" title="Suppressible">S</span> }
+                        @if (rel.obsolete)     { <span class="crp-label crp-label-default" title="Obsolete">O</span> }
+                        <span class="crp-label crp-label-info">{{ rel.relationshipType }}</span>
+                        @if (rel.additionalRelationshipType) { <span>{{ rel.additionalRelationshipType }}</span> }
+                        @if (rel.toTerminologyId) {
+                          <span class="crp-rel-cui" (click)="openLinkedConcept(rel); $event.stopPropagation()">{{ rel.toTerminologyId }}</span>
+                        }
+                        <span class="crp-rel-to">{{ rel.toName }}</span>
+                      </li>
+                    }
+                  }
+                </ul>
+              }
+            }
+          </div>
+        }
+
+        <!-- Deep Relationships -->
+        @if (deepRels().length > 0 || loadingDeepRels()) {
+          <div class="crp-section">
+            <div class="crp-section-header" (click)="toggleSection('deep')">
+              <span class="crp-chevron">{{ secOpen()['deep'] ? '▼' : '▶' }}</span>
+              <strong>Deep Relationships ({{ deepRels().length }})</strong>
+            </div>
+            @if (secOpen()['deep']) {
+              @if (loadingDeepRels()) {
+                <p class="crp-empty">Loading…</p>
+              } @else {
+                <ul class="crp-item-list">
+                  @for (rel of deepRels(); track rel.id) {
+                    @if (showHidden() || (!rel.suppressible && !rel.obsolete)) {
+                      <li [class.crp-faded]="rel.suppressible || rel.obsolete">
+                        @if (rel.suppressible) { <span class="crp-label crp-label-warn" title="Suppressible">S</span> }
+                        @if (rel.obsolete)     { <span class="crp-label crp-label-default" title="Obsolete">O</span> }
+                        <span class="crp-label crp-label-info">{{ rel.relationshipType }}</span>
+                        @if (rel.additionalRelationshipType) { <span>{{ rel.additionalRelationshipType }}</span> }
+                        @if (rel.toTerminologyId) {
+                          <span class="crp-rel-cui" (click)="openLinkedConcept(rel); $event.stopPropagation()">{{ rel.toTerminologyId }}</span>
+                        }
+                        <span class="crp-rel-to">{{ rel.toName }}</span>
+                        @if (rel.terminology) { <span class="crp-source">[{{ rel.terminology }}]</span> }
+                      </li>
+                    }
+                  }
+                </ul>
+              }
+            }
+          </div>
+        }
+
+        @if (!concept.semanticTypes?.length && !concept.atoms?.length && !effectiveDefinitions().length) {
+          <p class="crp-empty">No detail sections available.</p>
+        }
+      </div>
+    }
+
+    <!-- ── ACTIONS TAB ─────────────────────────────────── -->
+    @if (activeTab() === 'Actions' && concept) {
+      @if (loadingActions()) {
+        <p class="crp-empty">Loading actions…</p>
+      } @else {
+        <!-- Concept header + total count -->
+        <div class="crp-concept-header">
+          <span class="crp-tid">{{ concept.terminologyId }}</span>
+          <span class="crp-cname">{{ concept.name }}</span>
+          @if (actionsTotal() > 0) {
+            <span class="crp-count">({{ actionsTotal() }})</span>
+          }
+        </div>
+
+        @if (actionsTotalPages() > 1) {
+          <div class="crp-pager crp-pager--top">
+            <button type="button" class="icon-btn"
+              [disabled]="actionsPage() <= 1"
+              (click)="loadActions(actionsPage() - 1)">‹</button>
+            <span>{{ actionsPage() }} / {{ actionsTotalPages() }}</span>
+            <button type="button" class="icon-btn"
+              [disabled]="actionsPage() >= actionsTotalPages()"
+              (click)="loadActions(actionsPage() + 1)">›</button>
+          </div>
+        }
+
+        @if (actions().length) {
+          <table class="crp-table crp-actions-table">
+            <thead>
+              <tr>
+                <th>Id</th>
+                <th>Id2</th>
+                <th>Name</th>
+                <th>Timestamp</th>
+                <th>Editor</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (action of actions(); track action.id; let idx = $index) {
+                <tr [class.crp-undone]="action.undoneFlag">
+                  <td>{{ action.componentId }}</td>
+                  <td>{{ action.componentId2 }}</td>
+                  <td>{{ action.name }}</td>
+                  <td class="crp-nowrap">{{ formatTimestamp(action.timestamp) }}</td>
+                  <td>{{ action.lastModifiedBy }}</td>
+                  <td class="crp-nowrap crp-actions-cell">
+                    @if (canUndoRedo() && isUndoable(idx)) {
+                      <span class="icon-action" title="Undo action"
+                        (click)="undoAction(action); $event.stopPropagation()">&#8249;</span>
+                    }
+                    @if (canUndoRedo() && isRedoable(idx)) {
+                      <span class="icon-action" title="Redo action"
+                        (click)="redoAction(action); $event.stopPropagation()">&#8250;</span>
+                    }
+                    @if (action.id != null) {
+                      <span class="crp-log-btn"
+                        title="Show log"
+                        (mouseenter)="preloadActionLog(action)"
+                        (click)="toggleActionLogTooltip($event, action)">&#128196;</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <p class="crp-empty">No actions found.</p>
+        }
+      }
+    }
+
+  </div>
+
+  <!-- Action log tooltip (fixed-position popover, dismissed by outside click) -->
+  @if (tooltipActionId() != null) {
+    <div class="crp-log-tooltip"
+      [style.top.px]="tooltipTop()"
+      [style.right.px]="tooltipRight()"
+      (click)="$event.stopPropagation()">
+      @if (actionLogLoading()[tooltipActionId()!]) {
+        <span class="crp-empty">Loading…</span>
+      } @else {
+        <pre class="crp-log-pre">{{ actionLogs()[tooltipActionId()!] }}</pre>
+      }
+    </div>
+  }
+</div>

@@ -4,33 +4,41 @@
       <p class="kicker">Process Foundation</p>
       <h1 id="process-title">Process</h1>
     </div>
-    <div class="summary-set" aria-label="Process record counts">
-      <div class="summary">
-        <strong>{{ configTotalCount() }}</strong>
-        <span>configs</span>
-      </div>
-      <div class="summary">
-        <strong>{{ executionTotalCount() }}</strong>
-        <span>executions</span>
-      </div>
-      <div class="summary">
-        <strong>{{ runningExecutions().length }}</strong>
-        <span>running</span>
-      </div>
-      <div class="summary">
-        <strong>{{ projectId() ?? 'n/a' }}</strong>
-        <span>project</span>
-      </div>
-    </div>
   </header>
 
   @if (projectId()) {
-    <p class="context-panel">
-      Showing process data for project {{ projectId() }} with role {{ projectRole() }}.
-      @if (!canManageProcesses()) {
-        Process operations require project administrator access.
+    <div class="toolbar context-toolbar">
+      <label for="proc-project-select">Project</label>
+      @if (availableProjects().length > 1) {
+        <select
+          id="proc-project-select"
+          [ngModel]="projectId()?.toString()"
+          (ngModelChange)="selectProject($event)"
+          name="proc-project-select"
+        >
+          @for (proj of availableProjects(); track proj.id) {
+            <option [value]="proj.id?.toString()">{{ proj.name }}</option>
+          }
+        </select>
+      } @else {
+        <span class="readonly-value">{{ availableProjects()[0]?.name ?? projectId() }}</span>
       }
-    </p>
+      <label for="proc-role-select">Role</label>
+      @if (availableRoles().length > 1) {
+        <select
+          id="proc-role-select"
+          [ngModel]="projectRole()"
+          (ngModelChange)="selectRole($event)"
+          name="proc-role-select"
+        >
+          @for (role of availableRoles(); track role) {
+            <option [value]="role">{{ role }}</option>
+          }
+        </select>
+      } @else {
+        <span class="readonly-value">{{ projectRole() }}</span>
+      }
+    </div>
 
     <form class="toolbar" (ngSubmit)="load()" aria-label="Process filter">
       <label for="process-filter">Filter</label>
@@ -62,6 +70,7 @@
     </form>
 
     <div class="stacked-grid">
+      <div class="tier-label">Process Lists</div>
       <div class="split-grid">
         <section class="list-panel" aria-labelledby="process-configs-title">
           <div class="panel-header">
@@ -71,26 +80,11 @@
             </div>
             <div class="action-row">
               @if (canManageProcesses()) {
-                <button type="button" (click)="startAddProcessConfig()">Add Process</button>
-                <button type="button" (click)="startImportProcessConfig()">
-                  Import Process
-                </button>
+                <button type="button" class="btn-primary" (click)="startAddProcessConfig()">Add Process</button>
+                <span class="icon-action" title="Import Process" (click)="startImportProcessConfig()">⬆</span>
               }
               <button type="button" (click)="load()" [disabled]="loading()">Refresh</button>
             </div>
-          </div>
-          <div class="toolbar compact-toolbar">
-            <label for="process-config-page-size">Page size</label>
-            <select
-              id="process-config-page-size"
-              [ngModel]="configPageSize()"
-              (ngModelChange)="setConfigPageSize($event)"
-              name="process-config-page-size"
-            >
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="25">25</option>
-              <option [ngValue]="50">50</option>
-            </select>
           </div>
           <div class="table-wrap">
             @if (configs().length) {
@@ -122,21 +116,18 @@
                       <td>{{ displayDate(config.lastModified) }}</td>
                       @if (canManageProcesses()) {
                         <td>
-                          <div class="inline-actions">
-                            <button
-                              type="button"
+                          <div class="icon-actions">
+                            <span
+                              class="icon-action"
+                              title="Edit Process Config"
                               (click)="$event.stopPropagation(); startEditProcessConfig(config)"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              class="danger"
-                              (click)="$event.stopPropagation(); removeProcessConfig(config)"
-                              [disabled]="deletingConfigId() === config.id"
-                            >
-                              {{ deletingConfigId() === config.id ? 'Removing' : 'Delete' }}
-                            </button>
+                            >✎</span>
+                            <span
+                              class="icon-action danger"
+                              [class.is-disabled]="deletingConfigId() === config.id"
+                              title="{{ deletingConfigId() === config.id ? 'Removing…' : 'Delete Process Config' }}"
+                              (click)="$event.stopPropagation(); deletingConfigId() === config.id || removeProcessConfig(config)"
+                            >✕</span>
                           </div>
                         </td>
                       }
@@ -145,10 +136,22 @@
                 </tbody>
               </table>
             } @else {
-              <p class="empty">No process configs found.</p>
+              <div class="empty-alert">No process configs found.</div>
             }
           </div>
           <div class="pager" aria-label="Process config pages">
+            <label for="process-config-page-size" class="pager-label">Page size</label>
+            <select
+              id="process-config-page-size"
+              [ngModel]="configPageSize()"
+              (ngModelChange)="setConfigPageSize($event)"
+              name="process-config-page-size"
+              class="pager-select"
+            >
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="25">25</option>
+              <option [ngValue]="50">50</option>
+            </select>
             <button type="button" (click)="previousConfigPage()" [disabled]="configPage() === 1">
               Previous
             </button>
@@ -169,19 +172,6 @@
               <h2 id="process-executions-title">Process Executions</h2>
               <p>Recent and currently running executions.</p>
             </div>
-          </div>
-          <div class="toolbar compact-toolbar">
-            <label for="process-execution-page-size">Page size</label>
-            <select
-              id="process-execution-page-size"
-              [ngModel]="executionPageSize()"
-              (ngModelChange)="setExecutionPageSize($event)"
-              name="process-execution-page-size"
-            >
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="25">25</option>
-              <option [ngValue]="50">50</option>
-            </select>
           </div>
           <div class="table-wrap">
             @if (executions().length || runningExecutions().length) {
@@ -243,10 +233,22 @@
                 </tbody>
               </table>
             } @else {
-              <p class="empty">No process executions found.</p>
+              <div class="empty-alert">No process executions found.</div>
             }
           </div>
           <div class="pager" aria-label="Process execution pages">
+            <label for="process-execution-page-size" class="pager-label">Page size</label>
+            <select
+              id="process-execution-page-size"
+              [ngModel]="executionPageSize()"
+              (ngModelChange)="setExecutionPageSize($event)"
+              name="process-execution-page-size"
+              class="pager-select"
+            >
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="25">25</option>
+              <option [ngValue]="50">50</option>
+            </select>
             <button
               type="button"
               (click)="previousExecutionPage()"
@@ -266,6 +268,7 @@
         </section>
       </div>
 
+      <div class="tier-label">Detail Panels</div>
       <div class="split-grid">
         <aside class="detail-panel" aria-label="Selected process config details">
           @if (selectedConfig(); as config) {
@@ -278,6 +281,7 @@
                 @if (canPrepareProcess(config)) {
                   <button
                     type="button"
+                    class="btn-primary"
                     (click)="runProcessOperation('prepare', config)"
                     [disabled]="runningOperation() !== null"
                   >
@@ -285,22 +289,21 @@
                   </button>
                 }
                 @if (canManageProcesses()) {
-                  <button
-                    type="button"
-                    (click)="exportProcessConfig(config)"
-                    [disabled]="exportingConfigId() === config.id"
-                  >
-                    {{ exportingConfigId() === config.id ? 'Exporting' : 'Export' }}
-                  </button>
-                  <button type="button" (click)="startEditProcessConfig(config)">Edit</button>
-                  <button
-                    type="button"
-                    class="danger"
-                    (click)="removeProcessConfig(config)"
-                    [disabled]="deletingConfigId() === config.id"
-                  >
-                    {{ deletingConfigId() === config.id ? 'Removing' : 'Delete' }}
-                  </button>
+                  <div class="icon-actions">
+                    <span
+                      class="icon-action"
+                      [class.is-disabled]="exportingConfigId() === config.id"
+                      title="{{ exportingConfigId() === config.id ? 'Exporting…' : 'Export Process Config' }}"
+                      (click)="exportingConfigId() === config.id || exportProcessConfig(config)"
+                    >⬇</span>
+                    <span class="icon-action" title="Edit Process Config" (click)="startEditProcessConfig(config)">✎</span>
+                    <span
+                      class="icon-action danger"
+                      [class.is-disabled]="deletingConfigId() === config.id"
+                      title="{{ deletingConfigId() === config.id ? 'Removing…' : 'Delete Process Config' }}"
+                      (click)="deletingConfigId() === config.id || removeProcessConfig(config)"
+                    >✕</span>
+                  </div>
                 }
               </div>
             </div>
@@ -340,6 +343,7 @@
                     <table>
                       <thead>
                         <tr>
+                          <th class="step-num-col">#</th>
                           <th>Name</th>
                           <th>Enabled</th>
                           <th>Description</th>
@@ -351,8 +355,9 @@
                         </tr>
                       </thead>
                       <tbody>
-                        @for (step of processSteps(config); track step.id ?? step.name) {
+                        @for (step of processSteps(config); track step.id ?? step.name; let i = $index) {
                           <tr [class.disabled-row]="!isStepEnabled(step)">
+                            <td class="step-num-col"><span class="step-badge">{{ i + 1 }}</span></td>
                             <td>{{ step.name || step.algorithmKey || 'n/a' }}</td>
                             <td>{{ isStepEnabled(step) ? 'Yes' : 'No' }}</td>
                             <td>{{ step.description || 'n/a' }}</td>
@@ -398,20 +403,22 @@
                                   >
                                     {{ isStepEnabled(step) ? 'Disable' : 'Enable' }}
                                   </button>
-                                  <button
-                                    type="button"
+                                  <span
+                                    class="icon-action"
+                                    title="Edit Step"
                                     (click)="startEditAlgorithmStep(config, step)"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    class="danger"
-                                    (click)="removeAlgorithmStep(config, step)"
-                                    [disabled]="deletingStepId() === step.id"
-                                  >
-                                    {{ deletingStepId() === step.id ? 'Removing' : 'Delete' }}
-                                  </button>
+                                  >✎</span>
+                                  <span
+                                    class="icon-action"
+                                    title="Clone step (opens add form)"
+                                    (click)="startAddAlgorithmStep(config)"
+                                  >⎘</span>
+                                  <span
+                                    class="icon-action danger"
+                                    [class.is-disabled]="deletingStepId() === step.id"
+                                    title="{{ deletingStepId() === step.id ? 'Removing…' : 'Delete Step' }}"
+                                    (click)="deletingStepId() === step.id || removeAlgorithmStep(config, step)"
+                                  >✕</span>
                                 </div>
                               </td>
                             }
@@ -421,12 +428,12 @@
                     </table>
                   </div>
                 } @else {
-                  <p class="empty">No steps configured.</p>
+                  <div class="empty-alert">No steps configured.</div>
                 }
               </section>
             </div>
           } @else {
-            <p class="empty">Select a process config to see details.</p>
+            <div class="empty-alert">Select a process config to see details.</div>
           }
         </aside>
 
@@ -452,6 +459,7 @@
                     @if (canExecuteProcess(execution)) {
                       <button
                         type="button"
+                        class="btn-primary"
                         (click)="runProcessOperation('execute', execution)"
                         [disabled]="runningOperation() !== null"
                       >
@@ -471,6 +479,7 @@
                     @if (canRestartProcess(execution)) {
                       <button
                         type="button"
+                        class="btn-primary"
                         (click)="runProcessOperation('restart', execution)"
                         [disabled]="runningOperation() !== null"
                       >
@@ -480,6 +489,7 @@
                     @if (canStepProcess(execution)) {
                       <button
                         type="button"
+                        class="btn-primary"
                         (click)="runProcessOperation('step', execution)"
                         [disabled]="runningOperation() !== null"
                       >
@@ -489,6 +499,7 @@
                     @if (canUnstepProcess(execution)) {
                       <button
                         type="button"
+                        class="btn-primary"
                         (click)="runProcessOperation('unstep', execution)"
                         [disabled]="runningOperation() !== null"
                       >
@@ -558,10 +569,12 @@
                       <span class="muted">Updated {{ displayDate(feedbackUpdatedAt()) }}</span>
                     }
                   </div>
-                  <progress max="100" [value]="progressPercent(processProgress())">
-                    {{ progressLabel(processProgress()) }}
-                  </progress>
-                  <span class="muted">{{ progressLabel(processProgress()) }}</span>
+                  <div class="progress-wrap">
+                    <progress max="100" [value]="progressPercent(processProgress())">
+                      {{ progressLabel(processProgress()) }}
+                    </progress>
+                    <span class="progress-label">{{ progressLabel(processProgress()) }}</span>
+                  </div>
                 </section>
               }
               <section class="log-panel" aria-labelledby="process-log-title">
@@ -613,7 +626,7 @@
                     </table>
                   </div>
                 } @else {
-                  <p class="empty">No steps have been executed yet.</p>
+                  <div class="empty-alert">No steps have been executed yet.</div>
                 }
               </section>
               @if (currentExecutionStep(); as currentStep) {
@@ -631,7 +644,7 @@
               }
             </div>
           } @else {
-            <p class="empty">Select a process execution to see details.</p>
+            <div class="empty-alert">Select a process execution to see details.</div>
           }
         </aside>
       </div>
@@ -675,6 +688,7 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeImportProcessConfig()"
           [disabled]="importingProcessConfig()"
         >
@@ -682,6 +696,7 @@
         </button>
         <button
           type="submit"
+          class="btn-primary"
           [disabled]="importingProcessConfig() || !importProcessFile()"
         >
           {{ importingProcessConfig() ? 'Importing' : 'Import' }}
@@ -803,12 +818,13 @@
       <div class="form-actions">
         <button
           type="button"
+          class="warning"
           (click)="closeProcessConfigForm()"
           [disabled]="savingProcessConfig()"
         >
           Cancel
         </button>
-        <button type="submit" [disabled]="savingProcessConfig()">
+        <button type="submit" class="btn-primary" [disabled]="savingProcessConfig()">
           {{ savingProcessConfig() ? 'Saving' : 'Save' }}
         </button>
       </div>
@@ -999,12 +1015,13 @@
         </button>
         <button
           type="button"
+          class="warning"
           (click)="closeAlgorithmStepForm()"
           [disabled]="savingAlgorithmStep()"
         >
           Cancel
         </button>
-        <button type="submit" [disabled]="savingAlgorithmStep() || loadingAlgorithmStep()">
+        <button type="submit" class="btn-primary" [disabled]="savingAlgorithmStep() || loadingAlgorithmStep()">
           {{ savingAlgorithmStep() ? 'Saving' : 'Save' }}
         </button>
       </div>

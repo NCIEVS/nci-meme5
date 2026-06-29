@@ -11,19 +11,24 @@ import {
   ContentAtom,
   ContentComponent,
   ContentComponentType,
+  ContentKeyValuePairLists,
   ContentListResponse,
   ContentListState,
   ContentMapping,
+  ContentMetadata,
   ContentPfsParameter,
   ContentRelationship,
+  ContentRelationshipTypeDetail,
   ContentSearchResult,
   ContentSemanticTypeListResponse,
   ContentSemanticTypeMetadata,
   ContentStringListResponse,
   ContentTerminology,
   ContentTerminologyListResponse,
+  ContentTermTypeDetail,
   ContentTree,
-  ContentTreePosition
+  ContentTreePosition,
+  MolecularActionListResponse
 } from './content-edit.models';
 import { EditValidationResult } from './edit-mutation.models';
 
@@ -125,6 +130,40 @@ export class ContentEditApiService {
     );
   }
 
+  findMolecularActions(
+    componentId: number,
+    terminology: string,
+    version: string,
+    query: string,
+    pfs: ContentPfsParameter
+  ): Observable<MolecularActionListResponse> {
+    return this.http.post<MolecularActionListResponse>(
+      `${this.baseUrl}/project/actions/molecular`,
+      pfs,
+      {
+        params: new HttpParams()
+          .set('componentId', componentId)
+          .set('terminology', terminology)
+          .set('version', version)
+          .set('query', query)
+      }
+    );
+  }
+
+  getActionLog(projectId: number, actionId: number): Observable<string> {
+    return this.http.get(
+      `${this.baseUrl}/project/log`,
+      {
+        params: new HttpParams()
+          .set('projectId', projectId)
+          .set('objectId', actionId)
+          .set('message', 'ACTION')
+          .set('lines', '1000'),
+        responseType: 'text'
+      }
+    );
+  }
+
   getComponentReport(
     type: ContentComponentType | string,
     id: number,
@@ -204,6 +243,30 @@ export class ContentEditApiService {
       .pipe(
         map((response) =>
           normalizeContentListResponse(response, ['treePositions', 'objects'])
+        )
+      );
+  }
+
+  findRelationships(
+    type: string,
+    terminology: string,
+    version: string,
+    terminologyId: string,
+    pfs: ContentPfsParameter
+  ): Observable<ContentListState<ContentRelationship>> {
+    return this.http
+      .post<ContentListResponse<ContentRelationship>>(
+        `${this.baseUrl}/content/${type.toLowerCase()}/${encodeURIComponent(
+          terminology
+        )}/${encodeURIComponent(version)}/${encodeURIComponent(
+          terminologyId
+        )}/relationships`,
+        pfs,
+        { params: new HttpParams().set('query', '') }
+      )
+      .pipe(
+        map((response) =>
+          normalizeContentListResponse(response, ['relationships', 'objects'])
         )
       );
   }
@@ -306,6 +369,110 @@ export class ContentEditApiService {
         params: new HttpParams().set('projectId', projectId)
       }
     );
+  }
+
+  getAllMetadata(terminology: string, version: string): Observable<ContentMetadata> {
+    return this.http
+      .get<ContentKeyValuePairLists>(
+        `${this.baseUrl}/metadata/all/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+      )
+      .pipe(
+        map((response) => {
+          const lists = response.keyValuePairLists ?? [];
+          const find = (name: string) =>
+            lists.find((l) => l.name === name)?.keyValuePairs ?? [];
+          return {
+            additionalRelationshipTypes: find('Additional_Relationship_Types'),
+            attributeNames: find('Attribute_Names'),
+            relationshipTypes: find('Relationship_Types'),
+            termTypes: find('Term_Types')
+          };
+        })
+      );
+  }
+
+  removeTermType(type: string, terminology: string, version: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/metadata/termType/${encodeURIComponent(type)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  removeAttributeName(type: string, terminology: string, version: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/metadata/attributeName/${encodeURIComponent(type)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  removeRelationshipType(type: string, terminology: string, version: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/metadata/relationshipType/${encodeURIComponent(type)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  removeAdditionalRelationshipType(
+    type: string,
+    terminology: string,
+    version: string
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/metadata/additionalRelationshipType/${encodeURIComponent(type)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  getTermType(key: string, terminology: string, version: string): Observable<ContentTermTypeDetail> {
+    return this.http.get<ContentTermTypeDetail>(
+      `${this.baseUrl}/metadata/termType/${encodeURIComponent(key)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  addTermType(obj: ContentTermTypeDetail): Observable<ContentTermTypeDetail> {
+    return this.http.put<ContentTermTypeDetail>(`${this.baseUrl}/metadata/termType`, obj);
+  }
+
+  updateTermType(obj: ContentTermTypeDetail): Observable<ContentTermTypeDetail> {
+    return this.http.post<ContentTermTypeDetail>(`${this.baseUrl}/metadata/termType`, obj);
+  }
+
+  getAttributeName(key: string, terminology: string, version: string): Observable<ContentTermTypeDetail> {
+    return this.http.get<ContentTermTypeDetail>(
+      `${this.baseUrl}/metadata/attributeName/${encodeURIComponent(key)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  addAttributeName(obj: ContentTermTypeDetail): Observable<ContentTermTypeDetail> {
+    return this.http.put<ContentTermTypeDetail>(`${this.baseUrl}/metadata/attributeName`, obj);
+  }
+
+  updateAttributeName(obj: ContentTermTypeDetail): Observable<ContentTermTypeDetail> {
+    return this.http.post<ContentTermTypeDetail>(`${this.baseUrl}/metadata/attributeName`, obj);
+  }
+
+  getRelationshipType(key: string, terminology: string, version: string): Observable<ContentRelationshipTypeDetail> {
+    return this.http.get<ContentRelationshipTypeDetail>(
+      `${this.baseUrl}/metadata/relationshipType/${encodeURIComponent(key)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  addRelationshipType(list: { types: ContentRelationshipTypeDetail[] }): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/metadata/relationshipType`, list);
+  }
+
+  updateRelationshipType(obj: ContentRelationshipTypeDetail): Observable<ContentRelationshipTypeDetail> {
+    return this.http.post<ContentRelationshipTypeDetail>(`${this.baseUrl}/metadata/relationshipType`, obj);
+  }
+
+  getAdditionalRelationshipType(key: string, terminology: string, version: string): Observable<ContentRelationshipTypeDetail> {
+    return this.http.get<ContentRelationshipTypeDetail>(
+      `${this.baseUrl}/metadata/additionalRelationshipType/${encodeURIComponent(key)}/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  addAdditionalRelationshipType(list: { types: ContentRelationshipTypeDetail[] }): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/metadata/additionalRelationshipType`, list);
+  }
+
+  updateAdditionalRelationshipType(obj: ContentRelationshipTypeDetail): Observable<ContentRelationshipTypeDetail> {
+    return this.http.post<ContentRelationshipTypeDetail>(`${this.baseUrl}/metadata/additionalRelationshipType`, obj);
   }
 
   private projectParams(projectId?: number | null): HttpParams {

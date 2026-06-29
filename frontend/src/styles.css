@@ -1,11 +1,147 @@
+/* === Reset === */
 :root {
   color-scheme: light;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   line-height: 1.5;
-  color: #1a222c;
-  background: #f5f7fa;
+  color: var(--meme-text);
+  background: var(--meme-bg);
+
+  /* ── Color palette ────────────────────────────────────── */
+  --meme-bg:               #f5f7fa;
+  --meme-surface:          #ffffff;
+  --meme-surface-subtle:   #f3f7f9;
+  --meme-surface-accent:   #bee4f2;   /* legacy medium-blue section-header */
+
+  --meme-border:           #d9e2ea;   /* panel outer */
+  --meme-border-inner:     #e5ecf1;   /* row dividers */
+  --meme-border-input:     #b8c5cf;
+
+  --meme-text:             #1d2936;
+  --meme-text-secondary:   #536372;
+  --meme-text-muted:       #6b7a88;
+  --meme-text-label:       #3c4b58;
+
+  --meme-brand-bg:         #23364a;   /* header background */
+  --meme-brand-accent:     #2f8f9d;   /* header bottom border */
+  --meme-brand-action:     #245f7a;   /* teal action color */
+  --meme-kicker:           #b85b47;   /* section kicker labels */
+
+  --meme-table-header-bg:  #eef3f6;
+  --meme-table-hover:      #e9f4f5;
+
+  /* ── Status colors ───────────────────────────────────── */
+  --meme-error-text:       #8d3728;
+  --meme-error-bg:         #fbecea;
+  --meme-error-border:     #e3b6ae;
+
+  --meme-warning-text:     #725719;
+  --meme-warning-bg:       #fff6d8;
+  --meme-warning-border:   #d6b76c;
+
+  --meme-success-text:     #1e6647;
+  --meme-success-bg:       #e7f6ef;
+  --meme-success-border:   #aedbc5;
+
+  /* ── Workflow status text colors ──────────────────────── */
+  --meme-wf-ready:         #1a1a1a;   /* READY_FOR_PUBLICATION, PUBLISHED */
+  --meme-wf-needs-review:  #cc0000;
+  --meme-wf-demotion:      #0000cc;
+  --meme-wf-embryo:        #006600;
+  --meme-wf-obsolete:      #660066;
+  --meme-wf-rxnorm:        #e68000;
+
+  /* ── Spacing scale ───────────────────────────────────── */
+  --meme-space-xs:  4px;
+  --meme-space-sm:  8px;
+  --meme-space-md:  12px;
+  --meme-space-lg:  18px;
+  --meme-space-xl:  28px;
+  --meme-space-2xl: 40px;
+
+  /* ── Typography ──────────────────────────────────────── */
+  --meme-font-mono: "Menlo", "Consolas", "Bitstream Vera Sans Mono", "Courier New", monospace;
+  --meme-text-base: 1rem;
+  --meme-text-sm:   0.88rem;
+  --meme-text-xs:   0.82rem;
+  --meme-text-h1:   2rem;
+  --meme-text-h2:   1.15rem;
+  --meme-text-h3:   1rem;
+
+  /* ── Table ───────────────────────────────────────────── */
+  --meme-table-cell-padding: 10px 12px;
+  --meme-table-font-size:    0.86rem;
+
+  /* ── Form fields ─────────────────────────────────────── */
+  --meme-input-height:  38px;
+  --meme-input-padding: 7px 10px;
+  --meme-input-radius:  4px;
+
+  /* ── Buttons ─────────────────────────────────────────── */
+  /* Default: neutral outlined — matches legacy Bootstrap btn-default character */
+  --meme-btn-height:       36px;
+  --meme-btn-padding:      7px 12px;
+  --meme-btn-radius:       4px;
+  --meme-btn-weight:       700;
+  --meme-btn-bg:           #f7fafc;
+  --meme-btn-border:       1px solid #9fb0bd;
+  --meme-btn-color:        #243444;
+  --meme-btn-hover-bg:     #edf3f7;
+  /* Primary: Bootstrap 3 btn-primary blue — matches legacy */
+  --meme-btn-primary-bg:    #337ab7;
+  --meme-btn-primary-color: #ffffff;
+  --meme-btn-primary-border: 1px solid #2e6da4;
+  --meme-btn-primary-hover-bg: #286090;
+  /* Quiet: subtle teal tint — secondary teal actions */
+  --meme-btn-quiet-bg:    #e8f1f4;
+  --meme-btn-quiet-color: var(--meme-brand-action);
+  /* Danger */
+  --meme-btn-danger-bg:     #fbecea;
+  --meme-btn-danger-border: 1px solid #c78c82;
+  --meme-btn-danger-color:  #8d3728;
+  /* Disabled */
+  --meme-btn-disabled-bg:    #9da9b2;
+  --meme-btn-disabled-color: #ffffff;
+  --meme-btn-disabled-border: 0;
+
+  /* ── Panels / cards ──────────────────────────────────── */
+  --meme-panel-radius:         6px;
+  --meme-panel-shadow:         0 10px 28px rgb(21 40 58 / 8%);
+  --meme-panel-padding:        14px;
+  --meme-panel-header-padding: 14px 14px 10px;
+  --meme-view-padding:         28px 32px 40px;
+  --meme-view-gap:             var(--meme-space-lg);
+
+  /* ── Dialogs ─────────────────────────────────────────── */
+  --meme-dialog-shadow: 0 24px 56px rgb(21 40 58 / 24%);
+
+  /* ── Z-index scale ───────────────────────────────────── */
+  --meme-z-overlay:      1000;
+  --meme-z-dialog:       1100;
+  --meme-z-notification: 1200;
+  --meme-z-loading:      10000;
+
+  /* ── Loading bar ─────────────────────────────────────── */
+  --meme-loading-track:  #f7c65f;
+
+  /* ── Two-column split layout ─────────────────────────── */
+  /* Matches Bootstrap col-md-6 / col-md-6 pattern used in Admin, Process, Edit */
+  --meme-split-ratio: minmax(0, 1fr) minmax(0, 1fr);
+  /* Note: CSS custom properties cannot be used inside @media conditions.      */
+  /* The canonical breakpoint value is 900px — use that literal in @media.     */
+}
+
+.meme-split-grid {
+  display: grid;
+  grid-template-columns: var(--meme-split-ratio);
+  gap: var(--meme-view-gap);
+}
+
+@media (max-width: 900px) {
+  .meme-split-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 * {
@@ -31,4 +167,180 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* ── Global utility classes ───────────────────────────────────────────────── */
+/* These are available to all components, including content-edit which has no  */
+/* component-scoped CSS. Per-component overrides win due to Angular's emulated */
+/* encapsulation adding a specificity-boosting attribute selector.             */
+
+/* Table */
+.meme-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--meme-table-font-size);
+}
+
+.meme-table th,
+.meme-table td {
+  padding: var(--meme-table-cell-padding);
+  border-bottom: 1px solid var(--meme-border-inner);
+  text-align: left;
+  vertical-align: top;
+}
+
+.meme-table th {
+  background: var(--meme-table-header-bg);
+  color: var(--meme-text-label);
+  font-weight: 800;
+}
+
+.meme-table tbody tr:hover,
+.meme-table tbody tr.selected {
+  background: var(--meme-table-hover);
+}
+
+/* Button variants — add to any <button> alongside base button styles */
+.btn-primary {
+  color: var(--meme-btn-primary-color);
+  background: var(--meme-btn-primary-bg);
+  border: var(--meme-btn-primary-border);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--meme-btn-primary-hover-bg);
+}
+
+.btn-quiet {
+  color: var(--meme-btn-quiet-color);
+  background: var(--meme-btn-quiet-bg);
+  border: 0;
+}
+
+.btn-danger {
+  color: var(--meme-btn-danger-color);
+  background: var(--meme-btn-danger-bg);
+  border: var(--meme-btn-danger-border);
+}
+
+/* Section header — matches legacy tsApp.css `.section-header` blue band */
+.section-header {
+  background: var(--meme-surface-accent);
+  padding: var(--meme-space-xs) var(--meme-space-sm);
+  font-weight: 700;
+}
+
+/* Step panel — vertical stack of form/action groups */
+.step-panel {
+  display: grid;
+  gap: var(--meme-space-sm);
+}
+
+/* Panel header — titled section header bar with right-side action slot */
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--meme-space-md);
+  padding: var(--meme-panel-header-padding);
+  border-bottom: 1px solid var(--meme-border-inner);
+}
+
+/* Toolbar — horizontal row of controls above a table or list */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--meme-space-sm);
+  padding: var(--meme-panel-padding);
+}
+
+/* Form utilities */
+.form-field {
+  display: grid;
+  gap: var(--meme-space-sm);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--meme-space-sm);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meme-space-sm);
+  font-weight: 700;
+}
+
+.checkbox-label input[type="checkbox"] {
+  min-height: 0;
+}
+
+.dialog-form {
+  display: grid;
+  gap: var(--meme-space-lg);
+}
+
+.form-errors {
+  margin: 0;
+  padding: 10px 12px 10px 28px;
+  background: var(--meme-error-bg);
+  border: 1px solid var(--meme-error-border);
+  border-radius: var(--meme-input-radius);
+  color: var(--meme-error-text);
+}
+
+.form-messages {
+  display: grid;
+  gap: var(--meme-space-xs);
+  padding: 10px 12px;
+  background: var(--meme-success-bg);
+  border: 1px solid var(--meme-success-border);
+  border-radius: var(--meme-input-radius);
+  color: var(--meme-success-text);
+}
+
+.form-messages p {
+  margin: 0;
+}
+
+/* Overflow scroll container for wide tables */
+.table-wrap {
+  overflow: auto;
+}
+
+/* Muted / empty state text */
+.empty,
+.muted {
+  color: var(--meme-text-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--meme-panel-padding);
+}
+
+.compact-empty {
+  padding: var(--meme-space-sm) 0;
+}
+
+/* Pager row */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--meme-space-md);
+  padding: var(--meme-space-md) var(--meme-panel-padding);
+  color: var(--meme-text-secondary);
+  font-size: var(--meme-text-sm);
+}
+
+/* Remove native browser clear-buttons from all inputs */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input::-webkit-clear-button,
+input::-ms-clear {
+  display: none;
 }

@@ -4,147 +4,267 @@
       <p class="kicker">Content</p>
       <h1 id="content-title">Search</h1>
     </div>
-    <div class="summary-set" aria-label="Content search counts">
-      <div class="summary">
-        <strong>{{ totalCount() }}</strong>
-        <span>matches</span>
-      </div>
-      <div class="summary">
-        <strong>{{ results().length }}</strong>
-        <span>shown</span>
-      </div>
-      <div class="summary">
-        <strong>{{ projectId() ?? 'n/a' }}</strong>
-        <span>project</span>
-      </div>
-      <div class="summary">
-        <strong>{{ routeMode().mode }}</strong>
-        <span>mode</span>
-      </div>
-    </div>
   </header>
 
-  <p class="context-panel">
-    Project {{ projectId() ?? 'n/a' }} | Role {{ projectRole() }}
-    @if (routeMode().type) {
-      | {{ routeMode().type }} {{ routeMode().terminologyId || '' }}
-      {{ routeMode().terminology || '' }} {{ routeMode().version || '' }}
-    }
-  </p>
-
-  @if (!isReportMode()) {
-    <form class="toolbar" (ngSubmit)="search()" aria-label="Content search">
-      <label for="content-type">Type</label>
-      <select
-        id="content-type"
-        [ngModel]="searchType()"
-        (ngModelChange)="setSearchType($event)"
-        name="content-type"
-      >
-        @for (type of componentTypes; track type) {
-          <option [value]="type">{{ type }}</option>
-        }
-      </select>
-
-      <label for="content-terminology">Terminology</label>
-      @if (currentTerminologies().length) {
+  @if (projectId()) {
+    <div class="toolbar context-toolbar">
+      <label for="edit-project-select">Project</label>
+      @if (availableProjects().length > 1) {
         <select
-          id="content-terminology"
-          [ngModel]="terminology()"
-          (ngModelChange)="setTerminology($event)"
-          name="content-terminology"
+          id="edit-project-select"
+          [ngModel]="projectId()?.toString()"
+          (ngModelChange)="selectProject($event)"
+          name="edit-project-select"
         >
-          @for (terminologyOption of currentTerminologies(); track terminologyOption.terminology ?? $index) {
-            <option [value]="terminologyOption.terminology ?? ''">
-              {{ terminologyOption.terminology || 'n/a' }}
-              {{ terminologyOption.version || '' }}
-            </option>
+          @for (proj of availableProjects(); track proj.id) {
+            <option [value]="proj.id?.toString()">{{ proj.name }}</option>
           }
         </select>
       } @else {
-        <input
-          id="content-terminology"
-          type="text"
-          [ngModel]="terminology()"
-          (ngModelChange)="setTerminology($event)"
-          name="content-terminology"
-        />
+        <span class="readonly-value">{{ availableProjects()[0]?.name ?? projectId() }}</span>
       }
-
-      <label for="content-version">Version</label>
-      <input
-        id="content-version"
-        type="text"
-        [ngModel]="version()"
-        (ngModelChange)="setVersion($event)"
-        name="content-version"
-      />
-
-      <label for="content-query">Query</label>
-      <input
-        id="content-query"
-        type="search"
-        [ngModel]="query()"
-        (ngModelChange)="setQuery($event)"
-        name="content-query"
-        autocomplete="off"
-      />
-
-      <button type="submit" [disabled]="searching() || loadingTerminologies()">
-        {{ searching() ? 'Searching' : 'Search' }}
-      </button>
-      <button type="button" (click)="clearSearch()" [disabled]="searching()">
-        Clear
-      </button>
-    </form>
-  }
-
-  @if (errors().length) {
-    <ul class="form-errors" aria-live="polite">
-      @for (error of errors(); track error) {
-        <li>{{ error }}</li>
+      <label for="edit-role-select">Role</label>
+      @if (availableRoles().length > 1) {
+        <select
+          id="edit-role-select"
+          [ngModel]="projectRole()"
+          (ngModelChange)="selectRole($event)"
+          name="edit-role-select"
+        >
+          @for (role of availableRoles(); track role) {
+            <option [value]="role">{{ role }}</option>
+          }
+        </select>
+      } @else {
+        <span class="readonly-value">{{ projectRole() }}</span>
       }
-    </ul>
-  }
-
-  @if (!isReportMode()) {
-    <div class="toolbar compact-toolbar">
-      <label for="content-page-size">Page size</label>
-      <select
-        id="content-page-size"
-        [ngModel]="pageSize()"
-        (ngModelChange)="setPageSize($event)"
-        name="content-page-size"
-      >
-        @for (option of pageSizeOptions; track option) {
-          <option [ngValue]="option">{{ option }}</option>
-        }
-      </select>
-
-      <label for="content-sort">Sort</label>
-      <select
-        id="content-sort"
-        [ngModel]="sortField()"
-        (ngModelChange)="setSortField($event)"
-        name="content-sort"
-      >
-        @for (option of sortOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
-
-      <label class="checkbox-label" for="content-sort-ascending">
-        <input
-          id="content-sort-ascending"
-          type="checkbox"
-          [ngModel]="sortAscending()"
-          (ngModelChange)="setSortAscending($event)"
-          name="content-sort-ascending"
-        />
-        Ascending
-      </label>
     </div>
   }
+
+
+  @if (projectRole() !== 'ADMINISTRATOR') {
+    <details class="accordion-panel" open>
+      <summary class="accordion-heading">
+        <span class="accordion-arrow">&#9658;</span>
+        Workflow Checklists
+      </summary>
+      <div class="accordion-body">
+        <div class="wl-layout">
+
+          <!-- Left: Worklist panel -->
+          <div class="wl-left">
+
+            <!-- Mode tabs -->
+            <div class="wl-tabs">
+              <button type="button" class="wl-tab" [class.active]="worklistMode() === 'Available'" (click)="setWorklistMode('Available')">
+                Available ({{ availableCt() }})
+              </button>
+              <button type="button" class="wl-tab" [class.active]="worklistMode() === 'Assigned'" (click)="setWorklistMode('Assigned')">
+                Assigned ({{ assignedCt() }})
+              </button>
+              <button type="button" class="wl-tab" [class.active]="worklistMode() === 'Done'" (click)="setWorklistMode('Done')">
+                Done ({{ doneCt() }})
+              </button>
+              <button type="button" class="wl-tab" [class.active]="worklistMode() === 'Checklists'" (click)="setWorklistMode('Checklists')">
+                Checklists ({{ checklistCt() }})
+              </button>
+            </div>
+
+            <!-- Filter + pager row -->
+            <div class="wl-toolbar">
+              <input
+                class="wl-filter"
+                type="search"
+                placeholder="Filter worklists…"
+                [ngModel]="worklistFilter()"
+                (ngModelChange)="setWorklistFilter($event)"
+              />
+              <div class="wl-pager">
+                <button type="button" class="icon-btn" title="Previous page" [disabled]="worklistPage() === 1" (click)="worklistPage.set(worklistPage() - 1); loadWorklists()">‹</button>
+                <span>{{ worklistPage() }} / {{ worklistTotalPages() }}</span>
+                <button type="button" class="icon-btn" title="Next page" [disabled]="worklistPage() === worklistTotalPages()" (click)="worklistPage.set(worklistPage() + 1); loadWorklists()">›</button>
+              </div>
+            </div>
+
+            <!-- Worklist table -->
+            @if (loadingWorklists()) {
+              <p class="empty compact-empty">Loading…</p>
+            } @else if (worklists().length === 0) {
+              <p class="empty compact-empty">
+                {{ worklistFilter() ? 'No matching worklists found.' : 'No worklists.' }}
+              </p>
+            } @else {
+              <div class="table-wrap">
+                <table class="slim-table pointer-table">
+                  <thead>
+                    <tr>
+                      <th (click)="setWorklistSortField('name')" class="sortable-col">
+                        Name{{ worklistSortIndicator('name') }}
+                      </th>
+                      <th (click)="setWorklistSortField('lastModified')" class="sortable-col">
+                        Last Modified{{ worklistSortIndicator('lastModified') }}
+                      </th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (wl of worklists(); track wl.id) {
+                      <tr
+                        [class.selected-row]="selectedWorklist()?.id === wl.id"
+                        (click)="selectWorklist(wl)"
+                      >
+                        <td>{{ wl.name }}</td>
+                        <td>
+                          {{ formatWorklistDate(wl.lastModified) }}
+                          @if (worklistMode() !== 'Checklists') {
+                            <br /><span class="wl-state">{{ getWorkflowState(wl) }}</span>
+                          }
+                        </td>
+                        <td class="nobreak">
+                          <!-- Admin: delete -->
+                          @if (projectRole() === 'ADMINISTRATOR') {
+                            <span class="icon-action danger" title="Remove" (click)="deleteWorklist(wl, $event)">✕</span>
+                          }
+                          @if (worklistMode() !== 'Checklists') {
+                            <!-- Claim (Available, non-admin) -->
+                            @if (worklistMode() === 'Available') {
+                              <span class="icon-action" title="Claim worklist" (click)="assignWorklistToSelf(wl, $event)">→</span>
+                            }
+                            <!-- Unassign (Assigned, non-REVIEW_DONE) -->
+                            @if (worklistMode() === 'Assigned' && wl.workflowStatus !== 'REVIEW_DONE') {
+                              <span class="icon-action" title="Unassign worklist" (click)="unassignWorklist(wl, $event)">←</span>
+                            }
+                            <!-- Reassign (Done: AUTHOR sees EDITING_DONE, REVIEWER sees READY_FOR_PUBLICATION) -->
+                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'EDITING_DONE' && projectRole() === 'AUTHOR') {
+                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
+                            }
+                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'READY_FOR_PUBLICATION' && projectRole() === 'REVIEWER') {
+                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
+                            }
+                            <!-- Stamp (Assigned reviewer with reviewers) -->
+                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && wl.workflowStatus !== 'REVIEW_DONE' && (wl.reviewers?.length ?? 0) > 0) {
+                              <span class="icon-action" title="Stamp worklist" (click)="stampWorklist(wl, $event)">✦</span>
+                            }
+                            <!-- Return (Assigned, non-admin) -->
+                            @if (worklistMode() === 'Assigned' && getWorkflowState(wl) === 'Assigned') {
+                              <span class="icon-action" title="Return worklist" (click)="finishWorklist(wl, $event)">✓</span>
+                            }
+                            <!-- Finish (Assigned reviewer, Review Assigned state) -->
+                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && getWorkflowState(wl) === 'Review Assigned') {
+                              <span class="icon-action" title="Finish worklist" (click)="finishWorklist(wl, $event)">✓</span>
+                            }
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div><!-- /wl-left -->
+
+          <!-- Right: Clusters panel -->
+          <div class="wl-right">
+            @if (selectedWorklist() && worklistMode() !== 'Available') {
+              <div class="wl-clusters-header">
+                <strong>Clusters</strong>
+                @if (recordsTotalCount() > 0) {
+                  <span class="wl-cluster-count">({{ recordsTotalCount() }})</span>
+                }
+                <div class="wl-pager">
+                  <button type="button" class="icon-btn" title="Previous page" [disabled]="recordsPage() === 1" (click)="setRecordsPage(recordsPage() - 1)">‹</button>
+                  <span>{{ recordsPage() }} / {{ recordsTotalPages() }}</span>
+                  <button type="button" class="icon-btn" title="Next page" [disabled]="recordsPage() === recordsTotalPages()" (click)="setRecordsPage(recordsPage() + 1)">›</button>
+                </div>
+              </div>
+
+              <!-- Cluster filter toolbar -->
+              <div class="wl-toolbar">
+                <input
+                  class="wl-filter"
+                  type="search"
+                  placeholder="Filter clusters…"
+                  [ngModel]="recordsFilter()"
+                  (ngModelChange)="setRecordsFilter($event)"
+                />
+                <select
+                  title="Filter by record status"
+                  [ngModel]="recordsTypeFilter()"
+                  (ngModelChange)="setRecordsTypeFilter($event)"
+                  class="wl-type-filter"
+                >
+                  <option value="">All</option>
+                  <option value="N">N</option>
+                  <option value="R">R</option>
+                </select>
+              </div>
+
+              @if (loadingRecords()) {
+                <p class="empty compact-empty">Loading…</p>
+              } @else if (records().length === 0) {
+                <p class="empty compact-empty">
+                  {{ (recordsTypeFilter() || recordsFilter()) ? 'No matching records found.' : 'Worklist has no records.' }}
+                </p>
+              } @else {
+                <div class="table-wrap">
+                  <table class="slim-table pointer-table">
+                    <thead>
+                      <tr>
+                        <th>Cluster</th>
+                        <th>N/R</th>
+                        <th>Last Modified</th>
+                        <th>Concept Id</th>
+                        <th>Concept Name</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (rec of records(); track rec.id) {
+                        <tr
+                          class="cluster-header-row"
+                          [class.selected-row]="selectedRecord()?.id === rec.id"
+                          (click)="selectRecord(rec)"
+                        >
+                          <td [attr.rowspan]="(rec.concepts?.length ?? 0) + 1">{{ rec.clusterId }}</td>
+                          <td [attr.rowspan]="(rec.concepts?.length ?? 0) + 1">
+                            @if (rec.workflowStatus === 'NEEDS_REVIEW') {
+                              <span class="cluster-badge needs-review" title="Needs review">N</span>
+                            } @else {
+                              <span class="cluster-badge reviewed" title="Reviewed">R</span>
+                            }
+                          </td>
+                          <td [attr.rowspan]="(rec.concepts?.length ?? 0) + 1">{{ formatWorklistDate(rec.lastModified) }}</td>
+                        </tr>
+                        @for (concept of (rec.concepts ?? []); track concept.id) {
+                          <tr
+                            [class]="concept.workflowStatus ?? ''"
+                            [class.selected-row]="selectedRecord()?.id === rec.id"
+                            (click)="selectRecord(rec)"
+                          >
+                            <td>{{ concept.id }}</td>
+                            <td>{{ concept.name }}</td>
+                          </tr>
+                        }
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            } @else if (!selectedWorklist()) {
+              <p class="empty compact-empty">Select a worklist to view clusters.</p>
+            }
+          </div><!-- /wl-right -->
+
+        </div><!-- /wl-layout -->
+      </div>
+    </details>
+  }
+
+  <details class="accordion-panel" open>
+    <summary class="accordion-heading">
+      <span class="accordion-arrow">&#9658;</span>
+      Concepts
+    </summary>
+    <div class="accordion-body">
 
   @if (isReportMode()) {
     <div class="stacked-grid">
@@ -495,1875 +615,673 @@
     </div>
   } @else {
     <div class="content-grid">
-    <section class="list-panel" aria-labelledby="content-results-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="content-results-title">Results</h2>
-          <p>{{ totalCount() }} matches | Page {{ page() }} of {{ totalPages() }}</p>
+    <section class="list-panel" aria-labelledby="content-concept-list-title">
+
+      <!-- Header: title + finder -->
+      <div class="panel-header concept-list-header">
+        <h2 id="content-concept-list-title">Concept List</h2>
+        <div class="finder-row">
+          <input
+            type="text"
+            inputmode="numeric"
+            class="finder-id-input"
+            placeholder="concept id"
+            [ngModel]="finderLookupId()"
+            (ngModelChange)="finderLookupId.set($event)"
+            (keyup.enter)="lookupConceptById()"
+            name="finder-id"
+          />
+          <button type="button" class="btn-primary btn-xs" [disabled]="loadingFinderLookup()" (click)="lookupConceptById()">
+            {{ loadingFinderLookup() ? '…' : 'Search' }}
+          </button>
+          <button type="button" class="btn-primary btn-xs" (click)="openFinderDialog()">Finder</button>
         </div>
       </div>
-      <div class="table-wrap">
-        @if (results().length) {
-          <table>
+
+      <!-- Concept list table -->
+      <div class="table-wrap concept-list-wrap">
+        @if (conceptList().length) {
+          <table class="slim-table pointer-table">
             <thead>
               <tr>
-                <th>Value</th>
-                <th>Terminology ID</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Score</th>
+                <th>Concept Id</th>
+                <th>CUI</th>
+                <th>Name</th>
+                <th>STY</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              @for (result of results(); track result.id ?? result.terminologyId ?? $index) {
+              @for (concept of conceptList(); track concept.id) {
                 <tr
-                  [class.selected]="selectedResult() === result"
-                  (click)="selectResult(result)"
-                  (keyup.enter)="selectResult(result)"
-                  tabindex="0"
+                  [class]="concept.workflowStatus ?? ''"
+                  [class.selected]="selectedComponent()?.id === concept.id"
+                  (click)="selectConceptFromList(concept)"
                 >
-                  <td>{{ resultDisplay(result) }}</td>
-                  <td>{{ result.terminologyId || result.id || 'n/a' }}</td>
-                  <td>{{ result.type || searchType() }}</td>
-                  <td>{{ result.workflowStatus || (result.obsolete ? 'Obsolete' : 'Active') }}</td>
-                  <td>{{ displayScore(result.score) }}</td>
+                  <td>{{ concept.id }}</td>
+                  <td>{{ concept.terminologyId !== concept.id?.toString() ? concept.terminologyId : '' }}</td>
+                  <td class="name-cell">{{ concept.name }}</td>
+                  <td>
+                    @for (sty of (concept.semanticTypes ?? []); track sty.semanticType) {
+                      <span class="sty-chip">{{ sty.semanticType }}</span>
+                    }
+                  </td>
+                  <td class="nobreak">
+                    <span class="icon-action" title="Reload concept" (click)="reloadConceptInList(concept); $event.stopPropagation()">↺</span>
+                    <span class="icon-action danger" title="Remove from list" (click)="removeConceptFromList(concept); $event.stopPropagation()">✕</span>
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
-        } @else if (searched()) {
-          <p class="empty">No content matches found.</p>
         } @else {
-          <p class="empty">No search has been run.</p>
+          <p class="empty compact-empty">No concepts in list.</p>
         }
       </div>
-      <div class="pager" aria-label="Content search pages">
-        <button type="button" (click)="previousPage()" [disabled]="page() === 1 || searching()">
-          Previous
-        </button>
-        <span>Page {{ page() }} of {{ totalPages() }}</span>
-        <button
-          type="button"
-          (click)="nextPage()"
-          [disabled]="page() === totalPages() || searching()"
-        >
-          Next
-        </button>
-      </div>
-    </section>
 
-    <aside class="detail-panel" aria-labelledby="content-selected-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="content-selected-title">Selected Component</h2>
-          <p>
-            {{ selectedComponent()?.terminologyId || selectedResult()?.terminologyId || selectedResult()?.id || 'n/a' }}
-          </p>
+      <!-- Button row -->
+      <div class="concept-list-actions">
+        <div class="action-group">
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedComponent()"
+            (click)="openEditPopout(editPopoutLinks[0], selectedComponent()!)"
+            title="Semantic Types">STY</button>
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedComponent()"
+            (click)="openEditPopout(editPopoutLinks[2], selectedComponent()!)"
+            title="Atoms">Atoms</button>
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedComponent()"
+            (click)="openEditPopout(editPopoutLinks[3], selectedComponent()!)"
+            title="Relationships">Rels</button>
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedComponent()"
+            (click)="openEditPopout(editPopoutLinks[4], selectedComponent()!)"
+            title="Contexts / Tree">Tree</button>
+        </div>
+        <div class="action-group">
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedComponent() || approvingConcept()"
+            (click)="approveSelectedConcept()"
+            title="Approve selected concept">Approve</button>
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedWorklist() || !selectedRecord()"
+            (click)="nextRecord()"
+            title="Go to next record">Next</button>
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!conceptList().length || !selectedWorklist() || !selectedRecord() || approvingConcept()"
+            (click)="approveAndNext()"
+            title="Approve all and go to next record">Approve/Next</button>
+          <button type="button" class="btn-primary btn-xs"
+            [disabled]="!selectedComponent()"
+            (click)="openMergeDialog()"
+            title="Merge">Merge</button>
         </div>
       </div>
-      <div class="detail-body">
-        @if (loadingComponent()) {
-          <p class="empty compact-empty">Loading component detail...</p>
-        }
 
-        @if (selectedComponentError(); as detailError) {
-          <p class="form-errors compact-empty">{{ detailError }}</p>
-        }
+    </section>
 
-        @if (selectedComponent(); as component) {
-          <dl>
-            <dt>Name</dt>
-            <dd>{{ componentDisplay(component) }}</dd>
-            <dt>Terminology ID</dt>
-            <dd>{{ component.terminologyId || component.id || 'n/a' }}</dd>
-            <dt>Terminology</dt>
-            <dd>{{ component.terminology || terminology() }} {{ component.version || version() }}</dd>
-            <dt>Type</dt>
-            <dd>{{ component.type || selectedResult()?.type || searchType() }}</dd>
-            <dt>Status</dt>
-            <dd>{{ componentStatus(component) }}</dd>
-            <dt>Last Modified</dt>
-            <dd>{{ component.lastModified || 'n/a' }}</dd>
-            <dt>Atoms</dt>
-            <dd>{{ component.atoms?.length || 0 }}</dd>
-            <dt>Definitions</dt>
-            <dd>{{ component.definitions?.length || 0 }}</dd>
-            <dt>Semantic Types</dt>
-            <dd>{{ component.semanticTypes?.length || 0 }}</dd>
-            <dt>Attributes</dt>
-            <dd>{{ component.attributes?.length || 0 }}</dd>
-            <dt>Relationships</dt>
-            <dd>{{ component.relationships?.length || 0 }}</dd>
-          </dl>
-
-          @if (isConceptComponent(component)) {
-            <section class="step-panel" aria-labelledby="content-edit-activity-title">
-              <div class="section-header">
-                <h3 id="content-edit-activity-title">Editing Activity</h3>
-              </div>
-              <label class="form-field" for="content-edit-activity-id">
-                Current Activity ID
-                <input
-                  id="content-edit-activity-id"
-                  type="text"
-                  [ngModel]="editActivityId()"
-                  (ngModelChange)="setEditActivityId($event)"
-                  placeholder="Enter the editing activity id"
-                />
-              </label>
-            </section>
-
-            <section class="step-panel" aria-labelledby="content-edit-popouts-title">
-              <div class="section-header">
-                <h3 id="content-edit-popouts-title">Edit Popouts</h3>
-              </div>
-              <dl>
-                <dt>Selected concept</dt>
-                <dd>{{ component.terminologyId || component.id || 'n/a' }}</dd>
-                <dt>Activity ID</dt>
-                <dd>{{ editActivityId() || 'n/a' }}</dd>
-              </dl>
-              <div class="form-actions">
-                @for (link of editPopoutLinks; track link.workbench) {
-                  <button
-                    type="button"
-                    (click)="openEditPopout(link, component)"
-                    [title]="link.title"
-                  >
-                    {{ link.label }}
-                  </button>
-                }
-              </div>
-            </section>
-
-            <section class="step-panel" aria-labelledby="content-concept-update-title">
-              <div class="section-header">
-                <h3 id="content-concept-update-title">Concept Update</h3>
-              </div>
-              <dl>
-                <dt>Project</dt>
-                <dd>{{ projectId() || 'n/a' }}</dd>
-                <dt>Role</dt>
-                <dd>{{ projectRole() }}</dd>
-                <dt>Concept ID</dt>
-                <dd>{{ component.id || 'n/a' }}</dd>
-              </dl>
-              <label class="form-field" for="content-concept-update-status">
-                Workflow Status
-                <select
-                  id="content-concept-update-status"
-                  [ngModel]="conceptUpdateWorkflowStatus()"
-                  (ngModelChange)="setConceptUpdateWorkflowStatus($event)"
-                >
-                  @for (status of conceptWorkflowStatusOptions(component); track status) {
-                    <option [value]="status">{{ status }}</option>
-                  }
-                </select>
-              </label>
-              <label class="checkbox-label" for="content-concept-update-publishable">
-                <input
-                  id="content-concept-update-publishable"
-                  type="checkbox"
-                  [ngModel]="conceptUpdatePublishable()"
-                  (ngModelChange)="setConceptUpdatePublishable($event)"
-                />
-                Publishable
-              </label>
-              @if (conceptUpdateReadiness().reasons.length) {
-                <ul class="form-errors">
-                  @for (reason of conceptUpdateReadiness().reasons; track reason) {
-                    <li>{{ reason }}</li>
-                  }
-                </ul>
-              }
-              @if (conceptUpdateError(); as updateError) {
-                <p class="form-errors compact-empty">{{ updateError }}</p>
-              }
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="updateSelectedConcept()"
-                  [disabled]="!conceptUpdateReadiness().canExecute || updatingConcept()"
-                >
-                  {{ updatingConcept() ? 'Updating...' : 'Update Concept' }}
-                </button>
-              </div>
-            </section>
-
-            <section class="step-panel" aria-labelledby="content-validation-title">
-              <div class="section-header">
-                <h3 id="content-validation-title">Concept Validation</h3>
-              </div>
-              <label class="form-field" for="content-validation-check">
-                Validation Check
-                <select
-                  id="content-validation-check"
-                  [ngModel]="conceptValidationCheckId()"
-                  (ngModelChange)="setConceptValidationCheckId($event)"
-                >
-                  <option value="">All project checks</option>
-                  @for (check of projectValidationChecks(); track check) {
-                    <option [value]="check">{{ check }}</option>
-                  }
-                </select>
-              </label>
-              @if (!projectId()) {
-                <ul class="form-errors">
-                  <li>Project context is required.</li>
-                </ul>
-              }
-              @if (conceptValidationErrors().length) {
-                <ul class="form-errors">
-                  @for (error of conceptValidationErrors(); track error) {
-                    <li>{{ error }}</li>
-                  }
-                </ul>
-              }
-              @if (conceptValidationWarnings().length) {
-                <ul
-                  class="form-errors"
-                  style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                >
-                  @for (warning of conceptValidationWarnings(); track warning) {
-                    <li>{{ warning }}</li>
-                  }
-                </ul>
-              }
-              @if (conceptValidationComments().length) {
-                <div class="form-messages">
-                  @for (comment of conceptValidationComments(); track comment) {
-                    <p>{{ comment }}</p>
-                  }
-                </div>
-              }
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="validateSelectedConcept()"
-                  [disabled]="!canValidateConcept() || validatingConcept()"
-                >
-                  {{ validatingConcept() ? 'Validating...' : 'Validate Concept' }}
-                </button>
-              </div>
-            </section>
-
-            <section class="step-panel" aria-labelledby="content-approval-title">
-              <div class="section-header">
-                <h3 id="content-approval-title">Concept Approval</h3>
-              </div>
-              <dl>
-                <dt>Project</dt>
-                <dd>{{ projectId() || 'n/a' }}</dd>
-                <dt>Role</dt>
-                <dd>{{ projectRole() }}</dd>
-                <dt>Concept ID</dt>
-                <dd>{{ component.id || 'n/a' }}</dd>
-                <dt>Timestamp</dt>
-                <dd>{{ selectedLastModifiedEpoch() || 'n/a' }}</dd>
-              </dl>
-              <label class="form-field" for="content-approval-activity">
-                Activity ID
-                <input
-                  id="content-approval-activity"
-                  type="text"
-                  [ngModel]="activityIdValue(approvalActivityId())"
-                  (ngModelChange)="setApprovalActivityId($event)"
-                  placeholder="Enter the editing activity id"
-                />
-              </label>
-              @if (conceptApprovalReadiness().reasons.length) {
-                <ul class="form-errors">
-                  @for (reason of conceptApprovalReadiness().reasons; track reason) {
-                    <li>{{ reason }}</li>
-                  }
-                </ul>
-              }
-              @if (approvalErrors().length) {
-                <ul class="form-errors">
-                  @for (error of approvalErrors(); track error) {
-                    <li>{{ error }}</li>
-                  }
-                </ul>
-              }
-              @if (approvalWarnings().length) {
-                <ul
-                  class="form-errors"
-                  style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                >
-                  @for (warning of approvalWarnings(); track warning) {
-                    <li>{{ warning }}</li>
-                  }
-                </ul>
-              }
-              <div class="form-actions">
-                @if (approvalNeedsWarningOverride()) {
-                  <button
-                    type="button"
-                    (click)="approveSelectedConcept(true)"
-                    [disabled]="!conceptApprovalReadiness().canExecute || approvingConcept()"
-                  >
-                    Override Warnings and Approve
-                  </button>
-                }
-                <button
-                  type="button"
-                  (click)="approveSelectedConcept(false)"
-                  [disabled]="!conceptApprovalReadiness().canExecute || approvingConcept()"
-                >
-                  {{ approvingConcept() ? 'Approving...' : 'Approve Concept' }}
-                </button>
-              </div>
-            </section>
-
-            <section class="step-panel" aria-label="Concept Merge">
-              <div class="section-header">
-                <h3>Concept Merge</h3>
-              </div>
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="openMergeDialog()"
-                >
-                  Merge Concept
-                </button>
-              </div>
-            </section>
-
-            <section class="step-panel" aria-labelledby="content-atom-add-title">
-              <div class="section-header">
-                <h3 id="content-atom-add-title">Atom Add</h3>
-              </div>
-              <label class="form-field" for="content-atom-add-name">
-                Name
-                <textarea
-                  id="content-atom-add-name"
-                  rows="2"
-                  [ngModel]="atomAddName()"
-                  (ngModelChange)="setAtomAddName($event)"
-                  placeholder="Enter atom name"
-                ></textarea>
-              </label>
-              <label class="form-field" for="content-atom-add-termgroup">
-                Termgroup
-                <select
-                  id="content-atom-add-termgroup"
-                  [ngModel]="atomAddTermgroup()"
-                  (ngModelChange)="setAtomAddTermgroup($event)"
-                >
-                  <option value="">Select termgroup</option>
-                  @for (termgroup of projectNewAtomTermgroups(); track termgroup) {
-                    <option [value]="termgroup">{{ termgroup }}</option>
-                  }
-                </select>
-              </label>
-              <label class="form-field" for="content-atom-add-language">
-                Language
-                <input
-                  id="content-atom-add-language"
-                  type="text"
-                  [ngModel]="atomAddLanguage()"
-                  (ngModelChange)="setAtomAddLanguage($event)"
-                />
-              </label>
-              <label class="form-field" for="content-atom-add-code">
-                Code ID
-                <input
-                  id="content-atom-add-code"
-                  type="text"
-                  [ngModel]="atomAddCodeId()"
-                  (ngModelChange)="setAtomAddCodeId($event)"
-                />
-              </label>
-              <label class="form-field" for="content-atom-add-concept">
-                Source Concept ID
-                <input
-                  id="content-atom-add-concept"
-                  type="text"
-                  [ngModel]="atomAddConceptId()"
-                  (ngModelChange)="setAtomAddConceptId($event)"
-                />
-              </label>
-              <label class="form-field" for="content-atom-add-descriptor">
-                Descriptor ID
-                <input
-                  id="content-atom-add-descriptor"
-                  type="text"
-                  [ngModel]="atomAddDescriptorId()"
-                  (ngModelChange)="setAtomAddDescriptorId($event)"
-                />
-              </label>
-              <label class="form-field" for="content-atom-add-status">
-                Workflow Status
-                <select
-                  id="content-atom-add-status"
-                  [ngModel]="atomAddStatus()"
-                  (ngModelChange)="setAtomAddStatus($event)"
-                >
-                  @for (status of atomStatusOptions; track status) {
-                    <option [value]="status">{{ status }}</option>
-                  }
-                </select>
-              </label>
-              <label class="form-field" for="content-atom-add-activity">
-                Add Activity ID
-                <input
-                  id="content-atom-add-activity"
-                  type="text"
-                  [ngModel]="activityIdValue(atomAddActivityId())"
-                  (ngModelChange)="setAtomAddActivityId($event)"
-                  placeholder="Enter the editing activity id"
-                />
-              </label>
-              @if (atomAddReadiness().reasons.length) {
-                <ul class="form-errors">
-                  @for (reason of atomAddReadiness().reasons; track reason) {
-                    <li>{{ reason }}</li>
-                  }
-                </ul>
-              }
-              @if (atomAddErrors().length) {
-                <ul class="form-errors">
-                  @for (error of atomAddErrors(); track error) {
-                    <li>{{ error }}</li>
-                  }
-                </ul>
-              }
-              @if (atomAddWarnings().length) {
-                <ul
-                  class="form-errors"
-                  style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                >
-                  @for (warning of atomAddWarnings(); track warning) {
-                    <li>{{ warning }}</li>
-                  }
-                </ul>
-              }
-              @if (atomAddComments().length) {
-                <div class="form-messages">
-                  @for (comment of atomAddComments(); track comment) {
-                    <p>{{ comment }}</p>
-                  }
-                </div>
-              }
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="addAtomToConcept()"
-                  [disabled]="!atomAddReadiness().canExecute || addingAtom()"
-                >
-                  {{ addingAtom() ? 'Adding...' : 'Add Atom' }}
-                </button>
-              </div>
-              @if (atomAddNeedsWarningOverride()) {
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="addAtomToConcept(true)"
-                    [disabled]="!atomAddReadiness().canExecute || addingAtom()"
-                  >
-                    Override Warnings and Add Atom
-                  </button>
-                </div>
-              }
-            </section>
-          }
-
-          @if (limitedAtoms(component).length) {
-            @if (isConceptComponent(component)) {
-              <section class="step-panel" aria-labelledby="content-atom-validation-title">
-                <div class="section-header">
-                  <h3 id="content-atom-validation-title">Atom Validation</h3>
-                </div>
-                @if (atomValidationTarget(); as atom) {
-                  <p class="empty compact-empty">
-                    {{ atomDisplay(atom) }}
-                  </p>
-                }
-                @if (atomValidationErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of atomValidationErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomValidationWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of atomValidationWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomValidationComments().length) {
-                  <div class="form-messages">
-                    @for (comment of atomValidationComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-              </section>
-
-              <section class="step-panel" aria-labelledby="content-atom-update-title">
-                <div class="section-header">
-                  <h3 id="content-atom-update-title">Atom Status Update</h3>
-                </div>
-                <label class="form-field" for="content-atom-update-activity">
-                  Update Activity ID
-                  <input
-                    id="content-atom-update-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(atomUpdateActivityId())"
-                    (ngModelChange)="setAtomUpdateActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                <label class="form-field" for="content-atom-update-status">
-                  Workflow Status
-                  <select
-                    id="content-atom-update-status"
-                    [ngModel]="atomUpdateStatus()"
-                    (ngModelChange)="setAtomUpdateStatus($event)"
-                  >
-                    @for (status of atomStatusOptions; track status) {
-                      <option [value]="status">{{ status }}</option>
-                    }
-                  </select>
-                </label>
-                @if (atomUpdateBaseReasons().length) {
-                  <ul class="form-errors">
-                    @for (reason of atomUpdateBaseReasons(); track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomUpdateErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of atomUpdateErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomUpdateWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of atomUpdateWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomUpdateComments().length) {
-                  <div class="form-messages">
-                    @for (comment of atomUpdateComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                @if (atomUpdateNeedsWarningOverride()) {
-                  @if (atomUpdatePendingAtom(); as atom) {
-                    <div class="form-actions">
-                      <button
-                        type="button"
-                        (click)="updateAtomStatus(atom, true)"
-                        [disabled]="!canUpdateAtomStatus(atom)"
-                      >
-                        Override Warnings and Update Atom Status
-                      </button>
-                    </div>
-                  }
-                }
-              </section>
-
-              <section class="step-panel" aria-labelledby="content-atom-mutation-title">
-                <div class="section-header">
-                  <h3 id="content-atom-mutation-title">Atom Removal</h3>
-                </div>
-                <label class="form-field" for="content-atom-removal-activity">
-                  Activity ID
-                  <input
-                    id="content-atom-removal-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(atomRemovalActivityId())"
-                    (ngModelChange)="setAtomRemovalActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (atomRemovalBaseReasons().length) {
-                  <ul class="form-errors">
-                    @for (reason of atomRemovalBaseReasons(); track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomRemovalErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of atomRemovalErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomRemovalWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of atomRemovalWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (atomRemovalComments().length) {
-                  <div class="form-messages">
-                    @for (comment of atomRemovalComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                @if (atomRemovalNeedsWarningOverride()) {
-                  @if (atomRemovalPendingAtom(); as atom) {
-                    <div class="form-actions">
-                      <button
-                        type="button"
-                        (click)="removeAtomFromConcept(atom, true)"
-                        [disabled]="!canRemoveAtom(atom)"
-                      >
-                        Override Warnings and Remove Atom
-                      </button>
-                    </div>
-                  }
-                }
-              </section>
-            }
-
-            <section class="step-panel" aria-label="Atoms">
-              <div class="section-header">
-                <h3>Atoms</h3>
-                @if (selectedAtomMoveCount() > 0) {
-                  <button
-                    type="button"
-                    (click)="openAtomMoveDialog()"
-                  >
-                    Move {{ selectedAtomMoveCount() }} Atom(s)
-                  </button>
-                }
-                @if (selectedAtomSplitCount() > 0) {
-                  <button
-                    type="button"
-                    (click)="openAtomSplitDialog()"
-                  >
-                    Split {{ selectedAtomSplitCount() }} Atom(s)
-                  </button>
-                }
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Term</th>
-                      <th>TT</th>
-                      <th>Status</th>
-                      @if (isConceptComponent(component)) {
-                        <th>Move</th>
-                        <th>Split</th>
-                        <th>Action</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (atom of limitedAtoms(component); track atom.id ?? atom.terminologyId ?? $index) {
-                      <tr>
-                        <td>{{ atomDisplay(atom) }}</td>
-                        <td>{{ atom.termType || 'n/a' }}</td>
-                        <td>{{ atom.workflowStatus || 'n/a' }}</td>
-                        @if (isConceptComponent(component)) {
-                          <td>
-                            <input
-                              id="content-atom-move-{{ atom.id }}"
-                              type="checkbox"
-                              [ngModel]="isAtomSelectedForMove(atom)"
-                              (ngModelChange)="setAtomSelectedForMove(atom, $event)"
-                              [disabled]="!atom.id || movingAtoms()"
-                              aria-label="Move {{ atomDisplay(atom) }}"
-                            />
-                          </td>
-                          <td>
-                            <input
-                              id="content-atom-split-{{ atom.id }}"
-                              type="checkbox"
-                              [ngModel]="isAtomSelectedForSplit(atom)"
-                              (ngModelChange)="setAtomSelectedForSplit(atom, $event)"
-                              [disabled]="!atom.id || splittingConcept()"
-                              aria-label="Split {{ atomDisplay(atom) }}"
-                            />
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              (click)="validateAtom(atom)"
-                              [disabled]="!canValidateAtom(atom)"
-                            >
-                              {{ validatingAtomId() === atom.id ? 'Validating...' : 'Validate' }}
-                            </button>
-                            <button
-                              type="button"
-                              (click)="findAtomCodeConcepts(atom)"
-                              [disabled]="!canFindAtomCodeConcepts(atom)"
-                            >
-                              {{ loadingAtomCodeConcepts() && atomCodeConceptTarget()?.id === atom.id ? 'Loading Concepts...' : 'Code Concepts' }}
-                            </button>
-                            <button
-                              type="button"
-                              (click)="openSimpleAtomEdit(atom)"
-                              [disabled]="!canSimpleEditAtom(atom)"
-                            >
-                              Simple Edit
-                            </button>
-                            <button
-                              type="button"
-                              (click)="openAtomEdit(atom)"
-                              [disabled]="!canEditAtom(atom)"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              (click)="updateAtomStatus(atom)"
-                              [disabled]="!canUpdateAtomStatus(atom)"
-                            >
-                              {{ updatingAtomId() === atom.id ? 'Updating...' : 'Update Status' }}
-                            </button>
-                            <button
-                              type="button"
-                              (click)="removeAtomFromConcept(atom)"
-                              [disabled]="!canRemoveAtom(atom)"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        }
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          }
-
-          @if (atomSimpleEditTarget(); as simpleAtom) {
-            <section class="step-panel" aria-labelledby="content-atom-simple-edit-title">
-              <div class="section-header">
-                <h3 id="content-atom-simple-edit-title">Simple Atom Edit</h3>
-                <button type="button" (click)="closeSimpleAtomEdit()">Close</button>
-              </div>
-              <label class="form-field" for="content-atom-simple-edit-name">
-                Name
-                <textarea
-                  id="content-atom-simple-edit-name"
-                  rows="2"
-                  [ngModel]="atomSimpleEditName()"
-                  (ngModelChange)="setAtomSimpleEditName($event)"
-                ></textarea>
-              </label>
-              <label class="form-field" for="content-atom-simple-edit-termgroup">
-                Termgroup
-                <select
-                  id="content-atom-simple-edit-termgroup"
-                  [ngModel]="atomSimpleEditTermgroup()"
-                  (ngModelChange)="setAtomSimpleEditTermgroup($event)"
-                >
-                  @for (termgroup of simpleAtomTermgroupOptions(simpleAtom); track termgroup) {
-                    <option [value]="termgroup">{{ termgroup }}</option>
-                  }
-                </select>
-              </label>
-              <label class="form-field" for="content-atom-simple-edit-language">
-                Language
-                <input
-                  id="content-atom-simple-edit-language"
-                  type="text"
-                  [ngModel]="atomSimpleEditLanguage()"
-                  (ngModelChange)="setAtomSimpleEditLanguage($event)"
-                />
-              </label>
-              @if (simpleAtom.codeId) {
-                <dl>
-                  <dt>Code</dt>
-                  <dd>{{ simpleAtom.codeId }}</dd>
-                </dl>
-              }
-              @if (simpleAtom.conceptId) {
-                <dl>
-                  <dt>Concept</dt>
-                  <dd>{{ simpleAtom.conceptId }}</dd>
-                </dl>
-              }
-              @if (simpleAtom.descriptorId) {
-                <dl>
-                  <dt>Descriptor</dt>
-                  <dd>{{ simpleAtom.descriptorId }}</dd>
-                </dl>
-              }
-              <label class="checkbox-label" for="content-atom-simple-edit-publishable">
-                <input
-                  id="content-atom-simple-edit-publishable"
-                  type="checkbox"
-                  [ngModel]="atomSimpleEditPublishable()"
-                  (ngModelChange)="setAtomSimpleEditPublishable($event)"
-                />
-                Publishable
-              </label>
-              <label class="checkbox-label" for="content-atom-simple-edit-suppressible">
-                <input
-                  id="content-atom-simple-edit-suppressible"
-                  type="checkbox"
-                  [ngModel]="atomSimpleEditSuppressible()"
-                  (ngModelChange)="setAtomSimpleEditSuppressible($event)"
-                />
-                Suppressible
-              </label>
-              @if (atomSimpleEditReadiness(simpleAtom).reasons.length) {
-                <ul class="form-errors">
-                  @for (reason of atomSimpleEditReadiness(simpleAtom).reasons; track reason) {
-                    <li>{{ reason }}</li>
-                  }
-                </ul>
-              }
-              @if (atomSimpleEditError(); as simpleAtomEditError) {
-                <p class="form-errors compact-empty">{{ simpleAtomEditError }}</p>
-              }
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="updateSimpleAtom()"
-                  [disabled]="!atomSimpleEditReadiness(simpleAtom).canExecute || updatingAtomId() !== null"
-                >
-                  {{ updatingAtomId() === simpleAtom.id ? 'Saving...' : 'Save Simple Atom' }}
-                </button>
-              </div>
-            </section>
-          }
-
-          @if (atomEditTarget(); as editAtom) {
-            <section class="step-panel" aria-labelledby="content-atom-edit-title">
-              <div class="section-header">
-                <h3 id="content-atom-edit-title">Atom Edit</h3>
-                <button type="button" (click)="closeAtomEdit()">Close</button>
-              </div>
-              <dl>
-                <dt>Name</dt>
-                <dd>{{ atomDisplay(editAtom) }}</dd>
-                <dt>Termgroup</dt>
-                <dd>{{ editAtom.terminology || 'n/a' }}/{{ editAtom.termType || 'n/a' }}</dd>
-                <dt>Language</dt>
-                <dd>{{ editAtom.language || 'n/a' }}</dd>
-                @if (editAtom.codeId) {
-                  <dt>Code</dt>
-                  <dd>{{ editAtom.codeId }}</dd>
-                }
-                @if (editAtom.conceptId) {
-                  <dt>Concept</dt>
-                  <dd>{{ editAtom.conceptId }}</dd>
-                }
-                @if (editAtom.descriptorId) {
-                  <dt>Descriptor</dt>
-                  <dd>{{ editAtom.descriptorId }}</dd>
-                }
-              </dl>
-              @if (editAtom.termType === 'PN') {
-                <label class="checkbox-label" for="content-atom-edit-publishable">
-                  <input
-                    id="content-atom-edit-publishable"
-                    type="checkbox"
-                    [ngModel]="atomEditPublishable()"
-                    (ngModelChange)="setAtomEditPublishable($event)"
-                  />
-                  Publishable
-                </label>
-              }
-              @if (atomEditReadiness(editAtom).reasons.length) {
-                <ul class="form-errors">
-                  @for (reason of atomEditReadiness(editAtom).reasons; track reason) {
-                    <li>{{ reason }}</li>
-                  }
-                </ul>
-              }
-              @if (atomEditErrors().length) {
-                <ul class="form-errors">
-                  @for (error of atomEditErrors(); track error) {
-                    <li>{{ error }}</li>
-                  }
-                </ul>
-              }
-              @if (atomEditWarnings().length) {
-                <ul
-                  class="form-errors"
-                  style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                >
-                  @for (warning of atomEditWarnings(); track warning) {
-                    <li>{{ warning }}</li>
-                  }
-                </ul>
-              }
-              @if (atomEditComments().length) {
-                <div class="form-messages">
-                  @for (comment of atomEditComments(); track comment) {
-                    <p>{{ comment }}</p>
-                  }
-                </div>
-              }
-              <div class="form-actions">
-                <button
-                  type="button"
-                  (click)="updateAtom(editAtom)"
-                  [disabled]="!atomEditReadiness(editAtom).canExecute || updatingAtomId() !== null"
-                >
-                  {{ updatingAtomId() === editAtom.id ? 'Updating...' : 'Update Atom' }}
-                </button>
-              </div>
-              @if (atomEditNeedsWarningOverride()) {
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="updateAtom(editAtom, true)"
-                    [disabled]="!atomEditReadiness(editAtom).canExecute || updatingAtomId() !== null"
-                  >
-                    Override Warnings and Update Atom
-                  </button>
-                </div>
-              }
-            </section>
-          }
-
-          @if (atomCodeConceptTarget(); as codeAtom) {
-            <section class="step-panel" aria-labelledby="content-code-concepts-title">
-              <div class="section-header">
-                <h3 id="content-code-concepts-title">Code Concepts</h3>
-              </div>
-              <p class="empty compact-empty">
-                Code {{ codeAtom.codeId || 'n/a' }}
-                @if (atomCodeConceptTotalCount()) {
-                  ({{ atomCodeConceptTotalCount() }})
-                }
-              </p>
-              @if (loadingAtomCodeConcepts()) {
-                <p class="empty compact-empty">Loading code concepts...</p>
-              }
-              @if (atomCodeConceptError(); as codeConceptError) {
-                <p class="form-errors compact-empty">{{ codeConceptError }}</p>
-              }
-              @if (atomCodeConceptResults().length) {
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Concept</th>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (result of atomCodeConceptResults(); track result.id ?? result.terminologyId ?? $index) {
-                        <tr>
-                          <td>{{ result.terminologyId || result.id || 'n/a' }}</td>
-                          <td>{{ resultDisplay(result) }}</td>
-                          <td>{{ result.workflowStatus || 'n/a' }}</td>
-                          <td>
-                            <button type="button" (click)="openAtomCodeConcept(result)">
-                              Open
-                            </button>
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-              @if (!loadingAtomCodeConcepts() && !atomCodeConceptError() && !atomCodeConceptResults().length) {
-                <p class="empty compact-empty">No code concepts found.</p>
-              }
-            </section>
-          }
-
-          @if (isConceptComponent(component)) {
-            <section class="step-panel" aria-labelledby="content-contexts-title">
-              <div class="section-header">
-                <h3 id="content-contexts-title">Contexts</h3>
-              </div>
-              <div class="inline-form">
-                <label class="form-field" for="content-context-filter">
-                  Filter
-                  <input
-                    id="content-context-filter"
-                    type="text"
-                    [ngModel]="contextFilter()"
-                    (ngModelChange)="setContextFilter($event)"
-                    placeholder="Filter contexts"
-                  />
-                </label>
-                <button
-                  type="button"
-                  (click)="loadContextTreePositions()"
-                  [disabled]="loadingContextTreePositions()"
-                >
-                  {{ loadingContextTreePositions() ? 'Loading...' : 'Load Contexts' }}
-                </button>
-              </div>
-              @if (contextTreePositionError(); as contextError) {
-                <p class="form-errors compact-empty">{{ contextError }}</p>
-              }
-              @if (contextTreePositions().length) {
-                <p class="empty compact-empty">
-                  {{ contextTreePositionCount() }} context(s)
-                </p>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Terminology</th>
-                        <th>Version</th>
-                        <th>Type</th>
-                        <th>Node</th>
-                        <th>Ancestor Path</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (treePosition of contextTreePositions(); track treePosition.nodeId ?? treePosition.nodeTerminologyId ?? $index) {
-                        <tr>
-                          <td>{{ treePosition.terminology || treePosition.nodeTerminology || 'n/a' }}</td>
-                          <td>{{ treePosition.version || treePosition.nodeVersion || 'n/a' }}</td>
-                          <td>{{ contextTreePositionType(treePosition) }}</td>
-                          <td>{{ contextTreePositionDisplay(treePosition) }}</td>
-                          <td>{{ treePosition.ancestorPath || 'root' }}</td>
-                          <td>
-                            <button
-                              type="button"
-                              (click)="openContextTreePosition(treePosition)"
-                              [disabled]="!canOpenContextTreePosition(treePosition)"
-                            >
-                              Open
-                            </button>
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-              @if (!loadingContextTreePositions() && !contextTreePositionError() && contextTreePositionCount() === 0) {
-                <p class="empty compact-empty">No contexts loaded.</p>
-              }
-            </section>
-          }
-
-          @if (limitedDefinitions(component).length) {
-            <section class="step-panel" aria-label="Definitions">
-              <div class="section-header">
-                <h3>Definitions</h3>
-              </div>
-              <dl>
-                @for (definition of limitedDefinitions(component); track definition.id ?? $index) {
-                  <dt>{{ definition.terminology || 'Definition' }}</dt>
-                  <dd
-                    class="definition-entry"
-                    [attr.data-definition-id]="definition.id ?? $index"
-                  >
-                    @if (definitionStatusLabels(definition).length) {
-                      <div class="definition-meta">
-                        @for (label of definitionStatusLabels(definition); track label) {
-                          <span
-                            class="status-pill"
-                            [title]="label === 'Atom' ? definitionSource(definition) : label"
-                          >
-                            {{ label }}
-                          </span>
-                        }
-                      </div>
-                    }
-                    <div
-                      class="definition-rich-text"
-                      [innerHTML]="definitionHtml(definition)"
-                    ></div>
-                  </dd>
-                }
-              </dl>
-            </section>
-          }
-
-          @if (limitedSemanticTypes(component).length) {
-            @if (isConceptComponent(component)) {
-              <section class="step-panel" aria-labelledby="content-semantic-type-mutation-title">
-                <div class="section-header">
-                  <h3 id="content-semantic-type-mutation-title">Semantic Type Add / Removal</h3>
-                </div>
-                @if (loadingSemanticTypeOptions()) {
-                  <p class="empty compact-empty">Loading semantic type options...</p>
-                }
-                @if (semanticTypeOptionsError(); as optionError) {
-                  <p class="form-errors compact-empty">{{ optionError }}</p>
-                }
-                @if (availableSemanticTypeOptions(component).length) {
-                  <label class="form-field" for="content-semantic-type-add-value">
-                    Add Semantic Type
-                    <select
-                      id="content-semantic-type-add-value"
-                      [ngModel]="semanticTypeAddValue()"
-                      (ngModelChange)="setSemanticTypeAddValue($event)"
-                    >
-                      <option value="">Select semantic type</option>
-                      @for (option of availableSemanticTypeOptions(component); track semanticTypeOptionValue(option)) {
-                        <option [value]="semanticTypeOptionValue(option)">
-                          {{ semanticTypeOptionDisplay(option) }}
-                        </option>
-                      }
-                    </select>
-                  </label>
-                  <label class="form-field" for="content-semantic-type-add-activity">
-                    Add Activity ID
-                    <input
-                      id="content-semantic-type-add-activity"
-                      type="text"
-                      [ngModel]="activityIdValue(semanticTypeAddActivityId())"
-                      (ngModelChange)="setSemanticTypeAddActivityId($event)"
-                      placeholder="Enter the editing activity id"
-                    />
-                  </label>
-                  @if (semanticTypeAddReadiness().reasons.length) {
-                    <ul class="form-errors">
-                      @for (reason of semanticTypeAddReadiness().reasons; track reason) {
-                        <li>{{ reason }}</li>
-                      }
-                    </ul>
-                  }
-                  @if (semanticTypeAddErrors().length) {
-                    <ul class="form-errors">
-                      @for (error of semanticTypeAddErrors(); track error) {
-                        <li>{{ error }}</li>
-                      }
-                    </ul>
-                  }
-                  @if (semanticTypeAddWarnings().length) {
-                    <ul
-                      class="form-errors"
-                      style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                    >
-                      @for (warning of semanticTypeAddWarnings(); track warning) {
-                        <li>{{ warning }}</li>
-                      }
-                    </ul>
-                  }
-                  @if (semanticTypeAddComments().length) {
-                    <div class="form-messages">
-                      @for (comment of semanticTypeAddComments(); track comment) {
-                        <p>{{ comment }}</p>
-                      }
-                    </div>
-                  }
-                  <div class="form-actions">
-                    <button
-                      type="button"
-                      (click)="addSemanticTypeToConcept()"
-                      [disabled]="!semanticTypeAddReadiness().canExecute || addingSemanticType()"
-                    >
-                      {{ addingSemanticType() ? 'Adding...' : 'Add Semantic Type' }}
-                    </button>
-                  </div>
-                  @if (semanticTypeAddNeedsWarningOverride()) {
-                    <div class="form-actions">
-                      <button
-                        type="button"
-                        (click)="addSemanticTypeToConcept(true)"
-                        [disabled]="!semanticTypeAddReadiness().canExecute || addingSemanticType()"
-                      >
-                        Override Warnings and Add Semantic Type
-                      </button>
-                    </div>
-                  }
-                }
-                <label class="form-field" for="content-semantic-type-removal-activity">
-                  Remove Activity ID
-                  <input
-                    id="content-semantic-type-removal-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(semanticTypeRemovalActivityId())"
-                    (ngModelChange)="setSemanticTypeRemovalActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (semanticTypeRemovalBaseReasons().length) {
-                  <ul class="form-errors">
-                    @for (reason of semanticTypeRemovalBaseReasons(); track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (semanticTypeRemovalErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of semanticTypeRemovalErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (semanticTypeRemovalWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of semanticTypeRemovalWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (semanticTypeRemovalComments().length) {
-                  <div class="form-messages">
-                    @for (comment of semanticTypeRemovalComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                @if (semanticTypeRemovalNeedsWarningOverride()) {
-                  @if (semanticTypeRemovalPendingType(); as semanticType) {
-                    <div class="form-actions">
-                      <button
-                        type="button"
-                        (click)="removeSemanticTypeFromConcept(semanticType, true)"
-                        [disabled]="!canRemoveSemanticType(semanticType)"
-                      >
-                        Override Warnings and Remove Semantic Type
-                      </button>
-                    </div>
-                  }
-                }
-              </section>
-            }
-
-            <section class="step-panel" aria-label="Semantic types">
-              <div class="section-header">
-                <h3>Semantic Types</h3>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>STY</th>
-                      @if (isConceptComponent(component)) {
-                        <th>Action</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (semanticType of limitedSemanticTypes(component); track semanticType.id ?? semanticType.semanticType ?? $index) {
-                      <tr>
-                        <td>{{ semanticTypeDisplay(semanticType) }}</td>
-                        @if (isConceptComponent(component)) {
-                          <td>
-                            <button
-                              type="button"
-                              (click)="removeSemanticTypeFromConcept(semanticType)"
-                              [disabled]="!canRemoveSemanticType(semanticType)"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        }
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          }
-
-          @if (limitedAttributes(component).length) {
-            @if (isConceptComponent(component)) {
-              <section class="step-panel" aria-labelledby="content-attribute-mutation-title">
-                <div class="section-header">
-                  <h3 id="content-attribute-mutation-title">Attribute Add / Removal</h3>
-                </div>
-                <label class="form-field" for="content-attribute-add-name">
-                  Attribute Name
-                  <input
-                    id="content-attribute-add-name"
-                    type="text"
-                    [ngModel]="attributeAddName()"
-                    (ngModelChange)="setAttributeAddName($event)"
-                    placeholder="Enter attribute name"
-                  />
-                </label>
-                <label class="form-field" for="content-attribute-add-value">
-                  Attribute Value
-                  <input
-                    id="content-attribute-add-value"
-                    type="text"
-                    [ngModel]="attributeAddValue()"
-                    (ngModelChange)="setAttributeAddValue($event)"
-                    placeholder="Enter attribute value"
-                  />
-                </label>
-                <label class="form-field" for="content-attribute-add-activity">
-                  Add Activity ID
-                  <input
-                    id="content-attribute-add-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(attributeAddActivityId())"
-                    (ngModelChange)="setAttributeAddActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (attributeAddReadiness().reasons.length) {
-                  <ul class="form-errors">
-                    @for (reason of attributeAddReadiness().reasons; track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (attributeAddErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of attributeAddErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (attributeAddWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of attributeAddWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (attributeAddComments().length) {
-                  <div class="form-messages">
-                    @for (comment of attributeAddComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="addAttributeToConcept()"
-                    [disabled]="!attributeAddReadiness().canExecute || addingAttribute()"
-                  >
-                    {{ addingAttribute() ? 'Adding...' : 'Add Attribute' }}
-                  </button>
-                </div>
-                @if (attributeAddNeedsWarningOverride()) {
-                  <div class="form-actions">
-                    <button
-                      type="button"
-                      (click)="addAttributeToConcept(true)"
-                      [disabled]="!attributeAddReadiness().canExecute || addingAttribute()"
-                    >
-                      Override Warnings and Add Attribute
-                    </button>
-                  </div>
-                }
-                <label class="form-field" for="content-attribute-removal-activity">
-                  Remove Activity ID
-                  <input
-                    id="content-attribute-removal-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(attributeRemovalActivityId())"
-                    (ngModelChange)="setAttributeRemovalActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (attributeRemovalBaseReasons().length) {
-                  <ul class="form-errors">
-                    @for (reason of attributeRemovalBaseReasons(); track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (attributeRemovalErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of attributeRemovalErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (attributeRemovalWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of attributeRemovalWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (attributeRemovalComments().length) {
-                  <div class="form-messages">
-                    @for (comment of attributeRemovalComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                @if (attributeRemovalNeedsWarningOverride()) {
-                  @if (attributeRemovalPendingAttribute(); as attribute) {
-                    <div class="form-actions">
-                      <button
-                        type="button"
-                        (click)="removeAttributeFromConcept(attribute, true)"
-                        [disabled]="!canRemoveAttribute(attribute)"
-                      >
-                        Override Warnings and Remove Attribute
-                      </button>
-                    </div>
-                  }
-                }
-              </section>
-            }
-
-            <section class="step-panel" aria-label="Attributes">
-              <div class="section-header">
-                <h3>Attributes</h3>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Terminology</th>
-                      <th>Attribute</th>
-                      @if (isConceptComponent(component)) {
-                        <th>Action</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (attribute of limitedAttributes(component); track attribute.id ?? $index) {
-                      <tr>
-                        <td>{{ attribute.terminology || 'n/a' }}</td>
-                        <td>{{ attributeDisplay(attribute) }}</td>
-                        @if (isConceptComponent(component)) {
-                          <td>
-                            <button
-                              type="button"
-                              (click)="removeAttributeFromConcept(attribute)"
-                              [disabled]="!canRemoveAttribute(attribute)"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        }
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          }
-
-          @if (isConceptComponent(component)) {
-            <section class="step-panel" aria-labelledby="content-relationship-mutation-title">
-                <div class="section-header">
-                  <h3 id="content-relationship-mutation-title">Relationship Add / Removal</h3>
-                </div>
-                <label class="form-field" for="content-relationship-target-query">
-                  Find Target Concept
-                  <input
-                    id="content-relationship-target-query"
-                    type="search"
-                    [ngModel]="relationshipTargetQuery()"
-                    (ngModelChange)="setRelationshipTargetQuery($event)"
-                    placeholder="Search by concept id or name"
-                  />
-                </label>
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="searchRelationshipTargets()"
-                    [disabled]="!relationshipTargetQuery().trim() || searchingRelationshipTargets()"
-                  >
-                    {{ searchingRelationshipTargets() ? 'Searching...' : 'Find Target' }}
-                  </button>
-                </div>
-                @if (relationshipTargetSearchError(); as targetSearchError) {
-                  <p class="form-errors compact-empty">{{ targetSearchError }}</p>
-                }
-                @if (selectedRelationshipTarget(); as selectedTarget) {
-                  <p class="empty compact-empty">
-                    Selected target:
-                    {{ selectedTarget.terminologyId || selectedTarget.id }}
-                    {{ conceptSearchTargetDisplay(selectedTarget) }}
-                  </p>
-                }
-                @if (relationshipTargetResults().length) {
-                  <div class="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Concept</th>
-                          <th>Name</th>
-                          <th>Action</th>
-                          <th>Batch</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (target of relationshipTargetResults(); track target.id ?? target.terminologyId ?? $index) {
-                          <tr>
-                            <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
-                            <td>{{ conceptSearchTargetDisplay(target) }}</td>
-                            <td>
-                              <button
-                                type="button"
-                                (click)="selectRelationshipTarget(target)"
-                                [disabled]="!target.id"
-                              >
-                                Select
-                              </button>
-                            </td>
-                            <td>
-                              <button
-                                type="button"
-                                (click)="addRelationshipBatchTarget(target)"
-                                [disabled]="!target.id || isRelationshipBatchTargetSelected(target)"
-                              >
-                                Add Target
-                              </button>
-                            </td>
-                        </tr>
-                      }
-                      </tbody>
-                  </table>
-                </div>
-              }
-              <p class="empty compact-empty">
-                {{ relationshipBatchTargetCount() }} relationship target(s) selected
-              </p>
-              @if (selectedRelationshipTargets().length) {
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Concept</th>
-                        <th>Name</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (target of selectedRelationshipTargets(); track target.id ?? target.terminologyId ?? $index) {
-                        <tr>
-                          <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
-                          <td>{{ conceptSearchTargetDisplay(target) }}</td>
-                          <td>
-                            <button
-                              type="button"
-                              (click)="removeRelationshipBatchTarget(target)"
-                            >
-                              Remove Target
-                            </button>
-                          </td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
-                <label class="form-field" for="content-relationship-add-target">
-                  Target Concept ID
-                  <input
-                    id="content-relationship-add-target"
-                    type="number"
-                    min="1"
-                    [ngModel]="relationshipAddTargetConceptId()"
-                    (ngModelChange)="setRelationshipAddTargetConceptId($event)"
-                    placeholder="Enter target concept id"
-                  />
-                </label>
-                <label class="form-field" for="content-relationship-add-type">
-                  Relationship To Current Concept
-                  <select
-                    id="content-relationship-add-type"
-                    [ngModel]="relationshipAddType()"
-                    (ngModelChange)="setRelationshipAddType($event)"
-                  >
-                    @for (type of relationshipAddTypeOptions(component); track type) {
-                      <option [value]="type">{{ type }}</option>
-                    }
-                  </select>
-                </label>
-                <label class="form-field" for="content-relationship-add-activity">
-                  Add Activity ID
-                  <input
-                    id="content-relationship-add-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(relationshipAddActivityId())"
-                    (ngModelChange)="setRelationshipAddActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (relationshipAddReadiness().reasons.length) {
-                  <ul class="form-errors">
-                    @for (reason of relationshipAddReadiness().reasons; track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipBatchAddReadiness().reasons.length) {
-                  <ul class="form-errors">
-                    @for (reason of relationshipBatchAddReadiness().reasons; track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipAddErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of relationshipAddErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipAddWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of relationshipAddWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipAddComments().length) {
-                  <div class="form-messages">
-                    @for (comment of relationshipAddComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="addRelationshipToConcept()"
-                    [disabled]="!relationshipAddReadiness().canExecute || addingRelationship()"
-                  >
-                    {{ addingRelationship() ? 'Adding...' : 'Add Relationship' }}
-                  </button>
-                </div>
-                <div class="form-actions">
-                  <button
-                    type="button"
-                    (click)="addRelationshipsToConcept()"
-                    [disabled]="!relationshipBatchAddReadiness().canExecute || addingRelationship()"
-                  >
-                    {{ addingRelationship() ? 'Adding...' : 'Add Selected Relationships' }}
-                  </button>
-                </div>
-                @if (relationshipAddNeedsWarningOverride()) {
-                  <div class="form-actions">
-                    <button
-                      type="button"
-                      (click)="addRelationshipToConcept(true)"
-                      [disabled]="!relationshipAddReadiness().canExecute || addingRelationship()"
-                    >
-                      Override Warnings and Add Relationship
-                    </button>
-                  </div>
-                }
-                @if (relationshipBatchAddNeedsWarningOverride()) {
-                  <div class="form-actions">
-                    <button
-                      type="button"
-                      (click)="addRelationshipsToConcept(true)"
-                      [disabled]="!relationshipBatchAddReadiness().canExecute || addingRelationship()"
-                    >
-                      Override Warnings and Add Selected Relationships
-                    </button>
-                  </div>
-                }
-                <label class="form-field" for="content-relationship-removal-activity">
-                  Remove Activity ID
-                  <input
-                    id="content-relationship-removal-activity"
-                    type="text"
-                    [ngModel]="activityIdValue(relationshipRemovalActivityId())"
-                    (ngModelChange)="setRelationshipRemovalActivityId($event)"
-                    placeholder="Enter the editing activity id"
-                  />
-                </label>
-                @if (relationshipRemovalBaseReasons().length) {
-                  <ul class="form-errors">
-                    @for (reason of relationshipRemovalBaseReasons(); track reason) {
-                      <li>{{ reason }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipRemovalErrors().length) {
-                  <ul class="form-errors">
-                    @for (error of relationshipRemovalErrors(); track error) {
-                      <li>{{ error }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipRemovalWarnings().length) {
-                  <ul
-                    class="form-errors"
-                    style="background: #fff7e6; border-color: #e8c16d; color: #744f11;"
-                  >
-                    @for (warning of relationshipRemovalWarnings(); track warning) {
-                      <li>{{ warning }}</li>
-                    }
-                  </ul>
-                }
-                @if (relationshipRemovalComments().length) {
-                  <div class="form-messages">
-                    @for (comment of relationshipRemovalComments(); track comment) {
-                      <p>{{ comment }}</p>
-                    }
-                  </div>
-                }
-                @if (relationshipRemovalNeedsWarningOverride()) {
-                  @if (relationshipRemovalPendingRelationship(); as relationship) {
-                    <div class="form-actions">
-                      <button
-                        type="button"
-                        (click)="removeRelationshipFromConcept(relationship, true)"
-                        [disabled]="!canRemoveRelationship(relationship)"
-                      >
-                        Override Warnings and Remove Relationship
-                      </button>
-                    </div>
-                  }
-                }
-            </section>
-          }
-
-          @if (limitedRelationships(component).length) {
-            <section class="step-panel" aria-label="Relationships">
-              <div class="section-header">
-                <h3>Relationships</h3>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Target</th>
-                      @if (isConceptComponent(component)) {
-                        <th>Action</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (relationship of limitedRelationships(component); track relationship.id ?? $index) {
-                      <tr>
-                        <td>{{ relationshipDisplay(relationship) || 'n/a' }}</td>
-                        <td>{{ relationship.toTerminologyId || relationship.toId || 'n/a' }}</td>
-                        @if (isConceptComponent(component)) {
-                          <td>
-                            <button
-                              type="button"
-                              (click)="removeRelationshipFromConcept(relationship)"
-                              [disabled]="!canRemoveRelationship(relationship)"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        }
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          }
-
-          <section class="step-panel" aria-labelledby="content-notes-title">
-            <div class="section-header">
-              <h3 id="content-notes-title">Notes</h3>
-            </div>
-            <label class="form-field" for="content-note-text">
-              New Note
-              <textarea
-                id="content-note-text"
-                rows="3"
-                [ngModel]="componentNoteText()"
-                (ngModelChange)="setComponentNoteText($event)"
-                placeholder="Enter note text"
-              ></textarea>
-            </label>
-            @if (componentNoteAddReadiness().reasons.length) {
-              <ul class="form-errors">
-                @for (reason of componentNoteAddReadiness().reasons; track reason) {
-                  <li>{{ reason }}</li>
-                }
-              </ul>
-            }
-            @if (componentNoteError(); as noteError) {
-              <p class="form-errors compact-empty">{{ noteError }}</p>
-            }
-            <div class="form-actions">
-              <button
-                type="button"
-                (click)="addNoteToSelectedComponent()"
-                [disabled]="!componentNoteAddReadiness().canExecute || addingComponentNote()"
-              >
-                {{ addingComponentNote() ? 'Adding...' : 'Add Note' }}
-              </button>
-            </div>
-            @if (limitedNotes(component).length) {
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Note</th>
-                      <th>Editor</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (note of limitedNotes(component); track note.id ?? $index) {
-                      <tr>
-                        <td>{{ noteDisplay(note) }}</td>
-                        <td>{{ noteByline(note) || 'n/a' }}</td>
-                        <td>
-                          <button
-                            type="button"
-                            (click)="removeNoteFromSelectedComponent(note)"
-                            [disabled]="!canRemoveComponentNote(note)"
-                          >
-                            {{ removingComponentNoteId() === note.id ? 'Removing...' : 'Remove' }}
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            } @else {
-              <p class="empty compact-empty">No notes.</p>
-            }
-          </section>
-        } @else if (selectedResult(); as result) {
-          <dl>
-            <dt>Value</dt>
-            <dd>{{ resultDisplay(result) }}</dd>
-            <dt>Terminology</dt>
-            <dd>{{ result.terminology || terminology() }} {{ result.version || version() }}</dd>
-            <dt>Type</dt>
-            <dd>{{ result.type || searchType() }}</dd>
-            <dt>Property</dt>
-            <dd>{{ resultProperty(result) }}</dd>
-            <dt>Status</dt>
-            <dd>{{ result.workflowStatus || (result.obsolete ? 'Obsolete' : 'Active') }}</dd>
-            <dt>Score</dt>
-            <dd>{{ displayScore(result.score) }}</dd>
-          </dl>
-        } @else {
-          <p class="empty compact-empty">No result selected.</p>
-        }
-      </div>
+    <aside class="detail-panel">
+      <meme-concept-report-panel
+        [concept]="selectedComponent()"
+        [projectId]="projectId()"
+        [projectRole]="projectRole()"
+        [editingEnabled]="projectEditingEnabled()"
+        [activityId]="editActivityId()"
+        (linkClicked)="openLinkedConceptDialog($event)"
+      />
     </aside>
     </div>
   }
+
+    </div><!-- /accordion-body Concepts -->
+  </details><!-- /Concepts -->
+
+  @if (projectRole() === 'ADMINISTRATOR') {
+    <details class="accordion-panel" open>
+      <summary class="accordion-heading">
+        <span class="accordion-arrow">&#9658;</span>
+        Metadata Editing
+      </summary>
+      <div class="accordion-body">
+        @if (loadingMetadata()) {
+          <p class="muted">Loading metadata…</p>
+        } @else if (metadataError()) {
+          <p class="form-errors">{{ metadataError() }}</p>
+        } @else {
+          <div class="meta-terminology-row">
+            <strong>Terminology</strong>
+            <select
+              [ngModel]="selectedMetadataTerminology()?.terminology ?? ''"
+              (ngModelChange)="selectMetadataTerminology($event)"
+            >
+              @for (t of currentTerminologies(); track t.terminology) {
+                <option [value]="t.terminology ?? ''">{{ t.terminology }}</option>
+              }
+            </select>
+            <span class="icon-action" title="Edit Root Terminology" (click)="metaNotImplemented('Root terminology editing is not yet implemented.')">✎</span>
+            <span class="meta-terminology-version">{{ selectedMetadataTerminology()?.version }}</span>
+            <span class="icon-action" title="Edit Terminology" (click)="metaNotImplemented('Terminology editing is not yet implemented.')">✎</span>
+          </div>
+
+          <div class="metadata-grid">
+
+            <!-- Left column: Term Types + Attribute Names + Precedence List -->
+            <div class="meta-col">
+
+              <!-- Term Types -->
+              <div class="meta-subsection">
+                <div class="meta-subsection-header">
+                  <strong>Term Types</strong>
+                  <input
+                    class="meta-filter"
+                    type="search"
+                    placeholder="Filter…"
+                    [ngModel]="termTypesFilter()"
+                    (ngModelChange)="setTermTypesFilter($event)"
+                  />
+                  <div class="meta-pager">
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="termTypesPage() === 1" (click)="termTypesPage.set(termTypesPage() - 1)">‹</button>
+                    <span>{{ termTypesPage() }} / {{ termTypesTotalPages() }}</span>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="termTypesPage() === termTypesTotalPages()" (click)="termTypesPage.set(termTypesPage() + 1)">›</button>
+                  </div>
+                  <button type="button" class="btn-primary" (click)="openAddTermType()">Add</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="slim-table">
+                    <thead>
+                      <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (entry of pagedTermTypes(); track entry.key) {
+                        <tr>
+                          <td>{{ entry.key }}</td>
+                          <td>{{ entry.value }}</td>
+                          <td class="nobreak">
+                            <span class="icon-action" title="Edit term type" (click)="openEditTermType(entry.key ?? '')">✎</span>
+                            <span
+                              class="icon-action danger"
+                              [class.is-disabled]="removingTermTypeKey() === entry.key"
+                              title="{{ removingTermTypeKey() === entry.key ? 'Removing…' : 'Delete term type' }}"
+                              (click)="removingTermTypeKey() === entry.key || removeTermType(entry.key ?? '')"
+                            >✕</span>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="3" class="empty-state-cell">No term types.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Attribute Names -->
+              <div class="meta-subsection" style="margin-top: var(--meme-space-md)">
+                <div class="meta-subsection-header">
+                  <strong>Attribute Names</strong>
+                  <input
+                    class="meta-filter"
+                    type="search"
+                    placeholder="Filter…"
+                    [ngModel]="attributeNamesFilter()"
+                    (ngModelChange)="setAttributeNamesFilter($event)"
+                  />
+                  <div class="meta-pager">
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="attributeNamesPage() === 1" (click)="attributeNamesPage.set(attributeNamesPage() - 1)">‹</button>
+                    <span>{{ attributeNamesPage() }} / {{ attributeNamesTotalPages() }}</span>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="attributeNamesPage() === attributeNamesTotalPages()" (click)="attributeNamesPage.set(attributeNamesPage() + 1)">›</button>
+                  </div>
+                  <button type="button" class="btn-primary" (click)="openAddAttributeName()">Add</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="slim-table">
+                    <thead>
+                      <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (entry of pagedAttributeNames(); track entry.key) {
+                        <tr>
+                          <td>{{ entry.key }}</td>
+                          <td>{{ entry.value }}</td>
+                          <td class="nobreak">
+                            <span class="icon-action" title="Edit attribute name" (click)="openEditAttributeName(entry.key ?? '')">✎</span>
+                            <span
+                              class="icon-action danger"
+                              [class.is-disabled]="removingAttributeNameKey() === entry.key"
+                              title="{{ removingAttributeNameKey() === entry.key ? 'Removing…' : 'Delete attribute name' }}"
+                              (click)="removingAttributeNameKey() === entry.key || removeMetadataAttributeName(entry.key ?? '')"
+                            >✕</span>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="3" class="empty-state-cell">No attribute names.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Precedence List -->
+              <div class="meta-subsection" style="margin-top: var(--meme-space-md)">
+                <div class="meta-subsection-header">
+                  <strong>Precedence List</strong>
+                </div>
+                <p class="empty">Precedence list editing is not yet implemented.</p>
+              </div>
+
+            </div><!-- /meta-col left -->
+
+            <!-- Right column: Relationship Types + Additional Relationship Types -->
+            <div class="meta-col">
+
+              <!-- Relationship Types -->
+              <div class="meta-subsection">
+                <div class="meta-subsection-header">
+                  <strong>Relationship Types</strong>
+                  <input
+                    class="meta-filter"
+                    type="search"
+                    placeholder="Filter…"
+                    [ngModel]="relationshipTypesFilter()"
+                    (ngModelChange)="setRelationshipTypesFilter($event)"
+                  />
+                  <div class="meta-pager">
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="relationshipTypesPage() === 1" (click)="relationshipTypesPage.set(relationshipTypesPage() - 1)">‹</button>
+                    <span>{{ relationshipTypesPage() }} / {{ relationshipTypesTotalPages() }}</span>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="relationshipTypesPage() === relationshipTypesTotalPages()" (click)="relationshipTypesPage.set(relationshipTypesPage() + 1)">›</button>
+                  </div>
+                  <button type="button" class="btn-primary" (click)="openAddRelationshipType()">Add</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="slim-table">
+                    <thead>
+                      <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (entry of pagedRelationshipTypes(); track entry.key) {
+                        <tr>
+                          <td>{{ entry.key }}</td>
+                          <td>{{ entry.value }}</td>
+                          <td class="nobreak">
+                            <span class="icon-action" title="Edit relationship type" (click)="openEditRelationshipType(entry.key ?? '')">✎</span>
+                            <span
+                              class="icon-action danger"
+                              [class.is-disabled]="removingRelationshipTypeKey() === entry.key"
+                              title="{{ removingRelationshipTypeKey() === entry.key ? 'Removing…' : 'Delete relationship type' }}"
+                              (click)="removingRelationshipTypeKey() === entry.key || removeMetadataRelationshipType(entry.key ?? '')"
+                            >✕</span>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="3" class="empty-state-cell">No relationship types.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Additional Relationship Types -->
+              <div class="meta-subsection" style="margin-top: var(--meme-space-md)">
+                <div class="meta-subsection-header">
+                  <strong>Additional Relationship Types</strong>
+                  <input
+                    class="meta-filter"
+                    type="search"
+                    placeholder="Filter…"
+                    [ngModel]="additionalRelTypesFilter()"
+                    (ngModelChange)="setAdditionalRelTypesFilter($event)"
+                  />
+                  <div class="meta-pager">
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="additionalRelTypesPage() === 1" (click)="additionalRelTypesPage.set(additionalRelTypesPage() - 1)">‹</button>
+                    <span>{{ additionalRelTypesPage() }} / {{ additionalRelTypesTotalPages() }}</span>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="additionalRelTypesPage() === additionalRelTypesTotalPages()" (click)="additionalRelTypesPage.set(additionalRelTypesPage() + 1)">›</button>
+                  </div>
+                  <button type="button" class="btn-primary" (click)="openAddAdditionalRelType()">Add</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="slim-table">
+                    <thead>
+                      <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (entry of pagedAdditionalRelTypes(); track entry.key) {
+                        <tr>
+                          <td>{{ entry.key }}</td>
+                          <td>{{ entry.value }}</td>
+                          <td class="nobreak">
+                            <span class="icon-action" title="Edit additional relationship type" (click)="openEditAdditionalRelType(entry.key ?? '')">✎</span>
+                            <span
+                              class="icon-action danger"
+                              [class.is-disabled]="removingAdditionalRelTypeKey() === entry.key"
+                              title="{{ removingAdditionalRelTypeKey() === entry.key ? 'Removing…' : 'Delete additional relationship type' }}"
+                              (click)="removingAdditionalRelTypeKey() === entry.key || removeAdditionalRelType(entry.key ?? '')"
+                            >✕</span>
+                          </td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="3" class="empty-state-cell">No additional relationship types.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div><!-- /meta-col right -->
+
+          </div><!-- /metadata-grid -->
+        }
+      </div>
+    </details>
+  }
 </section>
+
+@if (metaTermTypeDialogOpen()) {
+  <meme-dialog
+    [title]="metaTermTypeDialogTitle()"
+    [closeDisabled]="metaTermTypeSubmitting()"
+    (closed)="closeMetaTermTypeDialog()"
+  >
+    <div class="dialog-form">
+      @if (metaTermTypeLoading()) {
+        <p class="empty compact-empty">Loading...</p>
+      }
+      @if (metaTermTypeIsEdit()) {
+        <dl>
+          <dt>Abbreviation</dt>
+          <dd>{{ metaTermTypeFormAbbreviation() }}</dd>
+        </dl>
+      } @else {
+        <label class="form-field" for="meta-tt-abbreviation">
+          Abbreviation
+          <input
+            id="meta-tt-abbreviation"
+            type="text"
+            [ngModel]="metaTermTypeFormAbbreviation()"
+            (ngModelChange)="metaTermTypeFormAbbreviation.set($event)"
+            placeholder="e.g. PT"
+          />
+        </label>
+      }
+      <label class="form-field" for="meta-tt-expanded-form">
+        Expanded Form
+        <input
+          id="meta-tt-expanded-form"
+          type="text"
+          [ngModel]="metaTermTypeFormExpandedForm()"
+          (ngModelChange)="metaTermTypeFormExpandedForm.set($event)"
+          placeholder="e.g. Preferred Term"
+        />
+      </label>
+      @if (metaTermTypeIsTermType()) {
+        @if (metaTermTypeIsEdit()) {
+          <dl>
+            @if (metaTermTypeDetailStyle()) {
+              <dt>Term Type Style</dt>
+              <dd>{{ metaTermTypeDetailStyle() }}</dd>
+            }
+            @if (metaTermTypeDetailUsageType()) {
+              <dt>Usage Type</dt>
+              <dd>{{ metaTermTypeDetailUsageType() }}</dd>
+            }
+            @if (metaTermTypeDetailNameVariantType()) {
+              <dt>Name Variant Type</dt>
+              <dd>{{ metaTermTypeDetailNameVariantType() }}</dd>
+            }
+            @if (metaTermTypeDetailCodeVariantType()) {
+              <dt>Code Variant Type</dt>
+              <dd>{{ metaTermTypeDetailCodeVariantType() }}</dd>
+            }
+          </dl>
+        }
+        <label class="checkbox-label" for="meta-tt-suppressible">
+          <input
+            id="meta-tt-suppressible"
+            type="checkbox"
+            [ngModel]="metaTermTypeFormSuppressible()"
+            (ngModelChange)="metaTermTypeFormSuppressible.set($event)"
+          />
+          Suppressible
+        </label>
+        <label class="checkbox-label" for="meta-tt-obsolete">
+          <input
+            id="meta-tt-obsolete"
+            type="checkbox"
+            [ngModel]="metaTermTypeFormObsolete()"
+            (ngModelChange)="metaTermTypeFormObsolete.set($event)"
+          />
+          Obsolete
+        </label>
+        <label class="checkbox-label" for="meta-tt-hierarchical">
+          <input
+            id="meta-tt-hierarchical"
+            type="checkbox"
+            [ngModel]="metaTermTypeFormHierarchicalType()"
+            (ngModelChange)="metaTermTypeFormHierarchicalType.set($event)"
+          />
+          Hierarchical Type
+        </label>
+        <label class="checkbox-label" for="meta-tt-exclude">
+          <input
+            id="meta-tt-exclude"
+            type="checkbox"
+            [ngModel]="metaTermTypeFormExclude()"
+            (ngModelChange)="metaTermTypeFormExclude.set($event)"
+          />
+          Exclude
+        </label>
+        <label class="checkbox-label" for="meta-tt-norm-exclude">
+          <input
+            id="meta-tt-norm-exclude"
+            type="checkbox"
+            [ngModel]="metaTermTypeFormNormExclude()"
+            (ngModelChange)="metaTermTypeFormNormExclude.set($event)"
+          />
+          Norm Exclude
+        </label>
+      }
+      @if (metaTermTypeErrors().length) {
+        <ul class="form-errors">
+          @for (err of metaTermTypeErrors(); track err) {
+            <li>{{ err }}</li>
+          }
+        </ul>
+      }
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="submitMetaTermTypeDialog()"
+          [disabled]="!metaTermTypeCanSubmit() || metaTermTypeSubmitting() || metaTermTypeLoading()"
+        >
+          {{ metaTermTypeSubmitting() ? 'Saving...' : (metaTermTypeIsEdit() ? 'Save' : 'Add') }}
+        </button>
+        <button type="button" (click)="closeMetaTermTypeDialog()" [disabled]="metaTermTypeSubmitting()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
+
+@if (metaRelTypeDialogOpen()) {
+  <meme-dialog
+    [title]="metaRelTypeDialogTitle()"
+    [closeDisabled]="metaRelTypeSubmitting()"
+    (closed)="closeMetaRelTypeDialog()"
+  >
+    <div class="dialog-form">
+      @if (metaRelTypeLoading()) {
+        <p class="empty compact-empty">Loading...</p>
+      }
+      @if (metaRelTypeIsEdit()) {
+        <dl>
+          <dt>Abbreviation</dt>
+          <dd>{{ metaRelTypeFormAbbreviation() }}</dd>
+        </dl>
+      } @else {
+        <label class="form-field" for="meta-rt-abbreviation">
+          Abbreviation
+          <input
+            id="meta-rt-abbreviation"
+            type="text"
+            [ngModel]="metaRelTypeFormAbbreviation()"
+            (ngModelChange)="metaRelTypeFormAbbreviation.set($event)"
+            placeholder="e.g. RO"
+          />
+        </label>
+      }
+      <label class="form-field" for="meta-rt-expanded-form">
+        Expanded Form
+        <input
+          id="meta-rt-expanded-form"
+          type="text"
+          [ngModel]="metaRelTypeFormExpandedForm()"
+          (ngModelChange)="metaRelTypeFormExpandedForm.set($event)"
+          placeholder="e.g. Other Related"
+        />
+      </label>
+      @if (metaRelTypeIsEdit()) {
+        <dl>
+          <dt>Inverse Abbreviation</dt>
+          <dd>{{ metaRelTypeInverseFormAbbreviation() || '—' }}</dd>
+        </dl>
+      } @else {
+        <label class="form-field" for="meta-rt-inverse-abbreviation">
+          Inverse Abbreviation
+          <input
+            id="meta-rt-inverse-abbreviation"
+            type="text"
+            [ngModel]="metaRelTypeInverseFormAbbreviation()"
+            (ngModelChange)="metaRelTypeInverseFormAbbreviation.set($event)"
+            placeholder="e.g. RO"
+          />
+        </label>
+        <label class="form-field" for="meta-rt-inverse-expanded-form">
+          Inverse Expanded Form
+          <input
+            id="meta-rt-inverse-expanded-form"
+            type="text"
+            [ngModel]="metaRelTypeInverseFormExpandedForm()"
+            (ngModelChange)="metaRelTypeInverseFormExpandedForm.set($event)"
+            placeholder="e.g. Other Related"
+          />
+        </label>
+      }
+      @if (metaRelTypeErrors().length) {
+        <ul class="form-errors">
+          @for (err of metaRelTypeErrors(); track err) {
+            <li>{{ err }}</li>
+          }
+        </ul>
+      }
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="submitMetaRelTypeDialog()"
+          [disabled]="!metaRelTypeCanSubmit() || metaRelTypeSubmitting() || metaRelTypeLoading()"
+        >
+          {{ metaRelTypeSubmitting() ? 'Saving...' : (metaRelTypeIsEdit() ? 'Save' : 'Add') }}
+        </button>
+        <button type="button" (click)="closeMetaRelTypeDialog()" [disabled]="metaRelTypeSubmitting()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
+
+@if (finderDialogOpen()) {
+  <meme-dialog title="Concept Finder" size="lg" (closed)="closeFinderDialog()">
+    <div class="finder-dialog-layout">
+
+      <!-- Left: search + results -->
+      <div class="finder-dialog-left">
+        <form (ngSubmit)="runFinderSearch()" class="finder-search-row">
+          <input
+            type="search"
+            autofocus
+            [ngModel]="finderQuery()"
+            (ngModelChange)="finderQuery.set($event)"
+            name="finder-query"
+            placeholder="Search concepts…"
+            class="finder-search-input"
+          />
+          <button type="submit" class="btn-primary" [disabled]="loadingFinderResults()">Search</button>
+        </form>
+        @if (loadingFinderResults()) {
+          <p class="empty compact-empty">Searching…</p>
+        } @else if (finderResults().length) {
+          <div class="table-wrap finder-results-wrap">
+            <table class="slim-table pointer-table">
+              <thead>
+                <tr><th>Id</th><th>Name</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (result of finderResults(); track result.id) {
+                  <tr
+                    [class.selected]="finderSelectedResult()?.id === result.id"
+                    (click)="selectFinderResult(result)"
+                  >
+                    <td>{{ result.terminologyId || result.id }}</td>
+                    <td>{{ result.value || result.name }}</td>
+                    <td class="nobreak">
+                      <span class="icon-action" title="Add to list" (click)="finderSelectedResult.set(result); addFinderResultToList(); $event.stopPropagation()">+</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="wl-pager">
+            <button type="button" class="icon-btn" [disabled]="finderResultsPage() === 1" (click)="finderResultsPage.set(finderResultsPage() - 1); runFinderSearch()">‹</button>
+            <span>{{ finderResultsPage() }}</span>
+            <button type="button" class="icon-btn" [disabled]="finderResults().length < finderResultsPageSize" (click)="finderResultsPage.set(finderResultsPage() + 1); runFinderSearch()">›</button>
+          </div>
+        } @else if (finderQuery()) {
+          <p class="empty compact-empty">No matching concepts found.</p>
+        }
+        <div class="form-actions">
+          <button type="button" (click)="closeFinderDialog()">Close</button>
+        </div>
+      </div>
+
+      <!-- Right: report panel -->
+      <div class="finder-dialog-right">
+        <meme-concept-report-panel
+          [concept]="finderPreviewConcept()"
+          [projectId]="projectId()"
+          [projectRole]="projectRole()"
+          [editingEnabled]="false"
+          (linkClicked)="openLinkedConceptDialog($event)"
+        />
+      </div>
+
+    </div>
+  </meme-dialog>
+}
 
 @if (mergeDialogOpen()) {
   <meme-dialog

@@ -1,0 +1,24 @@
+:host {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.crp-popup-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.crp-popup-status {
+  padding: 16px;
+  color: var(--meme-text-secondary);
+  font-style: italic;
+  font-size: var(--meme-text-sm);
+  margin: 0;
+}
+
+.crp-popup-error {
+  color: var(--meme-danger-text, #c0392b);
+  font-style: normal;
+}

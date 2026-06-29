@@ -83,12 +83,14 @@ export interface ContentTerminologyListResponse {
 }
 
 export interface ContentAtom extends ContentComponentSummary {
+  attributes?: ContentAttribute[];
   codeId?: string | null;
   conceptId?: string | null;
   definitions?: ContentDefinition[];
   descriptorId?: string | null;
   language?: string | null;
   lexicalClassId?: string | null;
+  relationships?: ContentRelationship[];
   stringClassId?: string | null;
   termType?: string | null;
 }
@@ -145,6 +147,7 @@ export interface ContentRelationship {
 
 export interface ContentSemanticType {
   id?: number | null;
+  lastModifiedBy?: string | null;
   semanticType?: string | null;
 }
 
@@ -152,6 +155,7 @@ export interface ContentSemanticTypeMetadata {
   abbreviation?: string | null;
   expandedForm?: string | null;
   terminology?: string | null;
+  treeNumber?: string | null;
   typeId?: string | null;
   version?: string | null;
 }
@@ -220,6 +224,68 @@ export interface ContentComponent extends ContentComponentSummary {
   notes?: ContentNote[];
   relationships?: ContentRelationship[];
   semanticTypes?: ContentSemanticType[];
+}
+
+export interface ContentKeyValuePair {
+  key?: string | null;
+  value?: string | null;
+}
+
+export interface ContentKeyValuePairList {
+  keyValuePairs?: ContentKeyValuePair[];
+  name?: string | null;
+}
+
+export interface ContentKeyValuePairLists {
+  count?: number;
+  keyValuePairLists?: ContentKeyValuePairList[];
+}
+
+export interface ContentMetadata {
+  additionalRelationshipTypes: ContentKeyValuePair[];
+  attributeNames: ContentKeyValuePair[];
+  relationshipTypes: ContentKeyValuePair[];
+  termTypes: ContentKeyValuePair[];
+}
+
+export interface ContentTermTypeDetail {
+  abbreviation?: string | null;
+  codeVariantType?: string | null;
+  exclude?: boolean | null;
+  expandedForm?: string | null;
+  hierarchicalType?: boolean | null;
+  nameVariantType?: string | null;
+  normExclude?: boolean | null;
+  obsolete?: boolean | null;
+  style?: string | null;
+  suppressible?: boolean | null;
+  terminology?: string | null;
+  usageType?: string | null;
+  version?: string | null;
+}
+
+export interface ContentRelationshipTypeDetail {
+  abbreviation?: string | null;
+  expandedForm?: string | null;
+  inverseAbbreviation?: string | null;
+  terminology?: string | null;
+  version?: string | null;
+}
+
+export interface MolecularAction {
+  id?: number | null;
+  componentId?: number | null;
+  componentId2?: number | null;
+  name?: string | null;
+  timestamp?: string | null;
+  lastModifiedBy?: string | null;
+  undoneFlag?: boolean | null;
+  activityId?: number | null;
+}
+
+export interface MolecularActionListResponse {
+  actions?: MolecularAction[] | null;
+  totalCount?: number | null;
 }
 
 export interface ContentRouteMode {

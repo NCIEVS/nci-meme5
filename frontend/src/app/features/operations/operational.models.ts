@@ -12,6 +12,7 @@ export interface OperationalListState<T> {
 }
 
 export interface OperationalListResponse<T> {
+  atoms?: T[];
   bins?: T[];
   checklists?: T[];
   configs?: T[];
@@ -180,6 +181,20 @@ export interface ClusterTypeStats {
   stats?: Record<string, number> | null;
 }
 
+export interface TrackingRecordConcept {
+  id?: number | null;
+  name?: string | null;
+  workflowStatus?: string | null;
+}
+
+export interface TrackingRecord {
+  clusterId?: number | null;
+  workflowStatus?: string | null;
+  worklistName?: string | null;
+  checklistName?: string | null;
+  concepts?: TrackingRecordConcept[] | null;
+}
+
 export interface WorkflowBin {
   autofix?: string | null;
   clusterCt?: number | null;
@@ -245,4 +260,18 @@ export interface SourceIdRange {
 export interface SourceIdRangeListResponse {
   sourceIdRanges?: SourceIdRange[];
   totalCount?: number;
+}
+
+export interface WorkflowReportResult {
+  ct?: number | null;
+  id?: number | null;
+  value?: string | null;
+}
+
+export interface WorkflowReport {
+  id?: number | null;
+  lastModified?: string | number | null;
+  name?: string | null;
+  results?: WorkflowReportResult[] | null;
+  totalCount?: number | null;
 }

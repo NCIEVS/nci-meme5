@@ -9,6 +9,7 @@ let nextDialogId = 0;
 })
 export class DialogComponent {
   @Input() closeDisabled = false;
+  @Input() size: 'md' | 'lg' | 'xl' = 'md';
   @Input({ required: true }) title = '';
   @Output() readonly closed = new EventEmitter<void>();
 

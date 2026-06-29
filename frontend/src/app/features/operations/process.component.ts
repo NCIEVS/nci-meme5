@@ -11,6 +11,7 @@ import {
   timer
 } from 'rxjs';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
@@ -19,6 +20,7 @@ import { OperationalApiService } from './operational-api.service';
 import {
   AlgorithmParameter,
   KeyValuePair,
+  OperationalProject,
   OperationalTerminology,
   ProcessConfig,
   ProcessExecution,
@@ -76,6 +78,7 @@ interface QueryTestContext {
 })
 export class ProcessComponent implements OnInit, OnDestroy {
   private readonly api = inject(OperationalApiService);
+  private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationService);
   private readonly projectContext = inject(ProjectContextService);
   private executionFeedbackSubscription: Subscription | null = null;
@@ -147,9 +150,21 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly canManageProcesses = computed(
     () => this.projectContext.projectRole() === 'ADMINISTRATOR'
   );
+  protected readonly availableProjects = signal<OperationalProject[]>([]);
+  protected readonly availableRoles = computed<string[]>(() => {
+    const user = this.auth.currentUser();
+    const projectId = this.projectId();
+    if (!projectId) return [];
+    const assigned = user.projectRoleMap?.[String(projectId)];
+    if (assigned === 'ADMINISTRATOR') return ['ADMINISTRATOR', 'REVIEWER', 'AUTHOR'];
+    if (assigned === 'REVIEWER') return ['REVIEWER', 'AUTHOR'];
+    if (assigned === 'AUTHOR') return ['AUTHOR'];
+    return assigned ? [assigned] : [];
+  });
 
   ngOnInit(): void {
     this.loadTerminologies();
+    this.loadProjects();
     this.load();
     this.startRunningStateRefresh();
   }
@@ -157,6 +172,39 @@ export class ProcessComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopExecutionFeedbackPolling();
     this.runningStateSubscription.unsubscribe();
+  }
+
+  protected loadProjects(): void {
+    const user = this.auth.currentUser();
+    const projectIds = Object.keys(user.projectRoleMap ?? {}).map(Number).filter(Boolean);
+    this.api.findProjectsByIds(projectIds).subscribe({
+      next: (projects) => this.availableProjects.set(projects),
+      error: () => {}
+    });
+  }
+
+  protected selectProject(idStr: string): void {
+    const user = this.auth.currentUser();
+    const newPrefs = { ...user.userPreferences, lastProjectId: Number(idStr), lastProjectRole: null };
+    this.api.updateUserPreferences(newPrefs).subscribe({
+      next: (saved) => {
+        this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+        this.load();
+      },
+      error: () => this.notifications.error('Could not switch project.')
+    });
+  }
+
+  protected selectRole(role: string): void {
+    const user = this.auth.currentUser();
+    const newPrefs = { ...user.userPreferences, lastProjectRole: role };
+    this.api.updateUserPreferences(newPrefs).subscribe({
+      next: (saved) => {
+        this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+        this.load();
+      },
+      error: () => this.notifications.error('Could not switch role.')
+    });
   }
 
   protected load(

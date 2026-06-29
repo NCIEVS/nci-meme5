@@ -4,16 +4,6 @@
       <p class="kicker">Source ID Ranges</p>
       <h1 id="inversion-title">Inversion</h1>
     </div>
-    <div class="summary-set" aria-label="Inversion context">
-      <div class="summary">
-        <strong>{{ ranges().length }}</strong>
-        <span>results</span>
-      </div>
-      <div class="summary">
-        <strong>{{ projectId() ?? 'n/a' }}</strong>
-        <span>project</span>
-      </div>
-    </div>
   </header>
 
   @if (projectId()) {
@@ -22,9 +12,15 @@
       {{ projectRole() }}.
     </p>
 
+    <details class="accordion-panel" open>
+      <summary class="accordion-heading">
+        <span class="accordion-arrow">&#9658;</span>
+        Source Atom Id Ranges
+      </summary>
+      <div class="accordion-body">
     <section class="list-panel" aria-labelledby="inversion-ranges-title">
       <div class="panel-header">
-        <h2 id="inversion-ranges-title">Source Atom Id Ranges</h2>
+        <h2 id="inversion-ranges-title" class="sr-only">Source Atom Id Ranges</h2>
       </div>
 
       <form class="toolbar" (ngSubmit)="search()" aria-label="Source ID range search">
@@ -36,24 +32,29 @@
           (ngModelChange)="vsab.set($event)"
           name="inversion-vsab"
           placeholder="e.g. MTH_2018AB"
+          style="flex: 1 1 200px"
         />
-        <button type="submit" [disabled]="loading() || !vsab().trim()">
-          {{ loading() ? 'Searching…' : 'Search' }}
-        </button>
-        <button
-          type="button"
-          [disabled]="loading() || !vsab().trim()"
-          (click)="openRequestDialog()"
-        >
-          Request Range
-        </button>
-        <button
-          type="button"
-          [disabled]="loading() || !vsab().trim()"
-          (click)="openAdjustDialog()"
-        >
-          Submit Adjustment
-        </button>
+        <div class="inline-actions">
+          <button type="submit" class="btn-primary" [disabled]="loading() || !vsab().trim()">
+            {{ loading() ? 'Searching…' : 'Search' }}
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            [disabled]="loading() || !vsab().trim()"
+            (click)="openRequestDialog()"
+          >
+            Request Range
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            [disabled]="loading() || !vsab().trim()"
+            (click)="openAdjustDialog()"
+          >
+            Submit Adjustment
+          </button>
+        </div>
       </form>
 
       @if (searchError()) {
@@ -61,7 +62,7 @@
       }
 
       <div class="table-wrap">
-        <table aria-label="Source ID ranges">
+        <table class="slim-table" aria-label="Source ID ranges">
           <thead>
             <tr>
               <th>SAB</th>
@@ -99,7 +100,7 @@
             } @empty {
               @if (!loading()) {
                 <tr>
-                  <td [attr.colspan]="canRemoveRanges() ? 7 : 6" class="muted">
+                  <td [attr.colspan]="canRemoveRanges() ? 7 : 6" class="empty-state-cell">
                     No results. Enter a versioned terminology and click Search.
                   </td>
                 </tr>
@@ -109,6 +110,8 @@
         </table>
       </div>
     </section>
+      </div><!-- /accordion-body Source Atom Id Ranges -->
+    </details><!-- /Source Atom Id Ranges -->
   } @else {
     <p class="context-panel">
       Select a project in the legacy-compatible session before opening Inversion.
@@ -171,7 +174,7 @@
         <button type="submit" [disabled]="submittingRequest()">
           {{ submittingRequest() ? 'Requesting…' : 'Request' }}
         </button>
-        <button type="button" (click)="closeRequestDialog()" [disabled]="submittingRequest()">
+        <button type="button" class="warning" (click)="closeRequestDialog()" [disabled]="submittingRequest()">
           Cancel
         </button>
       </div>
@@ -234,7 +237,7 @@
         <button type="submit" [disabled]="submittingAdjust()">
           {{ submittingAdjust() ? 'Submitting…' : 'Submit Adjustment' }}
         </button>
-        <button type="button" (click)="closeAdjustDialog()" [disabled]="submittingAdjust()">
+        <button type="button" class="warning" (click)="closeAdjustDialog()" [disabled]="submittingAdjust()">
           Cancel
         </button>
       </div>

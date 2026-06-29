@@ -1,40 +1,40 @@
 .notifications {
   display: grid;
-  gap: 10px;
-  padding: 16px 32px 0;
+  gap: var(--meme-space-sm);
+  padding: var(--meme-space-lg) 32px 0;
 }
 
 article {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 14px;
-  color: #12372f;
-  background: #e8f5ef;
-  border: 1px solid #99d2be;
-  border-radius: 4px;
+  gap: var(--meme-space-lg);
+  padding: var(--meme-space-md) var(--meme-panel-padding);
+  color: var(--meme-success-text);
+  background: var(--meme-success-bg);
+  border: 1px solid var(--meme-success-border);
+  border-radius: var(--meme-input-radius);
 }
 
 article.error {
-  color: #5a1f18;
-  background: #fae9e5;
-  border-color: #df9d90;
+  color: var(--meme-error-text);
+  background: var(--meme-error-bg);
+  border-color: var(--meme-error-border);
 }
 
 button {
-  min-height: 32px;
-  padding: 4px 10px;
+  min-height: var(--meme-btn-height);
+  padding: var(--meme-btn-padding);
   color: inherit;
   background: transparent;
   border: 1px solid currentColor;
-  border-radius: 4px;
+  border-radius: var(--meme-btn-radius);
   cursor: pointer;
 }
 
 @media (max-width: 640px) {
   .notifications {
-    padding: 12px 18px 0;
+    padding: var(--meme-space-md) var(--meme-space-lg) 0;
   }
 
   article {

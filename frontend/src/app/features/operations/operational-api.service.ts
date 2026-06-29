@@ -1,7 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { forkJoin, map, Observable, of } from 'rxjs';
 
+import { UserPreferences } from '../../core/auth/auth.models';
 import { MEME_API_BASE_URL } from '../../core/meme-api.tokens';
 import {
   buildOperationalPfs,
@@ -23,12 +24,14 @@ import {
   SearchResultListResponse,
   SourceIdRange,
   SourceIdRangeListResponse,
+  TrackingRecord,
   WorkflowBin,
   WorkflowBinDefinition,
   WorkflowConfig,
   WorkflowEpoch,
   WorkflowAction,
   WorkflowNote,
+  WorkflowReport,
   Worklist
 } from './operational.models';
 
@@ -49,6 +52,20 @@ export class OperationalApiService {
 
   getProject(projectId: number): Observable<OperationalProject> {
     return this.http.get<OperationalProject>(`${this.baseUrl}/project/${projectId}`);
+  }
+
+  findProjectsByIds(projectIds: number[]): Observable<OperationalProject[]> {
+    if (projectIds.length === 0) {
+      return of([]);
+    }
+    return forkJoin(projectIds.map((id) => this.getProject(id)));
+  }
+
+  updateUserPreferences(userPreferences: UserPreferences): Observable<UserPreferences> {
+    return this.http.post<UserPreferences>(
+      `${this.baseUrl}/security/user/preferences/update`,
+      userPreferences
+    );
   }
 
   findAssignedProjectUsers(
@@ -885,6 +902,42 @@ export class OperationalApiService {
     );
   }
 
+  findReports(
+    projectId: number,
+    name: string,
+    pfs: PfsParameter = buildOperationalPfs(1, 10, 'lastModified', false, `name:"${name}"`)
+  ): Observable<OperationalListState<WorkflowReport>> {
+    return this.http
+      .post<OperationalListResponse<WorkflowReport>>(
+        `${this.baseUrl}/report/find`,
+        pfs,
+        { params: new HttpParams().set('projectId', projectId).set('query', `name:"${name}"`) }
+      )
+      .pipe(map((r) => normalizeOperationalListResponse(r, ['atoms', 'objects'])));
+  }
+
+  generateReport(
+    projectId: number,
+    name: string,
+    query: string,
+    queryType: string
+  ): Observable<WorkflowReport> {
+    return this.http.get<WorkflowReport>(
+      `${this.baseUrl}/report/generate/${projectId}`,
+      {
+        params: new HttpParams()
+          .set('name', name)
+          .set('query', query)
+          .set('queryType', queryType)
+          .set('resultType', 'CONCEPT')
+      }
+    );
+  }
+
+  removeReport(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/report/${id}`);
+  }
+
   stampWorklist(
     projectId: number,
     id: number,
@@ -1086,5 +1139,41 @@ export class OperationalApiService {
 
   removeSourceIdRange(sourceIdRangeId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/inversion/range/${sourceIdRangeId}`);
+  }
+
+  findTrackingRecordsForBin(
+    projectId: number,
+    binId: number,
+    pfs: PfsParameter
+  ): Observable<{ records: TrackingRecord[]; totalCount: number }> {
+    return this.http.post<{ records: TrackingRecord[]; totalCount: number }>(
+      `${this.baseUrl}/workflow/bin/${binId}/records`,
+      pfs,
+      { params: new HttpParams().set('projectId', projectId) }
+    );
+  }
+
+  findTrackingRecordsForWorklist(
+    projectId: number,
+    worklistId: number,
+    pfs: PfsParameter
+  ): Observable<{ records: TrackingRecord[]; totalCount: number }> {
+    return this.http.post<{ records: TrackingRecord[]; totalCount: number }>(
+      `${this.baseUrl}/workflow/worklist/${worklistId}/records`,
+      pfs,
+      { params: new HttpParams().set('projectId', projectId) }
+    );
+  }
+
+  findTrackingRecordsForChecklist(
+    projectId: number,
+    checklistId: number,
+    pfs: PfsParameter
+  ): Observable<{ records: TrackingRecord[]; totalCount: number }> {
+    return this.http.post<{ records: TrackingRecord[]; totalCount: number }>(
+      `${this.baseUrl}/workflow/checklist/${checklistId}/records`,
+      pfs,
+      { params: new HttpParams().set('projectId', projectId) }
+    );
   }
 }

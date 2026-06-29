@@ -4,7 +4,6 @@ import { firstValueFrom } from 'rxjs';
 
 import { RuntimeConfigService } from '../config/runtime-config.service';
 import { MEME_API_BASE_URL } from '../meme-api.tokens';
-import { NotificationService } from '../notifications/notification.service';
 import { EMPTY_USER, MemeUser, UserPreferences } from './auth.models';
 
 @Injectable({
@@ -14,7 +13,6 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(MEME_API_BASE_URL);
   private readonly config = inject(RuntimeConfigService);
-  private readonly notifications = inject(NotificationService);
   private readonly userState = signal<MemeUser>({ ...EMPTY_USER });
 
   readonly currentUser = this.userState.asReadonly();
@@ -57,7 +55,6 @@ export class AuthService {
     );
 
     this.setUser(user);
-    this.notifications.success(`Logged in as ${user.name || user.userName}`);
     return this.currentUser();
   }
 
@@ -78,7 +75,6 @@ export class AuthService {
     }
 
     this.clearUser();
-    this.notifications.success('Logged out');
   }
 
   setUser(data: MemeUser): void {

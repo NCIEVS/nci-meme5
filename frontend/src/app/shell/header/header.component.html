@@ -1,7 +1,16 @@
 <header class="app-header">
   <a class="brand" routerLink="/" aria-label="NCI-META home">
-    <span class="brand-mark" aria-hidden="true">NM</span>
-    <span>{{ config.title() }}</span>
+    <img
+      class="brand-logo"
+      src="/images/logo36x40.jpg"
+      alt="NCI-META logo"
+      width="36"
+      height="40"
+    />
+    <span class="brand-text">
+      <span class="brand-org">National Cancer Institute</span>
+      <span class="brand-title">{{ config.title() }}</span>
+    </span>
   </a>
 
   <nav aria-label="Enabled tabs">

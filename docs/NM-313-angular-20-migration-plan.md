@@ -1417,6 +1417,58 @@ These tokens replace the ad-hoc px values currently scattered across
 `admin.component.css`, `operations.component.css`, `dialog.component.css`, and
 the inline styles in content templates.
 
+**Layer 1a: Two-column layout token**
+
+Three tabs use the same structural pattern from the legacy UI: a list or search
+panel on the left and a detail or action panel on the right, side by side. The
+legacy used Bootstrap's `col-md-6 col-xs-12` (50/50 split, stacking on mobile).
+The Angular 20 admin and operations CSS files each define their own grid with
+slightly different ratios (`1.2fr / 0.8fr`, `1.15fr / 0.85fr`), and the
+content-edit component has no layout CSS at all.
+
+Before working through each screen, add a canonical `--meme-split-grid` layout
+class to `styles.css` — a 50/50 responsive two-column grid that stacks at the
+mobile breakpoint — and update `admin.component.css` and
+`operations.component.css` to use it for their split-panel sections:
+
+```css
+/* In styles.css — add to token block */
+--meme-split-ratio: minmax(0, 1fr) minmax(0, 1fr);   /* 50/50, same as Bootstrap col-md-6 */
+--meme-split-breakpoint: 900px;
+```
+
+```css
+/* Canonical two-column layout class — add to styles.css global section */
+.meme-split-grid {
+  display: grid;
+  grid-template-columns: var(--meme-split-ratio);
+  gap: var(--meme-view-gap);
+}
+
+@media (max-width: var(--meme-split-breakpoint)) {
+  .meme-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+Screens that need `.meme-split-grid`:
+
+- **Admin** — "User & Project Management" section: project list (left) /
+  user-assignment panel (right). The upper projects/users tables are full-width
+  and do not need the split.
+- **Process** — process list (left) / process details (right). Algorithm step
+  list within process detail also uses a two-column pattern: step list (left) /
+  step config (right).
+- **Edit / Content** — search/list panel (left) / selected-concept detail panel
+  (right). This is the most visible instance: the detail panel contains all the
+  step-panels (atoms, merge, relationships, etc.) and must remain scrollable
+  independently of the list.
+
+The edit panel split has one additional requirement: the detail side must scroll
+independently while the list stays anchored. Verify `overflow-y: auto` or
+`align-self: start` behavior is correct after the split is applied.
+
 **Layer 2: Shared component pass**
 
 Update the reusable shared components before touching any feature screen, since
@@ -1455,6 +1507,12 @@ organization, then apply targeted fixes.
 - Tab bar: selected-tab indicator, disabled-tab appearance, tab label casing.
 
 *Admin tab*
+- **Two-column layout**: the "User & Project Management" section uses a 50/50
+  split — project list on the left, user-assignment panels (unassigned /
+  assigned users) on the right. The current Angular admin view uses an
+  asymmetric `1.2fr / 0.8fr` grid; this must be corrected to the canonical
+  `.meme-split-grid` (50/50). The upper project and user summary tables are
+  full-width and do not need the split.
 - User list: column widths, action-button alignment, role badge appearance.
 - Project list: column widths, expand/collapse geometry.
 - Add/edit user dialog: label alignment, field spacing, role checkboxes layout.
@@ -1471,15 +1529,31 @@ organization, then apply targeted fixes.
 - Worklist detail / finish dialog: time-entry field layout, button placement.
 
 *Process tab*
+- **Two-column layout**: the process screen uses a 50/50 split — process config
+  list (or execution list) on the left, process detail panel on the right.
+  Within the process detail, the algorithm step list and the selected step's
+  config form also appear side by side (left: ordered step list; right: step
+  parameter editor). The current Angular operations CSS uses a `1.15fr / 0.85fr`
+  ratio for this; both splits should be corrected to `.meme-split-grid`.
 - Process config list and execution list: column widths, status indicator,
   action buttons.
-- Algorithm config detail: step-panel organization, field layout.
+- Process detail: name, description, timestamps aligned to legacy table layout.
+- Algorithm step list: ordering controls (up/down), step type label, last
+  modified column.
+- Algorithm config detail: step-panel organization, parameter field layout
+  matching legacy inline-form style.
 
 *Edit / Content tab*
 This is the largest and most visible screen. Priority order within the tab:
 
-1. Overall layout — two-column split (search/list on left, detail on right)
-   matching legacy edit.html panel geometry.
+1. **Two-column layout** — search/list panel on the left, selected-concept
+   detail panel on the right, using `.meme-split-grid`. The content-edit
+   component currently has no layout CSS at all; this is the first and most
+   structurally important fix. The detail panel must scroll independently
+   (`overflow-y: auto` or equivalent) so editors can scroll through atoms and
+   relationships without losing their position in the search list. The split
+   must stack to a single column on narrow viewports matching the legacy mobile
+   behavior.
 2. Search toolbar — input width, button grouping, paging controls.
 3. Result list — row density, selected-row highlight, concept-id/name column
    widths.

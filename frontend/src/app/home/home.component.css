@@ -11,14 +11,14 @@
   color: #ffffff;
   background:
     linear-gradient(120deg, rgb(35 54 74 / 92%), rgb(47 143 157 / 84%)),
-    #23364a;
-  border-radius: 6px;
+    var(--meme-brand-bg);
+  border-radius: var(--meme-panel-radius);
 }
 
 .kicker {
-  margin: 0 0 8px;
-  color: #f7c65f;
-  font-size: 0.86rem;
+  margin: 0 0 var(--meme-space-sm);
+  color: var(--meme-loading-track);
+  font-size: var(--meme-table-font-size);
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -34,7 +34,7 @@ h1 {
 
 .summary {
   max-width: 720px;
-  margin: 18px 0 0;
+  margin: var(--meme-space-lg) 0 0;
   color: #edf6fa;
   font-size: 1.05rem;
 }
@@ -42,29 +42,29 @@ h1 {
 .status-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 18px;
+  gap: var(--meme-space-lg);
+  margin-top: var(--meme-space-lg);
 }
 
 article {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--meme-space-sm);
   min-height: 132px;
-  padding: 18px;
-  background: #ffffff;
-  border: 1px solid #d9e2ea;
-  border-left: 5px solid #b85b47;
-  border-radius: 6px;
-  box-shadow: 0 10px 28px rgb(21 40 58 / 8%);
+  padding: var(--meme-space-lg);
+  background: var(--meme-surface);
+  border: 1px solid var(--meme-border);
+  border-left: 5px solid var(--meme-kicker);
+  border-radius: var(--meme-panel-radius);
+  box-shadow: var(--meme-panel-shadow);
 }
 
 article.available {
-  border-left-color: #2f8f9d;
+  border-left-color: var(--meme-brand-accent);
 }
 
 .label {
-  color: #5c6c7a;
+  color: var(--meme-text-muted);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -72,14 +72,14 @@ article.available {
 }
 
 strong {
-  color: #1d2936;
+  color: var(--meme-text);
   font-size: 1.05rem;
   line-height: 1.25;
 }
 
 article span:last-child {
   overflow-wrap: anywhere;
-  color: #536372;
+  color: var(--meme-text-secondary);
   font-size: 0.9rem;
 }
 

@@ -2,12 +2,12 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: var(--meme-space-lg);
   min-height: 48px;
   padding: 10px 32px;
-  color: #3c4b58;
-  background: #ffffff;
-  border-top: 1px solid #d9e2ea;
+  color: var(--meme-text-label);
+  background: var(--meme-surface);
+  border-top: 1px solid var(--meme-border);
   font-size: 0.9rem;
 }
 
@@ -19,13 +19,13 @@ div {
 }
 
 a {
-  color: #245f7a;
+  color: var(--meme-brand-action);
 }
 
 @media (max-width: 720px) {
   footer {
     align-items: flex-start;
     flex-direction: column;
-    padding: 14px 18px;
+    padding: var(--meme-panel-padding) var(--meme-space-lg);
   }
 }
