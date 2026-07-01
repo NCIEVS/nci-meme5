@@ -445,7 +445,7 @@ tsApp.controller('WorkflowCtrl', [
 
       $scope.resetRecordPaging();
       if (clusterType && clusterType == 'default') {
-        $scope.paging['records'].filter = ' NOT clusterType:[* TO *]';
+        $scope.paging['records'].filter = 'clusterType:""';
       } else if (clusterType && clusterType != 'all') {
         $scope.paging['records'].filter = clusterType;
       } else if (clusterType == 'all') {
