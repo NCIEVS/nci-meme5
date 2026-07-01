@@ -86,13 +86,13 @@ if ("$enabled" == "true") then
   end
 
   if ("$RESTART_SERVER_AFTER_NIGHTLY" == "true") then
-    sudo service "$APP_SERVICE" stop
+    sudo systemctl stop "$APP_SERVICE"
     if ($status != 0) then
       echo "ERROR: could not stop $APP_SERVICE"
       exit 1
     endif
 
-    sudo service "$APP_SERVICE" start
+    sudo systemctl start "$APP_SERVICE"
     if ($status != 0) then
       echo "ERROR: could not start $APP_SERVICE"
       exit 1
