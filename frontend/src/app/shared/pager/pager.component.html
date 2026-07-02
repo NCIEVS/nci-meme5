@@ -1,0 +1,16 @@
+<div class="list-pager" [attr.aria-label]="label">
+  <label [for]="pageSizeId">Per page</label>
+  <select
+    [id]="pageSizeId"
+    [name]="pageSizeId"
+    [ngModel]="pageSize"
+    (ngModelChange)="setPageSize($event)"
+  >
+    @for (size of pageSizeOptions; track size) {
+      <option [ngValue]="size">{{ size }}</option>
+    }
+  </select>
+  <button type="button" class="icon-btn" title="Previous page" [disabled]="page <= 1" (click)="previous()">‹</button>
+  <span>{{ page }} / {{ totalPages }}</span>
+  <button type="button" class="icon-btn" title="Next page" [disabled]="page >= totalPages" (click)="next()">›</button>
+</div>

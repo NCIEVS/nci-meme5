@@ -6,122 +6,330 @@
 
   </header>
 
-  <details class="accordion-panel" open>
+  <details class="accordion-panel" [open]="projectsGroupOpen()" (toggle)="onAccordionToggle('projects', $event)">
     <summary class="accordion-heading">
       <span class="accordion-arrow">&#9658;</span>
-      Settings &amp; Preferences
+      Projects
     </summary>
     <div class="accordion-body">
-
-  <section class="role-strip" aria-label="Available roles">
-    <div>
-      <h2>Application Roles</h2>
-      <p>{{ applicationRoles().join(', ') || (loadingRoles() ? 'Loading' : 'n/a') }}</p>
-    </div>
-    <div>
-      <h2>Project Roles</h2>
-      <p>{{ projectRoles().join(', ') || (loadingRoles() ? 'Loading' : 'n/a') }}</p>
-    </div>
-  </section>
-
-  <section class="utility-grid" aria-label="Admin utilities">
-    <section class="utility-panel" aria-labelledby="preferences-title">
-      <div class="panel-header compact-header">
-        <div>
-          <h2 id="preferences-title">User Preferences</h2>
-          <p>{{ currentUser().userName || currentUser().name || 'Current user' }}</p>
+      <section class="list-panel" aria-labelledby="projects-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="projects-title">Projects</h2>
+            <p>{{ loadingProjects() ? 'Loading projects' : 'Project administration' }}</p>
+          </div>
+          <div class="panel-actions">
+            @if (canAddProjects()) {
+              <button type="button" (click)="startAddProject()">Add Project</button>
+            }
+          </div>
         </div>
-        <button
-          type="button"
-          class="quiet-button"
-          (click)="resetUserPreferences()"
-          [disabled]="savingUserPreferences()"
-        >
-          Reset Preferences
-        </button>
-      </div>
 
-      <div class="utility-body">
-        <div class="form-grid compact-form">
-          <label for="user-preference-feedback-email">Feedback Email</label>
-          <div class="inline-control">
-            <input
-              id="user-preference-feedback-email"
-              type="email"
-              [ngModel]="userPreferenceFeedbackEmail()"
-              (ngModelChange)="updateUserPreferenceFeedbackEmail($event)"
-              [disabled]="savingUserPreferences()"
-            >
-            <button
-              type="button"
-              class="quiet-button"
-              (click)="saveFeedbackEmailPreference()"
-              [disabled]="savingUserPreferences() || !userPreferenceFeedbackEmailChanged()"
-            >
-              Save
-            </button>
+        @if (projects().length === 0) {
+          <p class="empty">No projects available.</p>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <button type="button" (click)="setProjectSortField('id')">
+                      Id
+                      <span>{{ projectSortIndicator('id') }}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" (click)="setProjectSortField('name')">
+                      Name
+                      <span>{{ projectSortIndicator('name') }}</span>
+                    </button>
+                  </th>
+                  <th>Description</th>
+                  <th>
+                    <button type="button" (click)="setProjectSortField('terminology')">
+                      Terminology
+                      <span>{{ projectSortIndicator('terminology') }}</span>
+                    </button>
+                  </th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (project of projects(); track project.id ?? project.name) {
+                  <tr>
+                    <td>{{ project.id }}</td>
+                    <td>{{ project.name || 'n/a' }}</td>
+                    <td>{{ project.description || 'n/a' }}</td>
+                    <td>{{ project.terminology || 'n/a' }}</td>
+                    <td>
+                      <div class="icon-actions">
+                        @if (canEditProject(project)) {
+                          <span
+                            class="icon-action"
+                            title="Edit Project"
+                            (click)="startEditProject(project)"
+                          >✎</span>
+                          <span
+                            class="icon-action danger"
+                            [class.is-disabled]="deletingProjectId() === project.id"
+                            title="{{ deletingProjectId() === project.id ? 'Deleting…' : 'Delete Project' }}"
+                            (click)="deletingProjectId() === project.id || removeProject(project)"
+                          >✕</span>
+                        }
+                        <span
+                          class="icon-action"
+                          title="View Log"
+                          (click)="openProjectLog(project)"
+                        >☰</span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
 
-          <span class="field-label">Last Project Id</span>
-          <span class="readonly-value">{{ currentUser().userPreferences?.lastProjectId ?? 'n/a' }}</span>
+          <meme-pager
+            label="Project pages"
+            [page]="projectPage()"
+            [totalPages]="projectTotalPages()"
+            [pageSize]="projectPageSize()"
+            (pageChange)="setProjectPage($event)"
+            (pageSizeChange)="setProjectPageSize($event)"
+          />
+        }
+      </section>
+    </div>
+  </details>
 
-          <span class="field-label">Last Project Role</span>
-          <span class="readonly-value">{{ currentUser().userPreferences?.lastProjectRole || 'n/a' }}</span>
+  <details class="accordion-panel" [open]="usersGroupOpen()" (toggle)="onAccordionToggle('users', $event)">
+    <summary class="accordion-heading">
+      <span class="accordion-arrow">&#9658;</span>
+      Users
+    </summary>
+    <div class="accordion-body">
+      <section class="list-panel" aria-labelledby="users-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="users-title">Users</h2>
+            <p>{{ loadingUsers() ? 'Loading users' : 'User administration' }}</p>
+          </div>
+          <div class="panel-actions">
+            @if (canMutateUsers()) {
+              <button type="button" (click)="startAddUser()">Add User</button>
+            }
+          </div>
         </div>
 
-        @if (preferencePropertyEntries().length) {
-          <dl class="preference-list">
-            @for (property of preferencePropertyEntries(); track property.key) {
-              <div>
-                <dt>{{ property.key }}</dt>
-                <dd>{{ property.value || 'n/a' }}</dd>
-              </div>
-            }
-          </dl>
-        }
-      </div>
-    </section>
+        <div class="toolbar">
+          <label for="user-filter">Filter</label>
+          <input
+            id="user-filter"
+            type="search"
+            [ngModel]="userFilter()"
+            (ngModelChange)="setUserFilter($event)"
+            (keyup.enter)="loadUsers()"
+            placeholder="Username, name, email"
+          >
+        </div>
 
-    @if (currentUser().applicationRole === 'ADMINISTRATOR') {
-      <section class="utility-panel" aria-labelledby="operations-title">
+        @if (users().length === 0) {
+          <p class="empty">No users available.</p>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <button type="button" (click)="setUserSortField('userName')">
+                      Username
+                      <span>{{ userSortIndicator('userName') }}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" (click)="setUserSortField('name')">
+                      Name
+                      <span>{{ userSortIndicator('name') }}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" (click)="setUserSortField('email')">
+                      Email
+                      <span>{{ userSortIndicator('email') }}</span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" (click)="setUserSortField('applicationRole')">
+                      Application Role
+                      <span>{{ userSortIndicator('applicationRole') }}</span>
+                    </button>
+                  </th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (user of users(); track user.id ?? user.userName) {
+                  <tr>
+                    <td>{{ user.userName || 'n/a' }}</td>
+                    <td>{{ user.name || 'n/a' }}</td>
+                    <td>{{ user.email || 'n/a' }}</td>
+                    <td>
+                      @if (user.applicationRole) {
+                        <span class="role-badge" [class.admin]="user.applicationRole === 'ADMINISTRATOR'">
+                          {{ user.applicationRole }}
+                        </span>
+                      } @else {
+                        n/a
+                      }
+                    </td>
+                    <td>
+                      @if (canMutateUsers()) {
+                        <div class="icon-actions">
+                          <span
+                            class="icon-action"
+                            title="Edit User"
+                            (click)="startEditUser(user)"
+                          >✎</span>
+                          <span
+                            class="icon-action danger"
+                            [class.is-disabled]="deletingUserId() === user.id"
+                            title="{{ deletingUserId() === user.id ? 'Deleting…' : 'Delete User' }}"
+                            (click)="deletingUserId() === user.id || removeUser(user)"
+                          >✕</span>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <meme-pager
+            label="User pages"
+            [page]="userPage()"
+            [totalPages]="userTotalPages()"
+            [pageSize]="userPageSize()"
+            (pageChange)="setUserPage($event)"
+            (pageSizeChange)="setUserPageSize($event)"
+          />
+        }
+      </section>
+    </div>
+  </details>
+
+  <details class="accordion-panel" [open]="preferencesGroupOpen()" (toggle)="onAccordionToggle('preferences', $event)">
+    <summary class="accordion-heading">
+      <span class="accordion-arrow">&#9658;</span>
+      User Preferences
+    </summary>
+    <div class="accordion-body">
+      <section class="role-strip" aria-label="Available roles">
+        <div>
+          <h2>Application Roles</h2>
+          <p>{{ applicationRoles().join(', ') || (loadingRoles() ? 'Loading' : 'n/a') }}</p>
+        </div>
+        <div>
+          <h2>Project Roles</h2>
+          <p>{{ projectRoles().join(', ') || (loadingRoles() ? 'Loading' : 'n/a') }}</p>
+        </div>
+      </section>
+
+      <section class="utility-panel" aria-labelledby="preferences-title">
         <div class="panel-header compact-header">
           <div>
-            <h2 id="operations-title">Admin Operations</h2>
-            <p>Server-side maintenance and exception checks</p>
+            <h2 id="preferences-title">User Preferences</h2>
+            <p>{{ currentUser().userName || currentUser().name || 'Current user' }}</p>
           </div>
-        </div>
-        <div class="operation-actions">
           <button
             type="button"
             class="quiet-button"
-            (click)="runAdminOperation('reloadConfig')"
-            [disabled]="runningAdminOperation() !== null"
+            (click)="resetUserPreferences()"
+            [disabled]="savingUserPreferences()"
           >
-            {{ runningAdminOperation() === 'reloadConfig' ? 'Reloading' : 'Reload Config' }}
-          </button>
-          <button
-            type="button"
-            class="danger-button"
-            (click)="runAdminOperation('exception')"
-            [disabled]="runningAdminOperation() !== null"
-          >
-            Force Exception
-          </button>
-          <button
-            type="button"
-            class="danger-button"
-            (click)="runAdminOperation('localException')"
-            [disabled]="runningAdminOperation() !== null"
-          >
-            Force Test Exception
+            Reset Preferences
           </button>
         </div>
-      </section>
-    }
-  </section>
 
-    </div><!-- /.accordion-body -->
-  </details><!-- /Settings accordion -->
+        <div class="utility-body">
+          <div class="form-grid compact-form">
+            <label for="user-preference-feedback-email">Feedback Email</label>
+            <div class="inline-control">
+              <input
+                id="user-preference-feedback-email"
+                type="email"
+                [ngModel]="userPreferenceFeedbackEmail()"
+                (ngModelChange)="updateUserPreferenceFeedbackEmail($event)"
+                [disabled]="savingUserPreferences()"
+              >
+              <button
+                type="button"
+                class="quiet-button"
+                (click)="saveFeedbackEmailPreference()"
+                [disabled]="savingUserPreferences() || !userPreferenceFeedbackEmailChanged()"
+              >
+                Save
+              </button>
+            </div>
+
+            <span class="field-label">Last Project Id</span>
+            <span class="readonly-value">{{ currentUser().userPreferences?.lastProjectId ?? 'n/a' }}</span>
+
+            <span class="field-label">Last Project Role</span>
+            <span class="readonly-value">{{ currentUser().userPreferences?.lastProjectRole || 'n/a' }}</span>
+          </div>
+
+          @if (preferencePropertyEntries().length) {
+            <dl class="preference-list">
+              @for (property of preferencePropertyEntries(); track property.key) {
+                <div>
+                  <dt>{{ property.key }}</dt>
+                  <dd>{{ property.value || 'n/a' }}</dd>
+                </div>
+              }
+            </dl>
+          }
+        </div>
+      </section>
+
+      @if (currentUser().applicationRole === 'ADMINISTRATOR') {
+        <section class="utility-panel" aria-labelledby="operations-title">
+          <div class="panel-header compact-header">
+            <div>
+              <h2 id="operations-title">Admin Operations</h2>
+              <p>Server-side maintenance and exception checks</p>
+            </div>
+          </div>
+          <div class="operation-actions">
+            <button
+              type="button"
+              class="danger-button"
+              (click)="runAdminOperation('exception')"
+              [disabled]="runningAdminOperation() !== null"
+            >
+              Force Exception
+            </button>
+            <button
+              type="button"
+              class="danger-button"
+              (click)="runAdminOperation('localException')"
+              [disabled]="runningAdminOperation() !== null"
+            >
+              Force Test Exception
+            </button>
+            <button
+              type="button"
+              class="quiet-button"
+              (click)="runAdminOperation('reloadConfig')"
+              [disabled]="runningAdminOperation() !== null"
+            >
+              {{ runningAdminOperation() === 'reloadConfig' ? 'Reloading' : 'Reload Config' }}
+            </button>
+          </div>
+        </section>
+      }
+    </div>
+  </details>
 
   @if (projectForm(); as form) {
     <meme-dialog
@@ -477,6 +685,41 @@
     </meme-dialog>
   }
 
+  @if (projectLogState(); as logState) {
+    <meme-dialog
+      [title]="(logState.project.name || 'Project') + ' Log'"
+      size="lg"
+      (closed)="closeProjectLog()"
+    >
+      <div class="log-toolbar">
+        <input
+          type="text"
+          placeholder="Search log"
+          [ngModel]="logState.filter"
+          (ngModelChange)="updateProjectLogFilter($event)"
+          (keyup.enter)="searchProjectLog()"
+        >
+        @if (logState.filter) {
+          <button type="button" class="quiet-button" (click)="clearProjectLogFilter()">
+            Clear
+          </button>
+        }
+      </div>
+
+      @if (logState.loading) {
+        <p class="empty compact">Loading log...</p>
+      } @else if (logState.log) {
+        <pre class="log-output">{{ logState.log }}</pre>
+      } @else {
+        <p class="empty compact">No log entries found.</p>
+      }
+
+      <div class="form-actions">
+        <button type="button" (click)="closeProjectLog()">Close</button>
+      </div>
+    </meme-dialog>
+  }
+
   @if (validationDataForm(); as form) {
     <meme-dialog
       title="Add Validation Data"
@@ -659,759 +902,216 @@
     </meme-dialog>
   }
 
-  @if (projectAssignmentForm(); as assignmentForm) {
-    <meme-dialog
-      title="Assign Project Role"
-      [closeDisabled]="savingProjectAssignment()"
-      (closed)="cancelProjectAssignment()"
-    >
-      <form class="user-form" (ngSubmit)="saveProjectAssignment()" aria-label="Project assignment form">
-        @if (projectAssignmentErrors().length) {
-          <ul class="form-errors" aria-live="polite">
-            @for (error of projectAssignmentErrors(); track error) {
-              <li>{{ error }}</li>
-            }
-          </ul>
-        }
-
-        <div class="form-grid">
-          <span class="field-label">User</span>
-          <span class="readonly-value">{{ assignmentForm.user.userName || 'n/a' }}</span>
-
-          <label for="project-assignment-project">Project</label>
-          <select
-            id="project-assignment-project"
-            [ngModel]="assignmentForm.projectId"
-            (ngModelChange)="updateProjectAssignmentForm('projectId', $event)"
-            name="projectId"
-            [disabled]="savingProjectAssignment()"
-          >
-            @for (project of projects(); track project.id ?? project.name) {
-              @if (project.id !== null && project.id !== undefined) {
-                <option [value]="project.id">{{ projectLabel(project.id) }}</option>
-              }
-            }
-          </select>
-
-          <label for="project-assignment-role">Project Role</label>
-          <select
-            id="project-assignment-role"
-            [ngModel]="assignmentForm.role"
-            (ngModelChange)="updateProjectAssignmentForm('role', $event)"
-            name="role"
-            [disabled]="savingProjectAssignment()"
-          >
-            @for (role of projectRoles(); track role) {
-              <option [ngValue]="role">{{ role }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-actions">
-          <button
-            type="button"
-            class="quiet-button"
-            (click)="cancelProjectAssignment()"
-            [disabled]="savingProjectAssignment()"
-          >
-            Cancel
-          </button>
-          <button type="submit" [disabled]="savingProjectAssignment()">
-            {{ savingProjectAssignment() ? 'Saving' : 'Assign' }}
-          </button>
-        </div>
-      </form>
-    </meme-dialog>
-  }
-
-  <details class="accordion-panel" open>
-    <summary class="accordion-heading">
-      <span class="accordion-arrow">&#9658;</span>
-      Projects
-    </summary>
-    <div class="accordion-body">
-  <div class="admin-grid">
-    <section class="list-panel" aria-labelledby="projects-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="projects-title">Projects</h2>
-          <p>{{ loadingProjects() ? 'Loading projects' : 'Read-only project list' }}</p>
-        </div>
-        <div class="panel-actions">
-          @if (canAddProjects()) {
-            <button type="button" (click)="startAddProject()">Add Project</button>
-          }
-          <button type="button" (click)="loadProjects()">Refresh</button>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <label for="project-filter">Filter</label>
-        <input
-          id="project-filter"
-          type="search"
-          [ngModel]="projectFilter()"
-          (ngModelChange)="setProjectFilter($event)"
-          (keyup.enter)="loadProjects()"
-          placeholder="Name, description, terminology"
-        >
-
-        <label for="project-page-size">Page size</label>
-        <select
-          id="project-page-size"
-          [ngModel]="projectPageSize()"
-          (ngModelChange)="setProjectPageSize($event)"
-        >
-          <option [ngValue]="10">10</option>
-          <option [ngValue]="25">25</option>
-          <option [ngValue]="50">50</option>
-        </select>
-      </div>
-
-      @if (projects().length === 0) {
-        <p class="empty">No projects available.</p>
-      } @else {
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  <button type="button" (click)="setProjectSortField('id')">
-                    Id
-                    <span>{{ projectSortIndicator('id') }}</span>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" (click)="setProjectSortField('name')">
-                    Name
-                    <span>{{ projectSortIndicator('name') }}</span>
-                  </button>
-                </th>
-                <th>Description</th>
-                <th>
-                  <button type="button" (click)="setProjectSortField('terminology')">
-                    Terminology
-                    <span>{{ projectSortIndicator('terminology') }}</span>
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (project of projects(); track project.id ?? project.name) {
-                <tr
-                  [class.selected]="selectedProject()?.id === project.id"
-                  (click)="selectProject(project)"
-                  (keyup.enter)="selectProject(project)"
-                  tabindex="0"
-                >
-                  <td>{{ project.id }}</td>
-                  <td>{{ project.name || 'n/a' }}</td>
-                  <td>{{ project.description || 'n/a' }}</td>
-                  <td>{{ project.terminology || 'n/a' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pager" aria-label="Project pages">
-          <button type="button" (click)="previousProjectPage()" [disabled]="projectPage() === 1">
-            Previous
-          </button>
-          <span>Page {{ projectPage() }} of {{ projectTotalPages() }}</span>
-          <button
-            type="button"
-            (click)="nextProjectPage()"
-            [disabled]="projectPage() === projectTotalPages()"
-          >
-            Next
-          </button>
-        </div>
-      }
-    </section>
-
-    <aside class="detail-panel" aria-label="Selected project details">
-      @if (selectedProject(); as project) {
-        <div class="detail-heading">
-          <h2>{{ project.name || 'Selected Project' }}</h2>
-          @if (canEditProject(project)) {
-            <div class="detail-actions">
-              <span class="icon-action" title="Edit Project" (click)="startEditProject(project)">✎</span>
-              <span
-                class="icon-action danger"
-                [class.is-disabled]="deletingProjectId() === project.id"
-                title="{{ deletingProjectId() === project.id ? 'Deleting…' : 'Delete Project' }}"
-                (click)="deletingProjectId() === project.id || removeProject(project)"
-              >✕</span>
+  <section class="admin-subsection" aria-labelledby="upm-title">
+      <h2 id="upm-title">User &amp; Project Management</h2>
+      <div class="admin-grid">
+        <!-- Left: Project List -->
+        <section class="list-panel" aria-labelledby="candidate-projects-title">
+          <div class="panel-header">
+            <div>
+              <h2 id="candidate-projects-title">Project List</h2>
+              <p>Projects where you are an administrator</p>
             </div>
-          }
-        </div>
-        <dl>
-          <div>
-            <dt>Id</dt>
-            <dd>{{ project.id }}</dd>
           </div>
-          <div>
-            <dt>Terminology</dt>
-            <dd>{{ project.terminology || 'n/a' }} {{ project.version || '' }}</dd>
-          </div>
-          <div>
-            <dt>Language</dt>
-            <dd>{{ project.language || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Branch</dt>
-            <dd>{{ project.branch || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Workflow Path</dt>
-            <dd>{{ project.workflowPath || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Feedback Email</dt>
-            <dd>{{ project.feedbackEmail || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Last Modified</dt>
-            <dd>{{ formatDate(project.lastModified) }} by {{ project.lastModifiedBy || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Flags</dt>
-            <dd>
-              Editing {{ project.editingEnabled ? 'enabled' : 'disabled' }},
-              automations {{ project.automationsEnabled ? 'enabled' : 'disabled' }},
-              public {{ project.public ? 'yes' : 'no' }}
-            </dd>
-          </div>
-          <div>
-            <dt>Validation Checks</dt>
-            <dd>{{ validationCheckLabels(project.validationChecks) }}</dd>
-          </div>
-          <div>
-            <dt>Project Role Assignments</dt>
-            <dd>
-              @if (roleEntries(project.userRoleMap).length) {
-                <ul class="role-list">
-                  @for (role of roleEntries(project.userRoleMap); track role.key) {
-                    <li><span>{{ role.key }}</span><strong>{{ role.value }}</strong></li>
-                  }
-                </ul>
-              } @else {
-                n/a
-              }
-            </dd>
-          </div>
-        </dl>
-      } @else {
-        <p class="empty">Select a project to see details.</p>
-      }
-    </aside>
-  </div>
-    </div><!-- /.accordion-body -->
-  </details><!-- /Projects accordion -->
 
-  <details class="accordion-panel" open>
-    <summary class="accordion-heading">
-      <span class="accordion-arrow">&#9658;</span>
-      Users
-    </summary>
-    <div class="accordion-body">
-  <div class="admin-grid">
-    <section class="list-panel" aria-labelledby="users-title">
-      <div class="panel-header">
-        <div>
-          <h2 id="users-title">Users</h2>
-          <p>{{ loadingUsers() ? 'Loading users' : 'User administration' }}</p>
-        </div>
-        <div class="panel-actions">
-          @if (canMutateUsers()) {
-            <button type="button" (click)="startAddUser()">Add User</button>
-          }
-          <button type="button" (click)="loadUsers()">Refresh</button>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <label for="user-filter">Filter</label>
-        <input
-          id="user-filter"
-          type="search"
-          [ngModel]="userFilter()"
-          (ngModelChange)="setUserFilter($event)"
-          (keyup.enter)="loadUsers()"
-          placeholder="Username, name, email"
-        >
-
-        <label for="user-page-size">Page size</label>
-        <select
-          id="user-page-size"
-          [ngModel]="userPageSize()"
-          (ngModelChange)="setUserPageSize($event)"
-        >
-          <option [ngValue]="10">10</option>
-          <option [ngValue]="25">25</option>
-          <option [ngValue]="50">50</option>
-        </select>
-      </div>
-
-      @if (users().length === 0) {
-        <p class="empty">No users available.</p>
-      } @else {
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>
-                  <button type="button" (click)="setUserSortField('userName')">
-                    Username
-                    <span>{{ userSortIndicator('userName') }}</span>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" (click)="setUserSortField('name')">
-                    Name
-                    <span>{{ userSortIndicator('name') }}</span>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" (click)="setUserSortField('email')">
-                    Email
-                    <span>{{ userSortIndicator('email') }}</span>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" (click)="setUserSortField('applicationRole')">
-                    Application Role
-                    <span>{{ userSortIndicator('applicationRole') }}</span>
-                  </button>
-                </th>
-                @if (canMutateUsers()) {
-                  <th>Actions</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (user of users(); track user.id ?? user.userName) {
-                <tr
-                  [class.selected]="selectedUser()?.id === user.id"
-                  (click)="selectUser(user)"
-                  (keyup.enter)="selectUser(user)"
-                  tabindex="0"
-                >
-                  <td>{{ user.userName || 'n/a' }}</td>
-                  <td>{{ user.name || 'n/a' }}</td>
-                  <td>{{ user.email || 'n/a' }}</td>
-                  <td>
-                    @if (user.applicationRole) {
-                      <span class="role-badge" [class.admin]="user.applicationRole === 'ADMINISTRATOR'">
-                        {{ user.applicationRole }}
-                      </span>
-                    } @else {
-                      n/a
-                    }
-                  </td>
-                  @if (canMutateUsers()) {
-                    <td>
-                      <div class="icon-actions">
-                        <span
-                          class="icon-action"
-                          title="Edit User"
-                          (click)="startEditUser(user); $event.stopPropagation()"
-                        >✎</span>
-                        <span
-                          class="icon-action danger"
-                          [class.is-disabled]="deletingUserId() === user.id"
-                          title="{{ deletingUserId() === user.id ? 'Deleting…' : 'Delete User' }}"
-                          (click)="deletingUserId() === user.id || removeUser(user); $event.stopPropagation()"
-                        >✕</span>
-                      </div>
-                    </td>
-                  }
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pager" aria-label="User pages">
-          <button type="button" (click)="previousUserPage()" [disabled]="userPage() === 1">
-            Previous
-          </button>
-          <span>Page {{ userPage() }} of {{ userTotalPages() }}</span>
-          <button
-            type="button"
-            (click)="nextUserPage()"
-            [disabled]="userPage() === userTotalPages()"
-          >
-            Next
-          </button>
-        </div>
-      }
-    </section>
-
-    <aside class="detail-panel" aria-label="Selected user details">
-      @if (selectedUser(); as user) {
-        <div class="detail-heading">
-          <h2>{{ user.userName || 'Selected User' }}</h2>
-          @if (canMutateUsers()) {
-            <div class="detail-actions">
-              <button
-                type="button"
-                (click)="startProjectAssignment(user)"
-                [disabled]="savingProjectAssignment() || projects().length === 0"
-              >
-                Assign Project
-              </button>
-              <span class="icon-action" title="Edit User" (click)="startEditUser(user)">✎</span>
-              <span
-                class="icon-action danger"
-                [class.is-disabled]="deletingUserId() === user.id"
-                title="{{ deletingUserId() === user.id ? 'Deleting…' : 'Delete User' }}"
-                (click)="deletingUserId() === user.id || removeUser(user)"
-              >✕</span>
-            </div>
-          }
-        </div>
-        <dl>
-          <div>
-            <dt>Name</dt>
-            <dd>{{ user.name || 'n/a' }}</dd>
+          <div class="toolbar">
+            <label for="candidate-project-filter">Filter</label>
+            <input
+              id="candidate-project-filter"
+              type="search"
+              [ngModel]="candidateProjectFilter()"
+              (ngModelChange)="setCandidateProjectFilter($event)"
+              placeholder="Name, terminology"
+            >
           </div>
-          <div>
-            <dt>Email</dt>
-            <dd>{{ user.email || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Team</dt>
-            <dd>{{ user.team || 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Application Role</dt>
-            <dd>
-              @if (user.applicationRole) {
-                <span class="role-badge" [class.admin]="user.applicationRole === 'ADMINISTRATOR'">
-                  {{ user.applicationRole }}
-                </span>
-              } @else {
-                n/a
-              }
-            </dd>
-          </div>
-          <div>
-            <dt>Editor Level</dt>
-            <dd>{{ user.editorLevel ?? 'n/a' }}</dd>
-          </div>
-          <div>
-            <dt>Project Roles</dt>
-            <dd>
-              @if (roleEntries(user.projectRoleMap).length) {
-                <ul class="role-list">
-                  @for (role of roleEntries(user.projectRoleMap); track role.key) {
-                    <li>
-                      <span>{{ projectLabel(role.key) }}</span>
-                      <strong>{{ role.value }}</strong>
-                      @if (canMutateUsers()) {
-                        <span
-                          class="icon-action danger"
-                          [class.is-disabled]="savingProjectAssignment()"
-                          title="Remove project role"
-                          (click)="savingProjectAssignment() || removeProjectAssignment(user, role)"
-                        >✕</span>
-                      }
-                    </li>
-                  }
-                </ul>
-              } @else {
-                n/a
-              }
-            </dd>
-          </div>
-        </dl>
-      } @else {
-        <p class="empty">Select a user to see details.</p>
-      }
-    </aside>
-  </div>
-    </div><!-- /.accordion-body -->
-  </details><!-- /Users accordion -->
 
-  @if (currentUser().applicationRole === 'ADMINISTRATOR') {
-    <details class="accordion-panel" open>
-      <summary class="accordion-heading">
-        <span class="accordion-arrow">&#9658;</span>
-        User &amp; Project Management
-      </summary>
-      <div class="accordion-body">
-        <div class="admin-grid">
-          <!-- Left: Project List -->
-          <section class="list-panel" aria-labelledby="candidate-projects-title">
-            <div class="panel-header">
-              <div>
-                <h2 id="candidate-projects-title">Project List</h2>
-                <p>Projects where you are an administrator</p>
-              </div>
-              <button type="button" (click)="loadCandidateProjects()">Refresh</button>
-            </div>
-
-            <div class="toolbar">
-              <label for="candidate-project-filter">Filter</label>
-              <input
-                id="candidate-project-filter"
-                type="search"
-                [ngModel]="candidateProjectFilter()"
-                (ngModelChange)="setCandidateProjectFilter($event)"
-                placeholder="Name, terminology"
-              >
-              <label for="candidate-project-page-size">Page size</label>
-              <select
-                id="candidate-project-page-size"
-                [ngModel]="candidateProjectPageSize()"
-                (ngModelChange)="setCandidateProjectPageSize($event)"
-              >
-                <option [ngValue]="10">10</option>
-                <option [ngValue]="25">25</option>
-                <option [ngValue]="50">50</option>
-              </select>
-            </div>
-
-            @if (candidateProjects().length === 0) {
-              <p class="empty">No projects with administrator role.</p>
-            } @else {
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Id</th>
-                      <th>Name</th>
-                      <th>Terminology</th>
+          @if (candidateProjects().length === 0) {
+            <p class="empty">No projects with administrator role.</p>
+          } @else {
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Terminology</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (project of candidateProjects(); track project.id ?? project.name) {
+                    <tr
+                      [class.selected]="selectedCandidateProject()?.id === project.id"
+                      (click)="selectCandidateProject(project)"
+                      (keyup.enter)="selectCandidateProject(project)"
+                      tabindex="0"
+                    >
+                      <td>{{ project.id }}</td>
+                      <td>{{ project.name || 'n/a' }}</td>
+                      <td>{{ project.terminology || 'n/a' }}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (project of candidateProjects(); track project.id ?? project.name) {
-                      <tr
-                        [class.selected]="selectedCandidateProject()?.id === project.id"
-                        (click)="selectCandidateProject(project)"
-                        (keyup.enter)="selectCandidateProject(project)"
-                        tabindex="0"
-                      >
-                        <td>{{ project.id }}</td>
-                        <td>{{ project.name || 'n/a' }}</td>
-                        <td>{{ project.terminology || 'n/a' }}</td>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <meme-pager
+              label="Candidate project pages"
+              [page]="candidateProjectPage()"
+              [totalPages]="candidateProjectTotalPages()"
+              [pageSize]="candidateProjectPageSize()"
+              (pageChange)="setCandidateProjectPage($event)"
+              (pageSizeChange)="setCandidateProjectPageSize($event)"
+            />
+          }
+        </section>
+
+        <!-- Right: Unassigned + Assigned Users -->
+        <div class="upm-right-col">
+          @if (!selectedCandidateProject()) {
+            <p class="empty">Select a project to manage its users.</p>
+          } @else {
+            <!-- Unassigned Users -->
+            <section class="list-panel" aria-labelledby="unassigned-users-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="unassigned-users-title">Unassigned Users</h2>
+                  <p>Users not in {{ selectedCandidateProject()?.name || 'selected project' }}</p>
+                </div>
+              </div>
+
+              <div class="toolbar">
+                <label for="unassigned-user-filter">Filter</label>
+                <input
+                  id="unassigned-user-filter"
+                  type="search"
+                  [ngModel]="unassignedUserFilter()"
+                  (ngModelChange)="setUnassignedUserFilter($event)"
+                  placeholder="Username, name"
+                >
+              </div>
+
+              @if (unassignedUsers().length === 0) {
+                <p class="empty">No unassigned users for this project.</p>
+              } @else {
+                <div class="table-wrap compact-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Actions</th>
                       </tr>
-                    }
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      @for (user of unassignedUsers(); track user.id ?? user.userName) {
+                        <tr>
+                          <td>{{ user.userName || 'n/a' }}</td>
+                          <td>{{ user.name || 'n/a' }}</td>
+                          <td>
+                            <select
+                              [ngModel]="upmRoleForUser(user.userName)"
+                              (ngModelChange)="setUpmRoleForUser(user.userName, $event)"
+                              [attr.aria-label]="'Role for ' + user.userName"
+                            >
+                              @for (role of projectRoles(); track role) {
+                                <option [value]="role">{{ role }}</option>
+                              }
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              (click)="upmAssignUser(user)"
+                              [disabled]="savingProjectAssignment()"
+                            >
+                              Add
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <meme-pager
+                  label="Unassigned user pages"
+                  [page]="unassignedUserPage()"
+                  [totalPages]="unassignedUserTotalPages()"
+                  [pageSize]="unassignedUserPageSize()"
+                  (pageChange)="setUnassignedUserPage($event)"
+                  (pageSizeChange)="setUnassignedUserPageSize($event)"
+                />
+              }
+            </section>
+
+            <!-- Assigned Users -->
+            <section class="list-panel" aria-labelledby="assigned-users-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="assigned-users-title">Assigned Users</h2>
+                  <p>Users in {{ selectedCandidateProject()?.name || 'selected project' }}</p>
+                </div>
               </div>
 
-              <div class="pager" aria-label="Candidate project pages">
-                <button
-                  type="button"
-                  (click)="previousCandidateProjectPage()"
-                  [disabled]="candidateProjectPage() === 1"
+              <div class="toolbar">
+                <label for="assigned-user-filter">Filter</label>
+                <input
+                  id="assigned-user-filter"
+                  type="search"
+                  [ngModel]="assignedUserFilter()"
+                  (ngModelChange)="setAssignedUserFilter($event)"
+                  placeholder="Username, name"
                 >
-                  Previous
-                </button>
-                <span>Page {{ candidateProjectPage() }} of {{ candidateProjectTotalPages() }}</span>
-                <button
-                  type="button"
-                  (click)="nextCandidateProjectPage()"
-                  [disabled]="candidateProjectPage() === candidateProjectTotalPages()"
-                >
-                  Next
-                </button>
               </div>
-            }
-          </section>
 
-          <!-- Right: Unassigned + Assigned Users -->
-          <div class="upm-right-col">
-            @if (!selectedCandidateProject()) {
-              <p class="empty">Select a project to manage its users.</p>
-            } @else {
-              <!-- Unassigned Users -->
-              <section class="list-panel" aria-labelledby="unassigned-users-title">
-                <div class="panel-header">
-                  <div>
-                    <h2 id="unassigned-users-title">Unassigned Users</h2>
-                    <p>Users not in {{ selectedCandidateProject()?.name || 'selected project' }}</p>
-                  </div>
-                  <button type="button" (click)="loadUnassignedUsers()">Refresh</button>
-                </div>
-
-                <div class="toolbar">
-                  <label for="unassigned-user-filter">Filter</label>
-                  <input
-                    id="unassigned-user-filter"
-                    type="search"
-                    [ngModel]="unassignedUserFilter()"
-                    (ngModelChange)="setUnassignedUserFilter($event)"
-                    placeholder="Username, name"
-                  >
-                  <label for="unassigned-user-page-size">Page size</label>
-                  <select
-                    id="unassigned-user-page-size"
-                    [ngModel]="unassignedUserPageSize()"
-                    (ngModelChange)="setUnassignedUserPageSize($event)"
-                  >
-                    <option [ngValue]="10">10</option>
-                    <option [ngValue]="25">25</option>
-                    <option [ngValue]="50">50</option>
-                  </select>
-                </div>
-
-                @if (unassignedUsers().length === 0) {
-                  <p class="empty">No unassigned users for this project.</p>
-                } @else {
-                  <div class="table-wrap compact-table">
-                    <table>
-                      <thead>
+              @if (assignedUsers().length === 0) {
+                <p class="empty">No users assigned to this project.</p>
+              } @else {
+                <div class="table-wrap compact-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (user of assignedUsers(); track user.id ?? user.userName) {
                         <tr>
-                          <th>Username</th>
-                          <th>Name</th>
-                          <th>Role</th>
-                          <th>Actions</th>
+                          <td>{{ user.userName || 'n/a' }}</td>
+                          <td>{{ user.name || 'n/a' }}</td>
+                          <td>{{ upmAssignedRole(user, selectedCandidateProject()) }}</td>
+                          <td>
+                            <button
+                              type="button"
+                              class="danger-button"
+                              (click)="upmUnassignUser(user)"
+                              [disabled]="savingProjectAssignment()"
+                            >
+                              Remove
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        @for (user of unassignedUsers(); track user.id ?? user.userName) {
-                          <tr>
-                            <td>{{ user.userName || 'n/a' }}</td>
-                            <td>{{ user.name || 'n/a' }}</td>
-                            <td>
-                              <select
-                                [ngModel]="upmRoleForUser(user.userName)"
-                                (ngModelChange)="setUpmRoleForUser(user.userName, $event)"
-                                [attr.aria-label]="'Role for ' + user.userName"
-                              >
-                                @for (role of projectRoles(); track role) {
-                                  <option [value]="role">{{ role }}</option>
-                                }
-                              </select>
-                            </td>
-                            <td>
-                              <button
-                                type="button"
-                                (click)="upmAssignUser(user)"
-                                [disabled]="savingProjectAssignment()"
-                              >
-                                Add
-                              </button>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div class="pager" aria-label="Unassigned user pages">
-                    <button
-                      type="button"
-                      (click)="previousUnassignedUserPage()"
-                      [disabled]="unassignedUserPage() === 1"
-                    >
-                      Previous
-                    </button>
-                    <span>Page {{ unassignedUserPage() }} of {{ unassignedUserTotalPages() }}</span>
-                    <button
-                      type="button"
-                      (click)="nextUnassignedUserPage()"
-                      [disabled]="unassignedUserPage() === unassignedUserTotalPages()"
-                    >
-                      Next
-                    </button>
-                  </div>
-                }
-              </section>
-
-              <!-- Assigned Users -->
-              <section class="list-panel" aria-labelledby="assigned-users-title">
-                <div class="panel-header">
-                  <div>
-                    <h2 id="assigned-users-title">Assigned Users</h2>
-                    <p>Users in {{ selectedCandidateProject()?.name || 'selected project' }}</p>
-                  </div>
-                  <button type="button" (click)="loadAssignedUsers()">Refresh</button>
+                      }
+                    </tbody>
+                  </table>
                 </div>
 
-                <div class="toolbar">
-                  <label for="assigned-user-filter">Filter</label>
-                  <input
-                    id="assigned-user-filter"
-                    type="search"
-                    [ngModel]="assignedUserFilter()"
-                    (ngModelChange)="setAssignedUserFilter($event)"
-                    placeholder="Username, name"
-                  >
-                  <label for="assigned-user-page-size">Page size</label>
-                  <select
-                    id="assigned-user-page-size"
-                    [ngModel]="assignedUserPageSize()"
-                    (ngModelChange)="setAssignedUserPageSize($event)"
-                  >
-                    <option [ngValue]="10">10</option>
-                    <option [ngValue]="25">25</option>
-                    <option [ngValue]="50">50</option>
-                  </select>
-                </div>
-
-                @if (assignedUsers().length === 0) {
-                  <p class="empty">No users assigned to this project.</p>
-                } @else {
-                  <div class="table-wrap compact-table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Username</th>
-                          <th>Name</th>
-                          <th>Role</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (user of assignedUsers(); track user.id ?? user.userName) {
-                          <tr>
-                            <td>{{ user.userName || 'n/a' }}</td>
-                            <td>{{ user.name || 'n/a' }}</td>
-                            <td>{{ upmAssignedRole(user, selectedCandidateProject()) }}</td>
-                            <td>
-                              <button
-                                type="button"
-                                class="danger-button"
-                                (click)="upmUnassignUser(user)"
-                                [disabled]="savingProjectAssignment()"
-                              >
-                                Remove
-                              </button>
-                            </td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div class="pager" aria-label="Assigned user pages">
-                    <button
-                      type="button"
-                      (click)="previousAssignedUserPage()"
-                      [disabled]="assignedUserPage() === 1"
-                    >
-                      Previous
-                    </button>
-                    <span>Page {{ assignedUserPage() }} of {{ assignedUserTotalPages() }}</span>
-                    <button
-                      type="button"
-                      (click)="nextAssignedUserPage()"
-                      [disabled]="assignedUserPage() === assignedUserTotalPages()"
-                    >
-                      Next
-                    </button>
-                  </div>
-                }
-              </section>
-            }
-          </div>
+                <meme-pager
+                  label="Assigned user pages"
+                  [page]="assignedUserPage()"
+                  [totalPages]="assignedUserTotalPages()"
+                  [pageSize]="assignedUserPageSize()"
+                  (pageChange)="setAssignedUserPage($event)"
+                  (pageSizeChange)="setAssignedUserPageSize($event)"
+                />
+              }
+            </section>
+          }
         </div>
-      </div><!-- /.accordion-body -->
-    </details><!-- /User & Project Management accordion -->
-  }
+      </div>
+    </section>
 </section>

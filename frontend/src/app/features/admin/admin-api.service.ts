@@ -87,6 +87,32 @@ export class AdminApiService {
       .pipe(map((response) => normalizeListResponse(response, ['users', 'objects'])));
   }
 
+  findAssignedUsersForProject(
+    projectId: number,
+    pfs: PfsParameter,
+    query = ''
+  ): Observable<AdminListState<AdminUser>> {
+    return this.http
+      .post<AdminListResponse<AdminUser>>(
+        `${this.baseUrl}/project/${projectId}/users?query=${encodeURIComponent(query)}`,
+        pfs
+      )
+      .pipe(map((response) => normalizeListResponse(response, ['users', 'objects'])));
+  }
+
+  findUnassignedUsersForProject(
+    projectId: number,
+    pfs: PfsParameter,
+    query = ''
+  ): Observable<AdminListState<AdminUser>> {
+    return this.http
+      .post<AdminListResponse<AdminUser>>(
+        `${this.baseUrl}/project/${projectId}/users/unassigned?query=${encodeURIComponent(query)}`,
+        pfs
+      )
+      .pipe(map((response) => normalizeListResponse(response, ['users', 'objects'])));
+  }
+
   getApplicationRoles(): Observable<string[]> {
     return this.http
       .get<AdminListResponse<string>>(`${this.baseUrl}/security/roles`)
@@ -123,6 +149,19 @@ export class AdminApiService {
     return this.http.get<AdminPrecedenceList>(
       `${this.baseUrl}/metadata/precedence/${precedenceListId}`
     );
+  }
+
+  getProjectLog(projectId: number, message = '', lines = 1000): Observable<string> {
+    const params = new URLSearchParams({
+      projectId: String(projectId),
+      lines: String(lines)
+    });
+
+    if (message.trim()) {
+      params.set('message', message.trim());
+    }
+
+    return this.http.get(`${this.baseUrl}/project/log?${params}`, { responseType: 'text' });
   }
 
   getValidationChecks(): Observable<AdminKeyValuePair[]> {

@@ -2559,8 +2559,10 @@ describe('Angular 20 shell', () => {
     cy.wait('@adminProjects');
     cy.contains('Project added.').should('be.visible');
 
-    cy.get('aside[aria-label="Selected project details"]').within(() => {
-      cy.contains('button', 'Edit').click();
+    cy.get('section[aria-labelledby="projects-title"]').within(() => {
+      cy.contains('tr', 'NCI-META Editing').within(() => {
+        cy.get('.icon-action[title="Edit Project"]').click();
+      });
     });
     cy.get('[role="dialog"]').should('be.visible').and('contain.text', 'Edit Project');
     cy.wait('@adminPrecedence');
@@ -2624,33 +2626,6 @@ describe('Angular 20 shell', () => {
     cy.get('#user-filter').clear();
     cy.wait('@adminUsers');
 
-    cy.contains('Assign Project').click();
-    cy.get('[role="dialog"]')
-      .should('be.visible')
-      .and('contain.text', 'Assign Project Role');
-    cy.get('#project-assignment-project').select('5');
-    cy.get('#project-assignment-role').select('REVIEWER');
-    cy.get('.user-form button[type="submit"]').click();
-    cy.wait('@assignProjectRole');
-    cy.wait(['@adminProjects', '@adminUsers']);
-    cy.contains('Project role assigned.').should('be.visible');
-    cy.contains('.role-list li', 'NCI-META Editing (5)').should(
-      'contain.text',
-      'REVIEWER'
-    );
-
-    cy.contains('.role-list li', 'NCI-META Editing (5)').within(() => {
-      cy.contains('Remove').click();
-    });
-    cy.wrap(null).should(() => {
-      expect(confirmationMessages[confirmationMessages.length - 1]).to.equal(
-        'Remove admin from Updated NCI-META Editing (5)?'
-      );
-    });
-    cy.wait('@unassignProjectRole');
-    cy.wait(['@adminProjects', '@adminUsers']);
-    cy.contains('Project role removed.').should('be.visible');
-
     cy.contains('Add User').click();
     cy.get('[role="dialog"]').should('be.visible').and('contain.text', 'Add User');
     cy.get('#user-form-username').type('new-user');
@@ -2684,8 +2659,10 @@ describe('Angular 20 shell', () => {
     cy.wait('@updateUser');
     cy.contains('User updated.').should('be.visible');
 
-    cy.get('aside[aria-label="Selected project details"]').within(() => {
-      cy.contains('button', 'Delete').click();
+    cy.get('section[aria-labelledby="projects-title"]').within(() => {
+      cy.contains('tr', 'Updated NCI-META Editing').within(() => {
+        cy.get('.icon-action[title="Delete Project"]').click();
+      });
     });
     cy.wrap(null).should(() => {
       expect(confirmationMessages[confirmationMessages.length - 1]).to.equal(

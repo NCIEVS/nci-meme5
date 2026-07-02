@@ -37,8 +37,7 @@ h2 {
 
 .role-strip,
 .utility-panel,
-.list-panel,
-.detail-panel {
+.list-panel {
   min-width: 0;
   background: var(--meme-surface);
   border: 1px solid var(--meme-border);
@@ -122,7 +121,6 @@ details[open] .accordion-arrow {
 
 /* suppress double shadow on panels nested inside accordions */
 .accordion-body .list-panel,
-.accordion-body .detail-panel,
 .accordion-body .utility-panel,
 .accordion-body .role-strip {
   box-shadow: none;
@@ -131,12 +129,6 @@ details[open] .accordion-arrow {
 /* -------------------------------------------------------------------- */
 
 .admin-grid {
-  display: grid;
-  grid-template-columns: var(--meme-split-ratio);
-  gap: var(--meme-space-lg);
-}
-
-.utility-grid {
   display: grid;
   grid-template-columns: var(--meme-split-ratio);
   gap: var(--meme-space-lg);
@@ -164,30 +156,42 @@ details[open] .accordion-arrow {
 
 .panel-actions,
 .form-actions,
-.inline-control,
-.detail-actions,
-.detail-heading {
+.inline-control {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.detail-heading {
-  justify-content: space-between;
-}
-
-.detail-actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 .toolbar {
   display: grid;
-  grid-template-columns: auto minmax(220px, 1fr) auto 110px;
+  grid-template-columns: auto minmax(220px, 1fr);
   align-items: center;
   gap: 10px;
   padding: 14px;
   border-bottom: 1px solid var(--meme-border-inner);
+}
+
+.log-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.log-toolbar input {
+  flex: 1;
+}
+
+.log-output {
+  max-height: 600px;
+  margin: 0;
+  padding: 10px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--meme-surface-subtle);
+  border-radius: var(--meme-input-radius);
+  font-size: var(--meme-text-sm);
 }
 
 .field-label,
@@ -437,20 +441,6 @@ tbody tr.selected {
   background: var(--meme-table-hover);
 }
 
-.pager {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 12px;
-  color: var(--meme-text-secondary);
-}
-
-.detail-panel {
-  align-self: start;
-  padding: 22px;
-}
-
 dl {
   display: grid;
   gap: 12px;
@@ -465,34 +455,6 @@ dl div {
 dd {
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.role-list {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.role-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 8px;
-  background: var(--meme-surface-subtle);
-  border-radius: var(--meme-input-radius);
-}
-
-.role-list span {
-  flex: 1;
-  overflow-wrap: anywhere;
-}
-
-.role-list strong {
-  color: var(--meme-text);
-  font-size: var(--meme-text-xs);
 }
 
 .row-actions {
@@ -601,7 +563,6 @@ tbody tr.precedence-touched {
 
 @media (max-width: 900px) {
   .admin-grid,
-  .utility-grid,
   .role-strip {
     grid-template-columns: 1fr;
   }

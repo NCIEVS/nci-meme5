@@ -7,6 +7,7 @@ import { UserPreferences } from '../../core/auth/auth.models';
 import { AuthService } from '../../core/auth/auth.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
+import { PagerComponent } from '../../shared/pager/pager.component';
 import { buildPfs } from './admin-api.helpers';
 import { AdminApiService } from './admin-api.service';
 import {
@@ -21,7 +22,6 @@ import {
 type UserSortField = 'userName' | 'name' | 'email' | 'applicationRole';
 type ProjectSortField = 'lastModified' | 'id' | 'name' | 'terminology';
 type AdminOperation = 'exception' | 'localException' | 'reloadConfig';
-type ProjectAssignmentFormField = 'projectId' | 'role';
 type ProjectFormField =
   | 'automationsEnabled'
   | 'description'
@@ -40,10 +40,11 @@ interface RoleEntry {
   value: string;
 }
 
-interface ProjectAssignmentForm {
-  projectId: string;
-  role: string;
-  user: AdminUser;
+interface ProjectLogState {
+  filter: string;
+  loading: boolean;
+  log: string;
+  project: AdminProject;
 }
 
 interface ProjectForm {
@@ -80,7 +81,7 @@ interface UserForm {
 
 @Component({
   selector: 'meme-admin',
-  imports: [DialogComponent, FormsModule],
+  imports: [DialogComponent, FormsModule, PagerComponent],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css'
 })
@@ -91,8 +92,10 @@ export class AdminComponent implements OnInit {
 
   protected readonly applicationRoles = signal<string[]>([]);
   protected readonly projectRoles = signal<string[]>([]);
+  protected readonly projectsGroupOpen = signal(true);
+  protected readonly usersGroupOpen = signal(true);
+  protected readonly preferencesGroupOpen = signal(true);
   protected readonly projects = signal<AdminProject[]>([]);
-  protected readonly projectFilter = signal('');
   protected readonly projectPage = signal(1);
   protected readonly projectPageSize = signal(10);
   protected readonly projectSortAscending = signal(true);
@@ -102,8 +105,6 @@ export class AdminComponent implements OnInit {
   protected readonly loadingPrecedenceList = signal(false);
   protected readonly loadingRoles = signal(false);
   protected readonly loadingUsers = signal(false);
-  protected readonly selectedProject = signal<AdminProject | null>(null);
-  protected readonly selectedUser = signal<AdminUser | null>(null);
   protected readonly users = signal<AdminUser[]>([]);
   protected readonly deletingProjectId = signal<number | null>(null);
   protected readonly deletingUserId = signal<number | null>(null);
@@ -116,10 +117,9 @@ export class AdminComponent implements OnInit {
   protected readonly runningAdminOperation = signal<AdminOperation | null>(null);
   protected readonly precedenceList = signal<AdminPrecedenceList | null>(null);
   protected readonly precedenceTouchedKeys = signal<string[]>([]);
+  protected readonly projectLogState = signal<ProjectLogState | null>(null);
   protected readonly projectForm = signal<ProjectForm | null>(null);
   protected readonly projectFormErrors = signal<string[]>([]);
-  protected readonly projectAssignmentForm = signal<ProjectAssignmentForm | null>(null);
-  protected readonly projectAssignmentErrors = signal<string[]>([]);
   protected readonly projectLanguageOptions = signal<AdminKeyValuePair[]>([]);
   protected readonly projectTerminologies = signal<AdminTerminology[]>([]);
   protected readonly validationCheckDefinitions = signal<AdminKeyValuePair[]>([]);
@@ -224,19 +224,83 @@ export class AdminComponent implements OnInit {
     this.userPreferenceFeedbackEmail.set(
       this.currentUser().userPreferences?.feedbackEmail ?? ''
     );
+    this.restoreAccordionState();
     this.loadRoles();
     this.loadProjectConfiguration();
     this.loadProjects();
     this.loadUsers();
+    this.loadCandidateProjects();
+  }
 
-    if (this.currentUser().applicationRole === 'ADMINISTRATOR') {
-      this.loadCandidateProjects();
+  protected onAccordionToggle(group: 'preferences' | 'projects' | 'users', event: Event): void {
+    const isOpen = (event.target as HTMLDetailsElement).open;
+
+    if (group === 'projects') {
+      this.projectsGroupOpen.set(isOpen);
+    } else if (group === 'users') {
+      this.usersGroupOpen.set(isOpen);
+    } else {
+      this.preferencesGroupOpen.set(isOpen);
+    }
+
+    this.saveAccordionState();
+  }
+
+  private restoreAccordionState(): void {
+    const raw = this.currentUser().userPreferences?.properties?.['adminGroups'];
+
+    if (typeof raw !== 'string' || !raw) {
+      return;
+    }
+
+    try {
+      const groups = JSON.parse(raw) as Array<{ open: boolean; title: string }>;
+      const openFor = (title: string) => groups.find((group) => group.title === title)?.open;
+
+      const projectsOpen = openFor('Projects');
+      const usersOpen = openFor('Users');
+      const preferencesOpen = openFor('User Preferences');
+
+      if (projectsOpen !== undefined) {
+        this.projectsGroupOpen.set(projectsOpen);
+      }
+      if (usersOpen !== undefined) {
+        this.usersGroupOpen.set(usersOpen);
+      }
+      if (preferencesOpen !== undefined) {
+        this.preferencesGroupOpen.set(preferencesOpen);
+      }
+    } catch {
+      // ignore malformed stored accordion state
     }
   }
 
-  protected loadProjects(
-    preferredProjectId: number | null | undefined = this.selectedProject()?.id
-  ): void {
+  private saveAccordionState(): void {
+    const groups = [
+      { open: this.projectsGroupOpen(), title: 'Projects' },
+      { open: this.usersGroupOpen(), title: 'Users' },
+      { open: this.preferencesGroupOpen(), title: 'User Preferences' }
+    ];
+
+    const preferences = this.currentUserPreferencesForUpdate({
+      properties: {
+        ...(this.currentUser().userPreferences?.properties ?? {}),
+        adminGroups: JSON.stringify(groups)
+      }
+    });
+
+    if (!preferences) {
+      return;
+    }
+
+    this.api.updateUserPreferences(preferences).subscribe({
+      next: (savedPreferences) => {
+        this.auth.updateCurrentUserPreferences(savedPreferences ?? preferences);
+      }
+    });
+  }
+
+  protected loadProjects(): void {
     this.loadingProjects.set(true);
     this.api
       .findProjects(
@@ -245,7 +309,7 @@ export class AdminComponent implements OnInit {
           this.projectPageSize(),
           this.projectSortField(),
           this.projectSortAscending(),
-          this.projectFilter()
+          ''
         )
       )
       .pipe(finalize(() => this.loadingProjects.set(false)))
@@ -253,11 +317,6 @@ export class AdminComponent implements OnInit {
         next: (state) => {
           this.projects.set(state.items);
           this.projectTotalCount.set(state.totalCount);
-          this.selectProject(
-            state.items.find((project) => project.id === preferredProjectId) ??
-              state.items[0] ??
-              null
-          );
         },
         error: () => {
           this.notifications.error('Projects could not be loaded.');
@@ -265,9 +324,7 @@ export class AdminComponent implements OnInit {
       });
   }
 
-  protected loadUsers(
-    preferredUserName: string | null | undefined = this.selectedUser()?.userName
-  ): void {
+  protected loadUsers(): void {
     this.loadingUsers.set(true);
     this.api
       .findUsers(
@@ -284,24 +341,11 @@ export class AdminComponent implements OnInit {
         next: (state) => {
           this.users.set(state.items);
           this.userTotalCount.set(state.totalCount);
-          this.selectUser(
-            state.items.find((user) => user.userName === preferredUserName) ??
-              state.items[0] ??
-              null
-          );
         },
         error: () => {
           this.notifications.error('Users could not be loaded.');
         }
       });
-  }
-
-  protected selectProject(project: AdminProject | null): void {
-    this.selectedProject.set(project);
-  }
-
-  protected selectUser(user: AdminUser | null): void {
-    this.selectedUser.set(user);
   }
 
   protected canEditProject(project: AdminProject): boolean {
@@ -335,7 +379,6 @@ export class AdminComponent implements OnInit {
   }
 
   protected startEditProject(project: AdminProject): void {
-    this.selectProject(project);
     this.projectForm.set({
       automationsEnabled: Boolean(project.automationsEnabled),
       description: project.description ?? '',
@@ -578,7 +621,7 @@ export class AdminComponent implements OnInit {
         if (form.mode === 'add' && savedProject) {
           this.completeAddedProject(savedProject);
         } else {
-          this.completeProjectSave(project, 'Project updated.');
+          this.completeProjectSave('Project updated.');
         }
       },
       error: (error: unknown) => {
@@ -616,6 +659,57 @@ export class AdminComponent implements OnInit {
           this.notifications.error(this.describeProjectError(error, 'Project could not be removed.'));
         }
       });
+  }
+
+  protected openProjectLog(project: AdminProject): void {
+    this.projectLogState.set({ filter: '', loading: true, log: '', project });
+    this.fetchProjectLog(project, '');
+  }
+
+  protected closeProjectLog(): void {
+    this.projectLogState.set(null);
+  }
+
+  protected updateProjectLogFilter(value: string): void {
+    this.projectLogState.update((state) => (state ? { ...state, filter: value } : state));
+  }
+
+  protected searchProjectLog(): void {
+    const state = this.projectLogState();
+
+    if (state) {
+      this.fetchProjectLog(state.project, state.filter);
+    }
+  }
+
+  protected clearProjectLogFilter(): void {
+    const state = this.projectLogState();
+
+    if (!state) {
+      return;
+    }
+
+    this.projectLogState.set({ ...state, filter: '' });
+    this.fetchProjectLog(state.project, '');
+  }
+
+  private fetchProjectLog(project: AdminProject, filter: string): void {
+    const projectId = project.id;
+
+    if (projectId === null || projectId === undefined) {
+      return;
+    }
+
+    this.projectLogState.update((state) => (state ? { ...state, loading: true } : state));
+    this.api.getProjectLog(projectId, filter).subscribe({
+      next: (log) => {
+        this.projectLogState.update((state) => (state ? { ...state, loading: false, log } : state));
+      },
+      error: () => {
+        this.notifications.error('Project log could not be loaded.');
+        this.projectLogState.update((state) => (state ? { ...state, loading: false } : state));
+      }
+    });
   }
 
   protected removeUser(user: AdminUser): void {
@@ -749,7 +843,6 @@ export class AdminComponent implements OnInit {
   }
 
   protected startEditUser(user: AdminUser): void {
-    this.selectUser(user);
     this.userForm.set({
       applicationRole: user.applicationRole ?? this.applicationRoles()[0] ?? 'VIEWER',
       editorLevel:
@@ -796,123 +889,18 @@ export class AdminComponent implements OnInit {
 
     this.savingUser.set(true);
     request.pipe(finalize(() => this.savingUser.set(false))).subscribe({
-      next: (savedUser) => {
+      next: () => {
         this.notifications.success(
           form.mode === 'add' ? 'User added.' : 'User updated.'
         );
         this.userForm.set(null);
         this.userFormErrors.set([]);
-        this.loadUsers(savedUser?.userName ?? user.userName);
-
-        if (savedUser) {
-          this.selectUser(savedUser);
-        }
+        this.loadUsers();
       },
       error: () => {
         this.userFormErrors.set(['User could not be saved.']);
       }
     });
-  }
-
-  protected startProjectAssignment(user: AdminUser): void {
-    this.selectUser(user);
-
-    const selectedProject = this.selectedProject();
-    const defaultProject =
-      selectedProject?.id === null || selectedProject?.id === undefined
-        ? this.projects().find((project) => project.id !== null && project.id !== undefined)
-        : selectedProject;
-
-    this.projectAssignmentForm.set({
-      projectId:
-        defaultProject?.id === null || defaultProject?.id === undefined
-          ? ''
-          : String(defaultProject.id),
-      role: this.projectRoles()[0] ?? 'AUTHOR',
-      user
-    });
-    this.projectAssignmentErrors.set([]);
-  }
-
-  protected cancelProjectAssignment(): void {
-    this.projectAssignmentForm.set(null);
-    this.projectAssignmentErrors.set([]);
-  }
-
-  protected updateProjectAssignmentForm(
-    field: ProjectAssignmentFormField,
-    value: number | string
-  ): void {
-    this.projectAssignmentForm.update((form) =>
-      form ? { ...form, [field]: String(value ?? '') } : form
-    );
-  }
-
-  protected saveProjectAssignment(): void {
-    const form = this.projectAssignmentForm();
-
-    if (!form || this.savingProjectAssignment()) {
-      return;
-    }
-
-    const errors = this.validateProjectAssignmentForm(form);
-    this.projectAssignmentErrors.set(errors);
-
-    if (errors.length) {
-      return;
-    }
-
-    const projectId = Number(form.projectId);
-    const userName = form.user.userName?.trim() ?? '';
-    const role = form.role.trim();
-
-    this.savingProjectAssignment.set(true);
-    this.api
-      .assignUserToProject(projectId, userName, role)
-      .pipe(finalize(() => this.savingProjectAssignment.set(false)))
-      .subscribe({
-        next: (project) => {
-          this.notifications.success('Project role assigned.');
-          this.projectAssignmentForm.set(null);
-          this.projectAssignmentErrors.set([]);
-          this.selectProject(project);
-          this.loadProjects(project.id ?? projectId);
-          this.loadUsers(userName);
-        },
-        error: () => {
-          this.projectAssignmentErrors.set(['Project role could not be assigned.']);
-        }
-      });
-  }
-
-  protected removeProjectAssignment(user: AdminUser, role: RoleEntry): void {
-    const projectId = Number(role.key);
-    const userName = user.userName?.trim() ?? '';
-
-    if (!Number.isFinite(projectId) || !userName || this.savingProjectAssignment()) {
-      this.notifications.error('Project role could not be removed.');
-      return;
-    }
-
-    if (!window.confirm(`Remove ${userName} from ${this.projectLabel(role.key)}?`)) {
-      return;
-    }
-
-    this.savingProjectAssignment.set(true);
-    this.api
-      .unassignUserFromProject(projectId, userName)
-      .pipe(finalize(() => this.savingProjectAssignment.set(false)))
-      .subscribe({
-        next: (project) => {
-          this.notifications.success('Project role removed.');
-          this.selectProject(project);
-          this.loadProjects(project.id ?? projectId);
-          this.loadUsers(userName);
-        },
-        error: () => {
-          this.notifications.error('Project role could not be removed.');
-        }
-      });
   }
 
   // ---------- User & Project Management methods ----------
@@ -933,7 +921,14 @@ export class AdminComponent implements OnInit {
       .pipe(finalize(() => this.loadingCandidateProjects.set(false)))
       .subscribe({
         next: (state) => {
-          // Only show projects where the current user has ADMINISTRATOR role
+          // Application administrators can manage any project; everyone else
+          // only sees projects where they hold the project-level ADMINISTRATOR role
+          if (this.currentUser().applicationRole === 'ADMINISTRATOR') {
+            this.candidateProjects.set(state.items);
+            this.candidateProjectTotalCount.set(state.totalCount);
+            return;
+          }
+
           const currentUserNames = [
             this.currentUser().userName,
             this.currentUser().authToken
@@ -965,37 +960,32 @@ export class AdminComponent implements OnInit {
   protected loadUnassignedUsers(): void {
     const project = this.selectedCandidateProject();
 
-    if (!project) {
+    if (project?.id === null || project?.id === undefined) {
       this.unassignedUsers.set([]);
       this.unassignedUserTotalCount.set(0);
       return;
     }
 
-    const assignedUserNames = new Set(
-      Object.keys(project.userRoleMap ?? {}).map((name) => name.toLocaleLowerCase())
-    );
-
     this.api
-      .findUsers(
+      .findUnassignedUsersForProject(
+        project.id,
         buildPfs(
           this.unassignedUserPage(),
           this.unassignedUserPageSize(),
           'userName',
           true,
           this.unassignedUserFilter().trim()
-        )
+        ),
+        '(applicationRole:USER OR applicationRole:ADMINISTRATOR)'
       )
       .subscribe({
         next: (state) => {
-          const unassigned = state.items.filter(
-            (user) => !assignedUserNames.has((user.userName ?? '').toLocaleLowerCase())
-          );
-          this.unassignedUsers.set(unassigned);
-          this.unassignedUserTotalCount.set(unassigned.length);
+          this.unassignedUsers.set(state.items);
+          this.unassignedUserTotalCount.set(state.totalCount);
           // Seed default role for each unassigned user
           const defaultRole = this.projectRoles()[0] ?? 'AUTHOR';
           const roles = { ...this.upmRoles() };
-          unassigned.forEach((user) => {
+          state.items.forEach((user) => {
             if (user.userName && !roles[user.userName]) {
               roles[user.userName] = defaultRole;
             }
@@ -1011,18 +1001,15 @@ export class AdminComponent implements OnInit {
   protected loadAssignedUsers(): void {
     const project = this.selectedCandidateProject();
 
-    if (!project) {
+    if (project?.id === null || project?.id === undefined) {
       this.assignedUsers.set([]);
       this.assignedUserTotalCount.set(0);
       return;
     }
 
-    const assignedUserNames = new Set(
-      Object.keys(project.userRoleMap ?? {}).map((name) => name.toLocaleLowerCase())
-    );
-
     this.api
-      .findUsers(
+      .findAssignedUsersForProject(
+        project.id,
         buildPfs(
           this.assignedUserPage(),
           this.assignedUserPageSize(),
@@ -1033,11 +1020,8 @@ export class AdminComponent implements OnInit {
       )
       .subscribe({
         next: (state) => {
-          const assigned = state.items.filter(
-            (user) => assignedUserNames.has((user.userName ?? '').toLocaleLowerCase())
-          );
-          this.assignedUsers.set(assigned);
-          this.assignedUserTotalCount.set(assigned.length);
+          this.assignedUsers.set(state.items);
+          this.assignedUserTotalCount.set(state.totalCount);
         },
         error: () => {
           this.notifications.error('Assigned users could not be loaded.');
@@ -1083,7 +1067,6 @@ export class AdminComponent implements OnInit {
       .pipe(finalize(() => this.savingProjectAssignment.set(false)))
       .subscribe({
         next: (updatedProject) => {
-          this.notifications.success(`${userName} assigned to project.`);
           this.selectedCandidateProject.set(updatedProject);
           this.loadUnassignedUsers();
           this.loadAssignedUsers();
@@ -1116,7 +1099,6 @@ export class AdminComponent implements OnInit {
       .pipe(finalize(() => this.savingProjectAssignment.set(false)))
       .subscribe({
         next: (updatedProject) => {
-          this.notifications.success(`${userName} removed from project.`);
           this.selectedCandidateProject.set(updatedProject);
           this.loadUnassignedUsers();
           this.loadAssignedUsers();
@@ -1135,25 +1117,14 @@ export class AdminComponent implements OnInit {
     this.loadCandidateProjects();
   }
 
-  protected setCandidateProjectPageSize(value: string): void {
-    this.candidateProjectPageSize.set(Number(value));
+  protected setCandidateProjectPageSize(value: number): void {
+    this.candidateProjectPageSize.set(value);
     this.candidateProjectPage.set(1);
     this.loadCandidateProjects();
   }
 
-  protected previousCandidateProjectPage(): void {
-    if (this.candidateProjectPage() === 1) {
-      return;
-    }
-    this.candidateProjectPage.update((page) => page - 1);
-    this.loadCandidateProjects();
-  }
-
-  protected nextCandidateProjectPage(): void {
-    if (this.candidateProjectPage() === this.candidateProjectTotalPages()) {
-      return;
-    }
-    this.candidateProjectPage.update((page) => page + 1);
+  protected setCandidateProjectPage(page: number): void {
+    this.candidateProjectPage.set(page);
     this.loadCandidateProjects();
   }
 
@@ -1163,25 +1134,14 @@ export class AdminComponent implements OnInit {
     this.loadUnassignedUsers();
   }
 
-  protected setUnassignedUserPageSize(value: string): void {
-    this.unassignedUserPageSize.set(Number(value));
+  protected setUnassignedUserPageSize(value: number): void {
+    this.unassignedUserPageSize.set(value);
     this.unassignedUserPage.set(1);
     this.loadUnassignedUsers();
   }
 
-  protected previousUnassignedUserPage(): void {
-    if (this.unassignedUserPage() === 1) {
-      return;
-    }
-    this.unassignedUserPage.update((page) => page - 1);
-    this.loadUnassignedUsers();
-  }
-
-  protected nextUnassignedUserPage(): void {
-    if (this.unassignedUserPage() === this.unassignedUserTotalPages()) {
-      return;
-    }
-    this.unassignedUserPage.update((page) => page + 1);
+  protected setUnassignedUserPage(page: number): void {
+    this.unassignedUserPage.set(page);
     this.loadUnassignedUsers();
   }
 
@@ -1191,40 +1151,18 @@ export class AdminComponent implements OnInit {
     this.loadAssignedUsers();
   }
 
-  protected setAssignedUserPageSize(value: string): void {
-    this.assignedUserPageSize.set(Number(value));
+  protected setAssignedUserPageSize(value: number): void {
+    this.assignedUserPageSize.set(value);
     this.assignedUserPage.set(1);
     this.loadAssignedUsers();
   }
 
-  protected previousAssignedUserPage(): void {
-    if (this.assignedUserPage() === 1) {
-      return;
-    }
-    this.assignedUserPage.update((page) => page - 1);
-    this.loadAssignedUsers();
-  }
-
-  protected nextAssignedUserPage(): void {
-    if (this.assignedUserPage() === this.assignedUserTotalPages()) {
-      return;
-    }
-    this.assignedUserPage.update((page) => page + 1);
+  protected setAssignedUserPage(page: number): void {
+    this.assignedUserPage.set(page);
     this.loadAssignedUsers();
   }
 
   // ---------- end User & Project Management ----------
-
-  protected setProjectFilter(value: string): void {
-    const wasFiltered = Boolean(this.projectFilter().trim());
-
-    this.projectFilter.set(value);
-    this.projectPage.set(1);
-
-    if (wasFiltered && !value.trim()) {
-      this.loadProjects();
-    }
-  }
 
   protected setUserFilter(value: string): void {
     const wasFiltered = Boolean(this.userFilter().trim());
@@ -1237,14 +1175,14 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  protected setProjectPageSize(value: string): void {
-    this.projectPageSize.set(Number(value));
+  protected setProjectPageSize(value: number): void {
+    this.projectPageSize.set(value);
     this.projectPage.set(1);
     this.loadProjects();
   }
 
-  protected setUserPageSize(value: string): void {
-    this.userPageSize.set(Number(value));
+  protected setUserPageSize(value: number): void {
+    this.userPageSize.set(value);
     this.userPage.set(1);
     this.loadUsers();
   }
@@ -1289,96 +1227,18 @@ export class AdminComponent implements OnInit {
     return this.userSortAscending() ? 'ascending' : 'descending';
   }
 
-  protected previousProjectPage(): void {
-    if (this.projectPage() === 1) {
-      return;
-    }
-
-    this.projectPage.update((page) => page - 1);
+  protected setProjectPage(page: number): void {
+    this.projectPage.set(page);
     this.loadProjects();
   }
 
-  protected nextProjectPage(): void {
-    if (this.projectPage() === this.projectTotalPages()) {
-      return;
-    }
-
-    this.projectPage.update((page) => page + 1);
-    this.loadProjects();
-  }
-
-  protected previousUserPage(): void {
-    if (this.userPage() === 1) {
-      return;
-    }
-
-    this.userPage.update((page) => page - 1);
+  protected setUserPage(page: number): void {
+    this.userPage.set(page);
     this.loadUsers();
-  }
-
-  protected nextUserPage(): void {
-    if (this.userPage() === this.userTotalPages()) {
-      return;
-    }
-
-    this.userPage.update((page) => page + 1);
-    this.loadUsers();
-  }
-
-  protected roleEntries(roleMap: Record<string, string> | null | undefined): RoleEntry[] {
-    return Object.entries(roleMap ?? {})
-      .map(([key, value]) => ({ key, value }))
-      .sort((left, right) => left.key.localeCompare(right.key, undefined, {
-        numeric: true,
-        sensitivity: 'base'
-      }));
-  }
-
-  protected projectLabel(projectId: number | string | null | undefined): string {
-    const id = String(projectId ?? '');
-    const project = this.projects().find((candidate) => String(candidate.id ?? '') === id);
-
-    if (!id) {
-      return 'n/a';
-    }
-
-    return project?.name ? `${project.name} (${id})` : `Project ${id}`;
-  }
-
-  protected listValue(values: Array<string | null> | null | undefined): string {
-    const usableValues = values?.filter((value): value is string => Boolean(value));
-    return usableValues?.length ? usableValues.join(', ') : 'n/a';
-  }
-
-  protected validationCheckLabels(checkKeys: Array<string | null> | null | undefined): string {
-    const checksByKey = new Map(
-      this.validationCheckDefinitions().map((check) => [check.key, check])
-    );
-    const labels = checkKeys
-      ?.filter((key): key is string => Boolean(key))
-      .map((key) => this.validationCheckLabel(checksByKey.get(key) ?? { key, value: key }));
-
-    return labels?.length ? labels.join(', ') : 'n/a';
-  }
-
-  protected validationDataLabel(data: AdminValidationData): string {
-    const type = data.type || 'n/a';
-    const key = data.key || 'n/a';
-    const value = data.value || '';
-
-    return value ? `${type}: ${key}, ${value}` : `${type}: ${key}`;
   }
 
   protected precedenceTrackKey(entry: AdminKeyValuePair, index: number): string {
     return `${index}:${this.precedenceEntryKey(entry)}`;
-  }
-
-  protected formatDate(timestamp: number | null | undefined): string {
-    if (!timestamp) {
-      return 'n/a';
-    }
-
-    return new Date(timestamp).toLocaleString();
   }
 
   private loadRoles(): void {
@@ -1566,7 +1426,7 @@ export class AdminComponent implements OnInit {
       projectId === undefined ||
       !userName
     ) {
-      this.completeProjectSave(project, 'Project added.');
+      this.completeProjectSave('Project added.');
       return;
     }
 
@@ -1575,9 +1435,9 @@ export class AdminComponent implements OnInit {
       .assignUserToProject(projectId, userName, 'ADMINISTRATOR')
       .pipe(finalize(() => this.savingProject.set(false)))
       .subscribe({
-        next: (assignedProject) => {
+        next: () => {
           this.updateLastProjectPreference(projectId, () => {
-            this.completeProjectSave(assignedProject, 'Project added.');
+            this.completeProjectSave('Project added.');
           });
         },
         error: () => {
@@ -1673,13 +1533,12 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  private completeProjectSave(project: AdminProject, message: string): void {
+  private completeProjectSave(message: string): void {
     this.notifications.success(message);
     this.projectForm.set(null);
     this.projectFormErrors.set([]);
     this.clearPrecedenceList();
-    this.selectProject(project);
-    this.loadProjects(project.id);
+    this.loadProjects();
   }
 
   private validateProjectForm(form: ProjectForm): string[] {
@@ -1731,24 +1590,6 @@ export class AdminComponent implements OnInit {
     }
 
     return fallback;
-  }
-
-  private validateProjectAssignmentForm(form: ProjectAssignmentForm): string[] {
-    const errors: string[] = [];
-
-    if (!form.user.userName?.trim()) {
-      errors.push('User is required.');
-    }
-
-    if (!form.projectId.trim() || !Number.isFinite(Number(form.projectId))) {
-      errors.push('Project is required.');
-    }
-
-    if (!form.role.trim()) {
-      errors.push('Project role is required.');
-    }
-
-    return errors;
   }
 
   private validateValidationDataForm(form: ValidationDataForm): string[] {
