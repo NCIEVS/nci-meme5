@@ -3140,6 +3140,14 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
 
       final T oldComponent = getComponent(newComponent.getId(), (Class<T>) newComponent.getClass());
 
+      // Entity was just created in the same transaction (manager.persist called but not yet
+      // flushed — manager.detach evicted it from the session cache so manager.find returns null).
+      // No old state exists to compare; skip atomic-action generation and just merge.
+      if (oldComponent == null) {
+        updateHasLastModified(newComponent);
+        return;
+      }
+
       // Create an atomic action when old value is different from new value.
       // For fields annotated with @Column
       final List<Method> columnMethods =

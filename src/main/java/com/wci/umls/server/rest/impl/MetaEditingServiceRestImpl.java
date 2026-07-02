@@ -1374,6 +1374,8 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
           action.getToConcept());
       sendChangeEvents(userName, event, event2);
 
+      // Surface the new concept id so the client can add it to the concept list
+      validationResult.getComments().add("newConceptId:" + action.getToConcept().getId());
       return validationResult;
 
     } catch (Exception e) {

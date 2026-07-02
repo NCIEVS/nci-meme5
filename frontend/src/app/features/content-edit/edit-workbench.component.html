@@ -1,261 +1,236 @@
-<section class="operations-view" aria-labelledby="edit-title">
-  <header class="view-header">
-    <div>
-      <p class="kicker">Edit Foundation</p>
-      <h1 id="edit-title">Edit</h1>
-    </div>
-    <div class="summary-set" aria-label="Edit foundation counts">
-      <div class="summary">
-        <strong>{{ loadedConcept()?.name || loadedConcept()?.terminologyId || 'n/a' }}</strong>
-        <span>concept</span>
+<section [class]="activeWorkbench() === 'main' ? 'operations-view' : 'popup-workbench'" aria-labelledby="edit-title">
+  @if (activeWorkbench() === 'main') {
+    <header class="view-header">
+      <div>
+        <p class="kicker">Edit Foundation</p>
+        <h1 id="edit-title">Edit</h1>
       </div>
-      <div class="summary">
-        <strong>{{ projectId() ?? 'n/a' }}</strong>
-        <span>project</span>
+      <div class="summary-set" aria-label="Edit foundation counts">
+        <div class="summary">
+          <strong>{{ loadedConcept()?.name || loadedConcept()?.terminologyId || 'n/a' }}</strong>
+          <span>concept</span>
+        </div>
+        <div class="summary">
+          <strong>{{ projectId() ?? 'n/a' }}</strong>
+          <span>project</span>
+        </div>
+        <div class="summary">
+          <strong>{{ activeWorkbench() }}</strong>
+          <span>workbench</span>
+        </div>
       </div>
-      <div class="summary">
-        <strong>{{ activeWorkbench() }}</strong>
-        <span>workbench</span>
-      </div>
-    </div>
-  </header>
+    </header>
 
-  <p class="context-panel">
-    Edit route foundation is active for project {{ projectId() ?? 'n/a' }}
-    with role {{ projectRole() }}.
-    @if (!canOpenWorkbench()) {
-      Edit routes require author-level project context.
-    }
-  </p>
+    <p class="context-panel">
+      Edit route foundation is active for project {{ projectId() ?? 'n/a' }}
+      with role {{ projectRole() }}.
+      @if (!canOpenWorkbench()) {
+        Edit routes require author-level project context.
+      }
+    </p>
 
-  <nav class="toolbar" aria-label="Edit workbench routes">
-    @for (link of workbenchLinks; track link.workbench) {
-      <a
-        class="legacy-link"
-        [class.active]="activeWorkbench() === link.workbench"
-        [routerLink]="link.route"
-        [queryParams]="selectedContextQueryParams()"
-        routerLinkActive="active"
-      >
-        {{ link.label }}
-      </a>
-    }
-  </nav>
+    <nav class="toolbar" aria-label="Edit workbench routes">
+      @for (link of workbenchLinks; track link.workbench) {
+        <a
+          class="legacy-link"
+          [class.active]="activeWorkbench() === link.workbench"
+          [routerLink]="link.route"
+          [queryParams]="selectedContextQueryParams()"
+          routerLinkActive="active"
+        >
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+  }
 
   @switch (activeWorkbench()) {
 
     @case ('semantic-types') {
-      <ng-container *ngTemplateOutlet="conceptHeader" />
-      @if (loadedConcept(); as concept) {
-        <section class="list-panel" aria-labelledby="wb-sty-list-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="wb-sty-list-title">Semantic Types</h2>
-              <p>{{ conceptSemanticTypes().length }} semantic type(s) on {{ concept.name || concept.terminologyId }}</p>
-            </div>
-            <div class="form-actions">
-              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">
-                Refresh
-              </button>
-            </div>
-          </div>
-          <label class="form-field" for="wb-activity-sty">
-            Activity ID
-            <input
-              id="wb-activity-sty"
-              type="text"
-              [ngModel]="workbenchActivityId()"
-              (ngModelChange)="setWorkbenchActivityId($event)"
-            />
-          </label>
+      <div class="styw-shell">
 
-          <!-- Remove warnings / errors -->
-          @if (semanticTypeRemovalErrors().length) {
-            <ul class="form-errors">
-              @for (e of semanticTypeRemovalErrors(); track e) { <li>{{ e }}</li> }
-            </ul>
-          }
-          @if (semanticTypeRemovalWarnings().length) {
-            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
-              @for (w of semanticTypeRemovalWarnings(); track w) { <li>{{ w }}</li> }
-            </ul>
-          }
-          @if (semanticTypeRemovalNeedsOverride()) {
-            <div class="form-actions">
-              <button type="button" (click)="removeSemanticTypeFromConcept(semanticTypeRemovalPendingType()!, true)">
-                Override Warnings and Remove
-              </button>
-            </div>
-          }
+        @if (!projectEditingEnabled()) {
+          <div class="styw-alert styw-alert-danger">Editing is disabled.</div>
+        }
 
-          <div class="table-wrap">
-            <table>
+        @if (!selectedContext()) {
+          <div class="styw-alert styw-alert-warning">No concept context. Open from the main Edit tab with a concept selected.</div>
+        } @else if (loadingConcept()) {
+          <p>Loading concept…</p>
+        } @else if (conceptLoadError()) {
+          <div class="styw-alert styw-alert-danger">{{ conceptLoadError() }}</div>
+        } @else {
+          @if (loadedConcept(); as concept) {
+
+            <div class="styw-header">
+              <strong class="styw-title">Semantic Types ({{ conceptSemanticTypes().length }})</strong>
+              <span class="styw-concept" [class.styw-concept-pending]="concept.workflowStatus !== 'READY_FOR_PUBLICATION'">{{ concept.name }} {{ concept.id }}</span>
+            </div>
+
+            <table class="slim-table styw-table">
               <thead>
                 <tr>
-                  <th>Semantic Type</th>
-                  <th>ID</th>
-                  <th>Action</th>
+                  <th class="styw-col-sty">Semantic Types</th>
+                  <th class="styw-col-mod">Last Modified By</th>
+                  <th class="styw-col-act"></th>
                 </tr>
               </thead>
               <tbody>
                 @for (sty of conceptSemanticTypes(); track sty.id) {
-                  <tr>
+                  <tr [class.styw-sty-pending]="sty.workflowStatus !== 'READY_FOR_PUBLICATION'">
                     <td>{{ sty.semanticType }}</td>
-                    <td>{{ sty.id }}</td>
+                    <td>{{ sty.lastModifiedBy }}</td>
                     <td>
-                      <button
-                        type="button"
+                      <span class="icon-action danger" title="Remove"
                         (click)="removeSemanticTypeFromConcept(sty)"
-                        [disabled]="!canRemoveSemanticType(sty) || removingSemanticTypeId() === sty.id"
-                      >
-                        {{ removingSemanticTypeId() === sty.id ? 'Removing...' : 'Remove' }}
-                      </button>
+                        [class.is-disabled]="!canRemoveSemanticType(sty) || removingSemanticTypeId() === sty.id">
+                        ✕
+                      </span>
                     </td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="3">No semantic types.</td></tr>
+                  <tr><td colspan="3" class="styw-empty">No semantic types on this concept.</td></tr>
                 }
               </tbody>
             </table>
-          </div>
-        </section>
 
-        <section class="list-panel" aria-labelledby="wb-sty-add-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="wb-sty-add-title">Add Semantic Type</h2>
-              <p>Select an available type and confirm.</p>
-            </div>
-          </div>
-
-          @if (semanticTypeOptionsError()) {
-            <p class="form-errors">{{ semanticTypeOptionsError() }}</p>
-            <div class="form-actions">
-              <button type="button" (click)="loadSemanticTypeOptions()">Retry</button>
-            </div>
-          }
-          @if (!semanticTypeOptionsError()) {
-            <label class="form-field" for="wb-sty-add-select">
-              Semantic Type
-              <select
-                id="wb-sty-add-select"
-                [ngModel]="semanticTypeAddValue()"
-                (ngModelChange)="setSemanticTypeAddValue($event)"
-                [disabled]="loadingSemanticTypeOptions()"
-              >
-                <option value="">-- select --</option>
-                @for (opt of availableSemanticTypeOptions(); track opt.typeId) {
-                  <option [value]="semanticTypeOptionValue(opt)">
-                    {{ semanticTypeOptionDisplay(opt) }}
-                  </option>
-                }
-              </select>
-            </label>
-          }
-
-          @if (semanticTypeAddErrors().length) {
-            <ul class="form-errors">
-              @for (e of semanticTypeAddErrors(); track e) { <li>{{ e }}</li> }
-            </ul>
-          }
-          @if (semanticTypeAddWarnings().length) {
-            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
-              @for (w of semanticTypeAddWarnings(); track w) { <li>{{ w }}</li> }
-            </ul>
-          }
-          @if (semanticTypeAddReadiness().reasons.length) {
-            <ul class="form-errors" style="background:#f5f5f5;border-color:#bbb;color:#555;">
-              @for (r of semanticTypeAddReadiness().reasons; track r) { <li>{{ r }}</li> }
-            </ul>
-          }
-
-          <div class="form-actions">
-            @if (semanticTypeAddNeedsOverride()) {
-              <button
-                type="button"
-                (click)="addSemanticTypeToConcept(true)"
-                [disabled]="addingSemanticType()"
-              >
-                Override Warnings and Add
-              </button>
+            @if (semanticTypeRemovalErrors().length) {
+              <ul class="form-errors">
+                @for (e of semanticTypeRemovalErrors(); track e) { <li>{{ e }}</li> }
+              </ul>
             }
-            <button
-              type="button"
-              (click)="addSemanticTypeToConcept()"
-              [disabled]="!semanticTypeAddReadiness().canExecute || addingSemanticType()"
-            >
-              {{ addingSemanticType() ? 'Adding...' : 'Add Semantic Type' }}
-            </button>
-          </div>
-        </section>
-      }
-      <ng-container *ngTemplateOutlet="undoRedoPanel" />
+            @if (semanticTypeRemovalWarnings().length) {
+              <ul class="form-errors form-warnings">
+                @for (w of semanticTypeRemovalWarnings(); track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+            @if (semanticTypeRemovalNeedsOverride()) {
+              <div class="styw-override-row">
+                <button type="button"
+                  (click)="removeSemanticTypeFromConcept(semanticTypeRemovalPendingType()!, true)">
+                  Override Warnings and Remove
+                </button>
+              </div>
+            }
+
+            @if (semanticTypeAddErrors().length) {
+              <ul class="form-errors">
+                @for (e of semanticTypeAddErrors(); track e) { <li>{{ e }}</li> }
+              </ul>
+            }
+            @if (semanticTypeAddWarnings().length) {
+              <ul class="form-errors form-warnings">
+                @for (w of semanticTypeAddWarnings(); track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+            @if (semanticTypeAddNeedsOverride()) {
+              <div class="styw-override-row">
+                <button type="button" (click)="addSemanticTypeToConcept(true)" [disabled]="addingSemanticType()">
+                  Override Warnings and Add
+                </button>
+              </div>
+            }
+
+            <div class="styw-actions">
+              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">Refresh</button>
+              <div class="styw-actions-right">
+                <button type="button" (click)="approveConcept()" [disabled]="!canApproveConcept()">Approve</button>
+                <button type="button" (click)="goNext()" [disabled]="!canGoNext() || loadingNext()">Next</button>
+                <button type="button" (click)="goApproveNext()" [disabled]="!canGoNext() || !canApproveConcept() || loadingNext()">Approve/Next</button>
+              </div>
+            </div>
+
+            <div class="wl-toolbar">
+              <input type="search" class="wl-filter" placeholder="Filter…"
+                [ngModel]="styFilter()" (ngModelChange)="setStyFilter($event)" />
+              <select class="pager-select" [ngModel]="styPageSize()" (ngModelChange)="setStyPageSize(+$event)">
+                <option [value]="5">5</option>
+                <option [value]="10">10</option>
+                <option [value]="25">25</option>
+                <option [value]="50">50</option>
+              </select>
+              <div class="wl-pager">
+                <button type="button" class="icon-btn" title="Previous page" [disabled]="styPage() <= 1" (click)="setStyPage(styPage() - 1)">‹</button>
+                <span>{{ styPage() }} / {{ styTotalPages() }}</span>
+                <button type="button" class="icon-btn" title="Next page" [disabled]="styPage() >= styTotalPages()" (click)="setStyPage(styPage() + 1)">›</button>
+              </div>
+            </div>
+
+            <table class="slim-table styw-table">
+              <thead>
+                <tr>
+                  <th class="styw-col-tui styw-sort-col" (click)="setStySort('typeId')">
+                    TUI <span class="styw-sort-indicator">{{ stySortIndicator('typeId') }}</span>
+                  </th>
+                  <th class="styw-col-tree styw-sort-col" (click)="setStySort('treeNumber')">
+                    Tree # <span class="styw-sort-indicator">{{ stySortIndicator('treeNumber') }}</span>
+                  </th>
+                  <th class="styw-sort-col" (click)="setStySort('expandedForm')">
+                    Semantic Type <span class="styw-sort-indicator">{{ stySortIndicator('expandedForm') }}</span>
+                  </th>
+                  <th class="styw-col-act"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (loadingSemanticTypeOptions()) {
+                  <tr><td colspan="4" class="styw-empty">Loading…</td></tr>
+                } @else if (semanticTypeOptionsError()) {
+                  <tr><td colspan="4" class="styw-empty">
+                    {{ semanticTypeOptionsError() }}
+                    <button type="button" (click)="loadSemanticTypeOptions()">Retry</button>
+                  </td></tr>
+                } @else {
+                  @for (sty of pagedStys(); track sty.typeId) {
+                    <tr>
+                      <td>{{ sty.typeId }}</td>
+                      <td>{{ sty.treeNumber }}</td>
+                      <td>{{ sty.expandedForm }}</td>
+                      <td>
+                        <button type="button"
+                          (click)="addSemanticTypeRow(sty.expandedForm)"
+                          [disabled]="addingSemanticType() || !projectEditingEnabled()">
+                          Add
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="4" class="styw-empty">No types available to add.</td></tr>
+                  }
+                }
+              </tbody>
+            </table>
+
+          } @else {
+            <div class="styw-alert styw-alert-warning">No concept loaded.</div>
+          }
+        }
+
+      </div>
     }
 
     @case ('atoms') {
-      <ng-container *ngTemplateOutlet="conceptHeader" />
       @if (loadedConcept(); as concept) {
         <section class="list-panel" aria-labelledby="wb-atoms-title">
+
+          <!-- Header: title + concept name + Add Atom -->
           <div class="panel-header">
             <div>
-              <h2 id="wb-atoms-title">Atoms</h2>
-              <p>{{ conceptAtoms().length }} atom(s) on {{ concept.name || concept.terminologyId }}</p>
+              <h2 id="wb-atoms-title">Atoms ({{ filteredAtoms().length }})</h2>
+              <p class="styw-concept">
+                <span [class.styw-concept-pending]="concept.workflowStatus !== 'READY_FOR_PUBLICATION'">
+                  {{ concept.name || concept.terminologyId }} {{ concept.id }}
+                </span>
+              </p>
             </div>
             <div class="form-actions">
               <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">Refresh</button>
+              @if (projectEditingEnabled()) {
+                <button type="button" class="btn-primary" (click)="openAddAtom()">Add Atom</button>
+              }
             </div>
           </div>
 
-          <div class="split-grid">
-            <label class="form-field" for="wb-activity-atoms">
-              Activity ID
-              <input
-                id="wb-activity-atoms"
-                type="text"
-                [ngModel]="workbenchActivityId()"
-                (ngModelChange)="setWorkbenchActivityId($event)"
-              />
-            </label>
-            <label class="form-field" for="wb-atom-status">
-              Set Workflow Status To
-              <select
-                id="wb-atom-status"
-                [ngModel]="atomUpdateStatus()"
-                (ngModelChange)="setAtomUpdateStatus($event)"
-              >
-                @for (s of atomStatusOptions; track s) {
-                  <option [value]="s">{{ s }}</option>
-                }
-              </select>
-            </label>
-          </div>
-
-          @if (atomMutationBaseReadiness().reasons.length) {
-            <ul class="form-errors" style="background:#f5f5f5;border-color:#bbb;color:#555;">
-              @for (r of atomMutationBaseReadiness().reasons; track r) { <li>{{ r }}</li> }
-            </ul>
-          }
-
-          <!-- Update result -->
-          @if (atomUpdateErrors().length) {
-            <ul class="form-errors">
-              @for (e of atomUpdateErrors(); track e) { <li>{{ e }}</li> }
-            </ul>
-          }
-          @if (atomUpdateWarnings().length) {
-            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
-              @for (w of atomUpdateWarnings(); track w) { <li>{{ w }}</li> }
-            </ul>
-          }
-          @if (atomUpdateNeedsOverride()) {
-            <div class="form-actions">
-              <button type="button" (click)="updateAtomStatus(atomUpdatePendingAtom()!, true)">
-                Override Warnings and Update
-              </button>
-            </div>
-          }
-
-          <!-- Removal result -->
+          <!-- Atom removal validation feedback -->
           @if (atomRemovalErrors().length) {
             <ul class="form-errors">
               @for (e of atomRemovalErrors(); track e) { <li>{{ e }}</li> }
@@ -274,55 +249,582 @@
             </div>
           }
 
+          <!-- Filter / pager toolbar -->
+          <div class="wl-toolbar">
+            <input type="search" class="wl-filter" placeholder="Filter…"
+              [ngModel]="atomFilter()" (ngModelChange)="setAtomFilter($event)" />
+            <select class="pager-select" [ngModel]="atomPageSize()" (ngModelChange)="setAtomPageSize(+$event)">
+              <option [value]="5">5</option>
+              <option [value]="10">10</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+              <option [value]="100">100</option>
+            </select>
+            <div class="wl-pager">
+              <button type="button" class="icon-btn" title="Previous page"
+                [disabled]="atomPage() <= 1" (click)="setAtomPage(atomPage() - 1)">‹</button>
+              <span>{{ atomPage() }} / {{ atomTotalPages() }}</span>
+              <button type="button" class="icon-btn" title="Next page"
+                [disabled]="atomPage() >= atomTotalPages()" (click)="setAtomPage(atomPage() + 1)">›</button>
+            </div>
+          </div>
+
+          <!-- Atoms table -->
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Term Type</th>
-                  <th>Terminology</th>
-                  <th>Code</th>
-                  <th>Status</th>
-                  <th>Update Status</th>
-                  <th>Remove</th>
+                  <th class="atom-col-check"></th>
+                  <th class="atom-col-name">
+                    <span class="styw-sort-col" (click)="toggleAtomSort('name')">
+                      Name <span class="styw-sort-indicator">{{ atomSortIndicator('name') }}</span>
+                    </span>
+                  </th>
+                  <th class="atom-col-tg">
+                    <span class="styw-sort-col" (click)="toggleAtomSort('terminology')">
+                      Termgroup <span class="styw-sort-indicator">{{ atomSortIndicator('terminology') }}</span>
+                    </span>
+                  </th>
+                  <th class="atom-col-code">
+                    <span class="styw-sort-col" (click)="toggleAtomSort('codeId')">
+                      Code <span class="styw-sort-indicator">{{ atomSortIndicator('codeId') }}</span>
+                    </span>
+                  </th>
+                  <th class="atom-col-concept">Concept</th>
+                  <th class="atom-col-descriptor">Descriptor</th>
+                  <th class="atom-col-editor">
+                    <span class="styw-sort-col" (click)="toggleAtomSort('lastModifiedBy')">
+                      Editor <span class="styw-sort-indicator">{{ atomSortIndicator('lastModifiedBy') }}</span>
+                    </span>
+                  </th>
+                  <th class="atom-col-act"></th>
                 </tr>
               </thead>
               <tbody>
-                @for (atom of conceptAtoms(); track atom.id) {
-                  <tr>
-                    <td>{{ atom.name }}</td>
-                    <td>{{ atom.termType }}</td>
-                    <td>{{ atom.terminology }}</td>
-                    <td>{{ atom.codeId }}</td>
-                    <td>{{ atom.workflowStatus }}</td>
+                @for (atom of pagedAtoms(); track atom.id) {
+                  <tr [class]="getAtomRowClass(atom)">
                     <td>
-                      <button
-                        type="button"
-                        (click)="updateAtomStatus(atom)"
-                        [disabled]="!canUpdateAtomStatus(atom) || updatingAtomId() === atom.id"
-                      >
-                        {{ updatingAtomId() === atom.id ? 'Updating...' : 'Set Status' }}
-                      </button>
+                      <input type="checkbox"
+                        [checked]="selectedAtomIds().has(atom.id!)"
+                        (change)="toggleAtomSelection(atom.id)" />
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        (click)="removeAtomFromConcept(atom)"
-                        [disabled]="!canRemoveAtom(atom) || removingAtomId() === atom.id"
-                      >
-                        {{ removingAtomId() === atom.id ? 'Removing...' : 'Remove' }}
+                      <button type="button" class="icon-btn atom-expand-btn"
+                        (click)="toggleAtomExpand(atom.id)"
+                        [title]="expandedAtomIds().has(atom.id!) ? 'Collapse' : 'Expand'">
+                        {{ expandedAtomIds().has(atom.id!) ? '▼' : '▶' }}
                       </button>
+                      {{ atom.name }}
+                    </td>
+                    <td>{{ atom.terminology }}/{{ atom.termType }}</td>
+                    <td>{{ atom.codeId }}</td>
+                    <td>{{ atom.conceptId }}</td>
+                    <td>{{ atom.descriptorId }}</td>
+                    <td>{{ atom.lastModifiedBy }}</td>
+                    <td class="atom-col-act-cell">
+                      @if (projectEditingEnabled()) {
+                        <button type="button" class="icon-btn" title="Edit"
+                          (click)="openEditAtom(atom); $event.stopPropagation()">✎</button>
+                        @if (isAtomDeletable(atom)) {
+                          <button type="button" class="icon-btn" title="Remove"
+                            [disabled]="removingAtomId() === atom.id"
+                            (click)="removeAtomFromConcept(atom); $event.stopPropagation()">
+                            {{ removingAtomId() === atom.id ? '…' : '✕' }}
+                          </button>
+                        }
+                      }
                     </td>
                   </tr>
+                  @if (expandedAtomIds().has(atom.id!)) {
+                    <tr class="atom-attr-row">
+                      <td colspan="8">
+                        @if (atom.attributes?.length) {
+                          <table class="atom-attr-table">
+                            @for (attr of atom.attributes; track attr.id) {
+                              <tr>
+                                <td class="atom-attr-level">ATOM</td>
+                                <td class="atom-attr-name">{{ attr.name }}</td>
+                                <td class="atom-attr-value">{{ attr.value }}</td>
+                              </tr>
+                            }
+                          </table>
+                        } @else {
+                          <em class="styw-empty">No attributes.</em>
+                        }
+                      </td>
+                    </tr>
+                  }
                 } @empty {
-                  <tr><td colspan="7">No atoms.</td></tr>
+                  <tr><td colspan="8" class="styw-empty">No atoms.</td></tr>
                 }
               </tbody>
             </table>
           </div>
+
+          <!-- Footer action bar -->
+          <div class="styw-actions">
+            <div></div>
+            <div class="styw-actions-right">
+              <button type="button" (click)="approveConcept()"
+                [disabled]="!projectEditingEnabled()">Approve</button>
+              <button type="button" (click)="goNext()"
+                [disabled]="!canGoNext()">Next</button>
+              <button type="button" (click)="goApproveNext()"
+                [disabled]="!projectEditingEnabled() || !canGoNext()">Approve/Next</button>
+              <button type="button" [disabled]="!projectEditingEnabled()" (click)="openMergeDialog()">Merge</button>
+              <button type="button"
+                [disabled]="selectedAtomCount() === 0 || !projectEditingEnabled()"
+                (click)="openMoveDialog()">Move</button>
+              <button type="button"
+                [disabled]="selectedAtomCount() === 0 || !projectEditingEnabled()"
+                (click)="openSplitDialog()">Split</button>
+            </div>
+          </div>
+
         </section>
       }
-      <ng-container *ngTemplateOutlet="undoRedoPanel" />
+
+      <!-- Add / Edit Atom dialog -->
+      @if (atomFormMode(); as mode) {
+        <meme-dialog
+          [title]="mode === 'add' ? 'Add Atom' : 'Edit Atom'"
+          size="xl"
+          [closeDisabled]="atomFormPending()"
+          (closed)="cancelAtomForm()"
+        >
+          <div class="dialog-form">
+            @if (atomFormErrors().length) {
+              <ul class="form-errors">
+                @for (e of atomFormErrors(); track e) { <li>{{ e }}</li> }
+              </ul>
+            }
+            @if (atomFormWarnings().length) {
+              <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+                @for (w of atomFormWarnings(); track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+
+            <div class="split-grid">
+              <label class="form-field">
+                Name
+                <textarea rows="2" [ngModel]="atomFormName()" (ngModelChange)="atomFormName.set($event)"
+                          [disabled]="mode === 'edit'"></textarea>
+              </label>
+              <label class="form-field">
+                Termgroup
+                @if (mode === 'add') {
+                  <select [ngModel]="atomFormTermgroup()" (ngModelChange)="atomFormTermgroup.set($event)">
+                    @for (tg of newAtomTermgroups(); track tg) {
+                      <option [value]="tg">{{ tg }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input type="text" [value]="atomFormTermgroup()" disabled />
+                }
+              </label>
+              <label class="form-field">
+                Language
+                <input type="text" [ngModel]="atomFormLanguage()" (ngModelChange)="atomFormLanguage.set($event)"
+                       [disabled]="mode === 'edit'" />
+              </label>
+              <label class="form-field">
+                Code
+                <input type="text" [ngModel]="atomFormCodeId()" (ngModelChange)="atomFormCodeId.set($event)" [disabled]="mode === 'edit'" />
+              </label>
+              <label class="form-field">
+                Concept
+                <input type="text" [ngModel]="atomFormConceptId()" (ngModelChange)="atomFormConceptId.set($event)" [disabled]="mode === 'edit'" />
+              </label>
+              <label class="form-field">
+                Descriptor
+                <input type="text" [ngModel]="atomFormDescriptorId()" (ngModelChange)="atomFormDescriptorId.set($event)" [disabled]="mode === 'edit'" />
+              </label>
+              <label class="form-field form-field-inline">
+                <input type="checkbox" [ngModel]="atomFormPublishable()" (ngModelChange)="atomFormPublishable.set($event)" />
+                Publishable
+              </label>
+              <label class="form-field form-field-inline">
+                <input type="checkbox" [ngModel]="atomFormSuppressible()" (ngModelChange)="atomFormSuppressible.set($event)" />
+                Suppressible
+              </label>
+            </div>
+
+            <div class="form-actions">
+              @if (atomFormNeedsOverride()) {
+                <button type="button" class="btn-warning" (click)="submitAtomForm(true)"
+                        [disabled]="atomFormPending()">
+                  Override &amp; {{ mode === 'add' ? 'Add' : 'Update' }}
+                </button>
+              } @else {
+                <button type="button" class="btn-primary" (click)="submitAtomForm()"
+                        [disabled]="atomFormPending()">
+                  {{ atomFormPending() ? 'Saving…' : (mode === 'add' ? 'Add' : 'Update') }}
+                </button>
+              }
+              <button type="button" (click)="cancelAtomForm()" [disabled]="atomFormPending()">Cancel</button>
+            </div>
+          </div>
+        </meme-dialog>
+      }
+
+      <!-- Move Atoms dialog -->
+      @if (moveDialogOpen()) {
+        <meme-dialog
+          title="Move"
+          size="lg"
+          [closeDisabled]="movePending()"
+          (closed)="cancelMoveDialog()"
+        >
+          <div class="dialog-form">
+            @if (moveErrors().length) {
+              <ul class="form-errors">
+                @for (e of moveErrors(); track e) { <li>{{ e }}</li> }
+              </ul>
+            }
+            @if (moveWarnings().length) {
+              <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+                @for (w of moveWarnings(); track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+
+            <table class="slim-table move-dialog-table">
+              <!-- From Concept -->
+              <tr>
+                <td class="move-dialog-label"><strong>From Concept</strong></td>
+                <td>
+                  @if (loadedConcept(); as concept) {
+                    <table class="slim-table">
+                      <tbody>
+                        <tr>
+                          <td class="move-col-id">{{ concept.id }}</td>
+                          <td class="move-col-name">{{ concept.name }}</td>
+                          <td class="move-col-sty">
+                            @for (sty of (concept.semanticTypes ?? []); track sty.semanticType) {
+                              <div>{{ sty.semanticType }}</div>
+                            }
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <!-- Selected atoms -->
+                    <table class="slim-table move-atoms-table">
+                      <thead>
+                        <tr><th colspan="3">Atoms</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (atom of conceptAtoms(); track atom.id) {
+                          @if (selectedAtomIds().has(atom.id!)) {
+                            <tr>
+                              <td class="move-col-name">{{ atom.name }}</td>
+                              <td class="move-col-tg">{{ atom.terminology }}/{{ atom.termType }}</td>
+                              <td class="move-col-ids">{{ atom.codeId }} {{ atom.conceptId }} {{ atom.descriptorId }}</td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </td>
+              </tr>
+
+              <!-- To Concept -->
+              <tr>
+                <td class="move-dialog-label"><strong>To Concept</strong></td>
+                <td>
+                  @if (movePeerConcepts().length) {
+                    <!-- Concept list choices -->
+                    <table class="slim-table pointer-table">
+                      <tbody>
+                        @for (peer of movePeerConcepts(); track peer.id) {
+                          <tr [class.selected]="moveTargetConcept()?.id === peer.id"
+                              (click)="moveTargetConcept.set(peer); moveResult.set(null)">
+                            <td class="move-col-id">{{ peer.id }}</td>
+                            <td class="move-col-name">{{ peer.name }}</td>
+                            <td class="move-col-sty">
+                              @for (sty of (peer.semanticTypes ?? []); track sty.semanticType) {
+                                <div>{{ sty.semanticType }}</div>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <!-- Fallback: manual ID lookup when no peers in list -->
+                    <div class="move-lookup-row">
+                      <input type="number" min="1" placeholder="enter concept id"
+                             [ngModel]="moveTargetConceptId()"
+                             (ngModelChange)="lookupMoveConcept($event)"
+                             class="move-lookup-input" />
+                      @if (moveLookupPending()) {
+                        <span class="move-lookup-status">Looking up…</span>
+                      }
+                      @if (moveLookupError()) {
+                        <span class="move-lookup-status move-lookup-error">{{ moveLookupError() }}</span>
+                      }
+                    </div>
+                    @if (moveTargetConcept(); as target) {
+                      <table class="slim-table">
+                        <tbody>
+                          <tr class="selected">
+                            <td class="move-col-id">{{ target.id }}</td>
+                            <td class="move-col-name">{{ target.name }}</td>
+                            <td class="move-col-sty">
+                              @for (sty of (target.semanticTypes ?? []); track sty.semanticType) {
+                                <div>{{ sty.semanticType }}</div>
+                              }
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    }
+                  }
+                </td>
+              </tr>
+            </table>
+
+            <div class="form-actions">
+              @if (moveNeedsOverride()) {
+                <button type="button" class="btn-warning" (click)="submitMove(true)"
+                        [disabled]="movePending()">
+                  Override &amp; Move
+                </button>
+              } @else {
+                <button type="button" class="btn-primary" (click)="submitMove()"
+                        [disabled]="movePending() || !moveReadiness().canExecute">
+                  {{ movePending() ? 'Moving…' : 'Move' }}
+                </button>
+              }
+              <button type="button" (click)="cancelMoveDialog()" [disabled]="movePending()">Close</button>
+            </div>
+          </div>
+        </meme-dialog>
+      }
+
+      <!-- Split Concept dialog -->
+      @if (splitDialogOpen()) {
+        <meme-dialog
+          title="Split"
+          size="lg"
+          [closeDisabled]="splitPending()"
+          (closed)="cancelSplitDialog()"
+        >
+          <div class="dialog-form">
+            @if (splitErrors().length) {
+              <ul class="form-errors">
+                @for (e of splitErrors(); track e) { <li>{{ e }}</li> }
+              </ul>
+            }
+            @if (splitWarnings().length) {
+              <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+                @for (w of splitWarnings(); track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+
+            <table class="slim-table move-dialog-table">
+              <!-- Concept + selected atoms -->
+              <tr>
+                <td class="move-dialog-label"><strong>Concept</strong></td>
+                <td>
+                  @if (loadedConcept(); as concept) {
+                    <table class="slim-table">
+                      <tbody>
+                        <tr>
+                          <td class="move-col-id">{{ concept.id }}</td>
+                          <td class="move-col-name">{{ concept.name }}</td>
+                          <td class="move-col-sty">
+                            @for (sty of (concept.semanticTypes ?? []); track sty.semanticType) {
+                              <div>{{ sty.semanticType }}</div>
+                            }
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <table class="slim-table move-atoms-table">
+                      <thead>
+                        <tr><th colspan="3">Atoms</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (atom of conceptAtoms(); track atom.id) {
+                          @if (selectedAtomIds().has(atom.id!)) {
+                            <tr>
+                              <td class="move-col-name">{{ atom.name }}</td>
+                              <td class="move-col-tg">{{ atom.terminology }}/{{ atom.termType }}</td>
+                              <td class="move-col-ids">{{ atom.codeId }} {{ atom.conceptId }} {{ atom.descriptorId }}</td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </td>
+              </tr>
+
+              <!-- Copy checkbox -->
+              <tr>
+                <td class="move-dialog-label">
+                  <strong title="Copy relationships &amp; semantic types to new concept.">Copy</strong>
+                </td>
+                <td>
+                  <label class="form-field-inline">
+                    <input type="checkbox"
+                           [ngModel]="splitCopy()"
+                           (ngModelChange)="splitCopy.set($event)"
+                           title="Copy relationships &amp; semantic types to new concept." />
+                    Copy relationships &amp; semantic types to new concept
+                  </label>
+                </td>
+              </tr>
+
+              <!-- Relationship type -->
+              <tr>
+                <td class="move-dialog-label"><strong>Relationship Type</strong></td>
+                <td>
+                  <select [ngModel]="splitRelationshipType()"
+                          (ngModelChange)="splitRelationshipType.set($event)">
+                    @for (rt of splitRelationshipTypes; track rt) {
+                      <option [value]="rt">{{ rt }}</option>
+                    }
+                  </select>
+                </td>
+              </tr>
+            </table>
+
+            <div class="form-actions">
+              @if (splitNeedsOverride()) {
+                <button type="button" class="btn-warning" (click)="submitSplit(true)"
+                        [disabled]="splitPending()">
+                  Override &amp; Split
+                </button>
+              } @else {
+                <button type="button" class="btn-primary" (click)="submitSplit()"
+                        [disabled]="splitPending() || !splitReadiness().canExecute">
+                  {{ splitPending() ? 'Splitting…' : 'Split' }}
+                </button>
+              }
+              <button type="button" (click)="cancelSplitDialog()" [disabled]="splitPending()">Close</button>
+            </div>
+          </div>
+        </meme-dialog>
+      }
+
+      <!-- Merge Concept dialog -->
+      @if (mergeDialogOpen()) {
+        <meme-dialog
+          title="Merge"
+          size="lg"
+          [closeDisabled]="mergePending()"
+          (closed)="cancelMergeDialog()"
+        >
+          <div class="dialog-form">
+            @if (mergeErrors().length) {
+              <ul class="form-errors">
+                @for (e of mergeErrors(); track e) { <li>{{ e }}</li> }
+              </ul>
+            }
+            @if (mergeWarnings().length) {
+              <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+                @for (w of mergeWarnings(); track w) { <li>{{ w }}</li> }
+              </ul>
+            }
+
+            <table class="slim-table move-dialog-table">
+              <!-- From Concept (current, will be deleted) -->
+              <tr>
+                <td class="move-dialog-label"><strong>From Concept</strong></td>
+                <td>
+                  @if (loadedConcept(); as concept) {
+                    <table class="slim-table">
+                      <tbody>
+                        <tr>
+                          <td class="move-col-id">{{ concept.id }}</td>
+                          <td class="move-col-name">{{ concept.name }}</td>
+                          <td class="move-col-sty">
+                            @for (sty of (concept.semanticTypes ?? []); track sty.semanticType) {
+                              <div>{{ sty.semanticType }}</div>
+                            }
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  }
+                </td>
+              </tr>
+
+              <!-- To Concept (survives) -->
+              <tr>
+                <td class="move-dialog-label"><strong>To Concept</strong></td>
+                <td>
+                  @if (mergePeerConcepts().length) {
+                    <!-- Concept list choices from opener context -->
+                    <table class="slim-table pointer-table">
+                      <tbody>
+                        @for (peer of mergePeerConcepts(); track peer.id) {
+                          <tr [class.selected]="mergeTargetConcept()?.id === peer.id"
+                              (click)="mergeTargetConcept.set(peer); mergeResult.set(null)">
+                            <td class="move-col-id">{{ peer.id }}</td>
+                            <td class="move-col-name">{{ peer.name }}</td>
+                            <td class="move-col-sty">
+                              @for (sty of (peer.semanticTypes ?? []); track sty.semanticType) {
+                                <div>{{ sty.semanticType }}</div>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <!-- Manual ID lookup when no peers available -->
+                    <div class="move-lookup-row">
+                      <input type="number" min="1" placeholder="enter concept id"
+                             [ngModel]="mergeTargetConceptId()"
+                             (ngModelChange)="lookupMergeConcept($event)"
+                             class="move-lookup-input" />
+                      @if (mergeLookupPending()) {
+                        <span class="move-lookup-status">Looking up…</span>
+                      }
+                      @if (mergeLookupError()) {
+                        <span class="move-lookup-status move-lookup-error">{{ mergeLookupError() }}</span>
+                      }
+                    </div>
+                    @if (mergeTargetConcept(); as target) {
+                      <table class="slim-table">
+                        <tbody>
+                          <tr class="selected">
+                            <td class="move-col-id">{{ target.id }}</td>
+                            <td class="move-col-name">{{ target.name }}</td>
+                            <td class="move-col-sty">
+                              @for (sty of (target.semanticTypes ?? []); track sty.semanticType) {
+                                <div>{{ sty.semanticType }}</div>
+                              }
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    }
+                  }
+                </td>
+              </tr>
+            </table>
+
+            <div class="form-actions">
+              @if (mergeNeedsOverride()) {
+                <button type="button" class="btn-warning" (click)="submitMerge(true)"
+                        [disabled]="mergePending()">
+                  Override &amp; Merge
+                </button>
+              } @else {
+                <button type="button" class="btn-primary" (click)="submitMerge()"
+                        [disabled]="mergePending() || !mergeReadiness().canExecute">
+                  {{ mergePending() ? 'Merging…' : 'Merge' }}
+                </button>
+              }
+              <button type="button" (click)="cancelMergeDialog()" [disabled]="mergePending()">Close</button>
+            </div>
+          </div>
+        </meme-dialog>
+      }
+
     }
 
     @case ('relationships') {

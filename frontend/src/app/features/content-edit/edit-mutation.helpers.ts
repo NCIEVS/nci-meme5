@@ -148,9 +148,6 @@ export function buildSemanticTypeMutationReadiness(
   if (!semanticTypeId) {
     reasons.push('Semantic type id is required.');
   }
-  if (!activityId?.trim()) {
-    reasons.push('Activity id is required.');
-  }
   if (!lastModified) {
     reasons.push('Concept lastModified timestamp is required.');
   }
@@ -179,9 +176,6 @@ export function buildSemanticTypeAddReadiness(
 
   if (!semanticType?.trim()) {
     reasons.push('Semantic type is required.');
-  }
-  if (!activityId?.trim()) {
-    reasons.push('Activity id is required.');
   }
   if (!lastModified) {
     reasons.push('Concept lastModified timestamp is required.');

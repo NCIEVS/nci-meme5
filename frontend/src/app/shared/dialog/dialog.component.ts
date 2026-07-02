@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostBinding, HostListener, Input, Output } from '@angular/core';
 
 let nextDialogId = 0;
 
@@ -11,6 +11,9 @@ export class DialogComponent {
   @Input() closeDisabled = false;
   @Input() size: 'md' | 'lg' | 'xl' = 'md';
   @Input({ required: true }) title = '';
+
+  @HostBinding('class')
+  get sizeClass(): string { return `dialog-size-${this.size}`; }
   @Output() readonly closed = new EventEmitter<void>();
 
   protected readonly titleId = `meme-dialog-title-${nextDialogId++}`;

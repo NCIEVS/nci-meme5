@@ -62,8 +62,8 @@ h2 {
   padding: 18px;
 }
 
-.dialog-panel[data-size="lg"] { width: min(1000px, 100%); max-height: min(820px, calc(100vh - 48px)); }
-.dialog-panel[data-size="xl"] { width: min(1280px, 100%); max-height: min(900px, calc(100vh - 48px)); }
+:host(.dialog-size-lg) .dialog-panel { width: min(1000px, 100%); max-height: min(820px, calc(100vh - 48px)); }
+:host(.dialog-size-xl) .dialog-panel { width: min(1280px, 100%); max-height: min(900px, calc(100vh - 48px)); }
 
 @media (max-width: 760px) {
   .dialog-layer {

@@ -434,6 +434,14 @@ tbody tr.selected {
   background: var(--meme-table-hover);
 }
 
+.concept-list-wrap tbody tr.selected {
+  background: #fffde7;
+}
+
+.concept-list-wrap tbody tr.selected:hover {
+  background: #fff9c4;
+}
+
 tbody tr.disabled-row {
   opacity: 0.55;
 }
@@ -1490,6 +1498,11 @@ tr.NEEDS_REVIEW td {
   font-size: var(--meme-text-sm);
 }
 
+.styw-concept-pending {
+  color: #b91c1c;
+}
+
+
 .styw-table {
   width: 100%;
   margin-bottom: 8px;
@@ -1500,6 +1513,10 @@ tr.NEEDS_REVIEW td {
 .styw-col-tui  { width: 10%; }
 .styw-col-tree { width: 14%; }
 .styw-col-act  { width: 48px; text-align: center; }
+
+.styw-sty-pending td {
+  color: #b91c1c;
+}
 
 .styw-empty {
   padding: 6px 0;
@@ -1524,62 +1541,6 @@ tr.NEEDS_REVIEW td {
   gap: 4px;
 }
 
-.styw-pager-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-
-.styw-pager {
-  display: flex;
-  gap: 1px;
-}
-
-.styw-pager button {
-  min-height: 0;
-  padding: 1px 7px;
-  font-size: var(--meme-text-sm);
-  min-width: 26px;
-  background: var(--meme-surface-accent, #f5f5f5);
-  color: var(--meme-text);
-  border: 1px solid var(--meme-border);
-  border-radius: var(--meme-btn-radius, 4px);
-}
-
-.styw-pager button.styw-page-active {
-  background: var(--meme-btn-primary-bg, #1a6b3a);
-  color: #fff;
-  border-color: transparent;
-}
-
-.styw-pager button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.styw-filter {
-  font-size: var(--meme-text-sm);
-  padding: 2px 7px;
-  border: 1px solid var(--meme-border);
-  border-radius: var(--meme-input-radius, 4px);
-  background: var(--meme-surface);
-  color: var(--meme-text);
-  min-width: 140px;
-}
-
-.styw-pagesize {
-  font-size: var(--meme-text-sm);
-  margin-left: auto;
-  color: var(--meme-text-secondary);
-}
-
-.styw-pagesize select {
-  font-size: var(--meme-text-sm);
-  padding: 1px 4px;
-  margin-left: 4px;
-}
 
 .styw-sort-col {
   cursor: pointer;
@@ -1595,3 +1556,92 @@ tr.NEEDS_REVIEW td {
   font-size: 0.75em;
   opacity: 0.7;
 }
+
+/* ─── Atoms workbench ─── */
+
+.form-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-field-inline input[type="checkbox"] {
+  margin: 0;
+  width: auto;
+}
+
+/* Row color coding by workflow status (matches legacy) */
+tr.atom-row-needs-review td { color: #b91c1c; }
+tr.atom-row-unreleasable td { color: #15803d; }
+tr.atom-row-rxnorm td       { color: #b45309; }
+tr.atom-row-obsolete td     { color: #7c3aed; }
+
+/* Atoms table column widths */
+.atom-col-check    { width: 32px; }
+.atom-col-name     { width: 28%; }
+.atom-col-tg       { width: 14%; }
+.atom-col-code     { width: 10%; }
+.atom-col-concept  { width: 10%; }
+.atom-col-descriptor { width: 10%; }
+.atom-col-editor   { width: 10%; }
+.atom-col-act      { width: 72px; }
+
+.atom-col-act-cell {
+  white-space: nowrap;
+}
+
+.atom-expand-btn {
+  font-size: 0.7em;
+  padding: 1px 3px;
+  margin-right: 4px;
+  color: var(--meme-text-secondary);
+}
+
+/* Expanded attributes row */
+.atom-attr-row > td {
+  padding: 6px 12px 6px 48px;
+  background: #fafafa;
+}
+
+.atom-attr-table {
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.atom-attr-level {
+  color: var(--meme-text-secondary);
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  width: 60px;
+}
+
+.atom-attr-name  { width: 28%; font-weight: 500; }
+.atom-attr-value { }
+
+/* ─── Move dialog ─── */
+
+.move-dialog-table { width: 100%; border-collapse: collapse; }
+.move-dialog-table > tbody > tr > td { padding: 10px 8px; vertical-align: top; }
+.move-dialog-label { width: 110px; white-space: nowrap; padding-top: 12px !important; }
+
+.move-atoms-table { margin-top: 6px; }
+.move-atoms-table th { font-size: 0.8em; font-weight: 600; color: var(--meme-text-secondary); }
+
+.move-col-id   { width: 80px;  color: var(--meme-text-secondary); font-size: 0.875em; }
+.move-col-name { width: 40%; }
+.move-col-tg   { width: 20%; font-size: 0.875em; }
+.move-col-sty  { font-size: 0.875em; color: var(--meme-text-secondary); }
+.move-col-ids  { font-size: 0.8em; color: var(--meme-text-secondary); }
+
+.move-lookup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.move-lookup-input { width: 160px; }
+
+.move-lookup-status { font-size: 0.875em; color: var(--meme-text-secondary); }
+.move-lookup-error  { color: #b91c1c; }

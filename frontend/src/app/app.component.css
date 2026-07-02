@@ -1,9 +1,14 @@
 :host {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   min-height: 100vh;
 }
 
 .app-main {
   min-height: 0;
+}
+
+.app-main--bare {
+  height: 100vh;
+  overflow-y: auto;
 }

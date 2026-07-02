@@ -35,6 +35,12 @@ export class ProjectContextService {
 
   readonly hasProjectContext = computed(() => this.projectId() !== null);
 
+  projectRoleForId(projectId: number | null | undefined): string | null {
+    if (!projectId) return null;
+    const user = this.auth.currentUser();
+    return user.projectRoleMap?.[String(projectId)] ?? null;
+  }
+
   hasPrivilegesOf(requiredRole: string): boolean {
     if (!this.hasProjectContext()) {
       return false;

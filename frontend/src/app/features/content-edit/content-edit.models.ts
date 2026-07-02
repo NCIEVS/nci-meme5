@@ -149,6 +149,7 @@ export interface ContentSemanticType {
   id?: number | null;
   lastModifiedBy?: string | null;
   semanticType?: string | null;
+  workflowStatus?: string | null;
 }
 
 export interface ContentSemanticTypeMetadata {

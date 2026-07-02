@@ -5,10 +5,8 @@ package com.wci.umls.server.jpa.algo.action;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.wci.umls.server.helpers.Branch;
@@ -169,18 +167,13 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     //
 
     // Get all "inverse" relationships for the "from" concept (e.g.
-    // where toId is the id)
-    final Map<Long, ConceptRelationship> inverseFromRelsMap = new HashMap<>();
+    // where toId is the id). Use a List to allow multiple relationships from
+    // the same source concept (common in NCI data with multi-source CUI pairs).
+    final List<ConceptRelationship> inverseFromRels = new ArrayList<>();
     for (final Relationship rel : findConceptRelationships(null,
         getTerminology(), getVersion(), Branch.ROOT,
         "toId:" + getFromConcept().getId(), false, null).getObjects()) {
-      final ConceptRelationship crel =
-          new ConceptRelationshipJpa((ConceptRelationship) rel, false);
-      if (inverseFromRelsMap.containsKey(crel.getFrom().getId())) {
-        throw new Exception("Multiple concept level relationships from "
-            + crel.getFrom().getId());
-      }
-      inverseFromRelsMap.put(crel.getFrom().getId(), crel);
+      inverseFromRels.add(new ConceptRelationshipJpa((ConceptRelationship) rel, false));
     }
 
     // Copy atoms in "from" concept
@@ -258,7 +251,11 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     // persisted ConceptRelationshipJpa.
     setToConcept(addConcept(getToConcept()));
     getToConcept().setTerminologyId(getToConcept().getId().toString());
-    conceptsChanged.add(getToConcept());
+    // Do NOT add toConcept to conceptsChanged: it is a brand-new managed entity whose
+    // atoms, STYs, rels, and workflowStatus changes are all tracked by Hibernate and will
+    // auto-commit.  Calling updateConcept on it detaches the entity, causing every
+    // relationship that holds a reference to getToConcept() to reference a detached/transient
+    // object that Hibernate 6 rejects at flush time.
 
     // Add newly created concept and conceptId to the molecular action (undo
     // action uses
@@ -271,12 +268,14 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     //
 
     // Set workflow status of "from" atoms and add to the "to" concept.
+    // Use getAtom() to get the managed entity from the session; atom copies are treated
+    // as transient by Hibernate 6 and would cause TransientObjectException in @ManyToMany.
     for (final Atom atom : moveAtomsCopies) {
       if (getChangeStatusFlag()) {
         atom.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
         updateAtom(atom);
       }
-      getToConcept().getAtoms().add(atom);
+      getToConcept().getAtoms().add(getAtom(atom.getId()));
     }
 
     // Add new semantic types and wire them to "to" concept (if copying them
@@ -306,7 +305,7 @@ public class SplitMolecularAction extends AbstractMolecularAction {
       }
 
       // Corresponding logic for inverse rels
-      for (final ConceptRelationship rel : inverseFromRelsMap.values()) {
+      for (final ConceptRelationship rel : inverseFromRels) {
         rel.setId(null);
         rel.setTo(getToConcept());
         if (getChangeStatusFlag()) {
@@ -326,11 +325,16 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     ConceptRelationship newBetweenRel = null;
     ConceptRelationshipJpa inverseBetweenRel = null;
     if (relationshipType != null) {
+      // getFromConcept() is a detached copy (new ConceptJpa created in initialize()).
+      // Hibernate 6 treats new Java objects as transient and rejects them as @ManyToOne
+      // targets at flush time, even when an ID is set. Re-load the managed entity from
+      // the session (manager.merge in updateConcept already synced its state to the DB).
+      final Concept managedFromConcept = getConcept(getFromConcept().getId());
       newBetweenRel = new ConceptRelationshipJpa();
       newBetweenRel.setBranch(Branch.ROOT);
       newBetweenRel.setRelationshipType(relationshipType);
       newBetweenRel.setAdditionalRelationshipType("");
-      newBetweenRel.setFrom(getFromConcept());
+      newBetweenRel.setFrom(managedFromConcept);
       newBetweenRel.setTo(getToConcept());
       newBetweenRel.setTerminology(getTerminology());
       newBetweenRel.setTerminologyId("");
@@ -344,10 +348,15 @@ public class SplitMolecularAction extends AbstractMolecularAction {
       getFromConcept().getRelationships().add(newBetweenRel);
 
       // construct inverse relationship as well
-      String inverseRelType =
+      final RelationshipType relType =
           getRelationshipType(newBetweenRel.getRelationshipType(),
-              getProject().getTerminology(), getProject().getVersion())
-                  .getInverse().getAbbreviation();
+              getProject().getTerminology(), getProject().getVersion());
+      if (relType == null) {
+        throw new LocalException("RelationshipType "
+            + newBetweenRel.getRelationshipType() + " not found for "
+            + getProject().getTerminology() + "/" + getProject().getVersion());
+      }
+      String inverseRelType = relType.getInverse().getAbbreviation();
 
       String inverseAdditionalRelType = "";
       if (!newBetweenRel.getAdditionalRelationshipType().equals("")) {

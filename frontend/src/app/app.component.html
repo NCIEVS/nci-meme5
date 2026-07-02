@@ -1,9 +1,13 @@
 <meme-loading-indicator />
-<meme-header />
+@if (!shellHidden()) {
+  <meme-header />
+}
 <meme-notifications />
 
-<main class="app-main">
+<main class="app-main" [class.app-main--bare]="shellHidden()">
   <router-outlet />
 </main>
 
-<meme-footer />
+@if (!shellHidden()) {
+  <meme-footer />
+}

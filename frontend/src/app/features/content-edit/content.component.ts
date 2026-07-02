@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
@@ -101,6 +101,7 @@ interface EditPopoutLink {
 export class ContentComponent implements OnInit {
   private readonly api = inject(ContentEditApiService);
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly mutationApi = inject(EditMutationApiService);
   private readonly notifications = inject(NotificationService);
   private readonly operationsApi = inject(OperationalApiService);
@@ -1292,6 +1293,12 @@ export class ContentComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Allow same-origin popups to retrieve the peer concept list for the Move dialog.
+    (window as any).__memeGetPeerConcepts = (excludeId: number) =>
+      this.conceptList().filter(c => c.id !== excludeId);
+
+    this.destroyRef.onDestroy(() => { delete (window as any).__memeGetPeerConcepts; });
+
     this.applyRouteContext();
     this.loadProjectContext();
     this.loadRouteComponent();
@@ -1301,6 +1308,54 @@ export class ContentComponent implements OnInit {
       this.loadWorklists();
       this.loadTabCounts();
     }
+
+    const onPopupMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: string; conceptId?: number; fromConceptId?: number; toConceptId?: number; newConceptId?: number } | null;
+
+      if (data?.type === 'concept-approved' && data.conceptId) {
+        const id = data.conceptId;
+        this.conceptList.update(list =>
+          list.map(c => c.id === id ? { ...c, workflowStatus: 'READY_FOR_PUBLICATION' } : c)
+        );
+        this.records.update(recs =>
+          recs.map(r => {
+            const updatedConcepts = r.concepts?.map(c =>
+              c.id === id ? { ...c, workflowStatus: 'READY_FOR_PUBLICATION' } : c
+            ) ?? r.concepts;
+            const allApproved = updatedConcepts?.every(
+              c => c.workflowStatus === 'READY_FOR_PUBLICATION'
+            ) ?? false;
+            return {
+              ...r,
+              concepts: updatedConcepts,
+              workflowStatus: allApproved ? 'READY_FOR_PUBLICATION' : r.workflowStatus,
+            };
+          })
+        );
+      }
+
+      if (data?.type === 'concept-merged' && data.fromConceptId) {
+        const fromId = data.fromConceptId;
+        this.conceptList.update(list => list.filter(c => c.id !== fromId));
+        this.records.update(recs =>
+          recs.filter(r => !r.concepts?.some(c => c.id === fromId))
+        );
+      }
+
+      if (data?.type === 'concept-split' && data.fromConceptId && data.newConceptId) {
+        const fromId = data.fromConceptId;
+        const newId = data.newConceptId;
+        const fromConcept = this.conceptList().find(c => c.id === fromId);
+        if (fromConcept) this.reloadConceptInList(fromConcept);
+        this.api.getComponentById('concept', newId, this.projectId()).subscribe({
+          next: (concept) => { if (concept) this.addConceptToList(concept); },
+          error: () => {}
+        });
+      }
+    };
+    window.addEventListener('message', onPopupMessage);
+    this.destroyRef.onDestroy(() => window.removeEventListener('message', onPopupMessage));
   }
 
   protected search(): void {
@@ -1880,7 +1935,7 @@ export class ContentComponent implements OnInit {
     const openedWindow = window.open(
       this.editPopoutUrl(link, component),
       link.windowName,
-      'width=600,height=600,scrollbars=yes'
+      'width=1200,height=800,scrollbars=yes'
     );
 
     if (!openedWindow) {
@@ -3836,11 +3891,14 @@ export class ContentComponent implements OnInit {
         component.id === null || component.id === undefined
           ? ''
           : String(component.id),
+      isChecklist: this.worklistMode() === 'Checklists' ? 'true' : '',
       projectId: this.projectId() === null ? '' : String(this.projectId()),
+      recordId: this.selectedRecord()?.id ? String(this.selectedRecord()!.id!) : '',
       terminology: component.terminology || this.terminology(),
       terminologyId: component.terminologyId || '',
       type,
-      version: component.version || this.version()
+      version: component.version || this.version(),
+      worklistId: this.selectedWorklist()?.id ? String(this.selectedWorklist()!.id!) : ''
     };
 
     Object.entries(values).forEach(([key, value]) => {
@@ -4776,13 +4834,23 @@ export class ContentComponent implements OnInit {
   protected addConceptToList(concept: ContentComponentDetail): void {
     const list = this.conceptList();
     if (list.some((c) => c.id === concept.id)) return;
-    this.conceptList.set([...list, concept].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)));
+    const updated = [...list, concept].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+    this.conceptList.set(updated);
+    if (updated.length === 1) {
+      this.selectedComponent.set(updated[0]);
+      this.selectedResult.set(null);
+    }
   }
 
   protected removeConceptFromList(concept: ContentComponentDetail): void {
-    this.conceptList.update((list) => list.filter((c) => c.id !== concept.id));
+    const updated = this.conceptList().filter((c) => c.id !== concept.id);
+    this.conceptList.set(updated);
     if (this.selectedComponent()?.id === concept.id) {
-      this.selectedComponent.set(null);
+      this.selectedComponent.set(updated.length === 1 ? updated[0] : null);
+      if (updated.length === 1) this.selectedResult.set(null);
+    } else if (updated.length === 1 && !this.selectedComponent()) {
+      this.selectedComponent.set(updated[0]);
+      this.selectedResult.set(null);
     }
   }
 
@@ -4931,8 +4999,6 @@ export class ContentComponent implements OnInit {
     const idx = records.findIndex((r) => r.id === record.id);
     if (idx >= 0 && idx < records.length - 1) {
       this.selectRecord(records[idx + 1]);
-      this.conceptList.set([]);
-      this.selectedComponent.set(null);
     }
   }
 
@@ -5127,6 +5193,19 @@ export class ContentComponent implements OnInit {
 
   protected selectRecord(record: WorkflowTrackingRecord): void {
     this.selectedRecord.set(record);
+    this.conceptList.set([]);
+    this.selectedComponent.set(null);
+
+    const projectId = this.projectId();
+    if (!projectId || !record.concepts?.length) return;
+
+    for (const wfConcept of record.concepts) {
+      if (!wfConcept.id) continue;
+      this.api.getComponentById('concept', wfConcept.id, projectId).subscribe({
+        next: (concept) => { if (concept) this.addConceptToList(concept); },
+        error: () => {}
+      });
+    }
   }
 
   protected setRecordsTypeFilter(value: string): void {

@@ -110,7 +110,6 @@ describe('edit mutation helpers', () => {
       canExecute: false,
       reasons: [
         'Semantic type id is required.',
-        'Activity id is required.',
         'Concept lastModified timestamp is required.'
       ]
     });
@@ -140,7 +139,6 @@ describe('edit mutation helpers', () => {
       canExecute: false,
       reasons: [
         'Semantic type is required.',
-        'Activity id is required.',
         'Concept lastModified timestamp is required.'
       ]
     });
