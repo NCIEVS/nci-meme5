@@ -21,8 +21,8 @@ export class NotificationService {
     this.add('error', message);
   }
 
-  success(message: string): void {
-    this.add('success', message);
+  success(_message: string): void {
+    // Global banners are reserved for errors and warnings.
   }
 
   dismiss(id: number): void {

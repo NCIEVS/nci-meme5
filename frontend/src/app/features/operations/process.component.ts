@@ -15,6 +15,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
+import { PagerComponent } from '../../shared/pager/pager.component';
 import { buildOperationalPfs } from './operational-api.helpers';
 import { OperationalApiService } from './operational-api.service';
 import {
@@ -34,6 +35,8 @@ type ProcessOperation =
   | 'restart'
   | 'step'
   | 'unstep';
+type ProcessMode = 'Config' | 'Execution';
+type ProcessSortField = 'name' | 'lastModified';
 type ProcessType =
   | 'Insertion'
   | 'Inversion'
@@ -70,9 +73,24 @@ interface QueryTestContext {
   queryType: string;
 }
 
+interface ProcessLogState {
+  filter: string;
+  loading: boolean;
+  log: string;
+  execution: ProcessExecution;
+}
+
+interface StepLogState {
+  filter: string;
+  loading: boolean;
+  log: string;
+  progress: number | null;
+  step: ProcessStep;
+}
+
 @Component({
   selector: 'meme-process',
-  imports: [DialogComponent, FormsModule],
+  imports: [DialogComponent, FormsModule, PagerComponent],
   templateUrl: './process.component.html',
   styleUrl: './operations.component.css'
 })
@@ -91,8 +109,11 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly algorithmStepForm = signal<AlgorithmStepForm | null>(null);
   protected readonly algorithmStepFormErrors = signal<string[]>([]);
   protected readonly algorithmTypes = signal<KeyValuePair[]>([]);
+  protected readonly cloningConfigId = signal<number | null>(null);
   protected readonly deletingConfigId = signal<number | null>(null);
+  protected readonly deletingExecutionId = signal<number | null>(null);
   protected readonly deletingStepId = signal<number | null>(null);
+  protected readonly draggingAlgorithmStepIndex = signal<number | null>(null);
   protected readonly executionPage = signal(1);
   protected readonly executionPageSize = signal(10);
   protected readonly executionTotalCount = signal(0);
@@ -112,10 +133,14 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly queryPreviewMap = signal<Record<string, boolean>>({});
   protected readonly testingQueryKey = signal<string | null>(null);
   protected readonly activeStepId = signal<number | null>(null);
-  protected readonly processLog = signal('');
   protected readonly processProgress = signal<number | null>(null);
+  protected readonly processLogState = signal<ProcessLogState | null>(null);
+  protected readonly stepLogState = signal<StepLogState | null>(null);
   protected readonly processConfigForm = signal<ProcessConfigForm | null>(null);
   protected readonly processConfigFormErrors = signal<string[]>([]);
+  protected readonly processModes: ProcessMode[] = ['Config', 'Execution'];
+  protected readonly processSortAscending = signal(false);
+  protected readonly processSortField = signal<ProcessSortField>('lastModified');
   protected readonly processTypes: ProcessType[] = [
     'Insertion',
     'Inversion',
@@ -128,20 +153,55 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly runningOperation = signal<ProcessOperation | null>(null);
   protected readonly savingAlgorithmStep = signal(false);
   protected readonly savingProcessConfig = signal(false);
+  protected readonly selectedAlgorithmKey = signal('');
   protected readonly selectedConfig = signal<ProcessConfig | null>(null);
+  protected readonly selectedConfigForExecution = signal<ProcessConfig | null>(null);
+  protected readonly selectedConfigForExecutionStepId = signal<number | null>(null);
   protected readonly selectedExecution = signal<ProcessExecution | null>(null);
+  protected readonly selectedMode = signal<ProcessMode>('Config');
   protected readonly selectedProcessType = signal<ProcessType>('Insertion');
-  protected readonly stepLog = signal('');
+  protected readonly selectedStepId = signal<number | null>(null);
   protected readonly stepProgress = signal<number | null>(null);
   protected readonly feedbackUpdatedAt = signal<number | null>(null);
   protected readonly terminologies = signal<OperationalTerminology[]>([]);
   protected readonly updatingStepId = signal<number | null>(null);
 
-  protected readonly configTotalPages = computed(() =>
-    this.pageCount(this.configTotalCount(), this.configPageSize())
+  protected readonly displayedExecutions = computed(() => {
+    const seen = new Set<string>();
+
+    return [...this.runningExecutions(), ...this.executions()].filter((execution) => {
+      const key = String(execution.id ?? execution.name ?? JSON.stringify(execution));
+
+      if (seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  });
+  protected readonly currentPage = computed(() =>
+    this.selectedMode() === 'Config' ? this.configPage() : this.executionPage()
   );
-  protected readonly executionTotalPages = computed(() =>
-    this.pageCount(this.executionTotalCount(), this.executionPageSize())
+  protected readonly currentPageSize = computed(() =>
+    this.selectedMode() === 'Config'
+      ? this.configPageSize()
+      : this.executionPageSize()
+  );
+  protected readonly currentProcesses = computed<
+    Array<ProcessConfig | ProcessExecution>
+  >(() =>
+    this.selectedMode() === 'Config'
+      ? this.configs()
+      : this.displayedExecutions()
+  );
+  protected readonly currentTotalCount = computed(() =>
+    this.selectedMode() === 'Config'
+      ? this.configTotalCount()
+      : this.executionTotalCount()
+  );
+  protected readonly currentTotalPages = computed(() =>
+    this.pageCount(this.currentTotalCount(), this.currentPageSize())
   );
   protected readonly projectId = computed(() => this.projectContext.projectId());
   protected readonly projectRole = computed(
@@ -163,6 +223,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.initializeProcessPreferences();
     this.loadTerminologies();
     this.loadProjects();
     this.load();
@@ -220,15 +281,15 @@ export class ProcessComponent implements OnInit, OnDestroy {
     const configPfs = buildOperationalPfs(
       this.configPage(),
       this.configPageSize(),
-      'lastModified',
-      false,
+      this.processSortField(),
+      this.processSortAscending(),
       this.processQueryRestriction()
     );
     const executionPfs = buildOperationalPfs(
       this.executionPage(),
       this.executionPageSize(),
-      'lastModified',
-      false,
+      this.processSortField(),
+      this.processSortAscending(),
       this.processQueryRestriction()
     );
     this.loading.set(true);
@@ -246,18 +307,24 @@ export class ProcessComponent implements OnInit, OnDestroy {
           this.executions.set(executions.items);
           this.executionTotalCount.set(executions.totalCount);
           this.runningExecutions.set(running.items);
-          this.selectConfig(
+          const nextConfig =
             configs.items.find((config) => config.id === selectedConfigId) ??
-              configs.items[0] ??
-              null
-          );
-          this.selectExecution(
+            configs.items[0] ??
+            null;
+          const nextExecution =
             running.items.find((execution) => execution.id === selectedExecutionId) ??
-              executions.items.find((execution) => execution.id === selectedExecutionId) ??
-              running.items[0] ??
-              executions.items[0] ??
-              null
-          );
+            executions.items.find((execution) => execution.id === selectedExecutionId) ??
+            running.items[0] ??
+            executions.items[0] ??
+            null;
+
+          if (this.selectedMode() === 'Config') {
+            this.selectConfig(nextConfig);
+            this.selectedExecution.set(nextExecution);
+          } else {
+            this.selectedConfig.set(nextConfig);
+            this.selectExecution(nextExecution);
+          }
         },
         error: () => {
           this.notifications.error('Process information could not be loaded.');
@@ -277,6 +344,76 @@ export class ProcessComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected setMode(mode: ProcessMode): void {
+    if (this.selectedMode() === mode) {
+      return;
+    }
+
+    this.selectedMode.set(mode);
+    this.selectedStepId.set(null);
+    this.selectedConfigForExecutionStepId.set(null);
+    this.saveProcessPreference('processMode', mode);
+    this.load();
+  }
+
+  protected selectProcess(process: ProcessConfig | ProcessExecution): void {
+    if (this.selectedMode() === 'Config') {
+      this.selectConfig(process as ProcessConfig);
+      return;
+    }
+
+    this.selectExecution(process as ProcessExecution);
+  }
+
+  protected isProcessSelected(process: ProcessConfig | ProcessExecution): boolean {
+    const selected =
+      this.selectedMode() === 'Config'
+        ? this.selectedConfig()
+        : this.selectedExecution();
+
+    return Boolean(selected?.id && process.id && selected.id === process.id);
+  }
+
+  protected setProcessPage(page: number): void {
+    if (this.selectedMode() === 'Config') {
+      this.configPage.set(page);
+    } else {
+      this.executionPage.set(page);
+    }
+
+    this.load();
+  }
+
+  protected setProcessPageSize(value: number | string): void {
+    if (this.selectedMode() === 'Config') {
+      this.setConfigPageSize(value);
+      return;
+    }
+
+    this.setExecutionPageSize(value);
+  }
+
+  protected setProcessSortField(field: ProcessSortField): void {
+    if (this.processSortField() === field) {
+      this.processSortAscending.update((ascending) => !ascending);
+    } else {
+      this.processSortField.set(field);
+      this.processSortAscending.set(true);
+    }
+
+    this.configPage.set(1);
+    this.executionPage.set(1);
+    this.load();
+  }
+
+  protected sortIndicator(field: ProcessSortField): string {
+    if (this.processSortField() !== field) {
+      return '';
+    }
+
+    return this.processSortAscending() ? '▲' : '▼';
+  }
+
   protected clearFilter(): void {
     if (!this.filter()) {
       return;
@@ -292,54 +429,19 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.selectedProcessType.set(processType);
     this.configPage.set(1);
     this.executionPage.set(1);
+    this.saveProcessPreference('processType', processType);
     this.load();
   }
 
-  protected setConfigPageSize(value: string): void {
+  protected setConfigPageSize(value: number | string): void {
     this.configPageSize.set(Number(value));
     this.configPage.set(1);
     this.load();
   }
 
-  protected setExecutionPageSize(value: string): void {
+  protected setExecutionPageSize(value: number | string): void {
     this.executionPageSize.set(Number(value));
     this.executionPage.set(1);
-    this.load();
-  }
-
-  protected previousConfigPage(): void {
-    if (this.configPage() === 1) {
-      return;
-    }
-
-    this.configPage.update((page) => page - 1);
-    this.load();
-  }
-
-  protected nextConfigPage(): void {
-    if (this.configPage() === this.configTotalPages()) {
-      return;
-    }
-
-    this.configPage.update((page) => page + 1);
-    this.load();
-  }
-
-  protected previousExecutionPage(): void {
-    if (this.executionPage() === 1) {
-      return;
-    }
-
-    this.executionPage.update((page) => page - 1);
-    this.load();
-  }
-
-  protected nextExecutionPage(): void {
-    if (this.executionPage() === this.executionTotalPages()) {
-      return;
-    }
-
-    this.executionPage.update((page) => page + 1);
     this.load();
   }
 
@@ -414,6 +516,18 @@ export class ProcessComponent implements OnInit, OnDestroy {
     );
   }
 
+  protected clearProcessFormTerminology(): void {
+    this.processConfigForm.update((form) =>
+      form
+        ? {
+            ...form,
+            terminology: '',
+            version: ''
+          }
+        : form
+    );
+  }
+
   protected processConfigTypeOptions(): string[] {
     const formType = this.processConfigForm()?.type;
     const options: string[] = this.processTypes;
@@ -454,12 +568,10 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
         if (form.mode === 'add') {
           const addedConfig = processConfig as ProcessConfig;
-          this.notifications.success('Process config added.');
           this.load(addedConfig.id, this.selectedExecution()?.id);
           return;
         }
 
-        this.notifications.success('Process config saved.');
         this.load(payload.id, this.selectedExecution()?.id);
       },
       error: () => {
@@ -489,12 +601,63 @@ export class ProcessComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.deletingConfigId.set(null)))
       .subscribe({
         next: () => {
-          this.notifications.success('Process config removed.');
           this.selectConfig(null);
           this.load(null, this.selectedExecution()?.id);
         },
         error: () => {
           this.notifications.error('Process config could not be removed.');
+        }
+      });
+  }
+
+  protected cloneProcessConfig(config: ProcessConfig): void {
+    const projectId = this.projectId();
+
+    if (!projectId || !config.id) {
+      return;
+    }
+
+    this.cloningConfigId.set(config.id);
+    this.api
+      .cloneProcessConfig(projectId, config)
+      .pipe(finalize(() => this.cloningConfigId.set(null)))
+      .subscribe({
+        next: (clonedConfig) => {
+          this.selectedMode.set('Config');
+          this.load(clonedConfig.id ?? config.id, this.selectedExecution()?.id);
+        },
+        error: () => {
+          this.notifications.error('Process config could not be cloned.');
+        }
+      });
+  }
+
+  protected removeProcessExecution(execution: ProcessConfig | ProcessExecution): void {
+    const projectId = this.projectId();
+
+    if (!projectId || !execution.id) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Remove process execution "${execution.name || execution.id}"?`
+      )
+    ) {
+      return;
+    }
+
+    this.deletingExecutionId.set(execution.id);
+    this.api
+      .removeProcessExecution(projectId, execution.id, true)
+      .pipe(finalize(() => this.deletingExecutionId.set(null)))
+      .subscribe({
+        next: () => {
+          this.selectExecution(null);
+          this.load(this.selectedConfig()?.id, null);
+        },
+        error: () => {
+          this.notifications.error('Process execution could not be removed.');
         }
       });
   }
@@ -551,7 +714,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
           this.importProcessDialogOpen.set(false);
           this.importProcessFile.set(null);
           this.importProcessFormErrors.set([]);
-          this.notifications.success('Process config imported.');
           this.load(processConfig.id, this.selectedExecution()?.id);
         },
         error: () => {
@@ -576,7 +738,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (blob) => {
           this.downloadBlob(blob, this.processExportFileName(config));
-          this.notifications.success('Process config exported.');
         },
         error: () => {
           this.notifications.error('Process config could not be exported.');
@@ -584,13 +745,16 @@ export class ProcessComponent implements OnInit, OnDestroy {
       });
   }
 
-  protected startAddAlgorithmStep(config: ProcessConfig): void {
+  protected startAddAlgorithmStep(config: ProcessConfig, algorithmKey?: string): void {
     const projectId = this.projectId();
     const processId = config.id;
-    const algorithmType = this.algorithmTypes()[0];
-    const algorithmKey = algorithmType?.key;
+    const selectedAlgorithmKey =
+      algorithmKey || this.selectedAlgorithmKey() || this.algorithmTypes()[0]?.key;
+    const algorithmType = this.algorithmTypes().find(
+      (entry) => entry.key === selectedAlgorithmKey
+    );
 
-    if (!projectId || !processId || !algorithmKey) {
+    if (!projectId || !processId || !selectedAlgorithmKey) {
       return;
     }
 
@@ -599,17 +763,88 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.testingQueryKey.set(null);
     this.loadingAlgorithmStep.set(true);
     this.api
-      .newAlgorithmConfig(projectId, processId, algorithmKey)
+      .newAlgorithmConfig(projectId, processId, selectedAlgorithmKey)
       .pipe(finalize(() => this.loadingAlgorithmStep.set(false)))
       .subscribe({
         next: (algorithm) => {
+          const defaultName =
+            algorithm.name ?? algorithmType?.value ?? selectedAlgorithmKey;
+          const defaultDescription = algorithm.description ?? defaultName;
+
           this.algorithmStepForm.set({
             algorithm: this.prepareAlgorithmForForm(
               {
                 ...algorithm,
-                algorithmKey,
+                algorithmKey: selectedAlgorithmKey,
                 enabled: true,
-                name: algorithm.name ?? algorithmType.value ?? algorithmKey
+                description: this.uniqueAlgorithmStepText(
+                  config,
+                  'description',
+                  defaultDescription
+                ),
+                name: this.uniqueAlgorithmStepText(config, 'name', defaultName)
+              },
+              processId
+            ),
+            algorithmKey: selectedAlgorithmKey,
+            mode: 'add',
+            processConfig: config,
+            validationMessages: []
+          });
+        },
+        error: () => {
+          this.notifications.error('Algorithm step template could not be loaded.');
+        }
+      });
+  }
+
+  protected startAddSelectedAlgorithmStep(config: ProcessConfig): void {
+    this.startAddAlgorithmStep(config, this.selectedAlgorithmKey());
+  }
+
+  protected setSelectedAlgorithmKey(algorithmKey: string): void {
+    this.selectedAlgorithmKey.set(algorithmKey);
+  }
+
+  protected startCloneAlgorithmStep(
+    config: ProcessConfig,
+    step: ProcessStep
+  ): void {
+    const projectId = this.projectId();
+    const processId = config.id;
+
+    if (!projectId || !processId || !step.id) {
+      return;
+    }
+
+    this.algorithmStepFormErrors.set([]);
+    this.queryPreviewMap.set({});
+    this.testingQueryKey.set(null);
+    this.loadingAlgorithmStep.set(true);
+    this.api
+      .getAlgorithmConfig(projectId, step.id)
+      .pipe(finalize(() => this.loadingAlgorithmStep.set(false)))
+      .subscribe({
+        next: (algorithm) => {
+          const algorithmKey = algorithm.algorithmKey ?? step.algorithmKey ?? '';
+          const defaultName = algorithm.name ?? step.name ?? algorithmKey;
+          const defaultDescription =
+            algorithm.description ?? step.description ?? defaultName;
+
+          this.algorithmStepForm.set({
+            algorithm: this.prepareAlgorithmForForm(
+              {
+                ...algorithm,
+                id: null,
+                algorithmConfigId: null,
+                algorithmKey,
+                description: this.uniqueAlgorithmStepText(
+                  config,
+                  'description',
+                  defaultDescription
+                ),
+                lastModified: null,
+                name: this.uniqueAlgorithmStepText(config, 'name', defaultName)
               },
               processId
             ),
@@ -620,7 +855,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
           });
         },
         error: () => {
-          this.notifications.error('Algorithm step template could not be loaded.');
+          this.notifications.error('Algorithm step detail could not be loaded.');
         }
       });
   }
@@ -763,6 +998,17 @@ export class ProcessComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected selectAllAlgorithmParameterValues(
+    index: number,
+    parameter: AlgorithmParameter
+  ): void {
+    this.updateAlgorithmParameterValues(index, this.parameterOptions(parameter));
+  }
+
+  protected clearAlgorithmParameterValues(index: number): void {
+    this.updateAlgorithmParameterValues(index, []);
+  }
+
   protected toggleQueryPreview(index: number, parameter: AlgorithmParameter): void {
     const key = this.queryPreviewKey(parameter, index);
 
@@ -788,6 +1034,10 @@ export class ProcessComponent implements OnInit, OnDestroy {
       type === 'QUERY_ID_PAIR' ||
       (type === 'TEXT' && name.includes('Query'))
     );
+  }
+
+  protected isQueryIdParameter(parameter: AlgorithmParameter): boolean {
+    return parameter.type === 'QUERY_ID' || parameter.type === 'QUERY_ID_PAIR';
   }
 
   protected canTestQueryParameter(parameter: AlgorithmParameter): boolean {
@@ -916,9 +1166,13 @@ export class ProcessComponent implements OnInit, OnDestroy {
           );
           this.algorithmStepFormErrors.set([]);
         },
-        error: () => {
+        error: (error: unknown) => {
+          const message = this.errorMessage(error);
+
           this.algorithmStepFormErrors.set([
-            'Algorithm configuration could not be validated.'
+            message === 'Unknown error'
+              ? 'Algorithm configuration could not be validated.'
+              : `Algorithm configuration could not be validated: ${message}`
           ]);
         }
       });
@@ -940,6 +1194,13 @@ export class ProcessComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.algorithmStepValidated(form)) {
+      this.algorithmStepFormErrors.set([
+        'Validate the algorithm configuration before saving.'
+      ]);
+      return;
+    }
+
     const payload = this.buildAlgorithmPayload(form.algorithm, processId);
     const request: Observable<ProcessStep | void> =
       form.mode === 'add'
@@ -951,9 +1212,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
       next: () => {
         this.algorithmStepForm.set(null);
         this.algorithmStepFormErrors.set([]);
-        this.notifications.success(
-          form.mode === 'add' ? 'Algorithm step added.' : 'Algorithm step saved.'
-        );
         this.refreshProcessConfig(processId);
       },
       error: () => {
@@ -990,17 +1248,20 @@ export class ProcessComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: () => {
-          this.notifications.success(
-            this.isStepEnabled(step)
-              ? 'Algorithm step disabled.'
-              : 'Algorithm step enabled.'
-          );
           this.refreshProcessConfig(config.id as number);
         },
         error: () => {
           this.notifications.error('Algorithm step could not be updated.');
         }
       });
+  }
+
+  protected algorithmStepValidated(form: AlgorithmStepForm | null): boolean {
+    return Boolean(
+      form?.validationMessages.some((message) =>
+        message.includes('successfully validated')
+      )
+    );
   }
 
   protected removeAlgorithmStep(config: ProcessConfig, step: ProcessStep): void {
@@ -1020,7 +1281,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.deletingStepId.set(null)))
       .subscribe({
         next: () => {
-          this.notifications.success('Algorithm step removed.');
           this.refreshProcessConfig(config.id as number);
         },
         error: () => {
@@ -1034,29 +1294,125 @@ export class ProcessComponent implements OnInit, OnDestroy {
     step: ProcessStep,
     direction: -1 | 1
   ): void {
-    const projectId = this.projectId();
-    const processId = config.id;
     const steps = this.processSteps(config);
     const index = steps.findIndex((entry) => entry.id === step.id);
     const nextIndex = index + direction;
 
+    if (index === -1) {
+      return;
+    }
+
+    this.reorderAlgorithmStep(config, index, nextIndex);
+  }
+
+  protected startAlgorithmStepDrag(
+    event: DragEvent,
+    step: ProcessStep,
+    index: number
+  ): void {
     if (
-      !projectId ||
-      !processId ||
-      index === -1 ||
-      nextIndex < 0 ||
-      nextIndex >= steps.length
+      !this.canManageProcesses() ||
+      this.updatingStepId() !== null ||
+      this.deletingStepId() === step.id
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    this.draggingAlgorithmStepIndex.set(index);
+    event.dataTransfer?.setData('text/plain', String(index));
+    event.dataTransfer?.setDragImage(event.currentTarget as Element, 0, 0);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected dragOverAlgorithmStep(event: DragEvent, index: number): void {
+    const sourceIndex = this.draggingAlgorithmStepIndex();
+
+    if (
+      sourceIndex !== null &&
+      sourceIndex !== index &&
+      this.canManageProcesses() &&
+      this.updatingStepId() === null
+    ) {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+    }
+  }
+
+  protected dropAlgorithmStep(
+    event: DragEvent,
+    config: ProcessConfig,
+    targetIndex: number
+  ): void {
+    const transferredIndex = event.dataTransfer?.getData('text/plain');
+    const rawSourceIndex =
+      this.draggingAlgorithmStepIndex() ??
+      (transferredIndex ? Number(transferredIndex) : Number.NaN);
+    const sourceIndex = Number(rawSourceIndex);
+    const viewportLeft = window.scrollX;
+    const viewportTop = window.scrollY;
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.draggingAlgorithmStepIndex.set(null);
+
+    if (
+      !this.canManageProcesses() ||
+      this.updatingStepId() !== null ||
+      !Number.isInteger(sourceIndex) ||
+      sourceIndex === targetIndex
     ) {
       return;
     }
 
+    this.reorderAlgorithmStep(config, sourceIndex, targetIndex);
+    this.restoreAlgorithmStepDropViewport(viewportLeft, viewportTop);
+  }
+
+  protected clearAlgorithmStepDrag(): void {
+    this.draggingAlgorithmStepIndex.set(null);
+  }
+
+  private reorderAlgorithmStep(
+    config: ProcessConfig,
+    index: number,
+    targetIndex: number
+  ): void {
+    const projectId = this.projectId();
+    const processId = config.id;
+    const steps = this.processSteps(config);
+
+    if (
+      !projectId ||
+      !processId ||
+      index < 0 ||
+      targetIndex < 0 ||
+      index >= steps.length ||
+      targetIndex >= steps.length
+    ) {
+      return;
+    }
+
+    const reorderedDisplaySteps = [...steps];
+    const [displayStep] = reorderedDisplaySteps.splice(index, 1);
+    reorderedDisplaySteps.splice(targetIndex, 0, displayStep);
     const nextSteps = steps.map((entry) =>
       this.buildAlgorithmPayload(entry, processId)
     );
     const [movedStep] = nextSteps.splice(index, 1);
-    nextSteps.splice(nextIndex, 0, movedStep);
+    nextSteps.splice(targetIndex, 0, movedStep);
+    const optimisticConfig = {
+      ...config,
+      steps: reorderedDisplaySteps
+    };
 
-    this.updatingStepId.set(step.id ?? null);
+    this.selectedConfig.set(optimisticConfig);
+    this.replaceConfig(optimisticConfig);
+    this.updatingStepId.set(displayStep.id ?? null);
     this.api
       .updateProcessConfig(projectId, {
         ...config,
@@ -1065,17 +1421,22 @@ export class ProcessComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.updatingStepId.set(null)))
       .subscribe({
         next: () => {
-          this.notifications.success('Algorithm step moved.');
           this.refreshProcessConfig(processId);
         },
         error: () => {
           this.notifications.error('Algorithm step could not be moved.');
+          this.refreshProcessConfig(processId);
         }
       });
   }
 
+  private restoreAlgorithmStepDropViewport(left: number, top: number): void {
+    requestAnimationFrame(() => window.scrollTo(left, top));
+  }
+
   protected selectConfig(config: ProcessConfig | null): void {
     this.selectedConfig.set(config);
+    this.selectedStepId.set(null);
 
     const projectId = this.projectId();
     if (!projectId || !config?.id) {
@@ -1107,6 +1468,9 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.stopExecutionFeedbackPolling();
     this.resetExecutionFeedback();
     this.selectedExecution.set(execution);
+    this.selectedStepId.set(null);
+    this.selectedConfigForExecutionStepId.set(null);
+    this.selectedConfigForExecution.set(null);
 
     const projectId = this.projectId();
     if (!projectId || !execution?.id) {
@@ -1114,6 +1478,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.loadConfigForExecution(execution);
     this.refreshSelectedExecutionFeedback(false);
   }
 
@@ -1136,7 +1501,10 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.runningOperation.set(operation);
     request.pipe(finalize(() => this.runningOperation.set(null))).subscribe({
       next: (processExecutionId) => {
-        this.notifications.success(this.processOperationMessage(operation));
+        if (operation === 'prepare') {
+          this.selectedMode.set('Execution');
+          this.saveProcessPreference('processMode', 'Execution');
+        }
         this.load(this.selectedConfig()?.id, processExecutionId);
       },
       error: () => {
@@ -1193,37 +1561,84 @@ export class ProcessComponent implements OnInit, OnDestroy {
       return 'n/a';
     }
 
-    if (execution.failDate) {
-      return 'FAILED';
+    let status = 'READY';
+
+    if (
+      execution.startDate &&
+      !execution.stopDate &&
+      !execution.failDate &&
+      !execution.finishDate
+    ) {
+      status = 'RUNNING';
+    } else if (execution.stopDate) {
+      status = 'STOPPED';
+    } else if (execution.failDate && execution.finishDate) {
+      status = 'CANCELLED';
+    } else if (!execution.failDate && execution.finishDate) {
+      status = 'COMPLETE';
+    } else if (execution.failDate && !execution.finishDate) {
+      status = 'FAILED';
     }
 
-    if (execution.finishDate) {
-      return 'FINISHED';
-    }
-
-    if (execution.stopDate) {
-      return 'STOPPED';
-    }
-
-    if (execution.startDate) {
-      return 'RUNNING';
-    }
-
-    return 'NEW';
+    return execution.warning ? `${status}, WARNING` : status;
   }
 
-  protected statusClass(execution: ProcessExecution | null): string {
-    const status = this.executionStatus(execution);
+  protected statusClass(execution: ProcessConfig | ProcessExecution | null): string {
+    const status = this.executionStatus(execution as ProcessExecution | null);
 
-    if (status === 'FAILED') {
+    if (status.includes('FAILED') || status.includes('CANCELLED')) {
       return 'failed';
     }
 
-    if (status === 'RUNNING') {
+    if (status.includes('RUNNING')) {
       return 'running';
     }
 
     return '';
+  }
+
+  protected processState(process: ProcessConfig | ProcessExecution): string {
+    if (this.selectedMode() === 'Config') {
+      return 'CONFIG';
+    }
+
+    return this.executionStatus(process as ProcessExecution);
+  }
+
+  protected selectedProcess(): ProcessConfig | ProcessExecution | null {
+    return this.selectedMode() === 'Config'
+      ? this.selectedConfig()
+      : this.selectedExecution();
+  }
+
+  protected selectStep(step: ProcessStep): void {
+    this.selectedStepId.set(step.id ?? null);
+  }
+
+  protected selectConfigForExecutionStep(step: ProcessStep): void {
+    this.selectedConfigForExecutionStepId.set(step.id ?? null);
+  }
+
+  protected isStepSelected(step: ProcessStep): boolean {
+    return Boolean(step.id && this.selectedStepId() === step.id);
+  }
+
+  protected isConfigForExecutionStepSelected(step: ProcessStep): boolean {
+    return Boolean(
+      step.id && this.selectedConfigForExecutionStepId() === step.id
+    );
+  }
+
+  protected unexecutedSteps(): ProcessStep[] {
+    const config = this.selectedConfigForExecution();
+    const execution = this.selectedExecution();
+    const executedCount = this.processSteps(execution).length;
+
+    return this.processSteps(config).slice(executedCount);
+  }
+
+  protected unexecutedStepStartIndex(): number {
+    return this.processSteps(this.selectedExecution()).length;
   }
 
   protected processSteps(process: ProcessConfig | ProcessExecution | null): ProcessStep[] {
@@ -1245,6 +1660,33 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected isLastStep(config: ProcessConfig, step: ProcessStep): boolean {
     const steps = this.processSteps(config);
     return steps[steps.length - 1]?.id === step.id;
+  }
+
+  protected uniqueAlgorithmStepText(
+    config: ProcessConfig,
+    field: 'description' | 'name',
+    value: string | null | undefined
+  ): string {
+    const base = String(value ?? '').trim() || 'Algorithm step';
+    const existingValues = new Set(
+      this.processSteps(config)
+        .map((step) => String(step[field] ?? '').trim())
+        .filter(Boolean)
+    );
+
+    if (!existingValues.has(base)) {
+      return base;
+    }
+
+    let suffix = 2;
+    let candidate = `${base} ${suffix}`;
+
+    while (existingValues.has(candidate)) {
+      suffix += 1;
+      candidate = `${base} ${suffix}`;
+    }
+
+    return candidate;
   }
 
   protected algorithmTypeLabel(algorithmKey: string | null | undefined): string {
@@ -1472,11 +1914,25 @@ export class ProcessComponent implements OnInit, OnDestroy {
   private errorMessage(error: unknown): string {
     const response = error as { error?: unknown; message?: unknown };
 
-    if (typeof response.error === 'string') {
+    if (typeof response.error === 'string' && response.error.trim()) {
       return response.error;
     }
 
-    if (typeof response.message === 'string') {
+    if (response.error && typeof response.error === 'object') {
+      const body = response.error as {
+        detail?: unknown;
+        error?: unknown;
+        message?: unknown;
+      };
+
+      for (const value of [body.message, body.detail, body.error]) {
+        if (typeof value === 'string' && value.trim()) {
+          return value;
+        }
+      }
+    }
+
+    if (typeof response.message === 'string' && response.message.trim()) {
       return response.message;
     }
 
@@ -1527,9 +1983,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
   private resetExecutionFeedback(): void {
     this.activeStepId.set(null);
     this.feedbackUpdatedAt.set(null);
-    this.processLog.set('');
     this.processProgress.set(null);
-    this.stepLog.set('');
     this.stepProgress.set(null);
   }
 
@@ -1559,17 +2013,9 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
           return forkJoin({
             detail: of(detail),
-            processLog: this.api
-              .getProcessLog(projectId, executionId)
-              .pipe(catchError(() => of(''))),
             processProgress: this.api
               .getProcessProgress(projectId, executionId)
               .pipe(catchError(() => of(null))),
-            stepLog: currentStepId
-              ? this.api
-                  .getAlgorithmLog(projectId, currentStepId)
-                  .pipe(catchError(() => of('')))
-              : of(''),
             stepProgress: currentStepId
               ? this.api
                   .getAlgorithmProgress(projectId, currentStepId)
@@ -1585,7 +2031,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe({
-        next: ({ detail, processLog, processProgress, stepLog, stepProgress }) => {
+        next: ({ detail, processProgress, stepProgress }) => {
           if (this.selectedExecution()?.id !== detail.id) {
             return;
           }
@@ -1594,10 +2040,9 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
           this.selectedExecution.set(detail);
           this.replaceExecution(detail);
+          this.loadConfigForExecution(detail);
           this.activeStepId.set(currentStep?.id ?? null);
-          this.processLog.set(processLog);
           this.processProgress.set(this.normalizedProgress(processProgress, detail));
-          this.stepLog.set(stepLog);
           this.stepProgress.set(
             currentStep ? this.normalizedProgress(stepProgress, currentStep) : null
           );
@@ -1615,6 +2060,175 @@ export class ProcessComponent implements OnInit, OnDestroy {
           }
         }
       });
+  }
+
+  protected openProcessLog(process: ProcessConfig | ProcessExecution): void {
+    const execution = process as ProcessExecution;
+
+    if (!execution.id) {
+      return;
+    }
+
+    this.processLogState.set({ filter: '', loading: true, log: '', execution });
+    this.fetchProcessLog(execution, '');
+  }
+
+  protected closeProcessLog(): void {
+    this.processLogState.set(null);
+  }
+
+  protected updateProcessLogFilter(value: string): void {
+    this.processLogState.update((state) => (state ? { ...state, filter: value } : state));
+  }
+
+  protected searchProcessLog(): void {
+    const state = this.processLogState();
+
+    if (state) {
+      this.fetchProcessLog(state.execution, state.filter);
+    }
+  }
+
+  protected clearProcessLogFilter(): void {
+    const state = this.processLogState();
+
+    if (!state) {
+      return;
+    }
+
+    this.processLogState.set({ ...state, filter: '' });
+    this.fetchProcessLog(state.execution, '');
+  }
+
+  private fetchProcessLog(execution: ProcessExecution, filter: string): void {
+    const projectId = this.projectId();
+    const executionId = execution.id;
+
+    if (!projectId || !executionId) {
+      return;
+    }
+
+    this.processLogState.update((state) => (state ? { ...state, loading: true } : state));
+    this.api.getProcessLog(projectId, executionId, filter).subscribe({
+      next: (log) => {
+        this.processLogState.update((state) =>
+          state?.execution.id === executionId ? { ...state, loading: false, log } : state
+        );
+      },
+      error: () => {
+        this.notifications.error('Process log could not be loaded.');
+        this.processLogState.update((state) =>
+          state?.execution.id === executionId ? { ...state, loading: false } : state
+        );
+      }
+    });
+  }
+
+  protected openStepLog(step: ProcessStep): void {
+    const stepId = step.id;
+
+    if (!stepId) {
+      return;
+    }
+
+    this.selectedStepId.set(stepId);
+    this.stepLogState.set({
+      filter: '',
+      loading: true,
+      log: '',
+      progress: null,
+      step
+    });
+    this.fetchStepLog(step, '');
+  }
+
+  protected closeStepLog(): void {
+    this.stepLogState.set(null);
+  }
+
+  protected updateStepLogFilter(value: string): void {
+    this.stepLogState.update((state) => (state ? { ...state, filter: value } : state));
+  }
+
+  protected searchStepLog(): void {
+    const state = this.stepLogState();
+
+    if (state) {
+      this.fetchStepLog(state.step, state.filter);
+    }
+  }
+
+  protected clearStepLogFilter(): void {
+    const state = this.stepLogState();
+
+    if (!state) {
+      return;
+    }
+
+    this.stepLogState.set({ ...state, filter: '' });
+    this.fetchStepLog(state.step, '');
+  }
+
+  private fetchStepLog(step: ProcessStep, filter: string): void {
+    const projectId = this.projectId();
+    const stepId = step.id;
+
+    if (!projectId || !stepId) {
+      return;
+    }
+
+    this.stepLogState.update((state) => (state ? { ...state, loading: true } : state));
+    forkJoin({
+      stepLog: this.api.getAlgorithmLog(projectId, stepId, filter),
+      stepProgress: this.api
+        .getAlgorithmProgress(projectId, stepId)
+        .pipe(catchError(() => of(null)))
+    }).subscribe({
+      next: ({ stepLog, stepProgress }) => {
+        const progress = this.normalizedProgress(stepProgress, step);
+
+        this.stepLogState.update((state) =>
+          state?.step.id === stepId
+            ? { ...state, loading: false, log: stepLog, progress }
+            : state
+        );
+
+        if (this.activeStepId() === stepId) {
+          this.stepProgress.set(progress);
+        }
+      },
+      error: () => {
+        this.notifications.error('Step log could not be loaded.');
+        this.stepLogState.update((state) =>
+          state?.step.id === stepId ? { ...state, loading: false } : state
+        );
+      }
+    });
+  }
+
+  private loadConfigForExecution(execution: ProcessExecution): void {
+    const projectId = this.projectId();
+    const processConfigId = execution.processConfigId;
+
+    if (!projectId || !processConfigId) {
+      this.selectedConfigForExecution.set(null);
+      return;
+    }
+
+    if (this.selectedConfigForExecution()?.id === processConfigId) {
+      return;
+    }
+
+    this.api.getProcessConfig(projectId, processConfigId).subscribe({
+      next: (config) => {
+        if (this.selectedExecution()?.processConfigId !== processConfigId) {
+          return;
+        }
+
+        this.selectedConfigForExecution.set(config);
+      },
+      error: () => this.selectedConfigForExecution.set(null)
+    });
   }
 
   private validateAlgorithmStepForm(form: AlgorithmStepForm): string[] {
@@ -1647,7 +2261,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
       }
 
       if (parameter.values?.length) {
-        properties[parameter.fieldName] = parameter.values.join(';');
+        properties[parameter.fieldName] = parameter.values.join(',');
       } else if (
         parameter.value !== null &&
         parameter.value !== undefined &&
@@ -1729,11 +2343,19 @@ export class ProcessComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.loadingAlgorithmTypes.set(false)))
       .subscribe({
         next: (algorithmTypes) =>
-          this.algorithmTypes.set(
-            [...algorithmTypes].sort((a, b) =>
+          {
+            const sortedTypes = [...algorithmTypes].sort((a, b) =>
               (a.value ?? a.key ?? '').localeCompare(b.value ?? b.key ?? '')
-            )
-          ),
+            );
+            const currentKey = this.selectedAlgorithmKey();
+
+            this.algorithmTypes.set(sortedTypes);
+            this.selectedAlgorithmKey.set(
+              sortedTypes.some((entry) => entry.key === currentKey)
+                ? currentKey
+                : sortedTypes[0]?.key ?? ''
+            );
+          },
         error: () => {
           this.algorithmTypes.set([]);
           this.notifications.error('Algorithm types could not be loaded.');
@@ -1794,6 +2416,16 @@ export class ProcessComponent implements OnInit, OnDestroy {
     );
   }
 
+  private matchingProcessMode(value: string | null | undefined): ProcessMode | null {
+    const normalizedValue = value?.trim().toLocaleLowerCase();
+
+    return (
+      this.processModes.find(
+        (processMode) => processMode.toLocaleLowerCase() === normalizedValue
+      ) ?? null
+    );
+  }
+
   private processExportFileName(config: ProcessConfig): string {
     const id = config.id ?? 'config';
     const baseName =
@@ -1831,28 +2463,44 @@ export class ProcessComponent implements OnInit, OnDestroy {
     });
   }
 
-  private processOperationMessage(operation: ProcessOperation): string {
-    if (operation === 'prepare') {
-      return 'Process prepared for execution.';
+  private initializeProcessPreferences(): void {
+    const preferences = this.auth.currentUser().userPreferences;
+    const properties = preferences?.properties ?? {};
+    const savedMode = this.matchingProcessMode(
+      String(properties['processMode'] ?? '')
+    );
+    const savedType = this.matchingProcessType(
+      String(properties['processType'] ?? '')
+    );
+
+    if (savedMode) {
+      this.selectedMode.set(savedMode);
     }
 
-    if (operation === 'execute') {
-      return 'Process execution started.';
+    if (savedType) {
+      this.selectedProcessType.set(savedType);
     }
+  }
 
-    if (operation === 'restart') {
-      return 'Process restart started.';
-    }
+  private saveProcessPreference(
+    key: 'processMode' | 'processType',
+    value: string
+  ): void {
+    const user = this.auth.currentUser();
+    const preferences = user.userPreferences ?? { properties: {} };
+    const nextPreferences = {
+      ...preferences,
+      properties: {
+        ...(preferences.properties ?? {}),
+        [key]: value
+      }
+    };
 
-    if (operation === 'step') {
-      return 'Process step started.';
-    }
-
-    if (operation === 'unstep') {
-      return 'Process unstep started.';
-    }
-
-    return 'Process cancellation requested.';
+    this.api.updateUserPreferences(nextPreferences).subscribe({
+      next: (saved) =>
+        this.auth.updateCurrentUserPreferences(saved ?? nextPreferences),
+      error: () => {}
+    });
   }
 
   private confirmProcessOperation(

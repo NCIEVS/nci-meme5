@@ -51,6 +51,7 @@ export class ConceptReportPanelComponent implements OnChanges {
   @Input() initialTab: ReportPanelTab = 'Report';
 
   @Output() linkClicked = new EventEmitter<LinkedConceptInfo>();
+  @Output() tabChanged = new EventEmitter<ReportPanelTab>();
 
   private readonly api = inject(ContentEditApiService);
   private readonly mutationApi = inject(EditMutationApiService);
@@ -100,6 +101,15 @@ export class ConceptReportPanelComponent implements OnChanges {
     if (changes['initialTab']) {
       this.activeTab.set(this.initialTab);
     }
+    const conceptChanged = Boolean(changes['concept'] || changes['projectId']);
+
+    if (!conceptChanged) {
+      if (changes['initialTab'] && this.concept) {
+        this.loadActiveTabIfNeeded();
+      }
+      return;
+    }
+
     this.reportHtml.set(null);
     this.reportError.set(null);
     this.actions.set([]);
@@ -115,15 +125,19 @@ export class ConceptReportPanelComponent implements OnChanges {
     this.deepRels.set([]);
     this.effectiveDefinitions.set(this.buildEffectiveDefinitions());
     if (this.concept) {
-      const tab = this.activeTab();
-      if (tab === 'Report') this.loadReport();
-      else if (tab === 'Actions') this.loadActions();
-      else if (tab === 'Interactive') { this.loadRelationships(); this.loadDeepRelationships(); }
+      this.loadActiveTabIfNeeded();
     }
   }
 
   protected setTab(tab: ReportPanelTab): void {
     this.activeTab.set(tab);
+    this.tabChanged.emit(tab);
+    this.loadActiveTabIfNeeded();
+  }
+
+  private loadActiveTabIfNeeded(): void {
+    const tab = this.activeTab();
+
     if (tab === 'Report' && !this.reportHtml() && !this.loadingReport()) {
       this.loadReport();
     } else if (tab === 'Actions' && !this.actions().length && !this.loadingActions()) {

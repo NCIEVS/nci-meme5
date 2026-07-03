@@ -624,36 +624,30 @@
                   <table>
                     <thead>
                       <tr>
+                        <th>Rank</th>
+                        <th></th>
                         <th>Terminology</th>
                         <th>Term Type</th>
-                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       @for (entry of precedenceEntries(); track precedenceTrackKey(entry, $index); let index = $index) {
-                        <tr [class.precedence-touched]="isPrecedenceEntryTouched(entry)">
+                        <tr
+                          class="precedence-row"
+                          [class.dragging-row]="draggingPrecedenceIndex() === index"
+                          [class.precedence-touched]="isPrecedenceEntryTouched(entry)"
+                          [draggable]="!savingPrecedenceList()"
+                          (dragend)="clearPrecedenceDrag()"
+                          (dragover)="dragOverPrecedenceEntry($event, index)"
+                          (dragstart)="startPrecedenceDrag($event, index)"
+                          (drop)="dropPrecedenceEntry($event, index)"
+                        >
+                          <td>{{ index + 1 }}</td>
+                          <td>
+                            <span class="drag-handle" title="Drag to reorder">↕</span>
+                          </td>
                           <td>{{ entry.key || 'n/a' }}</td>
                           <td>{{ entry.value || 'n/a' }}</td>
-                          <td>
-                            <div class="row-actions">
-                              <button
-                                type="button"
-                                class="quiet-button"
-                                (click)="movePrecedenceEntry(index, -1)"
-                                [disabled]="index === 0 || savingPrecedenceList()"
-                              >
-                                Up
-                              </button>
-                              <button
-                                type="button"
-                                class="quiet-button"
-                                (click)="movePrecedenceEntry(index, 1)"
-                                [disabled]="index === precedenceEntries().length - 1 || savingPrecedenceList()"
-                              >
-                                Down
-                              </button>
-                            </div>
-                          </td>
                         </tr>
                       }
                     </tbody>

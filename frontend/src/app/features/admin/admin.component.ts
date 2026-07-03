@@ -117,6 +117,7 @@ export class AdminComponent implements OnInit {
   protected readonly runningAdminOperation = signal<AdminOperation | null>(null);
   protected readonly precedenceList = signal<AdminPrecedenceList | null>(null);
   protected readonly precedenceTouchedKeys = signal<string[]>([]);
+  protected readonly draggingPrecedenceIndex = signal<number | null>(null);
   protected readonly projectLogState = signal<ProjectLogState | null>(null);
   protected readonly projectForm = signal<ProjectForm | null>(null);
   protected readonly projectFormErrors = signal<string[]>([]);
@@ -546,12 +547,69 @@ export class AdminComponent implements OnInit {
     return this.precedenceTouchedKeys().includes(this.precedenceEntryKey(entry));
   }
 
-  protected movePrecedenceEntry(index: number, direction: -1 | 1): void {
+  protected startPrecedenceDrag(event: DragEvent, index: number): void {
+    if (this.savingPrecedenceList()) {
+      event.preventDefault();
+      return;
+    }
+
+    this.draggingPrecedenceIndex.set(index);
+    event.dataTransfer?.setData('text/plain', String(index));
+    event.dataTransfer?.setDragImage(event.currentTarget as Element, 0, 0);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected dragOverPrecedenceEntry(event: DragEvent, index: number): void {
+    const sourceIndex = this.draggingPrecedenceIndex();
+
+    if (sourceIndex !== null && sourceIndex !== index && !this.savingPrecedenceList()) {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+    }
+  }
+
+  protected dropPrecedenceEntry(event: DragEvent, targetIndex: number): void {
+    const rawSourceIndex =
+      this.draggingPrecedenceIndex() ??
+      Number(event.dataTransfer?.getData('text/plain'));
+    const sourceIndex = Number(rawSourceIndex);
+    const viewportLeft = window.scrollX;
+    const viewportTop = window.scrollY;
+
+    event.preventDefault();
+    this.draggingPrecedenceIndex.set(null);
+
+    if (
+      this.savingPrecedenceList() ||
+      !Number.isInteger(sourceIndex) ||
+      sourceIndex === targetIndex
+    ) {
+      return;
+    }
+
+    this.reorderPrecedenceEntry(sourceIndex, targetIndex);
+    this.restorePrecedenceDropViewport(viewportLeft, viewportTop);
+  }
+
+  protected clearPrecedenceDrag(): void {
+    this.draggingPrecedenceIndex.set(null);
+  }
+
+  private reorderPrecedenceEntry(index: number, targetIndex: number): void {
     const list = this.precedenceList();
     const entries = [...this.precedenceEntries()];
-    const targetIndex = index + direction;
 
-    if (!list || targetIndex < 0 || targetIndex >= entries.length) {
+    if (
+      !list ||
+      index < 0 ||
+      targetIndex < 0 ||
+      index >= entries.length ||
+      targetIndex >= entries.length
+    ) {
       return;
     }
 
@@ -565,6 +623,10 @@ export class AdminComponent implements OnInit {
       }
     });
     this.markPrecedenceEntryTouched(entry);
+  }
+
+  private restorePrecedenceDropViewport(left: number, top: number): void {
+    requestAnimationFrame(() => window.scrollTo(left, top));
   }
 
   protected savePrecedenceList(): void {
@@ -1237,8 +1299,8 @@ export class AdminComponent implements OnInit {
     this.loadUsers();
   }
 
-  protected precedenceTrackKey(entry: AdminKeyValuePair, index: number): string {
-    return `${index}:${this.precedenceEntryKey(entry)}`;
+  protected precedenceTrackKey(entry: AdminKeyValuePair, _index: number): string {
+    return this.precedenceEntryKey(entry);
   }
 
   private loadRoles(): void {
@@ -1399,6 +1461,7 @@ export class AdminComponent implements OnInit {
   private clearPrecedenceList(): void {
     this.precedenceList.set(null);
     this.precedenceTouchedKeys.set([]);
+    this.draggingPrecedenceIndex.set(null);
     this.loadingPrecedenceList.set(false);
   }
 

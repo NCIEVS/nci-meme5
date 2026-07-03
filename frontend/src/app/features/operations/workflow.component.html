@@ -43,7 +43,11 @@
       </span>
     </div>
 
-    <details class="accordion-panel" open>
+    <details
+      class="accordion-panel"
+      [open]="binsGroupOpen()"
+      (toggle)="onWorkflowAccordionToggle('bins', $event)"
+    >
       <summary class="accordion-heading">
         <span class="accordion-arrow">&#9658;</span>
         Bins
@@ -389,44 +393,47 @@
           </section>
 
           <!-- Right: Report / Interactive / Actions panel -->
-          <section class="report-panel" aria-label="Concept report">
-            <div class="panel-header report-tab-bar">
-              <ul class="report-tabs" role="tablist">
-                <li role="presentation" [class.active]="reportMode() === 'Report'">
-                  <button type="button" role="tab" (click)="setReportMode('Report')">Report</button>
-                </li>
-                <li role="presentation" [class.active]="reportMode() === 'Interactive'">
-                  <button type="button" role="tab" (click)="setReportMode('Interactive')">Interactive</button>
-                </li>
-                <li role="presentation" [class.active]="reportMode() === 'Actions'">
-                  <button type="button" role="tab" (click)="setReportMode('Actions')">Actions</button>
-                </li>
-              </ul>
-            </div>
-            <div class="report-body">
-              @if (!selectedConcept()) {
-                <p class="empty">Select a concept from the cluster list.</p>
-              } @else if (reportMode() === 'Report') {
-                <p class="empty report-placeholder">
-                  Report for concept {{ selectedConcept()!.id }}: {{ selectedConcept()!.name }}
-                </p>
-              } @else if (reportMode() === 'Interactive') {
-                <p class="empty report-placeholder">
-                  Interactive view for concept {{ selectedConcept()!.id }}: {{ selectedConcept()!.name }}
-                </p>
-              } @else {
-                <p class="empty report-placeholder">
-                  Actions for concept {{ selectedConcept()!.id }}: {{ selectedConcept()!.name }}
-                </p>
-              }
-            </div>
+          <section class="concept-report-host" aria-label="Concept report">
+            @if (!selectedConcept()) {
+              <div class="report-panel">
+                <div class="report-body">
+                  <p class="empty">Select a concept from the cluster list.</p>
+                </div>
+              </div>
+            } @else if (loadingSelectedConceptDetail()) {
+              <div class="report-panel">
+                <div class="report-body">
+                  <p class="empty">Loading concept details…</p>
+                </div>
+              </div>
+            } @else if (selectedConceptDetailError()) {
+              <div class="report-panel">
+                <div class="report-body">
+                  <p class="empty-alert">{{ selectedConceptDetailError() }}</p>
+                </div>
+              </div>
+            } @else {
+              <meme-concept-report-panel
+                [concept]="selectedConceptDetail()"
+                [projectId]="projectId()"
+                [projectRole]="projectRole()"
+                [editingEnabled]="projectEditingEnabled()"
+                [initialTab]="reportPanelTab()"
+                (linkClicked)="openLinkedConceptDialog($event)"
+                (tabChanged)="onReportPanelTabChanged($event)"
+              />
+            }
           </section>
         </div>
       }
       </div><!-- /accordion-body Bins -->
     </details><!-- /Bins -->
 
-    <details class="accordion-panel" open>
+    <details
+      class="accordion-panel"
+      [open]="checklistsGroupOpen()"
+      (toggle)="onWorkflowAccordionToggle('checklists', $event)"
+    >
       <summary class="accordion-heading">
         <span class="accordion-arrow">&#9658;</span>
         Checklists ({{ checklistsTotal() }})
@@ -553,7 +560,11 @@
       </div><!-- /accordion-body Checklists -->
     </details><!-- /Checklists -->
 
-    <details class="accordion-panel" open>
+    <details
+      class="accordion-panel"
+      [open]="worklistsGroupOpen()"
+      (toggle)="onWorkflowAccordionToggle('worklists', $event)"
+    >
       <summary class="accordion-heading">
         <span class="accordion-arrow">&#9658;</span>
         Worklists ({{ worklistsTotal() }})
@@ -700,7 +711,11 @@
     </details><!-- /Worklists -->
 
     @if (projectRole() !== 'AUTHOR') {
-      <details class="accordion-panel" open>
+      <details
+        class="accordion-panel"
+        [open]="reportsGroupOpen()"
+        (toggle)="onWorkflowAccordionToggle('reports', $event)"
+      >
         <summary class="accordion-heading">
           <span class="accordion-arrow">&#9658;</span>
           Reports
@@ -947,37 +962,36 @@
     </ng-template>
 
     <ng-template #listReportPanel>
-      <section class="report-panel" aria-label="Concept report">
-        <div class="panel-header report-tab-bar">
-          <ul class="report-tabs" role="tablist">
-            <li role="presentation" [class.active]="listDetailReportMode() === 'Report'">
-              <button type="button" role="tab" (click)="setListDetailReportMode('Report')">Report</button>
-            </li>
-            <li role="presentation" [class.active]="listDetailReportMode() === 'Interactive'">
-              <button type="button" role="tab" (click)="setListDetailReportMode('Interactive')">Interactive</button>
-            </li>
-            <li role="presentation" [class.active]="listDetailReportMode() === 'Actions'">
-              <button type="button" role="tab" (click)="setListDetailReportMode('Actions')">Actions</button>
-            </li>
-          </ul>
-        </div>
-        <div class="report-body">
-          @if (!selectedListDetailConcept()) {
-            <p class="empty">Select a concept from the cluster list.</p>
-          } @else if (listDetailReportMode() === 'Report') {
-            <p class="empty report-placeholder">
-              Report for concept {{ selectedListDetailConcept()!.id }}: {{ selectedListDetailConcept()!.name }}
-            </p>
-          } @else if (listDetailReportMode() === 'Interactive') {
-            <p class="empty report-placeholder">
-              Interactive view for concept {{ selectedListDetailConcept()!.id }}: {{ selectedListDetailConcept()!.name }}
-            </p>
-          } @else {
-            <p class="empty report-placeholder">
-              Actions for concept {{ selectedListDetailConcept()!.id }}: {{ selectedListDetailConcept()!.name }}
-            </p>
-          }
-        </div>
+      <section class="concept-report-host" aria-label="Concept report">
+        @if (!selectedListDetailConcept()) {
+          <div class="report-panel">
+            <div class="report-body">
+              <p class="empty">Select a concept from the cluster list.</p>
+            </div>
+          </div>
+        } @else if (loadingSelectedListDetailConceptDetail()) {
+          <div class="report-panel">
+            <div class="report-body">
+              <p class="empty">Loading concept details…</p>
+            </div>
+          </div>
+        } @else if (selectedListDetailConceptDetailError()) {
+          <div class="report-panel">
+            <div class="report-body">
+              <p class="empty-alert">{{ selectedListDetailConceptDetailError() }}</p>
+            </div>
+          </div>
+        } @else {
+          <meme-concept-report-panel
+            [concept]="selectedListDetailConceptDetail()"
+            [projectId]="projectId()"
+            [projectRole]="projectRole()"
+            [editingEnabled]="projectEditingEnabled()"
+            [initialTab]="reportPanelTab()"
+            (linkClicked)="openLinkedConceptDialog($event)"
+            (tabChanged)="onReportPanelTabChanged($event)"
+          />
+        }
       </section>
     </ng-template>
 

@@ -40,482 +40,472 @@
       }
     </div>
 
-    <form class="toolbar" (ngSubmit)="load()" aria-label="Process filter">
-      <label for="process-filter">Filter</label>
-      <input
-        id="process-filter"
-        type="search"
-        [ngModel]="filter()"
-        (ngModelChange)="setFilter($event)"
-        name="process-filter"
-        placeholder="Name, type, terminology"
-      />
-      <label for="process-type">Type</label>
-      <select
-        id="process-type"
-        [ngModel]="selectedProcessType()"
-        (ngModelChange)="setProcessType($event)"
-        name="process-type"
-      >
-        @for (processType of processTypes; track processType) {
-          <option [value]="processType">{{ processType }}</option>
-        }
-      </select>
-      <button type="submit" [disabled]="loading()">
-        {{ loading() ? 'Loading' : 'Search' }}
-      </button>
-      <button type="button" (click)="clearFilter()" [disabled]="loading() || !filter()">
-        Clear
-      </button>
-    </form>
+    <nav class="process-tabs" aria-label="Process modes">
+      @for (mode of processModes; track mode) {
+        <button
+          type="button"
+          class="process-tab"
+          [class.active]="selectedMode() === mode"
+          (click)="setMode(mode)"
+        >
+          {{ mode }} ({{ mode === 'Config' ? configTotalCount() : executionTotalCount() }})
+        </button>
+      }
+    </nav>
 
-    <div class="stacked-grid">
-      <div class="tier-label">Process Lists</div>
-      <div class="split-grid">
-        <section class="list-panel" aria-labelledby="process-configs-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="process-configs-title">Process Configs</h2>
-              <p>Definitions available for execution.</p>
-            </div>
-            <div class="action-row">
-              @if (canManageProcesses()) {
-                <button type="button" class="btn-primary" (click)="startAddProcessConfig()">Add Process</button>
-                <span class="icon-action" title="Import Process" (click)="startImportProcessConfig()">⬆</span>
+    <div class="split-grid process-workbench">
+      <section class="list-panel" aria-labelledby="process-list-title">
+        <div class="panel-header process-list-header">
+          <h2 id="process-list-title">Process List</h2>
+          <div class="action-row process-list-actions">
+            <label for="process-type">Type</label>
+            <select
+              id="process-type"
+              [ngModel]="selectedProcessType()"
+              (ngModelChange)="setProcessType($event)"
+              name="process-type"
+            >
+              @for (processType of processTypes; track processType) {
+                <option [value]="processType">{{ processType }}</option>
               }
-              <button type="button" (click)="load()" [disabled]="loading()">Refresh</button>
-            </div>
+            </select>
+            @if (selectedMode() !== 'Execution' && canManageProcesses()) {
+              <button
+                type="button"
+                class="btn-primary"
+                (click)="startAddProcessConfig()"
+              >
+                Add Process
+              </button>
+              <button
+                type="button"
+                class="icon-btn"
+                title="Import process"
+                (click)="startImportProcessConfig()"
+              >
+                ↑
+              </button>
+            }
+            @if (!canManageProcesses()) {
+              <span
+                class="process-role-help"
+                title="Change role to ADMINISTRATOR for more actions"
+              >
+                ?
+              </span>
+            }
           </div>
-          <div class="table-wrap">
-            @if (configs().length) {
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Terminology</th>
-                    <th>Steps</th>
-                    <th>Modified</th>
-                    @if (canManageProcesses()) {
-                      <th>Actions</th>
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (config of configs(); track config.id ?? config.name) {
-                    <tr
-                      [class.selected]="selectedConfig()?.id === config.id"
-                      (click)="selectConfig(config)"
-                      (keyup.enter)="selectConfig(config)"
-                      tabindex="0"
+        </div>
+
+        <form
+          class="compact-toolbar process-filter-toolbar"
+          (ngSubmit)="load()"
+          aria-label="Process filter"
+        >
+          <label for="process-filter">Filter</label>
+          <input
+            id="process-filter"
+            type="search"
+            [ngModel]="filter()"
+            (ngModelChange)="setFilter($event)"
+            name="process-filter"
+            placeholder="Name or query"
+          />
+          <button type="submit" [disabled]="loading()">
+            {{ loading() ? 'Loading' : 'Search' }}
+          </button>
+          <button
+            type="button"
+            (click)="clearFilter()"
+            [disabled]="loading() || !filter()"
+          >
+            Clear
+          </button>
+        </form>
+
+        <div class="table-wrap">
+          @if (currentProcesses().length) {
+            <table class="slim-table pointer-table">
+              <thead>
+                <tr>
+                  <th>
+                    <button
+                      type="button"
+                      class="table-sort"
+                      (click)="setProcessSortField('name')"
                     >
-                      <td>{{ config.name || 'n/a' }}</td>
-                      <td>{{ config.type || 'n/a' }}</td>
-                      <td>{{ config.terminology || 'n/a' }} {{ config.version || '' }}</td>
-                      <td>{{ stepCount(config) }}</td>
-                      <td>{{ displayDate(config.lastModified) }}</td>
+                      Name {{ sortIndicator('name') }}
+                    </button>
+                  </th>
+                  <th>State</th>
+                  <th>
+                    <button
+                      type="button"
+                      class="table-sort"
+                      (click)="setProcessSortField('lastModified')"
+                    >
+                      Last Modified {{ sortIndicator('lastModified') }}
+                    </button>
+                  </th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (process of currentProcesses(); track process.id ?? process.name) {
+                  <tr
+                    [class.selected]="isProcessSelected(process)"
+                    (click)="selectProcess(process)"
+                    (keyup.enter)="selectProcess(process)"
+                    tabindex="0"
+                  >
+                    <td>{{ process.name || 'n/a' }}</td>
+                    <td>
+                      <span
+                        class="status-pill"
+                        [class.running]="selectedMode() === 'Execution' && statusClass(process) === 'running'"
+                        [class.failed]="selectedMode() === 'Execution' && statusClass(process) === 'failed'"
+                      >
+                        {{ processState(process) }}
+                      </span>
+                    </td>
+                    <td>{{ displayDate(process.lastModified) }}</td>
+                    <td class="nobreak">
                       @if (canManageProcesses()) {
-                        <td>
-                          <div class="icon-actions">
-                            <span
-                              class="icon-action"
-                              title="Edit Process Config"
-                              (click)="$event.stopPropagation(); startEditProcessConfig(config)"
-                            >✎</span>
-                            <span
-                              class="icon-action danger"
-                              [class.is-disabled]="deletingConfigId() === config.id"
-                              title="{{ deletingConfigId() === config.id ? 'Removing…' : 'Delete Process Config' }}"
-                              (click)="$event.stopPropagation(); deletingConfigId() === config.id || removeProcessConfig(config)"
-                            >✕</span>
-                          </div>
-                        </td>
+                        <div class="icon-actions">
+                          @if (selectedMode() === 'Config') {
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              title="Edit process"
+                              (click)="$event.stopPropagation(); startEditProcessConfig(process)"
+                            >
+                              ✎
+                            </button>
+                          }
+                          @if (selectedMode() === 'Config') {
+                            <button
+                              type="button"
+                              class="icon-btn"
+                              [disabled]="cloningConfigId() === process.id"
+                              title="{{ cloningConfigId() === process.id ? 'Cloning' : 'Clone process' }}"
+                              (click)="$event.stopPropagation(); cloneProcessConfig(process)"
+                            >
+                              ⎘
+                            </button>
+                          }
+                          @if (selectedMode() === 'Config') {
+                            <button
+                              type="button"
+                              class="icon-btn danger"
+                              [disabled]="deletingConfigId() === process.id"
+                              title="{{ deletingConfigId() === process.id ? 'Removing' : 'Remove process' }}"
+                              (click)="$event.stopPropagation(); removeProcessConfig(process)"
+                            >
+                              ✕
+                            </button>
+                          }
+                          @if (selectedMode() === 'Execution') {
+                            <button
+                              type="button"
+                              class="icon-btn danger"
+                              [disabled]="deletingExecutionId() === process.id"
+                              title="{{ deletingExecutionId() === process.id ? 'Removing' : 'Remove process' }}"
+                              (click)="$event.stopPropagation(); removeProcessExecution(process)"
+                            >
+                              ✕
+                            </button>
+                          }
+                        </div>
                       }
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else {
-              <div class="empty-alert">No process configs found.</div>
-            }
-          </div>
-          <div class="pager" aria-label="Process config pages">
-            <label for="process-config-page-size" class="pager-label">Page size</label>
-            <select
-              id="process-config-page-size"
-              [ngModel]="configPageSize()"
-              (ngModelChange)="setConfigPageSize($event)"
-              name="process-config-page-size"
-              class="pager-select"
-            >
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="25">25</option>
-              <option [ngValue]="50">50</option>
-            </select>
-            <button type="button" (click)="previousConfigPage()" [disabled]="configPage() === 1">
-              Previous
-            </button>
-            <span>Page {{ configPage() }} of {{ configTotalPages() }}</span>
-            <button
-              type="button"
-              (click)="nextConfigPage()"
-              [disabled]="configPage() === configTotalPages()"
-            >
-              Next
-            </button>
-          </div>
-        </section>
-
-        <section class="list-panel" aria-labelledby="process-executions-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="process-executions-title">Process Executions</h2>
-              <p>Recent and currently running executions.</p>
-            </div>
-          </div>
-          <div class="table-wrap">
-            @if (executions().length || runningExecutions().length) {
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Start</th>
-                    <th>Finish</th>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (execution of runningExecutions(); track execution.id ?? execution.name) {
-                    <tr
-                      [class.selected]="selectedExecution()?.id === execution.id"
-                      (click)="selectExecution(execution)"
-                      (keyup.enter)="selectExecution(execution)"
-                      tabindex="0"
-                    >
-                      <td>{{ execution.name || 'n/a' }}</td>
-                      <td>{{ execution.type || 'n/a' }}</td>
-                      <td>
-                        <span
-                          class="status-pill"
-                          [class.running]="statusClass(execution) === 'running'"
-                          [class.failed]="statusClass(execution) === 'failed'"
-                        >
-                          {{ executionStatus(execution) }}
-                        </span>
-                      </td>
-                      <td>{{ displayDate(execution.startDate) }}</td>
-                      <td>{{ displayDate(execution.finishDate) }}</td>
-                    </tr>
-                  }
-                  @for (execution of executions(); track execution.id ?? execution.name) {
-                    <tr
-                      [class.selected]="selectedExecution()?.id === execution.id"
-                      (click)="selectExecution(execution)"
-                      (keyup.enter)="selectExecution(execution)"
-                      tabindex="0"
-                    >
-                      <td>{{ execution.name || 'n/a' }}</td>
-                      <td>{{ execution.type || 'n/a' }}</td>
-                      <td>
-                        <span
-                          class="status-pill"
-                          [class.running]="statusClass(execution) === 'running'"
-                          [class.failed]="statusClass(execution) === 'failed'"
-                        >
-                          {{ executionStatus(execution) }}
-                        </span>
-                      </td>
-                      <td>{{ displayDate(execution.startDate) }}</td>
-                      <td>{{ displayDate(execution.finishDate) }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else {
-              <div class="empty-alert">No process executions found.</div>
-            }
-          </div>
-          <div class="pager" aria-label="Process execution pages">
-            <label for="process-execution-page-size" class="pager-label">Page size</label>
-            <select
-              id="process-execution-page-size"
-              [ngModel]="executionPageSize()"
-              (ngModelChange)="setExecutionPageSize($event)"
-              name="process-execution-page-size"
-              class="pager-select"
-            >
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="25">25</option>
-              <option [ngValue]="50">50</option>
-            </select>
-            <button
-              type="button"
-              (click)="previousExecutionPage()"
-              [disabled]="executionPage() === 1"
-            >
-              Previous
-            </button>
-            <span>Page {{ executionPage() }} of {{ executionTotalPages() }}</span>
-            <button
-              type="button"
-              (click)="nextExecutionPage()"
-              [disabled]="executionPage() === executionTotalPages()"
-            >
-              Next
-            </button>
-          </div>
-        </section>
-      </div>
+                }
+              </tbody>
+            </table>
+          } @else {
+            <div class="empty-alert">
+              There are no processes of type {{ selectedProcessType() }}.
+            </div>
+          }
+        </div>
 
-      <div class="tier-label">Detail Panels</div>
-      <div class="split-grid">
-        <aside class="detail-panel" aria-label="Selected process config details">
+        @if (currentProcesses().length) {
+          <meme-pager
+            label="Process pages"
+            [page]="currentPage()"
+            [totalPages]="currentTotalPages()"
+            [pageSize]="currentPageSize()"
+            (pageChange)="setProcessPage($event)"
+            (pageSizeChange)="setProcessPageSize($event)"
+          />
+        }
+      </section>
+
+      <aside class="detail-panel" aria-labelledby="process-details-title">
+        <div class="panel-header">
+          <h2 id="process-details-title">Process Details</h2>
+        </div>
+
+        @if (selectedMode() === 'Config') {
           @if (selectedConfig(); as config) {
-            <div class="panel-header">
-              <div>
-                <h2>{{ config.name || 'Process config' }}</h2>
-                <p>{{ config.description || 'No description available.' }}</p>
-              </div>
-              <div class="action-row">
+            <div class="detail-body">
+              @if (loadingConfigDetail()) {
+                <p class="muted">Loading config details...</p>
+              }
+              <dl>
+                <dt>Name</dt>
+                <dd>
+                  {{ config.name || 'n/a' }}
+                  @if (canManageProcesses()) {
+                    <button
+                      type="button"
+                      class="icon-btn inline-icon"
+                      [disabled]="exportingConfigId() === config.id"
+                      title="{{ exportingConfigId() === config.id ? 'Exporting' : 'Export process' }}"
+                      (click)="exportProcessConfig(config)"
+                    >
+                      ↓
+                    </button>
+                  }
+                </dd>
+                <dt>Description</dt>
+                <dd>{{ config.description || 'n/a' }}</dd>
+                <dt>Terminology</dt>
+                <dd>{{ config.terminology || 'n/a' }}</dd>
+                <dt>Version</dt>
+                <dd>{{ config.version || 'n/a' }}</dd>
+                @if (config.inputPath) {
+                  <dt>Input Path</dt>
+                  <dd>{{ config.inputPath }}</dd>
+                }
+                @if (config.logPath) {
+                  <dt>Log Path</dt>
+                  <dd>{{ config.logPath }}</dd>
+                }
+              </dl>
+
+              <section class="step-panel" aria-labelledby="process-config-steps-title">
+                <div class="section-header">
+                  <h3 id="process-config-steps-title">Steps</h3>
+                  @if (canManageProcesses()) {
+                    <span class="action-row">
+                      <select
+                        [ngModel]="selectedAlgorithmKey()"
+                        (ngModelChange)="setSelectedAlgorithmKey($event)"
+                        name="algorithm-type-list"
+                        [disabled]="loadingAlgorithmTypes() || !algorithmTypes().length"
+                      >
+                        @for (algorithmType of algorithmTypes(); track algorithmType.key) {
+                          <option [value]="algorithmType.key ?? ''">
+                            {{ algorithmType.value || algorithmType.key }}
+                          </option>
+                        }
+                      </select>
+                      <button
+                        type="button"
+                        class="btn-primary"
+                        (click)="startAddSelectedAlgorithmStep(config)"
+                        [disabled]="loadingAlgorithmTypes() || !algorithmTypes().length"
+                      >
+                        Add
+                      </button>
+                    </span>
+                  }
+                </div>
+
                 @if (canPrepareProcess(config)) {
                   <button
                     type="button"
-                    class="btn-primary"
+                    class="btn-primary legacy-action"
                     (click)="runProcessOperation('prepare', config)"
                     [disabled]="runningOperation() !== null"
                   >
                     {{ runningOperation() === 'prepare' ? 'Preparing' : 'Prepare' }}
                   </button>
                 }
-                @if (canManageProcesses()) {
-                  <div class="icon-actions">
-                    <span
-                      class="icon-action"
-                      [class.is-disabled]="exportingConfigId() === config.id"
-                      title="{{ exportingConfigId() === config.id ? 'Exporting…' : 'Export Process Config' }}"
-                      (click)="exportingConfigId() === config.id || exportProcessConfig(config)"
-                    >⬇</span>
-                    <span class="icon-action" title="Edit Process Config" (click)="startEditProcessConfig(config)">✎</span>
-                    <span
-                      class="icon-action danger"
-                      [class.is-disabled]="deletingConfigId() === config.id"
-                      title="{{ deletingConfigId() === config.id ? 'Removing…' : 'Delete Process Config' }}"
-                      (click)="deletingConfigId() === config.id || removeProcessConfig(config)"
-                    >✕</span>
-                  </div>
-                }
-              </div>
-            </div>
-            <div class="detail-body">
-              @if (loadingConfigDetail()) {
-                <p class="muted">Loading config details...</p>
-              }
-              <dl>
-                <dt>ID</dt>
-                <dd>{{ config.id ?? 'n/a' }}</dd>
-                <dt>Type</dt>
-                <dd>{{ config.type || 'n/a' }}</dd>
-                <dt>Input Path</dt>
-                <dd>{{ config.inputPath || 'n/a' }}</dd>
-                <dt>Log Path</dt>
-                <dd>{{ config.logPath || 'n/a' }}</dd>
-                <dt>Feedback</dt>
-                <dd>{{ config.feedbackEmail || 'n/a' }}</dd>
-                <dt>Modified</dt>
-                <dd>{{ displayDate(config.lastModified) }}</dd>
-              </dl>
-              <section class="step-panel" aria-labelledby="process-config-steps-title">
-                <div class="section-header">
-                  <h3 id="process-config-steps-title">Configured Steps</h3>
-                  @if (canManageProcesses()) {
-                    <button
-                      type="button"
-                      (click)="startAddAlgorithmStep(config)"
-                      [disabled]="loadingAlgorithmTypes() || !algorithmTypes().length"
-                    >
-                      {{ loadingAlgorithmTypes() ? 'Loading Types' : 'Add Step' }}
-                    </button>
-                  }
-                </div>
+
                 @if (processSteps(config).length) {
                   <div class="table-wrap">
-                    <table>
+                    <table class="slim-table pointer-table">
                       <thead>
                         <tr>
-                          <th class="step-num-col">#</th>
                           <th>Name</th>
-                          <th>Enabled</th>
                           <th>Description</th>
-                          <th>Parameters</th>
-                          <th>Modified</th>
-                          @if (canManageProcesses()) {
-                            <th>Actions</th>
-                          }
+                          <th>Last Modified</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        @for (step of processSteps(config); track step.id ?? step.name; let i = $index) {
-                          <tr [class.disabled-row]="!isStepEnabled(step)">
-                            <td class="step-num-col"><span class="step-badge">{{ i + 1 }}</span></td>
-                            <td>{{ step.name || step.algorithmKey || 'n/a' }}</td>
-                            <td>{{ isStepEnabled(step) ? 'Yes' : 'No' }}</td>
-                            <td>{{ step.description || 'n/a' }}</td>
+	                        @for (step of processSteps(config); track step.id ?? step.name; let i = $index) {
+	                          <tr
+	                            [class.process-step-row]="canManageProcesses()"
+	                            [class.selected]="isStepSelected(step)"
+	                            [class.disabled-row]="!isStepEnabled(step)"
+	                            [class.dragging-row]="draggingAlgorithmStepIndex() === i"
+                            [draggable]="
+                              canManageProcesses() &&
+                              updatingStepId() === null &&
+                              deletingStepId() !== step.id
+                            "
+                            (click)="selectStep(step)"
+                            (dragend)="clearAlgorithmStepDrag()"
+                            (dragover)="dragOverAlgorithmStep($event, i)"
+                            (dragstart)="startAlgorithmStepDrag($event, step, i)"
+                            (drop)="dropAlgorithmStep($event, config, i)"
+                            tabindex="0"
+                          >
                             <td>
-                              @if (stepParameters(step).length) {
-                                <div class="parameter-list">
-                                  @for (
-                                    parameter of stepParameters(step);
-                                    track parameter.fieldName ?? parameter.name
-                                  ) {
-                                    <span>
-                                      <strong>{{ parameter.name || parameter.fieldName }}</strong>:
-                                      {{ parameterValue(parameter) }}
-                                    </span>
-                                  }
+                              <span class="step-index">{{ i }}.</span>
+                              @if (canManageProcesses()) {
+                                <span class="inline-actions step-prefix-actions">
+                                  <input
+	                                    type="checkbox"
+	                                    title="Enable/Disable Step"
+	                                    [checked]="isStepEnabled(step)"
+	                                    [disabled]="updatingStepId() !== null"
+                                    (click)="$event.stopPropagation()"
+                                    (change)="toggleAlgorithmStep(config, step)"
+                                  />
+                                  <span class="drag-handle" title="Drag to reorder">↕</span>
+                                </span>
+                              }
+                              {{ step.name || step.algorithmKey || 'n/a' }}
+                            </td>
+                            <td>{{ step.description || 'n/a' }}</td>
+                            <td>{{ displayDate(step.lastModified) }}</td>
+                            <td class="nobreak">
+                              @if (canManageProcesses()) {
+                                <div class="icon-actions">
+                                  <button
+                                    type="button"
+                                    class="icon-btn"
+                                    title="Clone step"
+                                    (click)="$event.stopPropagation(); startCloneAlgorithmStep(config, step)"
+                                  >
+                                    ⎘
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="icon-btn"
+                                    title="Edit step"
+                                    (click)="$event.stopPropagation(); startEditAlgorithmStep(config, step)"
+                                  >
+                                    ✎
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="icon-btn danger"
+                                    [disabled]="deletingStepId() === step.id"
+                                    title="{{ deletingStepId() === step.id ? 'Removing' : 'Remove step' }}"
+                                    (click)="$event.stopPropagation(); removeAlgorithmStep(config, step)"
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
-                              } @else {
-                                n/a
                               }
                             </td>
-                            <td>{{ displayDate(step.lastModified) }}</td>
-                            @if (canManageProcesses()) {
-                              <td>
-                                <div class="inline-actions">
-                                  <button
-                                    type="button"
-                                    (click)="moveAlgorithmStep(config, step, -1)"
-                                    [disabled]="isFirstStep(config, step) || updatingStepId() === step.id"
-                                  >
-                                    Up
-                                  </button>
-                                  <button
-                                    type="button"
-                                    (click)="moveAlgorithmStep(config, step, 1)"
-                                    [disabled]="isLastStep(config, step) || updatingStepId() === step.id"
-                                  >
-                                    Down
-                                  </button>
-                                  <button
-                                    type="button"
-                                    (click)="toggleAlgorithmStep(config, step)"
-                                    [disabled]="updatingStepId() === step.id"
-                                  >
-                                    {{ isStepEnabled(step) ? 'Disable' : 'Enable' }}
-                                  </button>
-                                  <span
-                                    class="icon-action"
-                                    title="Edit Step"
-                                    (click)="startEditAlgorithmStep(config, step)"
-                                  >✎</span>
-                                  <span
-                                    class="icon-action"
-                                    title="Clone step (opens add form)"
-                                    (click)="startAddAlgorithmStep(config)"
-                                  >⎘</span>
-                                  <span
-                                    class="icon-action danger"
-                                    [class.is-disabled]="deletingStepId() === step.id"
-                                    title="{{ deletingStepId() === step.id ? 'Removing…' : 'Delete Step' }}"
-                                    (click)="deletingStepId() === step.id || removeAlgorithmStep(config, step)"
-                                  >✕</span>
-                                </div>
-                              </td>
-                            }
                           </tr>
+                          @if (isStepSelected(step) && stepParameters(step).length) {
+                            <tr class="parameter-detail-row selected">
+                              <td colspan="4">
+                                @for (
+                                  parameter of stepParameters(step);
+                                  track parameter.fieldName ?? parameter.name
+                                ) {
+                                  <div class="parameter-detail">
+                                    <strong>{{ parameter.name || parameter.fieldName }}:</strong>
+                                    @if (isQueryIdParameter(parameter)) {
+                                      <pre>{{ formattedQuery(parameter.value) || 'n/a' }}</pre>
+                                    } @else {
+                                      <span>{{ parameterValue(parameter) }}</span>
+                                    }
+                                  </div>
+                                }
+                              </td>
+                            </tr>
+                          }
                         }
                       </tbody>
                     </table>
                   </div>
                 } @else {
-                  <div class="empty-alert">No steps configured.</div>
+                  <div class="empty-alert">There are no steps. Add a step.</div>
+                }
+
+                @if (canPrepareProcess(config)) {
+                  <button
+                    type="button"
+                    class="btn-primary legacy-action"
+                    (click)="runProcessOperation('prepare', config)"
+                    [disabled]="runningOperation() !== null"
+                  >
+                    {{ runningOperation() === 'prepare' ? 'Preparing' : 'Prepare' }}
+                  </button>
                 }
               </section>
             </div>
           } @else {
-            <div class="empty-alert">Select a process config to see details.</div>
-          }
-        </aside>
-
-        <aside class="detail-panel" aria-label="Selected process execution details">
-          @if (selectedExecution(); as execution) {
-            <div class="panel-header">
-              <div>
-                <h2>{{ execution.name || 'Process execution' }}</h2>
-                <p>{{ execution.description || 'No description available.' }}</p>
-              </div>
-            </div>
             <div class="detail-body">
-              @if (
-                canExecuteProcess(execution) ||
-                canCancelProcess(execution) ||
-                canRestartProcess(execution) ||
-                canStepProcess(execution) ||
-                canUnstepProcess(execution)
-              ) {
-                <section aria-labelledby="process-execution-actions-title">
-                  <h3 id="process-execution-actions-title">Operations</h3>
-                  <div class="action-row">
-                    @if (canExecuteProcess(execution)) {
-                      <button
-                        type="button"
-                        class="btn-primary"
-                        (click)="runProcessOperation('execute', execution)"
-                        [disabled]="runningOperation() !== null"
-                      >
-                        {{ runningOperation() === 'execute' ? 'Executing' : 'Execute' }}
-                      </button>
-                    }
-                    @if (canCancelProcess(execution)) {
-                      <button
-                        type="button"
-                        class="warning"
-                        (click)="runProcessOperation('cancel', execution)"
-                        [disabled]="runningOperation() !== null"
-                      >
-                        {{ runningOperation() === 'cancel' ? 'Cancelling' : 'Cancel' }}
-                      </button>
-                    }
-                    @if (canRestartProcess(execution)) {
-                      <button
-                        type="button"
-                        class="btn-primary"
-                        (click)="runProcessOperation('restart', execution)"
-                        [disabled]="runningOperation() !== null"
-                      >
-                        {{ runningOperation() === 'restart' ? 'Restarting' : 'Restart' }}
-                      </button>
-                    }
-                    @if (canStepProcess(execution)) {
-                      <button
-                        type="button"
-                        class="btn-primary"
-                        (click)="runProcessOperation('step', execution)"
-                        [disabled]="runningOperation() !== null"
-                      >
-                        {{ runningOperation() === 'step' ? 'Stepping' : 'Step' }}
-                      </button>
-                    }
-                    @if (canUnstepProcess(execution)) {
-                      <button
-                        type="button"
-                        class="btn-primary"
-                        (click)="runProcessOperation('unstep', execution)"
-                        [disabled]="runningOperation() !== null"
-                      >
-                        {{ runningOperation() === 'unstep' ? 'Unstepping' : 'Unstep' }}
-                      </button>
-                    }
-                  </div>
-                </section>
-              }
+              <div class="empty-alert">Select a process to see details.</div>
+            </div>
+          }
+        } @else {
+          @if (selectedExecution(); as execution) {
+            <div class="detail-body">
               @if (loadingExecutionDetail()) {
                 <p class="muted">Loading execution details...</p>
               }
               <dl>
-                <dt>ID</dt>
-                <dd>{{ execution.id ?? 'n/a' }}</dd>
-                <dt>Status</dt>
+                <dt>Name</dt>
+                <dd>{{ execution.name || 'n/a' }}</dd>
+                <dt>Description</dt>
+                <dd>{{ execution.description || 'n/a' }}</dd>
+                <dt>Terminology</dt>
+                <dd>{{ execution.terminology || 'n/a' }}</dd>
+                <dt>Version</dt>
+                <dd>{{ execution.version || 'n/a' }}</dd>
+                @if (execution.inputPath) {
+                  <dt>Input Path</dt>
+                  <dd>{{ execution.inputPath }}</dd>
+                }
+                @if (execution.logPath) {
+                  <dt>Log Path</dt>
+                  <dd>{{ execution.logPath }}</dd>
+                }
+                <dt>Log</dt>
+                <dd>
+                  <span
+                    class="icon-action"
+                    title="View Log"
+                    (click)="openProcessLog(execution)"
+                  >☰</span>
+                </dd>
+                @if (executionInfoEntries(execution).length) {
+                  <dt>Execution Info</dt>
+                  <dd>
+                    <div class="table-wrap">
+                      <table class="slim-table">
+                        <tbody>
+                          @for (entry of executionInfoEntries(execution); track entry.key) {
+                            <tr>
+                              <td>{{ entry.key }}</td>
+                              <td>{{ entry.value }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </dd>
+                }
+                <dt>Start date</dt>
+                <dd>{{ displayDate(execution.startDate) }}</dd>
+                <dt>Stop date</dt>
+                <dd>{{ displayDate(execution.stopDate) }}</dd>
+                <dt>Fail date</dt>
+                <dd>{{ displayDate(execution.failDate) }}</dd>
+                <dt>Finish date</dt>
+                <dd>{{ displayDate(execution.finishDate) }}</dd>
+                <dt>State</dt>
                 <dd>
                   <span
                     class="status-pill"
@@ -525,90 +515,57 @@
                     {{ executionStatus(execution) }}
                   </span>
                 </dd>
-                <dt>Work ID</dt>
-                <dd>{{ execution.workId || 'n/a' }}</dd>
-                <dt>Config ID</dt>
-                <dd>{{ execution.processConfigId ?? 'n/a' }}</dd>
-                <dt>Started</dt>
-                <dd>{{ displayDate(execution.startDate) }}</dd>
-                <dt>Finished</dt>
-                <dd>{{ displayDate(execution.finishDate) }}</dd>
-                <dt>Failed</dt>
-                <dd>{{ displayDate(execution.failDate) }}</dd>
-                <dt>Warning</dt>
-                <dd>{{ execution.warning ? 'Yes' : 'No' }}</dd>
+                @if (execution.startDate && !execution.finishDate && !execution.failDate) {
+                  <dt>Progress</dt>
+                  <dd>
+                    <div class="progress-wrap">
+                      <progress max="100" [value]="progressPercent(processProgress())">
+                        {{ progressLabel(processProgress()) }}
+                      </progress>
+                      <span class="progress-label">{{ progressLabel(processProgress()) }}</span>
+                    </div>
+                  </dd>
+                }
+                @if (currentExecutionStep(); as currentStep) {
+                  @if (currentStep.startDate && !execution.finishDate && !execution.failDate) {
+                    <dt>Step Progress</dt>
+                    <dd>
+                      <div class="progress-wrap">
+                        <progress max="100" [value]="progressPercent(stepProgress())">
+                          {{ progressLabel(stepProgress()) }}
+                        </progress>
+                        <span class="progress-label">{{ progressLabel(stepProgress()) }}</span>
+                      </div>
+                    </dd>
+                  }
+                }
               </dl>
-              @if (executionInfoEntries(execution).length) {
-                <section class="step-panel" aria-labelledby="process-execution-info-title">
-                  <h3 id="process-execution-info-title">Execution Info</h3>
-                  <div class="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Key</th>
-                          <th>Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        @for (entry of executionInfoEntries(execution); track entry.key) {
-                          <tr>
-                            <td>{{ entry.key }}</td>
-                            <td>{{ entry.value }}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              }
-              @if (execution.startDate && !execution.failDate) {
-                <section class="step-panel" aria-labelledby="process-progress-title">
-                  <div class="section-header">
-                    <h3 id="process-progress-title">Process Progress</h3>
-                    @if (feedbackUpdatedAt()) {
-                      <span class="muted">Updated {{ displayDate(feedbackUpdatedAt()) }}</span>
-                    }
-                  </div>
-                  <div class="progress-wrap">
-                    <progress max="100" [value]="progressPercent(processProgress())">
-                      {{ progressLabel(processProgress()) }}
-                    </progress>
-                    <span class="progress-label">{{ progressLabel(processProgress()) }}</span>
-                  </div>
-                </section>
-              }
-              <section class="log-panel" aria-labelledby="process-log-title">
-                <div class="section-header">
-                  <h3 id="process-log-title">Process Log</h3>
-                  <button
-                    type="button"
-                    (click)="refreshSelectedExecutionFeedback(false)"
-                    [disabled]="loadingExecutionFeedback()"
-                  >
-                    {{ loadingExecutionFeedback() ? 'Refreshing' : 'Refresh' }}
-                  </button>
-                </div>
-                <pre>{{ processLog() || 'No log entries found.' }}</pre>
-              </section>
+
               <section class="step-panel" aria-labelledby="process-execution-steps-title">
-                <h3 id="process-execution-steps-title">Executed Steps</h3>
+                <h3 id="process-execution-steps-title">Step History</h3>
                 @if (processSteps(execution).length) {
                   <div class="table-wrap">
-                    <table>
+                    <table class="slim-table pointer-table">
                       <thead>
                         <tr>
                           <th>Name</th>
-                          <th>Status</th>
-                          <th>Progress</th>
-                          <th>Started</th>
-                          <th>Finished</th>
+                          <th>Description</th>
+                          <th>Last Modified</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         @for (step of processSteps(execution); track step.id ?? step.name) {
-                          <tr>
+                          <tr
+                            [class.selected]="isStepSelected(step)"
+                            (click)="selectStep(step)"
+                            tabindex="0"
+                          >
                             <td>{{ step.name || step.algorithmKey || 'n/a' }}</td>
+                            <td>{{ step.description || 'n/a' }}</td>
                             <td>
+                              {{ displayDate(step.lastModified) }}
+                              <br />
                               <span
                                 class="status-pill"
                                 [class.running]="stepStatusClass(step) === 'running'"
@@ -617,10 +574,33 @@
                                 {{ stepStatus(step) }}
                               </span>
                             </td>
-                            <td>{{ progressLabel(stepProgressValue(step)) }}</td>
-                            <td>{{ displayDate(step.startDate) }}</td>
-                            <td>{{ displayDate(step.finishDate) }}</td>
+                            <td class="nobreak">
+                              <span
+                                class="icon-action"
+                                title="View Log"
+                                (click)="$event.stopPropagation(); openStepLog(step)"
+                              >☰</span>
+                            </td>
                           </tr>
+                          @if (isStepSelected(step) && stepParameters(step).length) {
+                            <tr class="parameter-detail-row selected">
+                              <td colspan="4">
+                                @for (
+                                  parameter of stepParameters(step);
+                                  track parameter.fieldName ?? parameter.name
+                                ) {
+                                  <div class="parameter-detail">
+                                    <strong>{{ parameter.name || parameter.fieldName }}:</strong>
+                                    @if (isQueryIdParameter(parameter)) {
+                                      <pre>{{ formattedQuery(parameter.value) || 'n/a' }}</pre>
+                                    } @else {
+                                      <span>{{ parameterValue(parameter) }}</span>
+                                    }
+                                  </div>
+                                }
+                              </td>
+                            </tr>
+                          }
                         }
                       </tbody>
                     </table>
@@ -629,25 +609,151 @@
                   <div class="empty-alert">No steps have been executed yet.</div>
                 }
               </section>
-              @if (currentExecutionStep(); as currentStep) {
-                <section class="log-panel" aria-labelledby="process-step-log-title">
-                  <div class="section-header">
-                    <h3 id="process-step-log-title">
-                      Step Log: {{ currentStep.name || currentStep.algorithmKey || currentStep.id }}
-                    </h3>
-                    <span class="muted">
-                      Progress {{ progressLabel(stepProgress()) }}
-                    </span>
-                  </div>
-                  <pre>{{ stepLog() || 'No log entries found.' }}</pre>
-                </section>
+
+              <div class="action-row">
+                @if (canExecuteProcess(execution)) {
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="runProcessOperation('execute', execution)"
+                    [disabled]="runningOperation() !== null"
+                  >
+                    {{ runningOperation() === 'execute' ? 'Executing' : 'Execute' }}
+                  </button>
+                }
+                @if (canCancelProcess(execution)) {
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="runProcessOperation('cancel', execution)"
+                    [disabled]="runningOperation() !== null"
+                  >
+                    {{ runningOperation() === 'cancel' ? 'Cancelling' : 'Cancel' }}
+                  </button>
+                }
+                @if (canRestartProcess(execution)) {
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="runProcessOperation('restart', execution)"
+                    [disabled]="runningOperation() !== null"
+                  >
+                    {{ runningOperation() === 'restart' ? 'Restarting' : 'Restart' }}
+                  </button>
+                }
+                @if (canStepProcess(execution)) {
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="runProcessOperation('step', execution)"
+                    [disabled]="runningOperation() !== null"
+                  >
+                    {{ runningOperation() === 'step' ? 'Stepping' : 'Step' }}
+                  </button>
+                }
+                @if (canUnstepProcess(execution)) {
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="runProcessOperation('unstep', execution)"
+                    [disabled]="runningOperation() !== null"
+                  >
+                    {{ runningOperation() === 'unstep' ? 'Unstepping' : 'Unstep' }}
+                  </button>
+                }
+              </div>
+
+              @if (selectedConfigForExecution(); as configForExecution) {
+                @if (unexecutedSteps().length) {
+                  <section
+                    class="step-panel unexecuted-steps"
+                    aria-labelledby="process-unexecuted-steps-title"
+                  >
+                    <h3 id="process-unexecuted-steps-title">Unexecuted Steps</h3>
+                    <div class="table-wrap">
+                      <table class="slim-table pointer-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (step of unexecutedSteps(); track step.id ?? step.name; let i = $index) {
+                            <tr
+                              [class.selected]="isConfigForExecutionStepSelected(step)"
+                              (click)="selectConfigForExecutionStep(step)"
+                              tabindex="0"
+                            >
+                              <td>
+                                <span class="step-index">
+                                  {{ unexecutedStepStartIndex() + i }}.
+                                </span>
+                                {{ step.name || step.algorithmKey || 'n/a' }}
+                              </td>
+                              <td>{{ step.description || 'n/a' }}</td>
+                              <td class="nobreak">
+                                @if (canManageProcesses()) {
+                                  <div class="icon-actions">
+                                    <button
+                                      type="button"
+                                      class="icon-btn"
+                                      title="Edit step"
+                                      (click)="$event.stopPropagation(); startEditAlgorithmStep(configForExecution, step)"
+                                    >
+                                      ✎
+                                    </button>
+                                    <button
+                                      type="button"
+                                      class="icon-btn danger"
+                                      [disabled]="deletingStepId() === step.id"
+                                      title="{{ deletingStepId() === step.id ? 'Removing' : 'Remove step' }}"
+                                      (click)="$event.stopPropagation(); removeAlgorithmStep(configForExecution, step)"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                }
+                              </td>
+                            </tr>
+                            @if (
+                              isConfigForExecutionStepSelected(step) &&
+                              stepParameters(step).length
+                            ) {
+                              <tr class="parameter-detail-row selected">
+                                <td colspan="3">
+                                  @for (
+                                    parameter of stepParameters(step);
+                                    track parameter.fieldName ?? parameter.name
+                                  ) {
+                                    <div class="parameter-detail">
+                                      <strong>{{ parameter.name || parameter.fieldName }}:</strong>
+                                      @if (isQueryIdParameter(parameter)) {
+                                        <pre>{{ formattedQuery(parameter.value) || 'n/a' }}</pre>
+                                      } @else {
+                                        <span>{{ parameterValue(parameter) }}</span>
+                                      }
+                                    </div>
+                                  }
+                                </td>
+                              </tr>
+                            }
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                }
               }
             </div>
           } @else {
-            <div class="empty-alert">Select a process execution to see details.</div>
+            <div class="detail-body">
+              <div class="empty-alert">Select a process to see details.</div>
+            </div>
           }
-        </aside>
-      </div>
+        }
+      </aside>
     </div>
   } @else {
     <p class="context-panel">
@@ -655,6 +761,80 @@
     </p>
   }
 </section>
+
+@if (processLogState(); as logState) {
+  <meme-dialog
+    [title]="(logState.execution.name || 'Process') + ' Log'"
+    size="lg"
+    (closed)="closeProcessLog()"
+  >
+    <div class="log-toolbar">
+      <input
+        type="text"
+        placeholder="Search log"
+        [ngModel]="logState.filter"
+        (ngModelChange)="updateProcessLogFilter($event)"
+        (keyup.enter)="searchProcessLog()"
+      >
+      @if (logState.filter) {
+        <button type="button" class="quiet-button" (click)="clearProcessLogFilter()">
+          Clear
+        </button>
+      }
+    </div>
+
+    @if (logState.loading) {
+      <p class="empty compact">Loading log...</p>
+    } @else if (logState.log) {
+      <pre class="log-output">{{ logState.log }}</pre>
+    } @else {
+      <p class="empty compact">No log entries found.</p>
+    }
+
+    <div class="form-actions">
+      <button type="button" (click)="closeProcessLog()">Close</button>
+    </div>
+  </meme-dialog>
+}
+
+@if (stepLogState(); as logState) {
+  <meme-dialog
+    [title]="(logState.step.name || logState.step.algorithmKey || 'Step') + ' Log'"
+    size="lg"
+    (closed)="closeStepLog()"
+  >
+    <div class="log-toolbar">
+      <input
+        type="text"
+        placeholder="Search log"
+        [ngModel]="logState.filter"
+        (ngModelChange)="updateStepLogFilter($event)"
+        (keyup.enter)="searchStepLog()"
+      >
+      @if (logState.filter) {
+        <button type="button" class="quiet-button" (click)="clearStepLogFilter()">
+          Clear
+        </button>
+      }
+    </div>
+
+    @if (logState.progress !== null) {
+      <p class="empty compact">Progress {{ progressLabel(logState.progress) }}</p>
+    }
+
+    @if (logState.loading) {
+      <p class="empty compact">Loading log...</p>
+    } @else if (logState.log) {
+      <pre class="log-output">{{ logState.log }}</pre>
+    } @else {
+      <p class="empty compact">No log entries found.</p>
+    }
+
+    <div class="form-actions">
+      <button type="button" (click)="closeStepLog()">Close</button>
+    </div>
+  </meme-dialog>
+}
 
 @if (importProcessDialogOpen()) {
   <meme-dialog
@@ -762,6 +942,13 @@
               <option [value]="terminology.terminology ?? ''"></option>
             }
           </datalist>
+          <button
+            type="button"
+            (click)="clearProcessFormTerminology()"
+            [disabled]="savingProcessConfig()"
+          >
+            Clear
+          </button>
         </label>
         <label class="form-field" for="process-form-version">
           <span>Version</span>
@@ -959,6 +1146,17 @@
                   [name]="'algorithm-param-' + index"
                 />
               } @else if (isMultiParameter(parameter)) {
+                <div class="field-actions">
+                  <button
+                    type="button"
+                    (click)="selectAllAlgorithmParameterValues(index, parameter)"
+                  >
+                    All
+                  </button>
+                  <button type="button" (click)="clearAlgorithmParameterValues(index)">
+                    None
+                  </button>
+                </div>
                 <select
                   [id]="'algorithm-param-' + index"
                   multiple
@@ -1021,7 +1219,11 @@
         >
           Cancel
         </button>
-        <button type="submit" class="btn-primary" [disabled]="savingAlgorithmStep() || loadingAlgorithmStep()">
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="savingAlgorithmStep() || loadingAlgorithmStep() || !algorithmStepValidated(form)"
+        >
           {{ savingAlgorithmStep() ? 'Saving' : 'Save' }}
         </button>
       </div>

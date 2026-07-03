@@ -17,6 +17,7 @@ import {
   ContentMapping,
   ContentMetadata,
   ContentPfsParameter,
+  ContentPrecedenceList,
   ContentRelationship,
   ContentRelationshipTypeDetail,
   ContentSearchResult,
@@ -389,6 +390,19 @@ export class ContentEditApiService {
           };
         })
       );
+  }
+
+  getDefaultPrecedenceList(
+    terminology: string,
+    version: string
+  ): Observable<ContentPrecedenceList | null> {
+    return this.http.get<ContentPrecedenceList | null>(
+      `${this.baseUrl}/metadata/precedence/${encodeURIComponent(terminology)}/${encodeURIComponent(version)}`
+    );
+  }
+
+  updatePrecedenceList(list: ContentPrecedenceList): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/metadata/precedence`, list);
   }
 
   removeTermType(type: string, terminology: string, version: string): Observable<void> {

@@ -534,6 +534,36 @@ dd {
   max-height: 400px;
 }
 
+.precedence-scroll th:first-child,
+.precedence-scroll td:first-child {
+  width: 52px;
+  text-align: right;
+}
+
+.precedence-row {
+  cursor: grab;
+}
+
+.precedence-row:active {
+  cursor: grabbing;
+}
+
+.precedence-row.dragging-row {
+  opacity: 0.55;
+  background: var(--meme-table-hover);
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--meme-text-secondary);
+  cursor: grab;
+  font-weight: 700;
+  user-select: none;
+}
+
 tbody tr.precedence-touched {
   background: #fff7e5;
 }

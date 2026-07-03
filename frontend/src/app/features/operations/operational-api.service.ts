@@ -136,6 +136,19 @@ export class OperationalApiService {
     });
   }
 
+  cloneProcessConfig(
+    projectId: number,
+    processConfig: ProcessConfig
+  ): Observable<ProcessConfig> {
+    return this.http.put<ProcessConfig>(
+      `${this.baseUrl}/process/config/clone`,
+      processConfig,
+      {
+        params: new HttpParams().set('projectId', projectId)
+      }
+    );
+  }
+
   removeProcessConfig(
     projectId: number,
     id: number,
@@ -316,6 +329,16 @@ export class OperationalApiService {
         params: new HttpParams().set('projectId', projectId)
       }
     );
+  }
+
+  removeProcessExecution(
+    projectId: number,
+    id: number,
+    cascade = true
+  ): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/process/execution/${id}`, {
+      params: new HttpParams().set('projectId', projectId).set('cascade', cascade)
+    });
   }
 
   getProcessProgress(projectId: number, id: number): Observable<number> {

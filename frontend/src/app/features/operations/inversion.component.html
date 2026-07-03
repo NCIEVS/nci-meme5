@@ -12,7 +12,11 @@
       {{ projectRole() }}.
     </p>
 
-    <details class="accordion-panel" open>
+    <details
+      class="accordion-panel"
+      [open]="sourceRangesGroupOpen()"
+      (toggle)="onInversionAccordionToggle($event)"
+    >
       <summary class="accordion-heading">
         <span class="accordion-arrow">&#9658;</span>
         Source Atom Id Ranges

@@ -43,7 +43,11 @@
 
 
   @if (projectRole() !== 'ADMINISTRATOR') {
-    <details class="accordion-panel" open>
+    <details
+      class="accordion-panel"
+      [open]="worklistsGroupOpen()"
+      (toggle)="onEditAccordionToggle('worklists', $event)"
+    >
       <summary class="accordion-heading">
         <span class="accordion-arrow">&#9658;</span>
         Workflow Checklists
@@ -97,15 +101,17 @@
               <div class="table-wrap">
                 <table class="slim-table pointer-table">
                   <thead>
-                    <tr>
-                      <th (click)="setWorklistSortField('name')" class="sortable-col">
-                        Name{{ worklistSortIndicator('name') }}
-                      </th>
-                      <th (click)="setWorklistSortField('lastModified')" class="sortable-col">
-                        Last Modified{{ worklistSortIndicator('lastModified') }}
-                      </th>
-                      <th>Actions</th>
-                    </tr>
+	                    <tr>
+	                      <th (click)="setWorklistSortField('name')" class="sortable-col">
+	                        Name{{ worklistSortIndicator('name') }}
+	                      </th>
+	                      <th (click)="setWorklistSortField('lastModified')" class="sortable-col">
+	                        Last Modified{{ worklistSortIndicator('lastModified') }}
+	                      </th>
+	                      @if (worklistMode() !== 'Checklists') {
+	                        <th>Actions</th>
+	                      }
+	                    </tr>
                   </thead>
                   <tbody>
                     @for (wl of worklists(); track wl.id) {
@@ -114,48 +120,45 @@
                         (click)="selectWorklist(wl)"
                       >
                         <td>{{ wl.name }}</td>
-                        <td>
-                          {{ formatWorklistDate(wl.lastModified) }}
-                          @if (worklistMode() !== 'Checklists') {
-                            <br /><span class="wl-state">{{ getWorkflowState(wl) }}</span>
-                          }
-                        </td>
-                        <td class="nobreak">
-                          <!-- Admin: delete -->
-                          @if (projectRole() === 'ADMINISTRATOR') {
-                            <span class="icon-action danger" title="Remove" (click)="deleteWorklist(wl, $event)">✕</span>
-                          }
-                          @if (worklistMode() !== 'Checklists') {
-                            <!-- Claim (Available, non-admin) -->
-                            @if (worklistMode() === 'Available') {
-                              <span class="icon-action" title="Claim worklist" (click)="assignWorklistToSelf(wl, $event)">→</span>
-                            }
-                            <!-- Unassign (Assigned, non-REVIEW_DONE) -->
-                            @if (worklistMode() === 'Assigned' && wl.workflowStatus !== 'REVIEW_DONE') {
-                              <span class="icon-action" title="Unassign worklist" (click)="unassignWorklist(wl, $event)">←</span>
-                            }
-                            <!-- Reassign (Done: AUTHOR sees EDITING_DONE, REVIEWER sees READY_FOR_PUBLICATION) -->
-                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'EDITING_DONE' && projectRole() === 'AUTHOR') {
-                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
-                            }
-                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'READY_FOR_PUBLICATION' && projectRole() === 'REVIEWER') {
-                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
-                            }
-                            <!-- Stamp (Assigned reviewer with reviewers) -->
-                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && wl.workflowStatus !== 'REVIEW_DONE' && (wl.reviewers?.length ?? 0) > 0) {
-                              <span class="icon-action" title="Stamp worklist" (click)="stampWorklist(wl, $event)">✦</span>
-                            }
-                            <!-- Return (Assigned, non-admin) -->
-                            @if (worklistMode() === 'Assigned' && getWorkflowState(wl) === 'Assigned') {
-                              <span class="icon-action" title="Return worklist" (click)="finishWorklist(wl, $event)">✓</span>
-                            }
-                            <!-- Finish (Assigned reviewer, Review Assigned state) -->
-                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && getWorkflowState(wl) === 'Review Assigned') {
-                              <span class="icon-action" title="Finish worklist" (click)="finishWorklist(wl, $event)">✓</span>
-                            }
-                          }
-                        </td>
-                      </tr>
+	                        <td>
+	                          {{ formatWorklistDate(wl.lastModified) }}
+	                        </td>
+	                        @if (worklistMode() !== 'Checklists') {
+	                          <td class="nobreak">
+	                            <!-- Admin: delete -->
+	                            @if (projectRole() === 'ADMINISTRATOR') {
+	                              <span class="icon-action danger" title="Remove" (click)="deleteWorklist(wl, $event)">✕</span>
+	                            }
+	                            <!-- Claim (Available, non-admin) -->
+	                            @if (worklistMode() === 'Available') {
+	                              <span class="icon-action" title="Claim worklist" (click)="assignWorklistToSelf(wl, $event)">→</span>
+	                            }
+	                            <!-- Unassign (Assigned, non-REVIEW_DONE) -->
+	                            @if (worklistMode() === 'Assigned' && wl.workflowStatus !== 'REVIEW_DONE') {
+	                              <span class="icon-action" title="Unassign worklist" (click)="unassignWorklist(wl, $event)">←</span>
+	                            }
+	                            <!-- Reassign (Done: AUTHOR sees EDITING_DONE, REVIEWER sees READY_FOR_PUBLICATION) -->
+	                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'EDITING_DONE' && projectRole() === 'AUTHOR') {
+	                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
+	                            }
+	                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'READY_FOR_PUBLICATION' && projectRole() === 'REVIEWER') {
+	                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
+	                            }
+	                            <!-- Stamp (Assigned reviewer with reviewers) -->
+	                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && wl.workflowStatus !== 'REVIEW_DONE' && (wl.reviewers?.length ?? 0) > 0) {
+	                              <span class="icon-action" title="Stamp worklist" (click)="stampWorklist(wl, $event)">✦</span>
+	                            }
+	                            <!-- Return (Assigned, non-admin) -->
+	                            @if (worklistMode() === 'Assigned' && getWorkflowState(wl) === 'Assigned') {
+	                              <span class="icon-action" title="Return worklist" (click)="finishWorklist(wl, $event)">✓</span>
+	                            }
+	                            <!-- Finish (Assigned reviewer, Review Assigned state) -->
+	                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && getWorkflowState(wl) === 'Review Assigned') {
+	                              <span class="icon-action" title="Finish worklist" (click)="finishWorklist(wl, $event)">✓</span>
+	                            }
+	                          </td>
+	                        }
+	                      </tr>
                     }
                   </tbody>
                 </table>
@@ -259,7 +262,11 @@
     </details>
   }
 
-  <details class="accordion-panel" open>
+  <details
+    class="accordion-panel"
+    [open]="conceptsGroupOpen()"
+    (toggle)="onEditAccordionToggle('concepts', $event)"
+  >
     <summary class="accordion-heading">
       <span class="accordion-arrow">&#9658;</span>
       Concepts
@@ -728,7 +735,9 @@
         [projectRole]="projectRole()"
         [editingEnabled]="projectEditingEnabled()"
         [activityId]="editActivityId()"
+        [initialTab]="reportPanelTab()"
         (linkClicked)="openLinkedConceptDialog($event)"
+        (tabChanged)="onReportPanelTabChanged($event)"
       />
     </aside>
     </div>
@@ -738,7 +747,11 @@
   </details><!-- /Concepts -->
 
   @if (projectRole() === 'ADMINISTRATOR') {
-    <details class="accordion-panel" open>
+    <details
+      class="accordion-panel"
+      [open]="metadataGroupOpen()"
+      (toggle)="onEditAccordionToggle('metadata', $event)"
+    >
       <summary class="accordion-heading">
         <span class="accordion-arrow">&#9658;</span>
         Metadata Editing
@@ -877,8 +890,54 @@
               <div class="meta-subsection" style="margin-top: var(--meme-space-md)">
                 <div class="meta-subsection-header">
                   <strong>Precedence List</strong>
+                  @if (savingPrecedenceList()) {
+                    <span class="meta-status">Saving...</span>
+                  }
                 </div>
-                <p class="empty">Precedence list editing is not yet implemented.</p>
+                @if (loadingPrecedenceList() && !precedenceEntries().length) {
+                  <p class="empty compact-empty">Loading precedence list...</p>
+                } @else {
+                  @if (precedenceListError()) {
+                    <p class="empty-alert">{{ precedenceListError() }}</p>
+                  }
+                  @if (precedenceEntries().length) {
+                    <div class="table-wrap precedence-list-wrap">
+                      <table class="slim-table precedence-list-table">
+                        <thead>
+                          <tr>
+                            <th>Rank</th>
+                            <th></th>
+                            <th>Terminology</th>
+                            <th>Term Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (entry of precedenceEntries(); track precedenceEntryTrack(entry, $index); let i = $index) {
+                            <tr
+                              class="precedence-row"
+                              [class.dragging-row]="draggingPrecedenceIndex() === i"
+                              [attr.aria-label]="precedenceEntryLabel(entry)"
+                              [draggable]="!savingPrecedenceList()"
+                              (dragend)="clearPrecedenceDrag()"
+                              (dragover)="dragOverPrecedenceEntry($event, i)"
+                              (dragstart)="startPrecedenceDrag($event, i)"
+                              (drop)="dropPrecedenceEntry($event, i)"
+                            >
+                              <td>{{ i + 1 }}</td>
+                              <td>
+                                <span class="drag-handle" title="Drag to reorder">↕</span>
+                              </td>
+                              <td>{{ entry.key || 'n/a' }}</td>
+                              <td>{{ entry.value || 'n/a' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  } @else if (!precedenceListError()) {
+                    <p class="empty compact-empty">No precedence entries.</p>
+                  }
+                }
               </div>
 
             </div><!-- /meta-col left -->
@@ -1275,7 +1334,9 @@
           [projectId]="projectId()"
           [projectRole]="projectRole()"
           [editingEnabled]="false"
+          [initialTab]="reportPanelTab()"
           (linkClicked)="openLinkedConceptDialog($event)"
+          (tabChanged)="onReportPanelTabChanged($event)"
         />
       </div>
 

@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
@@ -20,8 +21,9 @@ interface RangeForm {
   templateUrl: './inversion.component.html',
   styleUrl: './operations.component.css'
 })
-export class InversionComponent {
+export class InversionComponent implements OnInit {
   private readonly api = inject(OperationalApiService);
+  private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationService);
   private readonly projectContext = inject(ProjectContextService);
 
@@ -30,6 +32,7 @@ export class InversionComponent {
   protected readonly canRemoveRanges = computed(() => this.projectContext.hasPrivilegesOf('AUTHOR'));
 
   protected readonly vsab = signal('');
+  protected readonly sourceRangesGroupOpen = signal(true);
   protected readonly ranges = signal<SourceIdRange[]>([]);
   protected readonly loading = signal(false);
   protected readonly searchError = signal<string | null>(null);
@@ -46,6 +49,15 @@ export class InversionComponent {
 
   protected readonly isSnomedVsab = computed(() => this.vsab().includes('SNOMED'));
 
+  ngOnInit(): void {
+    this.restoreInversionAccordionState();
+  }
+
+  protected onInversionAccordionToggle(event: Event): void {
+    this.sourceRangesGroupOpen.set((event.target as HTMLDetailsElement).open);
+    this.saveInversionAccordionState();
+  }
+
   protected numberOfIds(range: SourceIdRange): number | null {
     return range.beginSourceId != null && range.endSourceId != null
       ? range.endSourceId - range.beginSourceId + 1
@@ -56,6 +68,59 @@ export class InversionComponent {
     if (!value) return '';
     const ms = Number(value);
     return isNaN(ms) ? String(value) : new Date(ms).toLocaleDateString();
+  }
+
+  private restoreInversionAccordionState(): void {
+    const raw = this.auth.currentUser().userPreferences?.properties?.['inversionGroups'];
+    const groups = this.parseStoredGroups(raw);
+    const group = groups.find((item) => item.title === 'Source Atom Id Ranges') ?? groups[0];
+
+    if (typeof group?.open === 'boolean') {
+      this.sourceRangesGroupOpen.set(group.open);
+    }
+  }
+
+  private saveInversionAccordionState(): void {
+    if (this.auth.isGuest()) {
+      return;
+    }
+
+    const user = this.auth.currentUser();
+    const preferences = user.userPreferences ?? { properties: {} };
+    const nextPreferences = {
+      ...preferences,
+      properties: {
+        ...(preferences.properties ?? {}),
+        inversionGroups: JSON.stringify([
+          { open: this.sourceRangesGroupOpen(), title: 'Source Atom Id Ranges' }
+        ])
+      }
+    };
+
+    this.api.updateUserPreferences(nextPreferences).subscribe({
+      next: (saved) => this.auth.updateCurrentUserPreferences(saved ?? nextPreferences),
+      error: () => {}
+    });
+  }
+
+  private parseStoredGroups(raw: unknown): Array<{ open?: unknown; title?: unknown }> {
+    if (Array.isArray(raw)) {
+      return raw as Array<{ open?: unknown; title?: unknown }>;
+    }
+
+    if (typeof raw !== 'string' || !raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+
+      return Array.isArray(parsed)
+        ? (parsed as Array<{ open?: unknown; title?: unknown }>)
+        : [];
+    } catch {
+      return [];
+    }
   }
 
   protected search(): void {

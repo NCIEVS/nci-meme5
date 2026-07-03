@@ -249,6 +249,18 @@ export interface ContentMetadata {
   termTypes: ContentKeyValuePair[];
 }
 
+export interface ContentPrecedenceList {
+  branch?: string | null;
+  id?: number | null;
+  lastModified?: string | number | null;
+  lastModifiedBy?: string | null;
+  name?: string | null;
+  precedence?: ContentKeyValuePairList | null;
+  terminology?: string | null;
+  timestamp?: string | number | null;
+  version?: string | null;
+}
+
 export interface ContentTermTypeDetail {
   abbreviation?: string | null;
   codeVariantType?: string | null;

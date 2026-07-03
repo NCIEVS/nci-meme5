@@ -2,7 +2,11 @@ import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angula
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
-import { ConceptReportPanelComponent, LinkedConceptInfo } from '../../shared/concept-report-panel/concept-report-panel.component';
+import {
+  ConceptReportPanelComponent,
+  LinkedConceptInfo,
+  ReportPanelTab
+} from '../../shared/concept-report-panel/concept-report-panel.component';
 import { finalize, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -32,6 +36,7 @@ import {
   ContentMapping,
   ContentMetadata,
   ContentNote,
+  ContentPrecedenceList,
   ContentRelationship,
   ContentRelationshipTypeDetail,
   ContentRouteMode,
@@ -83,6 +88,16 @@ import {
 } from './edit-mutation.models';
 
 type SearchableContentType = 'CODE' | 'CONCEPT' | 'DESCRIPTOR';
+type EditAccordionGroup = 'concepts' | 'metadata' | 'worklists';
+
+interface EditPagingPreference {
+  filter?: unknown;
+  page?: unknown;
+  pageSize?: unknown;
+  sortAscending?: unknown;
+  sortField?: unknown;
+  typeFilter?: unknown;
+}
 
 interface EditPopoutLink {
   label: string;
@@ -107,6 +122,9 @@ export class ContentComponent implements OnInit {
   private readonly operationsApi = inject(OperationalApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly workflowApi = inject(WorkflowApiService);
+  private pendingEditConceptId: number | null = null;
+  private pendingEditRecordId: number | null = null;
+  private pendingEditWorklistId: number | null = null;
   protected readonly projectContext = inject(ProjectContextService);
 
   protected readonly componentTypes: SearchableContentType[] = [
@@ -381,8 +399,11 @@ export class ContentComponent implements OnInit {
   // Metadata editing
   protected readonly selectedMetadataTerminology = signal<ContentTerminology | null>(null);
   protected readonly metadata = signal<ContentMetadata | null>(null);
+  protected readonly precedenceList = signal<ContentPrecedenceList | null>(null);
   protected readonly loadingMetadata = signal(false);
+  protected readonly loadingPrecedenceList = signal(false);
   protected readonly metadataError = signal<string | null>(null);
+  protected readonly precedenceListError = signal<string | null>(null);
   protected readonly termTypesPage = signal(1);
   protected readonly attributeNamesPage = signal(1);
   protected readonly relationshipTypesPage = signal(1);
@@ -395,6 +416,8 @@ export class ContentComponent implements OnInit {
   protected readonly removingAttributeNameKey = signal<string | null>(null);
   protected readonly removingRelationshipTypeKey = signal<string | null>(null);
   protected readonly removingAdditionalRelTypeKey = signal<string | null>(null);
+  protected readonly draggingPrecedenceIndex = signal<number | null>(null);
+  protected readonly savingPrecedenceList = signal(false);
   protected readonly metadataPageSize = 10;
 
   // Term type / attribute name dialog
@@ -429,7 +452,11 @@ export class ContentComponent implements OnInit {
   protected readonly metaRelTypeInverseFormExpandedForm = signal('');
 
   // Worklists / Clusters
-  protected readonly worklistMode = signal<WorklistMode>('Available');
+  protected readonly worklistsGroupOpen = signal(true);
+  protected readonly conceptsGroupOpen = signal(true);
+  protected readonly metadataGroupOpen = signal(true);
+  protected readonly reportPanelTab = signal<ReportPanelTab>('Report');
+  protected readonly worklistMode = signal<WorklistMode>('Assigned');
   protected readonly worklists = signal<WorkflowWorklist[]>([]);
   protected readonly worklistsTotalCount = signal(0);
   protected readonly selectedWorklist = signal<WorkflowWorklist | null>(null);
@@ -541,6 +568,9 @@ export class ContentComponent implements OnInit {
   });
   protected readonly additionalRelTypesTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.filteredAdditionalRelTypes().length / this.metadataPageSize))
+  );
+  protected readonly precedenceEntries = computed(() =>
+    this.precedenceList()?.precedence?.keyValuePairs ?? []
   );
 
   protected readonly worklistTotalPages = computed(() =>
@@ -1299,6 +1329,7 @@ export class ContentComponent implements OnInit {
 
     this.destroyRef.onDestroy(() => { delete (window as any).__memeGetPeerConcepts; });
 
+    this.restoreEditPreferences();
     this.applyRouteContext();
     this.loadProjectContext();
     this.loadRouteComponent();
@@ -4498,10 +4529,13 @@ export class ContentComponent implements OnInit {
   private loadMetadata(): void {
     const t = this.selectedMetadataTerminology();
     if (!t?.terminology || !t?.version) {
+      this.precedenceList.set(null);
+      this.precedenceListError.set(null);
       return;
     }
     this.loadingMetadata.set(true);
     this.metadataError.set(null);
+    this.loadPrecedenceList(t.terminology, t.version);
     this.api
       .getAllMetadata(t.terminology, t.version)
       .pipe(finalize(() => this.loadingMetadata.set(false)))
@@ -4518,6 +4552,170 @@ export class ContentComponent implements OnInit {
           this.additionalRelTypesFilter.set('');
         },
         error: () => this.metadataError.set('Metadata could not be loaded.')
+      });
+  }
+
+  private loadPrecedenceList(
+    terminology: string,
+    version: string,
+    preserveError = false,
+    keepExistingList = false
+  ): void {
+    if (!keepExistingList) {
+      this.precedenceList.set(null);
+    }
+    if (!preserveError) {
+      this.precedenceListError.set(null);
+    }
+    if (!keepExistingList) {
+      this.loadingPrecedenceList.set(true);
+    }
+    this.api
+      .getDefaultPrecedenceList(terminology, version)
+      .pipe(finalize(() => this.loadingPrecedenceList.set(false)))
+      .subscribe({
+        next: (list) => {
+          this.precedenceList.set(list);
+          if (!list) {
+            this.precedenceListError.set('Precedence list could not be found.');
+          } else if (!preserveError) {
+            this.precedenceListError.set(null);
+          }
+        },
+        error: () => {
+          if (!preserveError) {
+            this.precedenceListError.set('Precedence list could not be loaded.');
+          }
+        }
+      });
+  }
+
+  protected precedenceEntryLabel(entry: ContentKeyValuePair): string {
+    const terminology = entry.key || 'n/a';
+    const termType = entry.value || 'n/a';
+
+    return `${terminology}/${termType}`;
+  }
+
+  protected precedenceEntryTrack(entry: ContentKeyValuePair, _index: number): string {
+    return `${entry.key ?? ''}/${entry.value ?? ''}`;
+  }
+
+  protected startPrecedenceDrag(event: DragEvent, index: number): void {
+    if (this.savingPrecedenceList()) {
+      event.preventDefault();
+      return;
+    }
+
+    this.draggingPrecedenceIndex.set(index);
+    event.dataTransfer?.setData('text/plain', String(index));
+    event.dataTransfer?.setDragImage(event.currentTarget as Element, 0, 0);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+    }
+  }
+
+  protected dragOverPrecedenceEntry(event: DragEvent, index: number): void {
+    const sourceIndex = this.draggingPrecedenceIndex();
+
+    if (sourceIndex !== null && sourceIndex !== index && !this.savingPrecedenceList()) {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+    }
+  }
+
+  protected dropPrecedenceEntry(event: DragEvent, targetIndex: number): void {
+    const rawSourceIndex =
+      this.draggingPrecedenceIndex() ??
+      Number(event.dataTransfer?.getData('text/plain'));
+    const sourceIndex = Number(rawSourceIndex);
+    const viewportLeft = window.scrollX;
+    const viewportTop = window.scrollY;
+
+    event.preventDefault();
+    this.draggingPrecedenceIndex.set(null);
+
+    if (
+      this.savingPrecedenceList() ||
+      !Number.isInteger(sourceIndex) ||
+      sourceIndex === targetIndex
+    ) {
+      return;
+    }
+
+    const entries = this.precedenceEntries();
+    if (
+      sourceIndex < 0 ||
+      targetIndex < 0 ||
+      sourceIndex >= entries.length ||
+      targetIndex >= entries.length
+    ) {
+      return;
+    }
+
+    const reorderedEntries = [...entries];
+    const [movedEntry] = reorderedEntries.splice(sourceIndex, 1);
+    reorderedEntries.splice(targetIndex, 0, movedEntry);
+    this.savePrecedenceOrder(reorderedEntries);
+    this.restorePrecedenceDropViewport(viewportLeft, viewportTop);
+  }
+
+  protected clearPrecedenceDrag(): void {
+    this.draggingPrecedenceIndex.set(null);
+  }
+
+  private restorePrecedenceDropViewport(left: number, top: number): void {
+    requestAnimationFrame(() => window.scrollTo(left, top));
+  }
+
+  private savePrecedenceOrder(entries: ContentKeyValuePair[]): void {
+    const list = this.precedenceList();
+
+    if (!list?.id) {
+      this.precedenceListError.set('Precedence list cannot be saved without an id.');
+      return;
+    }
+
+    const updatedList: ContentPrecedenceList = {
+      branch: list.branch,
+      id: list.id,
+      lastModified: list.lastModified,
+      lastModifiedBy: list.lastModifiedBy,
+      name: list.name,
+      precedence: {
+        ...(list.precedence ?? {}),
+        keyValuePairs: entries.map((entry) => ({
+          key: entry.key ?? '',
+          value: entry.value ?? ''
+        }))
+      },
+      terminology: list.terminology,
+      timestamp: list.timestamp,
+      version: list.version
+    };
+
+    this.precedenceList.set(updatedList);
+    this.precedenceListError.set(null);
+    this.savingPrecedenceList.set(true);
+    this.api
+      .updatePrecedenceList(updatedList)
+      .pipe(finalize(() => this.savingPrecedenceList.set(false)))
+      .subscribe({
+        next: () => {
+          const t = this.selectedMetadataTerminology();
+          if (t?.terminology && t.version) {
+            this.loadPrecedenceList(t.terminology, t.version, false, true);
+          }
+        },
+        error: () => {
+          this.precedenceListError.set('Precedence list order could not be saved.');
+          const t = this.selectedMetadataTerminology();
+          if (t?.terminology && t.version) {
+            this.loadPrecedenceList(t.terminology, t.version, true, true);
+          }
+        }
       });
   }
 
@@ -4836,9 +5034,11 @@ export class ContentComponent implements OnInit {
     if (list.some((c) => c.id === concept.id)) return;
     const updated = [...list, concept].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     this.conceptList.set(updated);
-    if (updated.length === 1) {
-      this.selectedComponent.set(updated[0]);
-      this.selectedResult.set(null);
+    if (this.pendingEditConceptId && concept.id === this.pendingEditConceptId) {
+      this.pendingEditConceptId = null;
+      this.selectConceptFromList(concept);
+    } else if (updated.length === 1 && !this.pendingEditConceptId) {
+      this.selectConceptFromList(updated[0]);
     }
   }
 
@@ -4846,11 +5046,14 @@ export class ContentComponent implements OnInit {
     const updated = this.conceptList().filter((c) => c.id !== concept.id);
     this.conceptList.set(updated);
     if (this.selectedComponent()?.id === concept.id) {
-      this.selectedComponent.set(updated.length === 1 ? updated[0] : null);
-      if (updated.length === 1) this.selectedResult.set(null);
+      if (updated.length === 1) {
+        this.selectConceptFromList(updated[0]);
+      } else {
+        this.selectedComponent.set(null);
+        this.saveUserPreferenceProperties({ editConcept: '' });
+      }
     } else if (updated.length === 1 && !this.selectedComponent()) {
-      this.selectedComponent.set(updated[0]);
-      this.selectedResult.set(null);
+      this.selectConceptFromList(updated[0]);
     }
   }
 
@@ -4874,6 +5077,9 @@ export class ContentComponent implements OnInit {
   protected selectConceptFromList(concept: ContentComponentDetail): void {
     this.selectedComponent.set(concept);
     this.selectedResult.set(null);
+    if (concept.id) {
+      this.saveUserPreferenceProperties({ editConcept: concept.id });
+    }
   }
 
   protected lookupConceptById(): void {
@@ -5047,6 +5253,238 @@ export class ContentComponent implements OnInit {
     });
   }
 
+  protected onEditAccordionToggle(group: EditAccordionGroup, event: Event): void {
+    const isOpen = (event.target as HTMLDetailsElement).open;
+
+    if (group === 'worklists') {
+      this.worklistsGroupOpen.set(isOpen);
+    } else if (group === 'concepts') {
+      this.conceptsGroupOpen.set(isOpen);
+    } else {
+      this.metadataGroupOpen.set(isOpen);
+    }
+
+    this.saveEditAccordionState();
+  }
+
+  private restoreEditPreferences(): void {
+    const properties = this.auth.currentUser().userPreferences?.properties ?? {};
+    const savedMode = this.matchingWorklistMode(properties['worklistModeTab']);
+
+    if (savedMode) {
+      this.worklistMode.set(savedMode);
+    }
+
+    this.pendingEditWorklistId = this.parsePreferenceId(properties['editWorklist']);
+    this.pendingEditRecordId = this.parsePreferenceId(properties['editRecord']);
+    this.pendingEditConceptId = this.parsePreferenceId(properties['editConcept']);
+    this.reportPanelTab.set(this.matchingReportPanelTab(properties['reportModeTab']));
+    this.applyStoredWorklistPaging(properties['editWorklistPaging']);
+
+    const groups = this.parseStoredGroups(properties['editGroups']);
+
+    if (!groups.length) {
+      return;
+    }
+
+    this.applyStoredGroup(groups, 0, 'Worklists/Clusters', this.worklistsGroupOpen);
+    this.applyStoredGroup(groups, 1, 'Concepts/Reports', this.conceptsGroupOpen);
+    this.applyStoredGroup(groups, 2, 'Metadata', this.metadataGroupOpen);
+  }
+
+  private applyStoredWorklistPaging(raw: unknown): void {
+    const paging = this.parseStoredPaging(raw);
+
+    if (!paging) {
+      return;
+    }
+
+    const page = this.positiveNumber(paging.page);
+    const sortField = paging.sortField === 'name' || paging.sortField === 'lastModified'
+      ? paging.sortField
+      : null;
+
+    if (page) {
+      this.worklistPage.set(page);
+    }
+    if (sortField) {
+      this.worklistSortField.set(sortField);
+    }
+    if (typeof paging.sortAscending === 'boolean') {
+      this.worklistSortAsc.set(paging.sortAscending);
+    }
+    if (typeof paging.filter === 'string') {
+      this.worklistFilter.set(paging.filter);
+    }
+  }
+
+  private applyStoredRecordPaging(raw: unknown): void {
+    const paging = this.parseStoredPaging(raw);
+
+    if (!paging) {
+      return;
+    }
+
+    const page = this.positiveNumber(paging.page);
+    const pageSize = this.positiveNumber(paging.pageSize);
+
+    if (page) {
+      this.recordsPage.set(page);
+    }
+    if (pageSize) {
+      this.recordsPageSize.set(pageSize);
+    }
+    if (typeof paging.filter === 'string') {
+      this.recordsFilter.set(paging.filter);
+    }
+    if (typeof paging.typeFilter === 'string') {
+      this.recordsTypeFilter.set(paging.typeFilter);
+    }
+  }
+
+  private saveEditAccordionState(): void {
+    this.saveUserPreferenceProperties({
+      editGroups: JSON.stringify([
+        { open: this.worklistsGroupOpen(), title: 'Worklists/Clusters' },
+        { open: this.conceptsGroupOpen(), title: 'Concepts/Reports' },
+        { open: this.metadataGroupOpen(), title: 'Metadata' }
+      ])
+    });
+  }
+
+  private matchingWorklistMode(value: unknown): WorklistMode | null {
+    return (
+      ['Available', 'Assigned', 'Done', 'Checklists'] as WorklistMode[]
+    ).find((mode) => mode === value) ?? null;
+  }
+
+  protected onReportPanelTabChanged(tab: ReportPanelTab): void {
+    this.reportPanelTab.set(tab);
+    this.saveUserPreferenceProperties({ reportModeTab: this.reportModePreference(tab) });
+  }
+
+  private matchingReportPanelTab(value: unknown): ReportPanelTab {
+    if (value === 'Static' || value === 'Report') {
+      return 'Report';
+    }
+    if (value === 'Interactive') {
+      return 'Interactive';
+    }
+    if (value === 'Action' || value === 'Actions') {
+      return 'Actions';
+    }
+
+    return 'Report';
+  }
+
+  private reportModePreference(tab: ReportPanelTab): 'Static' | 'Interactive' | 'Action' {
+    if (tab === 'Interactive') {
+      return 'Interactive';
+    }
+    if (tab === 'Actions') {
+      return 'Action';
+    }
+
+    return 'Static';
+  }
+
+  private parseStoredGroups(raw: unknown): Array<{ open?: unknown; title?: unknown }> {
+    if (Array.isArray(raw)) {
+      return raw as Array<{ open?: unknown; title?: unknown }>;
+    }
+
+    if (typeof raw !== 'string' || !raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+
+      return Array.isArray(parsed)
+        ? (parsed as Array<{ open?: unknown; title?: unknown }>)
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private parseStoredPaging(raw: unknown): EditPagingPreference | null {
+    if (!raw) {
+      return null;
+    }
+
+    if (typeof raw === 'object' && !Array.isArray(raw)) {
+      return raw as EditPagingPreference;
+    }
+
+    if (typeof raw !== 'string') {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as EditPagingPreference)
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private applyStoredGroup(
+    groups: Array<{ open?: unknown; title?: unknown }>,
+    index: number,
+    title: string,
+    target: { set(value: boolean): void }
+  ): void {
+    const byTitle = groups.find((storedGroup) => storedGroup.title === title);
+    const group = byTitle ?? groups[index];
+
+    if (typeof group?.open === 'boolean') {
+      target.set(group.open);
+    }
+  }
+
+  private saveUserPreferenceProperties(properties: Record<string, unknown>): void {
+    if (this.auth.isGuest()) {
+      return;
+    }
+
+    const user = this.auth.currentUser();
+    const preferences = user.userPreferences ?? { properties: {} };
+    const nextPreferences = {
+      ...preferences,
+      properties: {
+        ...(preferences.properties ?? {}),
+        ...properties
+      }
+    };
+
+    this.operationsApi.updateUserPreferences(nextPreferences).subscribe({
+      next: (saved) => this.auth.updateCurrentUserPreferences(saved ?? nextPreferences),
+      error: () => {}
+    });
+  }
+
+  private parsePreferenceId(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && value > 0 ? value : null;
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    return this.parsePositiveInteger(value);
+  }
+
+  private positiveNumber(value: unknown): number | null {
+    const parsed = Number(value);
+
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+
   // Worklist / Clusters
 
   private worklistPfs(): import('./content-edit.models').ContentPfsParameter {
@@ -5110,6 +5548,7 @@ export class ContentComponent implements OnInit {
         else if (mode === 'Assigned') this.assignedCt.set(total);
         else if (mode === 'Done') this.doneCt.set(total);
         else this.checklistCt.set(total);
+        this.restoreSelectedWorklist(items);
       },
       error: () => {}
     });
@@ -5135,10 +5574,14 @@ export class ContentComponent implements OnInit {
     this.worklistMode.set(mode);
     this.worklistPage.set(1);
     this.worklistFilter.set('');
+    this.pendingEditWorklistId = null;
+    this.pendingEditRecordId = null;
+    this.pendingEditConceptId = null;
     this.selectedWorklist.set(null);
     this.records.set([]);
     this.recordsTotalCount.set(0);
     this.selectedRecord.set(null);
+    this.saveUserPreferenceProperties({ worklistModeTab: mode });
     this.loadWorklists();
   }
 
@@ -5159,14 +5602,30 @@ export class ContentComponent implements OnInit {
     this.loadWorklists();
   }
 
-  protected selectWorklist(worklist: WorkflowWorklist): void {
+  protected selectWorklist(
+    worklist: WorkflowWorklist,
+    recoverPreferences = false
+  ): void {
     this.selectedWorklist.set(worklist);
-    this.recordsPage.set(1);
-    this.recordsTypeFilter.set('');
-    this.recordsFilter.set('');
+    this.pendingEditWorklistId = null;
+    if (recoverPreferences) {
+      this.applyStoredRecordPaging(
+        this.auth.currentUser().userPreferences?.properties?.['editRecordPaging']
+      );
+    } else {
+      this.pendingEditRecordId = null;
+      this.pendingEditConceptId = null;
+      this.recordsPage.set(1);
+      this.recordsTypeFilter.set('');
+      this.recordsFilter.set('');
+    }
     this.selectedRecord.set(null);
     this.records.set([]);
     this.recordsTotalCount.set(0);
+    this.saveUserPreferenceProperties({
+      editWorklist: worklist.id ?? '',
+      editWorklistPaging: JSON.stringify(this.currentWorklistPagingPreference())
+    });
     this.loadRecords();
   }
 
@@ -5184,17 +5643,35 @@ export class ContentComponent implements OnInit {
 
     source$.pipe(finalize(() => this.loadingRecords.set(false))).subscribe({
       next: (resp) => {
-        this.records.set(resp.records ?? resp.objects ?? []);
+        const records = resp.records ?? resp.objects ?? [];
+        this.records.set(records);
         this.recordsTotalCount.set(resp.totalCount ?? 0);
+        this.restoreSelectedRecord(records);
       },
       error: () => {}
     });
   }
 
-  protected selectRecord(record: WorkflowTrackingRecord): void {
+  protected selectRecord(
+    record: WorkflowTrackingRecord,
+    recoverPreferences = false
+  ): void {
     this.selectedRecord.set(record);
     this.conceptList.set([]);
     this.selectedComponent.set(null);
+    this.pendingEditRecordId = null;
+    if (!recoverPreferences) {
+      this.pendingEditConceptId = null;
+    } else if (
+      this.pendingEditConceptId &&
+      !(record.concepts ?? []).some((concept) => concept.id === this.pendingEditConceptId)
+    ) {
+      this.pendingEditConceptId = null;
+    }
+    this.saveUserPreferenceProperties({
+      editRecord: record.id ?? '',
+      editRecordPaging: JSON.stringify(this.currentRecordPagingPreference())
+    });
 
     const projectId = this.projectId();
     if (!projectId || !record.concepts?.length) return;
@@ -5206,6 +5683,55 @@ export class ContentComponent implements OnInit {
         error: () => {}
       });
     }
+  }
+
+  private restoreSelectedWorklist(worklists: WorkflowWorklist[]): void {
+    const pendingId = this.pendingEditWorklistId;
+
+    if (!pendingId || this.selectedWorklist()) {
+      return;
+    }
+
+    const worklist = worklists.find((item) => item.id === pendingId);
+
+    if (worklist) {
+      this.selectWorklist(worklist, true);
+    }
+  }
+
+  private restoreSelectedRecord(records: WorkflowTrackingRecord[]): void {
+    const pendingId = this.pendingEditRecordId;
+
+    if (!pendingId || this.selectedRecord() || this.selectedResult() || this.selectedComponent()) {
+      return;
+    }
+
+    const record = records.find((item) => item.id === pendingId);
+
+    if (record) {
+      this.selectRecord(record, true);
+    }
+  }
+
+  private currentWorklistPagingPreference(): EditPagingPreference {
+    return {
+      filter: this.worklistFilter(),
+      page: this.worklistPage(),
+      pageSize: this.worklistPageSize,
+      sortAscending: this.worklistSortAsc(),
+      sortField: this.worklistSortField()
+    };
+  }
+
+  private currentRecordPagingPreference(): EditPagingPreference {
+    return {
+      filter: this.recordsFilter(),
+      page: this.recordsPage(),
+      pageSize: this.recordsPageSize(),
+      sortAscending: true,
+      sortField: 'clusterId',
+      typeFilter: this.recordsTypeFilter()
+    };
   }
 
   protected setRecordsTypeFilter(value: string): void {
