@@ -54,6 +54,10 @@ export class OperationalApiService {
     return this.http.get<OperationalProject>(`${this.baseUrl}/project/${projectId}`);
   }
 
+  updateProject(project: OperationalProject): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/project/`, project);
+  }
+
   findProjectsByIds(projectIds: number[]): Observable<OperationalProject[]> {
     if (projectIds.length === 0) {
       return of([]);

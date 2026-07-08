@@ -62,7 +62,7 @@
         } @else {
           @if (loadedConcept(); as concept) {
 
-            <div class="styw-header">
+            <div class="styw-header edit-dialog-title-row">
               <strong class="styw-title">Semantic Types ({{ conceptSemanticTypes().length }})</strong>
               <span class="styw-concept" [class.styw-concept-pending]="concept.workflowStatus !== 'READY_FOR_PUBLICATION'">{{ concept.name }} {{ concept.id }}</span>
             </div>
@@ -84,7 +84,7 @@
                       <span class="icon-action danger" title="Remove"
                         (click)="removeSemanticTypeFromConcept(sty)"
                         [class.is-disabled]="!canRemoveSemanticType(sty) || removingSemanticTypeId() === sty.id">
-                        ✕
+                        <meme-icon name="trash"></meme-icon>
                       </span>
                     </td>
                   </tr>
@@ -143,16 +143,27 @@
             <div class="wl-toolbar">
               <input type="search" class="wl-filter" placeholder="Filter…"
                 [ngModel]="styFilter()" (ngModelChange)="setStyFilter($event)" />
-              <select class="pager-select" [ngModel]="styPageSize()" (ngModelChange)="setStyPageSize(+$event)">
+              <label for="sty-page-size">Per page</label>
+              <select
+                id="sty-page-size"
+                name="sty-page-size"
+                class="pager-select"
+                [ngModel]="styPageSize()"
+                (ngModelChange)="setStyPageSize(+$event)"
+              >
                 <option [value]="5">5</option>
                 <option [value]="10">10</option>
                 <option [value]="25">25</option>
                 <option [value]="50">50</option>
               </select>
               <div class="wl-pager">
-                <button type="button" class="icon-btn" title="Previous page" [disabled]="styPage() <= 1" (click)="setStyPage(styPage() - 1)">‹</button>
+                <button type="button" class="icon-btn" title="Previous page" [disabled]="styPage() <= 1" (click)="setStyPage(styPage() - 1)">
+                  <meme-icon name="chevron-left"></meme-icon>
+                </button>
                 <span>{{ styPage() }} / {{ styTotalPages() }}</span>
-                <button type="button" class="icon-btn" title="Next page" [disabled]="styPage() >= styTotalPages()" (click)="setStyPage(styPage() + 1)">›</button>
+                <button type="button" class="icon-btn" title="Next page" [disabled]="styPage() >= styTotalPages()" (click)="setStyPage(styPage() + 1)">
+                  <meme-icon name="chevron-right"></meme-icon>
+                </button>
               </div>
             </div>
 
@@ -160,13 +171,28 @@
               <thead>
                 <tr>
                   <th class="styw-col-tui styw-sort-col" (click)="setStySort('typeId')">
-                    TUI <span class="styw-sort-indicator">{{ stySortIndicator('typeId') }}</span>
+                    TUI
+                    @if (stySortField() === 'typeId') {
+                      <span class="styw-sort-indicator">
+                        <meme-icon [name]="stySortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      </span>
+                    }
                   </th>
                   <th class="styw-col-tree styw-sort-col" (click)="setStySort('treeNumber')">
-                    Tree # <span class="styw-sort-indicator">{{ stySortIndicator('treeNumber') }}</span>
+                    Tree #
+                    @if (stySortField() === 'treeNumber') {
+                      <span class="styw-sort-indicator">
+                        <meme-icon [name]="stySortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      </span>
+                    }
                   </th>
                   <th class="styw-sort-col" (click)="setStySort('expandedForm')">
-                    Semantic Type <span class="styw-sort-indicator">{{ stySortIndicator('expandedForm') }}</span>
+                    Semantic Type
+                    @if (stySortField() === 'expandedForm') {
+                      <span class="styw-sort-indicator">
+                        <meme-icon [name]="stySortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      </span>
+                    }
                   </th>
                   <th class="styw-col-act"></th>
                 </tr>
@@ -213,7 +239,7 @@
         <section class="list-panel" aria-labelledby="wb-atoms-title">
 
           <!-- Header: title + concept name + Add Atom -->
-          <div class="panel-header">
+          <div class="panel-header edit-dialog-title-row">
             <div>
               <h2 id="wb-atoms-title">Atoms ({{ filteredAtoms().length }})</h2>
               <p class="styw-concept">
@@ -253,7 +279,14 @@
           <div class="wl-toolbar">
             <input type="search" class="wl-filter" placeholder="Filter…"
               [ngModel]="atomFilter()" (ngModelChange)="setAtomFilter($event)" />
-            <select class="pager-select" [ngModel]="atomPageSize()" (ngModelChange)="setAtomPageSize(+$event)">
+            <label for="atom-page-size">Per page</label>
+            <select
+              id="atom-page-size"
+              name="atom-page-size"
+              class="pager-select"
+              [ngModel]="atomPageSize()"
+              (ngModelChange)="setAtomPageSize(+$event)"
+            >
               <option [value]="5">5</option>
               <option [value]="10">10</option>
               <option [value]="25">25</option>
@@ -262,10 +295,14 @@
             </select>
             <div class="wl-pager">
               <button type="button" class="icon-btn" title="Previous page"
-                [disabled]="atomPage() <= 1" (click)="setAtomPage(atomPage() - 1)">‹</button>
+                [disabled]="atomPage() <= 1" (click)="setAtomPage(atomPage() - 1)">
+                <meme-icon name="chevron-left"></meme-icon>
+              </button>
               <span>{{ atomPage() }} / {{ atomTotalPages() }}</span>
               <button type="button" class="icon-btn" title="Next page"
-                [disabled]="atomPage() >= atomTotalPages()" (click)="setAtomPage(atomPage() + 1)">›</button>
+                [disabled]="atomPage() >= atomTotalPages()" (click)="setAtomPage(atomPage() + 1)">
+                <meme-icon name="chevron-right"></meme-icon>
+              </button>
             </div>
           </div>
 
@@ -277,24 +314,44 @@
                   <th class="atom-col-check"></th>
                   <th class="atom-col-name">
                     <span class="styw-sort-col" (click)="toggleAtomSort('name')">
-                      Name <span class="styw-sort-indicator">{{ atomSortIndicator('name') }}</span>
+                      Name
+                      @if (atomSortField() === 'name') {
+                        <span class="styw-sort-indicator">
+                          <meme-icon [name]="atomSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        </span>
+                      }
                     </span>
                   </th>
                   <th class="atom-col-tg">
                     <span class="styw-sort-col" (click)="toggleAtomSort('terminology')">
-                      Termgroup <span class="styw-sort-indicator">{{ atomSortIndicator('terminology') }}</span>
+                      Termgroup
+                      @if (atomSortField() === 'terminology') {
+                        <span class="styw-sort-indicator">
+                          <meme-icon [name]="atomSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        </span>
+                      }
                     </span>
                   </th>
                   <th class="atom-col-code">
                     <span class="styw-sort-col" (click)="toggleAtomSort('codeId')">
-                      Code <span class="styw-sort-indicator">{{ atomSortIndicator('codeId') }}</span>
+                      Code
+                      @if (atomSortField() === 'codeId') {
+                        <span class="styw-sort-indicator">
+                          <meme-icon [name]="atomSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        </span>
+                      }
                     </span>
                   </th>
                   <th class="atom-col-concept">Concept</th>
                   <th class="atom-col-descriptor">Descriptor</th>
                   <th class="atom-col-editor">
                     <span class="styw-sort-col" (click)="toggleAtomSort('lastModifiedBy')">
-                      Editor <span class="styw-sort-indicator">{{ atomSortIndicator('lastModifiedBy') }}</span>
+                      Editor
+                      @if (atomSortField() === 'lastModifiedBy') {
+                        <span class="styw-sort-indicator">
+                          <meme-icon [name]="atomSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        </span>
+                      }
                     </span>
                   </th>
                   <th class="atom-col-act"></th>
@@ -312,7 +369,7 @@
                       <button type="button" class="icon-btn atom-expand-btn"
                         (click)="toggleAtomExpand(atom.id)"
                         [title]="expandedAtomIds().has(atom.id!) ? 'Collapse' : 'Expand'">
-                        {{ expandedAtomIds().has(atom.id!) ? '▼' : '▶' }}
+                        <meme-icon [name]="expandedAtomIds().has(atom.id!) ? 'chevron-down' : 'chevron-right'"></meme-icon>
                       </button>
                       {{ atom.name }}
                     </td>
@@ -324,12 +381,18 @@
                     <td class="atom-col-act-cell">
                       @if (projectEditingEnabled()) {
                         <button type="button" class="icon-btn" title="Edit"
-                          (click)="openEditAtom(atom); $event.stopPropagation()">✎</button>
+                          (click)="openEditAtom(atom); $event.stopPropagation()">
+                          <meme-icon name="pencil"></meme-icon>
+                        </button>
                         @if (isAtomDeletable(atom)) {
                           <button type="button" class="icon-btn" title="Remove"
                             [disabled]="removingAtomId() === atom.id"
                             (click)="removeAtomFromConcept(atom); $event.stopPropagation()">
-                            {{ removingAtomId() === atom.id ? '…' : '✕' }}
+                            @if (removingAtomId() === atom.id) {
+                              …
+                            } @else {
+                              <meme-icon name="trash"></meme-icon>
+                            }
                           </button>
                         }
                       }
@@ -828,28 +891,49 @@
     }
 
     @case ('relationships') {
-      <ng-container *ngTemplateOutlet="conceptHeader" />
       @if (loadedConcept(); as concept) {
-        <section class="list-panel" aria-labelledby="wb-rels-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="wb-rels-title">Relationships</h2>
-              <p>{{ conceptRelationships().length }} relationship(s) on {{ concept.name || concept.terminologyId }}</p>
-            </div>
-            <div class="form-actions">
-              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept()">Refresh</button>
-            </div>
+        <section class="popup-legacy-shell rels-workbench" aria-labelledby="wb-rels-title">
+          @if (!projectEditingEnabled()) {
+            <div class="styw-alert styw-alert-danger">Editing is disabled.</div>
+          }
+
+          <div class="styw-header popup-legacy-title-row edit-dialog-title-row">
+            <strong id="wb-rels-title" class="styw-title">Relationships ({{ relationshipCount() }})</strong>
+            <span class="styw-concept" [class.styw-concept-pending]="concept.workflowStatus !== 'READY_FOR_PUBLICATION'">
+              {{ concept.name }} {{ concept.id }}
+            </span>
           </div>
 
-          <label class="form-field" for="wb-activity-rels">
-            Activity ID
-            <input
-              id="wb-activity-rels"
-              type="text"
-              [ngModel]="workbenchActivityId()"
-              (ngModelChange)="setWorkbenchActivityId($event)"
-            />
-          </label>
+          @if (relationshipCount() > 10) {
+            <div class="popup-page-size">
+              <label for="rels-page-size">Per page</label>
+              <select
+                id="rels-page-size"
+                class="pager-select"
+                [ngModel]="relationshipPageSize()"
+                (ngModelChange)="setRelationshipPageSize(+$event)"
+              >
+                <option [value]="10">10</option>
+                <option [value]="20">20</option>
+                <option [value]="50">50</option>
+                <option [value]="100">100</option>
+              </select>
+            </div>
+          }
+
+          <div class="list-pager popup-pager" aria-label="Relationship pages">
+            <button type="button" class="icon-btn" title="Previous page"
+              [disabled]="relationshipPage() <= 1 || loadingRelationships()"
+              (click)="setRelationshipPage(relationshipPage() - 1)">
+              <meme-icon name="chevron-left"></meme-icon>
+            </button>
+            <span>{{ relationshipPage() }} / {{ relationshipTotalPages() }}</span>
+            <button type="button" class="icon-btn" title="Next page"
+              [disabled]="relationshipPage() >= relationshipTotalPages() || loadingRelationships()"
+              (click)="setRelationshipPage(relationshipPage() + 1)">
+              <meme-icon name="chevron-right"></meme-icon>
+            </button>
+          </div>
 
           <!-- Removal feedback -->
           @if (relationshipRemovalErrors().length) {
@@ -870,110 +954,229 @@
             </div>
           }
 
-          <div class="table-wrap">
-            <table>
+          @if (relationshipError()) {
+            <p class="form-errors">{{ relationshipError() }}</p>
+          }
+
+          <div class="table-wrap popup-table-wrap">
+            <table class="slim-table rels-table">
               <thead>
                 <tr>
-                  <th>Type</th>
-                  <th>To</th>
-                  <th>Status</th>
-                  <th>Remove</th>
+                  <th class="rels-col-name">
+                    <span class="styw-sort-col" (click)="toggleRelationshipSort('fromName')">
+                      From Name
+                      @if (relationshipSortField() === 'fromName') {
+                        <meme-icon [name]="relationshipSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th class="rels-col-concept">
+                    <span class="styw-sort-col" (click)="toggleRelationshipSort('fromId')">
+                      Concept
+                      @if (relationshipSortField() === 'fromId') {
+                        <meme-icon [name]="relationshipSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th class="rels-col-type">
+                    <span class="styw-sort-col" (click)="toggleRelationshipSort('relationshipType')">
+                      Rel Type
+                      @if (relationshipSortField() === 'relationshipType') {
+                        <meme-icon [name]="relationshipSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th class="rels-col-level">Lvl</th>
+                  <th class="rels-col-term">
+                    <span class="styw-sort-col" (click)="toggleRelationshipSort('terminology')">
+                      Terminology
+                      @if (relationshipSortField() === 'terminology') {
+                        <meme-icon [name]="relationshipSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th class="rels-col-editor">
+                    <span class="styw-sort-col" (click)="toggleRelationshipSort('lastModifiedBy')">
+                      Editor
+                      @if (relationshipSortField() === 'lastModifiedBy') {
+                        <meme-icon [name]="relationshipSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th class="rels-col-actions">
+                    <button type="button" (click)="openAddRelationshipDialog()" [disabled]="projectEditingEnabled() !== true">
+                      Add Rel
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                @for (rel of conceptRelationships(); track rel.id) {
-                  <tr>
-                    <td>{{ rel.relationshipType }}</td>
-                    <td>{{ rel.toTerminologyId || rel.toId }}</td>
-                    <td>{{ rel.workflowStatus }}</td>
-                    <td>
-                      <button
-                        type="button"
-                        (click)="removeRelationshipFromConcept(rel)"
-                        [disabled]="!canRemoveRelationship(rel) || removingRelationshipId() === rel.id"
-                      >
-                        {{ removingRelationshipId() === rel.id ? 'Removing...' : 'Remove' }}
-                      </button>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr><td colspan="4">No relationships.</td></tr>
+                @if (loadingRelationships()) {
+                  <tr><td colspan="7" class="styw-empty">Loading…</td></tr>
+                } @else {
+                  @for (rel of relationships(); track rel.id) {
+                    <tr [class]="relationshipRowClass(rel)" [class.selected]="isRelationshipSelected(rel)">
+                      <td class="rels-from-name-cell" (click)="toggleRelationshipSelection(rel)">
+                        <span class="rels-from-name-content">
+                          <input type="checkbox" [checked]="isRelationshipSelected(rel)" />
+                          <span>{{ rel.fromName }}</span>
+                        </span>
+                      </td>
+                      <td>{{ rel.fromId }}</td>
+                      <td>{{ rel.relationshipType }} {{ rel.additionalRelationshipType }}</td>
+                      <td>{{ relationshipLevel(rel) }}</td>
+                      <td>{{ rel.terminology }}</td>
+                      <td>{{ rel.lastModifiedBy }}</td>
+                      <td class="nobreak">
+                        @if (canDeleteRelationship(rel)) {
+                          <button type="button" class="icon-btn danger" title="Delete"
+                            [disabled]="removingRelationshipId() === rel.id"
+                            (click)="removeRelationshipFromConcept(rel); $event.stopPropagation()">
+                            <meme-icon name="trash"></meme-icon>
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="7" class="styw-empty">No relationships.</td></tr>
+                  }
                 }
               </tbody>
             </table>
           </div>
-        </section>
 
-        <section class="list-panel" aria-labelledby="wb-rel-add-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="wb-rel-add-title">Add Relationship</h2>
-              <p>Enter the target concept id and relationship type.</p>
-            </div>
-          </div>
-
-          <div class="split-grid">
-            <label class="form-field" for="wb-rel-type">
-              Relationship Type
-              <select
-                id="wb-rel-type"
-                [ngModel]="relationshipAddType()"
-                (ngModelChange)="setRelationshipAddType($event)"
-              >
-                @for (t of relationshipTypeOptions; track t) {
-                  <option [value]="t">{{ t }}</option>
-                }
-              </select>
-            </label>
-            <label class="form-field" for="wb-rel-target">
-              Target Concept ID
-              <input
-                id="wb-rel-target"
-                type="number"
-                min="1"
-                [ngModel]="relationshipAddTargetConceptId()"
-                (ngModelChange)="setRelationshipAddTargetConceptId($event)"
-              />
-            </label>
-          </div>
-
-          @if (relationshipAddErrors().length) {
-            <ul class="form-errors">
-              @for (e of relationshipAddErrors(); track e) { <li>{{ e }}</li> }
-            </ul>
-          }
-          @if (relationshipAddWarnings().length) {
-            <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
-              @for (w of relationshipAddWarnings(); track w) { <li>{{ w }}</li> }
-            </ul>
-          }
-          @if (relationshipAddReadiness().reasons.length) {
-            <ul class="form-errors" style="background:#f5f5f5;border-color:#bbb;color:#555;">
-              @for (r of relationshipAddReadiness().reasons; track r) { <li>{{ r }}</li> }
-            </ul>
-          }
-
-          <div class="form-actions">
-            @if (relationshipAddNeedsOverride()) {
-              <button
-                type="button"
-                (click)="addRelationshipToConcept(true)"
-                [disabled]="addingRelationship()"
-              >
-                Override Warnings and Add
+          <nav class="popup-footer">
+            <span>
+              <button type="button" (click)="loadRelationships()" [disabled]="loadingRelationships()">Refresh</button>
+            </span>
+            <span class="popup-footer-actions">
+              <label class="checkbox-label">
+                <input type="checkbox"
+                  [ngModel]="relationshipPreferredOnly()"
+                  (ngModelChange)="setRelationshipPreferredOnly($event)"
+                  [disabled]="projectEditingEnabled() !== true" />
+                Show preferred only
+              </label>
+              <button type="button"
+                (click)="transferSelectedRelationshipsToEditor()"
+                [disabled]="!hasSelectedRelationships() || projectEditingEnabled() !== true">
+                Transfer
               </button>
-            }
-            <button
-              type="button"
-              (click)="addRelationshipToConcept()"
-              [disabled]="!relationshipAddReadiness().canExecute || addingRelationship()"
-            >
-              {{ addingRelationship() ? 'Adding...' : 'Add Relationship' }}
-            </button>
-          </div>
+              <button type="button" (click)="openMergeDialog()" [disabled]="projectEditingEnabled() !== true">
+                Merge
+              </button>
+            </span>
+          </nav>
         </section>
+
+        @if (addRelationshipDialogOpen()) {
+          <meme-dialog
+            title="Add"
+            size="xl"
+            [closeDisabled]="addingRelationship()"
+            (closed)="closeAddRelationshipDialog()"
+          >
+            <div class="dialog-form">
+              <table class="slim-table relationship-dialog-table">
+                <tbody>
+                  <tr>
+                    <td class="move-dialog-label"><strong>Current Concept</strong></td>
+                    <td>
+                      <table class="slim-table">
+                        <tbody>
+                          <tr>
+                            <td class="move-col-id">{{ concept.id }}</td>
+                            <td class="move-col-name">{{ concept.name }}</td>
+                            <td class="move-col-sty">
+                              @for (sty of (concept.semanticTypes ?? []); track sty.semanticType) {
+                                <div>{{ sty.semanticType }}</div>
+                              }
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="move-dialog-label"><strong>Other Concept(s)</strong></td>
+                    <td>
+                      <div class="relationship-target-add">
+                        <input type="number" min="1" placeholder="Concept id"
+                          [ngModel]="relationshipAddManualTargetId()"
+                          (ngModelChange)="relationshipAddManualTargetId.set($event)" />
+                        <button type="button" (click)="addManualRelationshipTarget()">Add Concept</button>
+                      </div>
+                      @if (relationshipAddManualTargetError()) {
+                        <p class="move-lookup-status move-lookup-error">{{ relationshipAddManualTargetError() }}</p>
+                      }
+                      <table class="slim-table pointer-table relationship-target-table">
+                        <tbody>
+                          @for (target of relationshipAddTargets(); track target.id) {
+                            <tr [class.selected]="target.selected">
+                              <td>
+                                <input type="checkbox"
+                                  [checked]="target.selected"
+                                  (change)="setRelationshipTargetSelected(target, !target.selected)" />
+                              </td>
+                              <td class="move-col-id">{{ target.id }}</td>
+                              <td class="move-col-name">{{ target.name }}</td>
+                              <td class="move-col-sty">
+                                @for (sty of (target.semanticTypes ?? []); track sty.semanticType) {
+                                  <div>{{ sty.semanticType }}</div>
+                                }
+                              </td>
+                            </tr>
+                          } @empty {
+                            <tr><td colspan="4" class="styw-empty">No other concepts selected.</td></tr>
+                          }
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="move-dialog-label"><strong>Relationship To Current Concept</strong></td>
+                    <td>
+                      <select
+                        [ngModel]="relationshipAddType()"
+                        (ngModelChange)="setRelationshipAddType($event)"
+                      >
+                        @for (t of acceptedRelationshipTypeOptions(); track t) {
+                          <option [value]="t">{{ t }}</option>
+                        }
+                      </select>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              @if (relationshipAddErrors().length) {
+                <ul class="form-errors">
+                  @for (e of relationshipAddErrors(); track e) { <li>{{ e }}</li> }
+                </ul>
+              }
+              @if (relationshipAddWarnings().length) {
+                <ul class="form-errors form-warnings">
+                  @for (w of relationshipAddWarnings(); track w) { <li>{{ w }}</li> }
+                </ul>
+              }
+
+              <div class="form-actions relationship-dialog-actions">
+                @if (relationshipAddNeedsOverride()) {
+                  <button type="button" (click)="addSelectedRelationshipsToConcept(true)" [disabled]="addingRelationship()">
+                    Override Warnings and Add
+                  </button>
+                }
+                <button type="button"
+                  (click)="addSelectedRelationshipsToConcept()"
+                  [disabled]="addingRelationship() || !selectedRelationshipTargetsForDialog().length">
+                  {{ addingRelationship() ? 'Adding…' : 'Add' }}
+                </button>
+                <button type="button" (click)="closeAddRelationshipDialog()" [disabled]="addingRelationship()">Close</button>
+              </div>
+            </div>
+          </meme-dialog>
+        }
       }
-      <ng-container *ngTemplateOutlet="undoRedoPanel" />
     }
 
     @case ('code-concepts') {
@@ -1071,73 +1274,150 @@
     }
 
     @case ('contexts') {
-      <ng-container *ngTemplateOutlet="conceptHeader" />
       @if (loadedConcept(); as concept) {
-        <section class="list-panel" aria-labelledby="wb-contexts-title">
-          <div class="panel-header">
-            <div>
-              <h2 id="wb-contexts-title">Context Tree Positions</h2>
-              <p>
-                {{ contextTreePositionCount() }} position(s) for
-                {{ concept.name || concept.terminologyId }}
-              </p>
-            </div>
-            <div class="form-actions">
-              <button type="button" (click)="loadContextTreePositions()" [disabled]="loadingContextTreePositions()">
-                {{ loadingContextTreePositions() ? 'Loading...' : 'Refresh' }}
-              </button>
-            </div>
+        <section class="popup-legacy-shell contexts-workbench" aria-labelledby="wb-contexts-title">
+          @if (!projectEditingEnabled()) {
+            <div class="styw-alert styw-alert-danger">Editing is disabled.</div>
+          }
+
+          <div class="styw-header popup-legacy-title-row edit-dialog-title-row">
+            <strong id="wb-contexts-title" class="styw-title">
+              Hierarchies
+              @if (contextTreePositionCount()) {
+                <span>({{ contextTreePositionCount() }})</span>
+              }
+            </strong>
+            <span class="styw-concept" [class.styw-concept-pending]="concept.workflowStatus !== 'READY_FOR_PUBLICATION'">
+              {{ concept.name }} {{ concept.id }}
+            </span>
           </div>
 
-          <label class="form-field" for="wb-ctx-filter">
-            Filter
-            <input
-              id="wb-ctx-filter"
-              type="text"
-              placeholder="Filter by name or id..."
-              [ngModel]="contextFilter()"
-              (ngModelChange)="setContextFilter($event)"
-            />
-          </label>
+          @if (contextTreePositionCount() > 10) {
+            <div class="popup-page-size">
+              <label for="contexts-page-size">Per page</label>
+              <select
+                id="contexts-page-size"
+                class="pager-select"
+                [ngModel]="contextPageSize()"
+                (ngModelChange)="setContextPageSize(+$event)"
+              >
+                <option [value]="5">5</option>
+                <option [value]="10">10</option>
+                <option [value]="25">25</option>
+                <option [value]="50">50</option>
+              </select>
+            </div>
+          }
+
+          <div class="list-pager popup-pager" aria-label="Context pages">
+            <button type="button" class="icon-btn" title="Previous page"
+              [disabled]="contextPage() <= 1 || loadingContextTreePositions()"
+              (click)="setContextPage(contextPage() - 1)">
+              <meme-icon name="chevron-left"></meme-icon>
+            </button>
+            <span>{{ contextPage() }} / {{ contextTotalPages() }}</span>
+            <button type="button" class="icon-btn" title="Next page"
+              [disabled]="contextPage() >= contextTotalPages() || loadingContextTreePositions()"
+              (click)="setContextPage(contextPage() + 1)">
+              <meme-icon name="chevron-right"></meme-icon>
+            </button>
+          </div>
 
           @if (contextTreePositionError()) {
             <p class="form-errors">{{ contextTreePositionError() }}</p>
           }
 
-          <div class="table-wrap">
-            <table>
+          <div class="table-wrap popup-table-wrap context-position-wrap">
+            <table class="slim-table context-position-table">
               <thead>
                 <tr>
-                  <th>Node ID</th>
-                  <th>Name</th>
-                  <th>Terminology</th>
-                  <th>Ancestor Path</th>
+                  <th>
+                    <span class="styw-sort-col" (click)="toggleContextSort('terminology')">
+                      Terminology
+                      @if (contextSortField() === 'terminology') {
+                        <meme-icon [name]="contextSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th>
+                    <span class="styw-sort-col" (click)="toggleContextSort('version')">
+                      Version
+                      @if (contextSortField() === 'version') {
+                        <meme-icon [name]="contextSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th>
+                    <span class="styw-sort-col" (click)="toggleContextSort('type')">
+                      Type
+                      @if (contextSortField() === 'type') {
+                        <meme-icon [name]="contextSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
+                  <th>
+                    <span class="styw-sort-col" (click)="toggleContextSort('id')">
+                      Id
+                      @if (contextSortField() === 'id') {
+                        <meme-icon [name]="contextSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                @for (pos of filteredContextTreePositions(); track pos.nodeId) {
-                  <tr>
-                    <td>{{ pos.nodeTerminologyId }}</td>
-                    <td>{{ pos.nodeName }}</td>
-                    <td>{{ pos.terminology }}</td>
-                    <td title="{{ pos.ancestorPath }}">
-                      {{ pos.ancestorPath ? pos.ancestorPath.substring(0, 60) + (pos.ancestorPath.length > 60 ? '...' : '') : '' }}
-                    </td>
-                  </tr>
-                } @empty {
-                  @if (!loadingContextTreePositions()) {
-                    <tr><td colspan="4">No tree positions found.</td></tr>
+                @if (loadingContextTreePositions()) {
+                  <tr><td colspan="4" class="styw-empty">Loading…</td></tr>
+                } @else {
+                  @for (pos of contextTreePositions(); track pos.nodeId || pos.nodeTerminologyId) {
+                    <tr [class.selected]="isContextPositionSelected(pos)" (click)="selectContextTreePosition(pos)">
+                      <td>{{ pos.terminology }}</td>
+                      <td>{{ pos.version }}</td>
+                      <td>{{ pos.type }}</td>
+                      <td>{{ pos.nodeTerminologyId }}</td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="4" class="empty-alert">No contexts</td></tr>
                   }
                 }
               </tbody>
             </table>
           </div>
 
-          @if (filteredContextTreePositions().length < contextTreePositionCount()) {
-            <p style="padding:.5rem 1rem;color:#777;font-size:.85rem;">
-              Showing {{ filteredContextTreePositions().length }} of {{ contextTreePositionCount() }} positions (filtered).
-            </p>
-          }
+          <hr>
+
+          <section class="tree-component" aria-label="Hierarchy tree">
+            @if (contextTreeError()) {
+              <p class="form-errors">{{ contextTreeError() }}</p>
+            }
+            @if (loadingContextTree()) {
+              <p class="styw-empty">Loading hierarchy…</p>
+            } @else if (contextTree(); as tree) {
+              <div class="tree-component-header">
+                <h5>
+                  Hierarchies
+                  @if (contextTreeCount() > 1) {
+                    <span>
+                      (
+                      <button type="button" class="icon-btn tree-position-btn" title="Previous tree position" (click)="loadContextTreeByOffset(-1)">
+                        <meme-icon name="chevron-left"></meme-icon>
+                      </button>
+                      {{ contextTreeViewed() + 1 }} of {{ contextTreeCount() }}
+                      <button type="button" class="icon-btn tree-position-btn" title="Next tree position" (click)="loadContextTreeByOffset(1)">
+                        <meme-icon name="chevron-right"></meme-icon>
+                      </button>
+                      )
+                    </span>
+                  }
+                </h5>
+              </div>
+              <ol class="tree-root">
+                <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: tree }" />
+              </ol>
+            } @else {
+              <div class="empty-alert">No hierarchies</div>
+            }
+          </section>
         </section>
       }
     }
@@ -1293,6 +1573,49 @@
     }
   }
 </section>
+
+<!-- Shared: recursive context tree node -->
+<ng-template #treeNode let-tree>
+  <li class="tree-node">
+    <div class="tree-node-line">
+      @if ((tree.childCt ?? 0) > 0) {
+        <button type="button" class="icon-btn tree-toggle" (click)="toggleTreeNode(tree)"
+          [disabled]="loadingTreeChildrenKey() === treeNodeKey(tree)">
+          <meme-icon [name]="treeNodeIcon(tree)"></meme-icon>
+        </button>
+      } @else {
+        <span class="tree-leaf" aria-hidden="true">•</span>
+      }
+
+      @if (tree.nodeTerminologyId && !isCurrentTreeNode(tree)) {
+        <span>{{ tree.nodeTerminologyId }} : {{ tree.nodeName }}</span>
+      } @else if (isCurrentTreeNode(tree)) {
+        <span class="highlighted">{{ tree.nodeTerminologyId }}: {{ tree.nodeName }}</span>
+      } @else {
+        <span>{{ tree.nodeName }}</span>
+      }
+    </div>
+
+    @if (treeNodeExpanded(tree) && treeChildren(tree).length) {
+      <ol class="tree-children">
+        @for (child of treeChildren(tree); track treeNodeKey(child)) {
+          <ng-container *ngTemplateOutlet="treeNode; context: { $implicit: child }" />
+        }
+      </ol>
+    }
+
+    @if (treeNodeExpanded(tree) && (tree.children?.length ?? 0) < (tree.childCt ?? 0) && (tree.children?.length ?? 0) >= 10) {
+      <ol class="tree-children tree-more">
+        <li>
+          <span class="tree-leaf tree-leaf-placeholder" aria-hidden="true">•</span>
+          <button type="button" class="tree-more-button" (click)="loadMoreTreeChildren(tree)">
+            ... {{ (tree.childCt ?? 0) - (tree.children?.length ?? 0) }} more
+          </button>
+        </li>
+      </ol>
+    }
+  </li>
+</ng-template>
 
 <!-- Shared: concept loading header for non-main workbenches -->
 <ng-template #conceptHeader>

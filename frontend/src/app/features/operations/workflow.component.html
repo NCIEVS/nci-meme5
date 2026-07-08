@@ -41,6 +41,24 @@
       <span class="status-pill" [class.running]="workflowLiveConnected()">
         {{ workflowLiveConnected() ? 'Live' : 'Reconnecting' }}
       </span>
+      @if (projectRole() !== 'AUTHOR' && projectRole() !== 'n/a') {
+        <div class="project-editing-row">
+          <label class="checkbox-label" for="wf-editing-enabled">
+            <input
+              id="wf-editing-enabled"
+              type="checkbox"
+              [ngModel]="projectEditingEnabled()"
+              (ngModelChange)="setProjectEditingEnabled($event)"
+              [disabled]="updatingProjectEditing() || !currentProject()"
+              name="wf-editing-enabled"
+            />
+            Editing enabled
+          </label>
+          @if (!projectEditingEnabled()) {
+            <span class="empty-alert editing-disabled-alert">Editing is disabled.</span>
+          }
+        </div>
+      }
     </div>
 
     <details
@@ -53,84 +71,90 @@
         Bins
       </summary>
       <div class="accordion-body">
-      <div class="toolbar bins-toolbar">
-        @if (canEditWorkflowEpochs()) {
-          <button type="button" (click)="startEditEpochs()">
-            epoch: {{ currentEpoch()?.name || 'None' }}
-          </button>
-        }
-        <label for="wf-config-select">Config</label>
-        <select
-          id="wf-config-select"
-          [ngModel]="selectedConfigType()"
-          (ngModelChange)="selectConfigType($event)"
-          name="wf-config-select"
-        >
-          <option value="">Select config</option>
-          @for (config of configs(); track config.id ?? config.type) {
-            <option [value]="config.type ?? ''">{{ config.type || 'Unknown' }}</option>
+        <div class="toolbar bins-toolbar">
+          @if (canEditWorkflowEpochs()) {
+            <button type="button" (click)="startEditEpochs()">
+              epoch: {{ currentEpoch()?.name || 'None' }}
+            </button>
           }
-        </select>
-        @if (canManageWorkflow()) {
-          <button type="button" class="btn-primary" (click)="startAddWorkflowConfig()">Add Config</button>
-          <div class="icon-actions">
-            <button type="button" class="icon-btn" title="Import Workflow" (click)="startImportWorkflowConfig()">⬆</button>
-            @if (selectedWorkflowConfig(); as selectedConfig) {
-              <button
-                type="button"
-                class="icon-btn"
-                title="Edit Config"
-                (click)="startEditWorkflowConfig(selectedConfig)"
-              >✎</button>
-              <button
-                type="button"
-                class="icon-btn"
-                title="{{ exportingConfigId() === selectedConfig.id ? 'Exporting…' : 'Export Config' }}"
-                (click)="exportWorkflowConfig(selectedConfig)"
-                [disabled]="exportingConfigId() === selectedConfig.id"
-              >⬇</button>
-              <button
-                type="button"
-                class="icon-btn danger"
-                title="{{ deletingConfigId() === selectedConfig.id ? 'Removing…' : 'Delete Config' }}"
-                (click)="removeWorkflowConfig(selectedConfig)"
-                [disabled]="deletingConfigId() === selectedConfig.id"
-              >✕</button>
+          <select
+            id="wf-config-select"
+            [ngModel]="selectedConfigType()"
+            (ngModelChange)="selectConfigType($event)"
+            aria-label="Workflow config"
+            name="wf-config-select"
+          >
+            <option value="">Select</option>
+            @for (config of configs(); track config.id ?? config.type) {
+              <option [value]="config.type ?? ''">{{ config.type || 'Unknown' }}</option>
             }
-          </div>
-        }
-        <button type="button" (click)="load()" [disabled]="loading()">Refresh</button>
-      </div>
+          </select>
+          @if (bins().length) {
+            <form class="list-search-bar bins-search-bar" (ngSubmit)="$event.preventDefault()" aria-label="Search bins">
+              <input
+                type="search"
+                placeholder="Filter bins…"
+                [ngModel]="binFilter()"
+                (ngModelChange)="setBinFilter($event)"
+                name="bin-filter"
+              />
+            </form>
+            <div class="list-pager">
+              <button type="button" class="icon-btn" title="Previous page"
+                [disabled]="binPage() <= 1" (click)="binPage.set(binPage() - 1)">
+                <meme-icon name="chevron-left"></meme-icon>
+              </button>
+              <span>{{ binPage() }} / {{ binTotalPages() }}</span>
+              <button type="button" class="icon-btn" title="Next page"
+                [disabled]="binPage() >= binTotalPages()" (click)="binPage.set(binPage() + 1)">
+                <meme-icon name="chevron-right"></meme-icon>
+              </button>
+            </div>
+          }
+          @if (canManageWorkflow()) {
+            <button type="button" class="btn-primary" (click)="startAddWorkflowConfig()">Add Config</button>
+            <div class="icon-actions">
+              <button type="button" class="icon-btn" title="Import Workflow" (click)="startImportWorkflowConfig()">
+                <meme-icon name="upload"></meme-icon>
+              </button>
+              @if (selectedWorkflowConfig(); as selectedConfig) {
+                <button
+                  type="button"
+                  class="icon-btn"
+                  title="Edit Config"
+                  (click)="startEditWorkflowConfig(selectedConfig)"
+                >
+                  <meme-icon name="pencil"></meme-icon>
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn"
+                  title="{{ exportingConfigId() === selectedConfig.id ? 'Exporting…' : 'Export Config' }}"
+                  (click)="exportWorkflowConfig(selectedConfig)"
+                  [disabled]="exportingConfigId() === selectedConfig.id"
+                >
+                  <meme-icon name="download"></meme-icon>
+                </button>
+                <button
+                  type="button"
+                  class="icon-btn danger"
+                  title="{{ deletingConfigId() === selectedConfig.id ? 'Removing…' : 'Delete Config' }}"
+                  (click)="removeWorkflowConfig(selectedConfig)"
+                  [disabled]="deletingConfigId() === selectedConfig.id"
+                >
+                  <meme-icon name="trash"></meme-icon>
+                </button>
+              }
+            </div>
+          }
+          <button type="button" (click)="load()" [disabled]="loading()">Refresh</button>
+        </div>
 
-      <section class="list-panel" aria-labelledby="workflow-bins-title">
+        <section class="list-panel" aria-labelledby="workflow-bins-title">
           <div class="panel-header">
             <div>
               <h2 id="workflow-bins-title">Bins</h2>
-              <p>
-                {{ selectedConfigType() || 'No config selected' }}
-                @if (currentEpoch()?.name) {
-                  &nbsp;<span class="epoch-badge">epoch: {{ currentEpoch()!.name }}</span>
-                }
-              </p>
             </div>
-            @if (bins().length) {
-              <form class="list-search-bar" (ngSubmit)="$event.preventDefault()" aria-label="Search bins">
-                <input
-                  type="search"
-                  placeholder="Filter bins…"
-                  [ngModel]="binFilter()"
-                  (ngModelChange)="setBinFilter($event)"
-                  name="bin-filter"
-                />
-              </form>
-              <div class="list-pager">
-                <button type="button" class="icon-btn" title="Previous page"
-                  [disabled]="binPage() <= 1" (click)="binPage.set(binPage() - 1)">‹</button>
-                <span>{{ binPage() }} / {{ binTotalPages() }}</span>
-                <button type="button" class="icon-btn" title="Next page"
-                  [disabled]="binPage() >= binTotalPages()" (click)="binPage.set(binPage() + 1)">›</button>
-              </div>
-            }
             @if (selectedWorkflowConfig(); as selectedConfig) {
               <div class="action-row">
                 @if (canManageWorkflowListActions()) {
@@ -227,7 +251,9 @@
                                     title="Edit Bin"
                                     (click)="$event.stopPropagation(); startEditWorkflowBinDefinition(bin)"
                                     [disabled]="loadingBinDefinition() || reorderingWorkflowBins()"
-                                  >✎</button>
+                                  >
+                                    <meme-icon name="pencil"></meme-icon>
+                                  </button>
                                   @if (selectedConfigType() !== 'MUTUALLY_EXCLUSIVE') {
                                     <button
                                       type="button"
@@ -235,7 +261,9 @@
                                       title="{{ regeneratingBinId() === bin.id ? 'Regenerating…' : 'Regenerate Bin' }}"
                                       (click)="$event.stopPropagation(); regenerateWorkflowBin(bin)"
                                       [disabled]="binRegenerationRunning()"
-                                    >↻</button>
+                                    >
+                                      <meme-icon name="arrow-clockwise"></meme-icon>
+                                    </button>
                                   }
                                   @if (isAutofixConfig(selectedWorkflowConfig() ?? {}) && bin.autofix) {
                                     <button
@@ -243,14 +271,18 @@
                                       class="icon-btn"
                                       title="Run Autofix"
                                       (click)="$event.stopPropagation(); startRunAutofix(bin)"
-                                    >⚙</button>
+                                    >
+                                      <meme-icon name="gear"></meme-icon>
+                                    </button>
                                   }
                                   <button
                                     type="button"
                                     class="icon-btn"
                                     title="Clone Bin"
                                     (click)="$event.stopPropagation(); startCloneWorkflowBin(bin)"
-                                  >⎘</button>
+                                  >
+                                    <meme-icon name="files"></meme-icon>
+                                  </button>
                                   @if (canReorderWorkflowBinDefinition(bin)) {
                                     <button
                                       type="button"
@@ -258,14 +290,18 @@
                                       title="Move bin up"
                                       (click)="$event.stopPropagation(); moveWorkflowBinDefinition(bin, -1)"
                                       [disabled]="!canMoveWorkflowBinDefinition(bin, -1)"
-                                    >↑</button>
+                                    >
+                                      <meme-icon name="arrow-up"></meme-icon>
+                                    </button>
                                     <button
                                       type="button"
                                       class="icon-btn"
                                       title="Move bin down"
                                       (click)="$event.stopPropagation(); moveWorkflowBinDefinition(bin, 1)"
                                       [disabled]="!canMoveWorkflowBinDefinition(bin, 1)"
-                                    >↓</button>
+                                    >
+                                      <meme-icon name="arrow-down"></meme-icon>
+                                    </button>
                                   }
                                   <button
                                     type="button"
@@ -273,7 +309,9 @@
                                     title="Remove Bin"
                                     (click)="$event.stopPropagation(); removeWorkflowBinDefinition(bin)"
                                     [disabled]="deletingBinId() === bin.id"
-                                  >✕</button>
+                                  >
+                                    <meme-icon name="trash"></meme-icon>
+                                  </button>
                                 }
                               </div>
                             }
@@ -301,7 +339,9 @@
                                   title="{{ regeneratingBinId() === bin.id ? 'Regenerating…' : 'Regenerate Bin' }}"
                                   (click)="$event.stopPropagation(); regenerateWorkflowBin(bin)"
                                   [disabled]="binRegenerationRunning()"
-                                >↻</button>
+                                >
+                                  <meme-icon name="arrow-clockwise"></meme-icon>
+                                </button>
                               }
                               @if (canCreateChecklistForStat(bin, stats)) {
                                 <button
@@ -309,7 +349,9 @@
                                   class="icon-btn"
                                   title="Add Checklist"
                                   (click)="$event.stopPropagation(); startAddChecklist(bin, stats)"
-                                >☑</button>
+                                >
+                                  <meme-icon name="card-checklist"></meme-icon>
+                                </button>
                               }
                               @if (canCreateWorklistForStat(bin, stats)) {
                                 <button
@@ -317,7 +359,9 @@
                                   class="icon-btn"
                                   title="Add Worklist"
                                   (click)="$event.stopPropagation(); startAddWorklist(bin, stats)"
-                                >☰</button>
+                                >
+                                  <meme-icon name="list-task"></meme-icon>
+                                </button>
                               }
                             </div>
                           </td>
@@ -455,22 +499,30 @@
               <div class="list-pager">
                 <button type="button" class="icon-btn" title="Previous page"
                         [disabled]="checklistPage() <= 1"
-                        (click)="checklistPageTo(checklistPage() - 1)">‹</button>
+                        (click)="checklistPageTo(checklistPage() - 1)">
+                  <meme-icon name="chevron-left"></meme-icon>
+                </button>
                 <span>{{ checklistPage() }} / {{ checklistTotalPages() }}</span>
                 <button type="button" class="icon-btn" title="Next page"
                         [disabled]="checklistPage() >= checklistTotalPages()"
-                        (click)="checklistPageTo(checklistPage() + 1)">›</button>
+                        (click)="checklistPageTo(checklistPage() + 1)">
+                  <meme-icon name="chevron-right"></meme-icon>
+                </button>
               </div>
               @if (canImportChecklists()) {
                 <div class="icon-actions">
-                  <button type="button" class="icon-btn" title="Import Checklist" (click)="startImportChecklist()">⬆</button>
-                  <button type="button" class="icon-btn" title="Compute Checklist" (click)="startComputeChecklist()">⊕</button>
+                  <button type="button" class="icon-btn" title="Import Checklist" (click)="startImportChecklist()">
+                    <meme-icon name="upload"></meme-icon>
+                  </button>
+                  <button type="button" class="icon-btn" title="Compute Checklist" (click)="startComputeChecklist()">
+                    <meme-icon name="gear"></meme-icon>
+                  </button>
                 </div>
               }
             </div>
             <div class="table-wrap">
               @if (checklists().length) {
-                <table>
+                <table class="workflow-list-table workflow-list-table-checklists">
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -487,7 +539,11 @@
                         tabindex="0"
                       >
                         <td>{{ checklist.name || 'n/a' }}</td>
-                        <td>{{ displayDate(checklist.lastModified) }}</td>
+                        <td class="stacked-date">
+                          @for (datePart of displayDateParts(checklist.lastModified); track datePart) {
+                            <span>{{ datePart }}</span>
+                          }
+                        </td>
                         <td class="nobreak">
                           <div class="icon-actions">
                             <button
@@ -496,18 +552,25 @@
                               title="{{ loadingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Loading…' : 'View' }}"
                               (click)="$event.stopPropagation(); viewWorkflowItem('checklist', checklist)"
                               [disabled]="loadingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
-                            >⊞</button>
+                            >
+                              <meme-icon name="eye"></meme-icon>
+                            </button>
                             <button
                               type="button"
                               class="icon-btn"
                               title="{{ exportingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Exporting…' : 'Export' }}"
                               (click)="$event.stopPropagation(); exportWorkflowItem('checklist', checklist)"
                               [disabled]="exportingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
-                            >⬇</button>
+                            >
+                              <meme-icon name="download"></meme-icon>
+                            </button>
                             @for (
                               listAction of workflowListActions('checklist', checklist);
                               track listAction.action
                             ) {
+                              @if (listAction.action === 'UNAPPROVE') {
+                                <span class="workflow-actions-break" aria-hidden="true"></span>
+                              }
                               <button
                                 type="button"
                                 class="icon-btn"
@@ -515,7 +578,9 @@
                                 [title]="listAction.label"
                                 (click)="$event.stopPropagation(); performWorkflowListAction('checklist', checklist, listAction.action)"
                                 [disabled]="isWorkflowItemActionRunning('checklist', checklist)"
-                              >{{ listAction.action === 'UNAPPROVE' ? '↩' : '✓' }}</button>
+                              >
+                                <meme-icon [name]="listAction.action === 'UNAPPROVE' ? 'arrow-counterclockwise' : 'check'"></meme-icon>
+                              </button>
                             }
                             @if (canManageWorkflowListActions()) {
                               <button
@@ -524,7 +589,9 @@
                                 title="{{ deletingWorkflowItemKey() === workflowItemKey('checklist', checklist) ? 'Removing…' : 'Delete' }}"
                                 (click)="$event.stopPropagation(); removeWorkflowItem('checklist', checklist)"
                                 [disabled]="deletingWorkflowItemKey() === workflowItemKey('checklist', checklist)"
-                              >✕</button>
+                              >
+                                <meme-icon name="trash"></meme-icon>
+                              </button>
                             }
                           </div>
                         </td>
@@ -586,16 +653,20 @@
               <div class="list-pager">
                 <button type="button" class="icon-btn" title="Previous page"
                         [disabled]="worklistPage() <= 1"
-                        (click)="worklistPageTo(worklistPage() - 1)">‹</button>
+                        (click)="worklistPageTo(worklistPage() - 1)">
+                  <meme-icon name="chevron-left"></meme-icon>
+                </button>
                 <span>{{ worklistPage() }} / {{ worklistTotalPages() }}</span>
                 <button type="button" class="icon-btn" title="Next page"
                         [disabled]="worklistPage() >= worklistTotalPages()"
-                        (click)="worklistPageTo(worklistPage() + 1)">›</button>
+                        (click)="worklistPageTo(worklistPage() + 1)">
+                  <meme-icon name="chevron-right"></meme-icon>
+                </button>
               </div>
             </div>
             <div class="table-wrap">
               @if (worklists().length) {
-                <table>
+                <table class="workflow-list-table workflow-list-table-worklists">
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -637,14 +708,18 @@
                               title="{{ loadingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Loading…' : 'View' }}"
                               (click)="$event.stopPropagation(); viewWorkflowItem('worklist', worklist)"
                               [disabled]="loadingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                            >⊞</button>
+                            >
+                              <meme-icon name="eye"></meme-icon>
+                            </button>
                             <button
                               type="button"
                               class="icon-btn"
                               title="{{ exportingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Exporting…' : 'Export' }}"
                               (click)="$event.stopPropagation(); exportWorkflowItem('worklist', worklist)"
                               [disabled]="exportingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                            >⬇</button>
+                            >
+                              <meme-icon name="download"></meme-icon>
+                            </button>
                             @if (canManageWorklistAssignments()) {
                               <button
                                 type="button"
@@ -652,12 +727,17 @@
                                 title="Assign"
                                 (click)="$event.stopPropagation(); openAssignmentDialog(worklist)"
                                 [disabled]="loadingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                              >⇧</button>
+                              >
+                                <meme-icon name="person-plus"></meme-icon>
+                              </button>
                             }
                             @for (
                               listAction of workflowListActions('worklist', worklist);
                               track listAction.action
                             ) {
+                              @if (listAction.action === 'UNAPPROVE') {
+                                <span class="workflow-actions-break" aria-hidden="true"></span>
+                              }
                               <button
                                 type="button"
                                 class="icon-btn"
@@ -665,7 +745,9 @@
                                 [title]="listAction.label"
                                 (click)="$event.stopPropagation(); performWorkflowListAction('worklist', worklist, listAction.action)"
                                 [disabled]="isWorkflowItemActionRunning('worklist', worklist)"
-                              >{{ listAction.action === 'UNAPPROVE' ? '↩' : '✓' }}</button>
+                              >
+                                <meme-icon [name]="listAction.action === 'UNAPPROVE' ? 'arrow-counterclockwise' : 'check'"></meme-icon>
+                              </button>
                             }
                             @if (canManageWorkflowListActions()) {
                               <button
@@ -674,7 +756,9 @@
                                 title="{{ deletingWorkflowItemKey() === workflowItemKey('worklist', worklist) ? 'Removing…' : 'Delete' }}"
                                 (click)="$event.stopPropagation(); removeWorkflowItem('worklist', worklist)"
                                 [disabled]="deletingWorkflowItemKey() === workflowItemKey('worklist', worklist)"
-                              >✕</button>
+                              >
+                                <meme-icon name="trash"></meme-icon>
+                              </button>
                             }
                           </div>
                         </td>
@@ -751,6 +835,7 @@
                   <div class="list-pager">
                     <label for="reports-page-size">Per page</label>
                     <select
+                      class="pager-select"
                       id="reports-page-size"
                       [ngModel]="reportsPageSize()"
                       (ngModelChange)="setReportsPageSize(+$event)"
@@ -761,10 +846,14 @@
                       }
                     </select>
                     <button type="button" class="icon-btn" title="Previous page"
-                      [disabled]="reportsPage() <= 1" (click)="loadReports(reportsPage() - 1)">‹</button>
+                      [disabled]="reportsPage() <= 1" (click)="loadReports(reportsPage() - 1)">
+                      <meme-icon name="chevron-left"></meme-icon>
+                    </button>
                     <span>{{ reportsPage() }} / {{ reportsTotalPages() }}</span>
                     <button type="button" class="icon-btn" title="Next page"
-                      [disabled]="reportsPage() >= reportsTotalPages()" (click)="loadReports(reportsPage() + 1)">›</button>
+                      [disabled]="reportsPage() >= reportsTotalPages()" (click)="loadReports(reportsPage() + 1)">
+                      <meme-icon name="chevron-right"></meme-icon>
+                    </button>
                   </div>
                 }
               </div>
@@ -798,7 +887,9 @@
                                 title="{{ removingReportId() === report.id ? 'Removing…' : 'Remove Report' }}"
                                 (click)="$event.stopPropagation(); removeTopLevelReport(report)"
                                 [disabled]="removingReportId() === report.id"
-                              >✕</button>
+                              >
+                                <meme-icon name="trash"></meme-icon>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -834,6 +925,7 @@
                   <div class="list-pager">
                     <label for="results-page-size">Per page</label>
                     <select
+                      class="pager-select"
                       id="results-page-size"
                       [ngModel]="resultsPageSize()"
                       (ngModelChange)="setResultsPageSize(+$event)"
@@ -844,10 +936,14 @@
                       }
                     </select>
                     <button type="button" class="icon-btn" title="Previous page"
-                      [disabled]="resultsPage() <= 1" (click)="resultsPage.set(resultsPage() - 1)">‹</button>
+                      [disabled]="resultsPage() <= 1" (click)="resultsPage.set(resultsPage() - 1)">
+                      <meme-icon name="chevron-left"></meme-icon>
+                    </button>
                     <span>{{ resultsPage() }} / {{ resultsTotalPages() }}</span>
                     <button type="button" class="icon-btn" title="Next page"
-                      [disabled]="resultsPage() >= resultsTotalPages()" (click)="resultsPage.set(resultsPage() + 1)">›</button>
+                      [disabled]="resultsPage() >= resultsTotalPages()" (click)="resultsPage.set(resultsPage() + 1)">
+                      <meme-icon name="chevron-right"></meme-icon>
+                    </button>
                   </div>
                 }
               </div>
@@ -892,10 +988,16 @@
       <div class="wl-detail-header">
         <strong>{{ workflowListDetailTitle(detail) }}</strong>
         <div class="wl-detail-actions">
-          <button type="button" class="icon-btn" title="Notes ({{ workflowNotes(detail.item).length }})" (click)="openNotesDialog()">✎</button>
-          <button type="button" class="icon-btn" title="Log" (click)="openLogDialog()">☰</button>
+          <button type="button" class="icon-btn" title="Notes ({{ workflowNotes(detail.item).length }})" (click)="openNotesDialog()">
+            <meme-icon name="chat"></meme-icon>
+          </button>
+          <button type="button" class="icon-btn" title="Log" (click)="openLogDialog()">
+            <meme-icon name="journal-text"></meme-icon>
+          </button>
           @if (detail.kind === 'worklist') {
-            <button type="button" class="icon-btn" title="Concept Reports" (click)="openConceptReportsDialog()">⚑</button>
+            <button type="button" class="icon-btn" title="Concept Reports" (click)="openConceptReportsDialog()">
+              <meme-icon name="flag"></meme-icon>
+            </button>
           }
           <button
             type="button"
@@ -903,8 +1005,12 @@
             title="{{ exportingWorkflowItemKey() === workflowItemKey(detail.kind, detail.item) ? 'Exporting…' : 'Export' }}"
             (click)="exportWorkflowItem(detail.kind, detail.item)"
             [disabled]="exportingWorkflowItemKey() === workflowItemKey(detail.kind, detail.item)"
-          >⬇</button>
-          <button type="button" class="icon-btn" title="Close" (click)="closeWorkflowListDetail()">✕</button>
+          >
+            <meme-icon name="download"></meme-icon>
+          </button>
+          <button type="button" class="icon-btn" title="Close" (click)="closeWorkflowListDetail()">
+            <meme-icon name="x"></meme-icon>
+          </button>
         </div>
       </div>
       <div class="detail-body">
@@ -999,19 +1105,27 @@
       <section class="list-panel" aria-labelledby="list-detail-records-title">
         <div class="panel-header">
           <h3 id="list-detail-records-title">
-            Clusters
-            @if (!loadingListDetailRecords()) {
-              ({{ listDetailRecordsTotal() }})
+            @if (workflowListDetail(); as detail) {
+              {{ detail.item.name || detail.item.id || 'Clusters' }}
+              @if (!loadingListDetailRecords()) {
+                ({{ listDetailRecordsTotal() }})
+              }
+            } @else {
+              Clusters
             }
           </h3>
           <div class="list-pager">
             <button type="button" class="icon-btn" title="Previous page"
               [disabled]="listDetailRecordsPage() <= 1"
-              (click)="clusterPageTo(listDetailRecordsPage() - 1)">‹</button>
+              (click)="clusterPageTo(listDetailRecordsPage() - 1)">
+              <meme-icon name="chevron-left"></meme-icon>
+            </button>
             <span>{{ listDetailRecordsPage() }} / {{ listDetailRecordsTotalPages() }}</span>
             <button type="button" class="icon-btn" title="Next page"
               [disabled]="listDetailRecordsPage() >= listDetailRecordsTotalPages()"
-              (click)="clusterPageTo(listDetailRecordsPage() + 1)">›</button>
+              (click)="clusterPageTo(listDetailRecordsPage() + 1)">
+              <meme-icon name="chevron-right"></meme-icon>
+            </button>
           </div>
         </div>
         <div class="table-wrap">
@@ -1453,36 +1567,28 @@
             }
           </select>
         </label>
-        <label class="checkbox-label" for="workflow-bin-form-enabled">
-          <input
-            id="workflow-bin-form-enabled"
-            type="checkbox"
-            [ngModel]="form.definition.enabled !== false"
-            (ngModelChange)="updateWorkflowBinDefinitionFlag('enabled', $event)"
-            name="workflow-bin-enabled"
-          />
-          Enabled
-        </label>
-        <label class="checkbox-label" for="workflow-bin-form-required">
-          <input
-            id="workflow-bin-form-required"
-            type="checkbox"
-            [ngModel]="!!form.definition.required"
-            (ngModelChange)="updateWorkflowBinDefinitionFlag('required', $event)"
-            name="workflow-bin-required"
-          />
-          Required
-        </label>
-        <label class="checkbox-label" for="workflow-bin-form-editable">
-          <input
-            id="workflow-bin-form-editable"
-            type="checkbox"
-            [ngModel]="!!form.definition.editable"
-            (ngModelChange)="updateWorkflowBinDefinitionFlag('editable', $event)"
-            name="workflow-bin-editable"
-          />
-          Editable
-        </label>
+        <div class="checkbox-row">
+          <label class="checkbox-label" for="workflow-bin-form-required">
+            <input
+              id="workflow-bin-form-required"
+              type="checkbox"
+              [ngModel]="!!form.definition.required"
+              (ngModelChange)="updateWorkflowBinDefinitionFlag('required', $event)"
+              name="workflow-bin-required"
+            />
+            Required
+          </label>
+          <label class="checkbox-label" for="workflow-bin-form-editable">
+            <input
+              id="workflow-bin-form-editable"
+              type="checkbox"
+              [ngModel]="!!form.definition.editable"
+              (ngModelChange)="updateWorkflowBinDefinitionFlag('editable', $event)"
+              name="workflow-bin-editable"
+            />
+            Editable
+          </label>
+        </div>
         @if (form.mode === 'add' && workflowBinDefinitionOptions(form.workflowConfig).length) {
           <label class="form-field full-span" for="workflow-bin-form-position-after">
             <span>Position Bin After</span>
@@ -1502,22 +1608,24 @@
           </label>
         }
         <div class="form-field full-span">
-          <div class="field-actions">
+          <div class="field-actions query-field-actions">
             <label for="workflow-bin-form-query">Query</label>
-            <button
-              type="button"
-              (click)="testWorkflowBinQuery()"
-              [disabled]="testingWorkflowBinQuery() || savingBinDefinition()"
-            >
-              {{ testingWorkflowBinQuery() ? 'Testing' : 'Test' }}
-            </button>
-            <button
-              type="button"
-              (click)="formatWorkflowBinQuery()"
-              [disabled]="savingBinDefinition() || !form.definition.query?.trim()"
-            >
-              Format
-            </button>
+            <div class="field-button-group">
+              <button
+                type="button"
+                (click)="testWorkflowBinQuery()"
+                [disabled]="testingWorkflowBinQuery() || savingBinDefinition()"
+              >
+                {{ testingWorkflowBinQuery() ? 'Testing' : 'Test' }}
+              </button>
+              <button
+                type="button"
+                (click)="formatWorkflowBinQuery()"
+                [disabled]="savingBinDefinition() || !form.definition.query?.trim()"
+              >
+                Format
+              </button>
+            </div>
           </div>
           <textarea
             id="workflow-bin-form-query"
@@ -1800,7 +1908,7 @@
             }
           </strong>
           <span class="muted">
-            {{ form.availableClusterCount }} unassigned clusters available.
+            {{ form.availableClusterCount }} {{ worklistClusterAvailabilityLabel() }}.
           </span>
         </div>
         <label class="form-field" for="workflow-worklist-form-cluster-count">

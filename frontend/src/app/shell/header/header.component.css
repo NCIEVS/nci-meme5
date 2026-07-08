@@ -1,12 +1,17 @@
+:host {
+  display: block;
+  --meme-shell-header-height: 68px;
+}
+
 .app-header {
   position: sticky;
   top: 0;
   z-index: var(--meme-z-overlay);
   display: grid;
-  grid-template-columns: minmax(220px, auto) 1fr auto;
+  grid-template-columns: minmax(220px, 1fr) auto;
   align-items: center;
-  gap: var(--meme-space-lg);
-  min-height: 68px;
+  gap: var(--meme-space-md);
+  min-height: var(--meme-shell-header-height);
   padding: 0 32px;
   color: #ffffff;
   background: #00008a url('/images/background.jpg') left top;
@@ -57,47 +62,76 @@
   white-space: nowrap;
 }
 
-nav {
+.app-tabs {
+  position: sticky;
+  top: var(--meme-shell-header-height);
+  z-index: 999;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-end;
+  gap: 4px;
   min-width: 0;
+  padding: 8px 32px 0;
   overflow-x: auto;
+  background: var(--meme-bg);
+  border-bottom: 1px solid var(--meme-border);
 }
 
-nav a,
-nav button,
+.app-tabs a,
+.app-tabs button,
 .session a,
 .session button {
   min-height: 34px;
-  padding: 6px 10px;
-  color: #dbe7ef;
-  background: transparent;
-  border: 1px solid transparent;
-  border-bottom: 3px solid transparent;
+  padding: 6px 14px;
   border-radius: var(--meme-input-radius) var(--meme-input-radius) 0 0;
   font-size: 0.9rem;
   text-decoration: none;
   white-space: nowrap;
 }
 
-nav a:hover,
+.app-tabs a,
+.app-tabs button {
+  color: var(--meme-text);
+  background: #e7edf3;
+  border: 1px solid #b5c3cf;
+  border-bottom: 0;
+}
+
+.session a,
+.session button {
+  color: #dbe7ef;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--meme-input-radius);
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 0.86rem;
+}
+
+.app-tabs a:hover,
+.app-tabs button:hover:not(:disabled) {
+  color: #000000;
+  background: #ffffff;
+}
+
 .session a:hover,
 .session button:hover {
   color: #ffffff;
   background: rgb(255 255 255 / 12%);
 }
 
-/* Active tab — solid accent underline, full white text */
-nav a.active {
-  color: #ffffff;
-  background: rgb(255 255 255 / 10%);
-  border-bottom-color: var(--meme-brand-accent);
+/* Active top-of-page tab */
+.app-tabs a.active {
+  color: #000000;
+  background: var(--meme-surface);
+  border-color: #8da0af;
+  border-bottom-color: var(--meme-surface);
+  font-weight: 700;
 }
 
 /* Disabled tab — clearly unavailable, not just dimmed */
-nav button:disabled {
-  color: rgb(219 231 239 / 40%);
+.app-tabs button:disabled {
+  color: var(--meme-text-muted);
+  background: #eef2f5;
   cursor: not-allowed;
   font-style: italic;
 }
@@ -122,12 +156,14 @@ nav button:disabled {
   .app-header {
     grid-template-columns: 1fr;
     align-items: flex-start;
-    gap: var(--meme-space-md);
-    padding: var(--meme-panel-padding) var(--meme-space-lg);
+    gap: var(--meme-space-sm);
+    padding: var(--meme-space-sm) var(--meme-space-lg);
   }
 
-  nav {
+  .app-tabs {
+    position: static;
     width: 100%;
+    padding: 4px var(--meme-space-lg) 0;
   }
 
   .session {

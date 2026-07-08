@@ -1,14 +1,19 @@
 .operations-view {
   display: grid;
   gap: var(--meme-space-lg);
-  padding: 28px 32px 40px;
+  padding: 12px 32px 40px;
 }
 
 .view-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--meme-space-lg);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .kicker {
@@ -99,6 +104,18 @@ dt {
 .readonly-value {
   padding: 6px 0;
   color: var(--meme-text-secondary);
+}
+
+.project-editing-row {
+  display: flex;
+  align-items: center;
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.editing-disabled-alert {
+  padding: 6px 10px;
 }
 
 input,
@@ -296,7 +313,7 @@ details[open] .accordion-arrow {
   border: 1px solid transparent;
   border-radius: 3px;
   cursor: pointer;
-  color: var(--meme-text);
+  color: #000;
   opacity: 0.85;
 }
 
@@ -312,16 +329,16 @@ details[open] .accordion-arrow {
 }
 
 .icon-btn.danger {
-  color: var(--meme-btn-danger-color);
+  color: #000;
 }
 
 .icon-btn.warning {
-  color: var(--meme-warning-text);
+  color: #000;
 }
 
 .icon-action {
   cursor: pointer;
-  color: var(--meme-text);
+  color: #000;
   font-size: 1rem;
   opacity: 0.8;
   user-select: none;
@@ -335,7 +352,7 @@ details[open] .accordion-arrow {
 }
 
 .icon-action.danger {
-  color: var(--meme-btn-danger-color);
+  color: #000;
 }
 
 .icon-action.is-disabled {
@@ -350,6 +367,15 @@ td.nobreak {
 
 .list-search-bar {
   flex: 1 1 180px;
+}
+
+.bins-toolbar {
+  align-items: center;
+}
+
+.bins-search-bar {
+  flex: 1 1 220px;
+  max-width: 380px;
 }
 
 .list-search-bar input {
@@ -367,6 +393,14 @@ td.nobreak {
   white-space: nowrap;
   font-size: var(--meme-text-sm);
   color: var(--meme-text-secondary);
+}
+
+.pager-select {
+  min-height: 24px;
+  height: 24px;
+  padding: 2px 6px;
+  font-size: var(--meme-text-xs);
+  line-height: 1;
 }
 
 .sr-only {
@@ -741,8 +775,8 @@ dd {
 }
 
 .status-pill.failed {
-  background: var(--meme-error-bg);
-  color: var(--meme-error-text);
+  background: var(--meme-surface-subtle);
+  color: #2f4050;
 }
 
 .upload-panel,
@@ -767,6 +801,13 @@ dd {
 
 .checkbox-label input {
   min-height: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
 }
 
 .log-panel pre {
@@ -806,6 +847,17 @@ dd {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+}
+
+.query-field-actions {
+  align-items: flex-end;
+}
+
+.field-button-group {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -859,10 +911,9 @@ textarea {
 
 @media (max-width: 900px) {
   .operations-view {
-    padding: 22px var(--meme-space-lg) 32px;
+    padding: 10px var(--meme-space-lg) 32px;
   }
 
-  .view-header,
   .content-grid,
   .split-grid {
     grid-template-columns: 1fr;
@@ -873,6 +924,12 @@ textarea {
   .assignment-form,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .checkbox-row,
+  .query-field-actions,
+  .field-button-group {
+    justify-content: flex-start;
   }
 }
 
@@ -1198,17 +1255,6 @@ textarea {
   padding: 3px 7px;
 }
 
-/* WF-007: epoch badge shown inline in Bins panel header subtitle */
-.epoch-badge {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: var(--meme-btn-primary-bg);
-  color: var(--meme-btn-primary-color);
-  font-size: var(--meme-text-xs);
-  font-weight: 700;
-}
-
 /* WF-009: workflow status text colors */
 .wf-ready       { color: var(--meme-wf-ready);        font-weight: 700; }
 .wf-needs-review{ color: var(--meme-wf-needs-review);  font-weight: 700; }
@@ -1323,6 +1369,51 @@ textarea {
   min-width: 0;
 }
 
+.workflow-list-table {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.workflow-list-table th:first-child,
+.workflow-list-table td:first-child {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workflow-list-table th:last-child,
+.workflow-list-table td:last-child {
+  width: 118px;
+}
+
+.workflow-actions-break {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 0;
+}
+
+.workflow-list-table-checklists th:nth-child(2),
+.workflow-list-table-checklists td:nth-child(2) {
+  width: 132px;
+  white-space: normal;
+}
+
+.workflow-list-table .stacked-date span {
+  display: block;
+  line-height: 1.2;
+}
+
+.workflow-list-table-worklists th:nth-child(2),
+.workflow-list-table-worklists td:nth-child(2) {
+  width: 120px;
+  overflow-wrap: anywhere;
+}
+
+.workflow-list-table-worklists th:nth-child(3),
+.workflow-list-table-worklists td:nth-child(3) {
+  width: 112px;
+}
+
 .wl-detail-header {
   display: flex;
   align-items: center;
@@ -1406,6 +1497,11 @@ textarea {
   display: flex;
   align-items: center;
   gap: var(--meme-space-sm);
+}
+
+.wl-toolbar label {
+  white-space: nowrap;
+  font-size: var(--meme-text-xs);
 }
 
 .wl-filter {
@@ -1506,6 +1602,217 @@ textarea {
 /* Concept workflow status row coloring (matches legacy tsApp.css) */
 tr.NEEDS_REVIEW td {
   color: red;
+}
+
+tr.NEEDS_REVIEW .icon-btn,
+tr.NEEDS_REVIEW .icon-action {
+  color: inherit;
+}
+
+tr.DEMOTION td {
+  color: blue;
+}
+
+tr.OBSOLETE td {
+  color: purple;
+}
+
+tr.UNRELEASABLE td {
+  color: green;
+}
+
+tr.RXNORM td {
+  color: orange;
+}
+
+.popup-legacy-shell {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px 58px;
+}
+
+.popup-legacy-title-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.popup-page-size,
+.popup-pager {
+  justify-content: flex-end;
+}
+
+.popup-page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--meme-text-secondary);
+  font-size: var(--meme-text-sm);
+}
+
+.popup-table-wrap {
+  max-height: calc(100vh - 170px);
+}
+
+.rels-table {
+  min-width: 820px;
+}
+
+.rels-table td {
+  vertical-align: middle;
+}
+
+.rels-col-name {
+  width: 34%;
+}
+
+.rels-col-concept,
+.rels-col-level,
+.rels-col-actions {
+  width: 8%;
+}
+
+.rels-col-type {
+  width: 16%;
+}
+
+.rels-col-term,
+.rels-col-editor {
+  width: 13%;
+}
+
+.rels-from-name-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+
+.rels-from-name-content input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.popup-footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--meme-surface);
+  border-top: 1px solid var(--meme-border-inner);
+  z-index: 10;
+}
+
+.popup-footer-actions,
+.relationship-target-add,
+.tree-component-header h5 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.relationship-dialog-table td {
+  vertical-align: top;
+}
+
+.relationship-target-add {
+  margin-bottom: 6px;
+}
+
+.relationship-target-add input {
+  max-width: 140px;
+}
+
+.relationship-target-table {
+  max-height: 240px;
+  overflow: auto;
+}
+
+.relationship-dialog-actions {
+  justify-content: flex-end;
+}
+
+.context-position-wrap {
+  max-height: 230px;
+}
+
+.context-position-table {
+  min-width: 0;
+}
+
+.tree-component {
+  display: grid;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.tree-component-header h5 {
+  margin: 0;
+  font-size: var(--meme-text-sm);
+}
+
+.tree-position-btn {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  font-size: 0.72rem;
+  vertical-align: text-bottom;
+}
+
+.tree-component-header .tree-position-btn {
+  margin: 0 1px;
+}
+
+.tree-root,
+.tree-children {
+  margin: 0;
+  padding-left: 18px;
+  list-style: none;
+}
+
+.tree-root {
+  padding-left: 0;
+}
+
+.tree-node-line {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  gap: 4px;
+}
+
+.tree-toggle {
+  flex: 0 0 22px;
+}
+
+.tree-leaf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: var(--meme-text-secondary);
+}
+
+.tree-leaf-placeholder {
+  opacity: 0;
+}
+
+.highlighted {
+  background: yellow;
+}
+
+.tree-more-button {
+  min-height: 0;
+  padding: 0;
+  color: var(--meme-brand-action);
+  background: transparent;
+  border: 0;
+  font-size: var(--meme-text-sm);
 }
 
 /* ─── Concept List left panel ─── */
@@ -1671,14 +1978,27 @@ tr.NEEDS_REVIEW td {
   padding-bottom: 8px;
 }
 
+.edit-dialog-title-row {
+  padding: 8px 8px 12px;
+}
+
 .styw-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .styw-concept {
   color: var(--meme-text-secondary);
-  font-size: var(--meme-text-sm);
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.panel-header p.styw-concept {
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .styw-concept-pending {
@@ -1755,6 +2075,10 @@ tr.NEEDS_REVIEW td {
 
 /* Row color coding by workflow status (matches legacy) */
 tr.atom-row-needs-review td { color: #b91c1c; }
+tr.atom-row-needs-review .icon-btn,
+tr.atom-row-needs-review .icon-action {
+  color: inherit;
+}
 tr.atom-row-unreleasable td { color: #15803d; }
 tr.atom-row-rxnorm td       { color: #b45309; }
 tr.atom-row-obsolete td     { color: #7c3aed; }

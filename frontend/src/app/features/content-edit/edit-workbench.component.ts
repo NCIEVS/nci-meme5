@@ -7,11 +7,12 @@ import {
   RouterLink,
   RouterLinkActive
 } from '@angular/router';
-import { finalize, map } from 'rxjs';
+import { finalize, map, of, switchMap } from 'rxjs';
 
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
+import { IconComponent, MemeIconName } from '../../shared/icon/icon.component';
 import { OperationalApiService } from '../operations/operational-api.service';
 import { WorkflowApiService } from './workflow-api.service';
 import { buildContentPfs } from './content-edit-api.helpers';
@@ -23,6 +24,7 @@ import {
   ContentSearchResult,
   ContentSemanticType,
   ContentSemanticTypeMetadata,
+  ContentTree,
   ContentTreePosition
 } from './content-edit.models';
 import {
@@ -44,12 +46,12 @@ import { EditMutationApiService } from './edit-mutation-api.service';
 import {
   EditAddAtomRequest,
   EditAddRelationshipRequest,
+  EditAddRelationshipsRequest,
   EditAddSemanticTypeRequest,
   EditApproveConceptRequest,
   EditMoveAtomsRequest,
   EditMutationReadiness,
   EditRemoveAtomRequest,
-  EditRemoveRelationshipRequest,
   EditRemoveSemanticTypeRequest,
   EditMergeConceptRequest,
   EditSplitConceptRequest,
@@ -94,9 +96,18 @@ interface EditWorkbenchContextEntry {
   value: string;
 }
 
+interface RelationshipTargetConcept extends ContentComponentDetail {
+  selected?: boolean;
+}
+
+interface TreeNodeView {
+  expanded: boolean;
+  loaded: boolean;
+}
+
 @Component({
   selector: 'meme-edit-workbench',
-  imports: [DialogComponent, FormsModule, NgTemplateOutlet, RouterLink, RouterLinkActive],
+  imports: [DialogComponent, FormsModule, IconComponent, NgTemplateOutlet, RouterLink, RouterLinkActive],
   templateUrl: './edit-workbench.component.html',
   styleUrl: '../operations/operations.component.css'
 })
@@ -129,6 +140,21 @@ export class EditWorkbenchComponent implements OnInit {
         }
       });
     });
+
+    effect(() => {
+      const workbench = this.activeWorkbench();
+      const conceptId = this.loadedConcept()?.id;
+      if (!conceptId) return;
+
+      untracked(() => {
+        if (workbench === 'relationships' && !this.loadingRelationships()) {
+          this.loadRelationships();
+        }
+        if (workbench === 'contexts' && !this.loadingContextTreePositions()) {
+          this.loadContextTreePositions();
+        }
+      });
+    });
   }
 
   private readonly contentApi = inject(ContentEditApiService);
@@ -152,9 +178,7 @@ export class EditWorkbenchComponent implements OnInit {
     initialValue: this.route.snapshot.queryParamMap
   });
 
-  protected readonly relationshipTypeOptions = [
-    'RO', 'RB', 'RN', 'BRO', 'BRB', 'BRN', 'XR', 'PAR', 'CHD', 'SIB'
-  ];
+  protected readonly relationshipTypeOptions = ['RO', 'RB', 'RN', 'BRO', 'BRB', 'BRN'];
   protected readonly atomStatusOptions = ['NEEDS_REVIEW', 'READY_FOR_PUBLICATION'];
 
   // Undo/redo action state
@@ -261,10 +285,25 @@ export class EditWorkbenchComponent implements OnInit {
 
   // Relationships workbench
   protected readonly addingRelationship = signal(false);
+  protected readonly addRelationshipDialogOpen = signal(false);
+  protected readonly relationshipAddManualTargetId = signal('');
+  protected readonly relationshipAddManualTargetError = signal<string | null>(null);
+  protected readonly relationshipAddTargets = signal<RelationshipTargetConcept[]>([]);
   protected readonly relationshipAddType = signal('RO');
   protected readonly relationshipAddTargetConceptId = signal('');
+  protected readonly relationshipAddPendingRelationships = signal<ContentRelationship[] | null>(null);
   protected readonly relationshipAddResult = signal<EditValidationResult | null>(null);
   protected readonly relationshipAddPendingRelationship = signal<ContentRelationship | null>(null);
+  protected readonly relationshipPage = signal(1);
+  protected readonly relationshipPageSize = signal(20);
+  protected readonly relationshipSortField = signal('lastModified');
+  protected readonly relationshipSortAscending = signal(false);
+  protected readonly relationshipPreferredOnly = signal(true);
+  protected readonly relationships = signal<ContentRelationship[]>([]);
+  protected readonly relationshipCount = signal(0);
+  protected readonly relationshipError = signal<string | null>(null);
+  protected readonly loadingRelationships = signal(false);
+  protected readonly selectedRelationshipIds = signal<ReadonlySet<number>>(new Set());
   protected readonly removingRelationshipId = signal<number | null>(null);
   protected readonly relationshipRemovalResult = signal<EditValidationResult | null>(null);
   protected readonly relationshipRemovalPendingRelationship = signal<ContentRelationship | null>(null);
@@ -277,11 +316,22 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly codeConceptError = signal<string | null>(null);
 
   // Contexts workbench
-  protected readonly contextFilter = signal('');
   protected readonly contextTreePositions = signal<ContentTreePosition[]>([]);
   protected readonly contextTreePositionCount = signal(0);
   protected readonly contextTreePositionError = signal<string | null>(null);
   protected readonly loadingContextTreePositions = signal(false);
+  protected readonly contextPage = signal(1);
+  protected readonly contextPageSize = signal(5);
+  protected readonly contextSortField = signal('terminology');
+  protected readonly contextSortAscending = signal(false);
+  protected readonly selectedContextTreePosition = signal<ContentTreePosition | null>(null);
+  protected readonly contextTree = signal<ContentTree | null>(null);
+  protected readonly contextTreeCount = signal(0);
+  protected readonly contextTreeViewed = signal(0);
+  protected readonly contextTreeError = signal<string | null>(null);
+  protected readonly loadingContextTree = signal(false);
+  protected readonly treeNodeViews = signal<Record<string, TreeNodeView>>({});
+  protected readonly loadingTreeChildrenKey = signal<string | null>(null);
 
   // Existing computed — prefer projectId from URL context (popup), fall back to user preferences
   protected readonly projectId = computed<number | null>(() => {
@@ -506,6 +556,28 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly conceptRelationships = computed<ContentRelationship[]>(
     () => Array.from(this.loadedConcept()?.relationships ?? [])
   );
+  protected readonly relationshipTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.relationshipCount() / this.relationshipPageSize()))
+  );
+  protected readonly selectedRelationships = computed(() => {
+    const ids = this.selectedRelationshipIds();
+    return this.relationships().filter((relationship) =>
+      relationship.id ? ids.has(relationship.id) : false
+    );
+  });
+  protected readonly hasSelectedRelationships = computed(() =>
+    this.selectedRelationshipIds().size > 0
+  );
+  protected readonly selectedRelationshipTargetsForDialog = computed(() =>
+    this.relationshipAddTargets().filter((target) => target.selected)
+  );
+  protected readonly acceptedRelationshipTypeOptions = computed(() => {
+    const types = ['XR', ...this.relationshipTypeOptions];
+    if (this.loadedConcept()?.publishable === false) {
+      types.push('BBT');
+    }
+    return Array.from(new Set(types));
+  });
   protected readonly availableSemanticTypeOptions = computed<ContentSemanticTypeMetadata[]>(() => {
     const existing = new Set(
       this.conceptSemanticTypes()
@@ -705,23 +777,19 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly relationshipAddErrors = computed(() => validationErrors(this.relationshipAddResult()));
   protected readonly relationshipAddWarnings = computed(() => validationWarnings(this.relationshipAddResult()));
   protected readonly relationshipAddNeedsOverride = computed(
-    () => Boolean(this.relationshipAddPendingRelationship()) && validationNeedsWarningOverride(this.relationshipAddResult())
+    () =>
+      (Boolean(this.relationshipAddPendingRelationship()) ||
+        Boolean(this.relationshipAddPendingRelationships())) &&
+      validationNeedsWarningOverride(this.relationshipAddResult())
   );
   protected readonly relationshipRemovalErrors = computed(() => validationErrors(this.relationshipRemovalResult()));
   protected readonly relationshipRemovalWarnings = computed(() => validationWarnings(this.relationshipRemovalResult()));
   protected readonly relationshipRemovalNeedsOverride = computed(
     () => Boolean(this.relationshipRemovalPendingRelationship()) && validationNeedsWarningOverride(this.relationshipRemovalResult())
   );
-  protected readonly filteredContextTreePositions = computed<ContentTreePosition[]>(() => {
-    const filter = this.contextFilter().trim().toLowerCase();
-    if (!filter) {
-      return this.contextTreePositions();
-    }
-    return this.contextTreePositions().filter((pos) => {
-      const display = `${pos.nodeTerminologyId ?? ''} ${pos.nodeName ?? ''} ${pos.terminology ?? ''}`.toLowerCase();
-      return display.includes(filter);
-    });
-  });
+  protected readonly contextTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.contextTreePositionCount() / this.contextPageSize()))
+  );
 
   protected readonly workbenchLinks: EditWorkbenchLink[] = [
     { label: 'Main', route: '/edit', workbench: 'main' },
@@ -930,11 +998,6 @@ export class EditWorkbenchComponent implements OnInit {
       this.atomSortField.set(field);
       this.atomSortAscending.set(true);
     }
-  }
-
-  protected atomSortIndicator(field: string): string {
-    if (this.atomSortField() !== field) return '';
-    return this.atomSortAscending() ? '▲' : '▼';
   }
 
   protected getAtomRowClass(atom: ContentAtom): string {
@@ -1310,12 +1373,14 @@ export class EditWorkbenchComponent implements OnInit {
   protected setRelationshipAddType(value: string): void {
     this.relationshipAddType.set(value);
     this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddPendingRelationships.set(null);
     this.relationshipAddResult.set(null);
   }
 
   protected setRelationshipAddTargetConceptId(value: string): void {
     this.relationshipAddTargetConceptId.set(value);
     this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddPendingRelationships.set(null);
     this.relationshipAddResult.set(null);
   }
 
@@ -1325,8 +1390,71 @@ export class EditWorkbenchComponent implements OnInit {
     this.semanticTypeAddResult.set(null);
   }
 
-  protected setContextFilter(value: string): void {
-    this.contextFilter.set(value);
+  protected setRelationshipPage(page: number): void {
+    if (page < 1 || page > this.relationshipTotalPages()) return;
+    this.relationshipPage.set(page);
+    this.loadRelationships();
+  }
+
+  protected setRelationshipPageSize(size: number): void {
+    this.relationshipPageSize.set(Number(size));
+    this.relationshipPage.set(1);
+    this.loadRelationships();
+  }
+
+  protected toggleRelationshipSort(field: string): void {
+    if (this.relationshipSortField() === field) {
+      this.relationshipSortAscending.set(!this.relationshipSortAscending());
+    } else {
+      this.relationshipSortField.set(field);
+      this.relationshipSortAscending.set(false);
+    }
+    this.relationshipPage.set(1);
+    this.loadRelationships();
+  }
+
+  protected setRelationshipPreferredOnly(value: boolean): void {
+    this.relationshipPreferredOnly.set(value);
+    this.relationshipPage.set(1);
+    this.loadRelationships();
+  }
+
+  protected toggleRelationshipSelection(relationship: ContentRelationship): void {
+    if (!relationship.id) return;
+    const ids = new Set(this.selectedRelationshipIds());
+    if (ids.has(relationship.id)) {
+      ids.delete(relationship.id);
+    } else {
+      ids.add(relationship.id);
+    }
+    this.selectedRelationshipIds.set(ids);
+  }
+
+  protected isRelationshipSelected(relationship: ContentRelationship): boolean {
+    return Boolean(relationship.id && this.selectedRelationshipIds().has(relationship.id));
+  }
+
+  protected setContextPage(page: number): void {
+    if (page < 1 || page > this.contextTotalPages()) return;
+    this.contextPage.set(page);
+    this.loadContextTreePositions();
+  }
+
+  protected setContextPageSize(size: number): void {
+    this.contextPageSize.set(Number(size));
+    this.contextPage.set(1);
+    this.loadContextTreePositions();
+  }
+
+  protected toggleContextSort(field: string): void {
+    if (this.contextSortField() === field) {
+      this.contextSortAscending.set(!this.contextSortAscending());
+    } else {
+      this.contextSortField.set(field);
+      this.contextSortAscending.set(false);
+    }
+    this.contextPage.set(1);
+    this.loadContextTreePositions();
   }
 
   // --- Concept loading ---
@@ -1384,9 +1512,6 @@ export class EditWorkbenchComponent implements OnInit {
           if (workbench === 'semantic-types') {
             this.loadSemanticTypeOptions();
           }
-          if (workbench === 'contexts') {
-            this.loadContextTreePositions();
-          }
         },
         error: () => {
           this.conceptLoadError.set('Concept could not be loaded.');
@@ -1436,10 +1561,6 @@ export class EditWorkbenchComponent implements OnInit {
       this.stySortAscending.set(false);
     }
     this.styPage.set(1);
-  }
-
-  protected stySortIndicator(field: string): string {
-    return this.stySortField() === field ? (this.stySortAscending() ? '↑' : '↓') : '';
   }
 
   protected addSemanticTypeRow(expandedForm: string | null | undefined): void {
@@ -1782,6 +1903,185 @@ export class EditWorkbenchComponent implements OnInit {
 
   // --- Relationships workbench ---
 
+  protected loadRelationships(): void {
+    const concept = this.loadedConcept();
+    const terminology = this.conceptTerminology();
+    const version = this.conceptVersion();
+    const terminologyId = concept?.terminologyId;
+
+    if (!terminology || !version || !terminologyId) {
+      this.relationshipError.set('Concept must be loaded with terminology identifiers.');
+      return;
+    }
+
+    this.relationshipError.set(null);
+    this.loadingRelationships.set(true);
+    this.contentApi
+      .findDeepRelationships(
+        terminology,
+        version,
+        terminologyId,
+        buildContentPfs(
+          this.relationshipPage(),
+          this.relationshipPageSize(),
+          this.relationshipSortField(),
+          this.relationshipSortAscending(),
+          ''
+        ),
+        {
+          includeConceptRels: true,
+          includeSelfReferential: false,
+          inverseFlag: true,
+          preferredOnly: this.relationshipPreferredOnly()
+        }
+      )
+      .pipe(finalize(() => this.loadingRelationships.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.relationships.set(response.items);
+          this.relationshipCount.set(response.totalCount);
+          const visibleIds = new Set(response.items.map((rel) => rel.id).filter(Boolean));
+          this.selectedRelationshipIds.update((ids) =>
+            new Set(Array.from(ids).filter((id) => visibleIds.has(id)))
+          );
+        },
+        error: () => {
+          this.relationshipError.set('Relationships could not be loaded.');
+          this.notifications.error('Relationships could not be loaded.');
+        }
+      });
+  }
+
+  protected relationshipLevel(rel: ContentRelationship): string {
+    if (rel.workflowStatus === 'DEMOTION') return 'P';
+    if (rel.terminology && rel.fromTerminology && rel.terminology === rel.fromTerminology) {
+      return 'C';
+    }
+    return 'S';
+  }
+
+  protected relationshipRowClass(rel: ContentRelationship): string {
+    if (rel.workflowStatus === 'DEMOTION') return 'DEMOTION';
+    if (rel.workflowStatus === 'NEEDS_REVIEW') return 'NEEDS_REVIEW';
+    if (rel.publishable === false) return 'UNRELEASABLE';
+    if (rel.obsolete) return 'OBSOLETE';
+    if (rel.terminology === 'RXNORM') return 'RXNORM';
+    return '';
+  }
+
+  protected canDeleteRelationship(rel: ContentRelationship): boolean {
+    return (
+      this.canRemoveRelationship(rel) &&
+      this.relationshipLevel(rel) !== 'S' &&
+      rel.workflowStatus !== 'DEMOTION' &&
+      this.projectEditingEnabled() === true
+    );
+  }
+
+  protected openAddRelationshipDialog(): void {
+    const concept = this.loadedConcept();
+    const selectedFromIds = new Set(
+      this.selectedRelationships()
+        .map((relationship) => relationship.fromId)
+        .filter((id): id is number => Boolean(id))
+    );
+    const peerConcepts =
+      ((window.opener as any)?.__memeGetPeerConcepts?.(concept?.id) as ContentComponentDetail[] | undefined) ?? [];
+    const targets = new Map<number, RelationshipTargetConcept>();
+
+    peerConcepts.forEach((peer) => {
+      if (!peer.id || peer.id === concept?.id) return;
+      targets.set(peer.id, { ...peer, selected: selectedFromIds.has(peer.id) });
+    });
+    this.selectedRelationships().forEach((relationship) => {
+      if (!relationship.fromId || relationship.fromId === concept?.id) return;
+      if (targets.has(relationship.fromId)) {
+        targets.set(relationship.fromId, {
+          ...targets.get(relationship.fromId)!,
+          selected: true
+        });
+        return;
+      }
+      targets.set(relationship.fromId, {
+        id: relationship.fromId,
+        name: relationship.fromName,
+        terminology: relationship.fromTerminology,
+        terminologyId: relationship.fromTerminologyId,
+        type: 'CONCEPT',
+        version: relationship.fromVersion,
+        selected: true
+      });
+    });
+
+    this.relationshipAddTargets.set(Array.from(targets.values()));
+    this.relationshipAddManualTargetId.set('');
+    this.relationshipAddManualTargetError.set(null);
+    this.relationshipAddResult.set(null);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddPendingRelationships.set(null);
+    this.addRelationshipDialogOpen.set(true);
+  }
+
+  protected closeAddRelationshipDialog(): void {
+    this.addRelationshipDialogOpen.set(false);
+    this.relationshipAddPendingRelationship.set(null);
+    this.relationshipAddPendingRelationships.set(null);
+    this.relationshipAddResult.set(null);
+  }
+
+  protected setRelationshipTargetSelected(target: RelationshipTargetConcept, selected: boolean): void {
+    if (!target.id) return;
+    this.relationshipAddTargets.update((targets) =>
+      targets.map((candidate) =>
+        candidate.id === target.id ? { ...candidate, selected } : candidate
+      )
+    );
+    this.relationshipAddPendingRelationships.set(null);
+    this.relationshipAddResult.set(null);
+  }
+
+  protected addManualRelationshipTarget(): void {
+    const targetId = this.parsePositiveInteger(this.relationshipAddManualTargetId());
+    const projectId = this.projectId();
+    const conceptId = this.loadedConcept()?.id;
+
+    this.relationshipAddManualTargetError.set(null);
+    if (!targetId || !projectId) {
+      this.relationshipAddManualTargetError.set('Enter a concept id.');
+      return;
+    }
+    if (targetId === conceptId) {
+      this.relationshipAddManualTargetError.set('The current concept cannot be a target.');
+      return;
+    }
+    if (this.relationshipAddTargets().some((target) => target.id === targetId)) {
+      this.relationshipAddTargets.update((targets) =>
+        targets.map((target) =>
+          target.id === targetId ? { ...target, selected: true } : target
+        )
+      );
+      this.relationshipAddManualTargetId.set('');
+      return;
+    }
+
+    this.contentApi.getComponentById('CONCEPT', targetId, projectId).subscribe({
+      next: (target) => {
+        if (!target) {
+          this.relationshipAddManualTargetError.set(`No concept found with id ${targetId}.`);
+          return;
+        }
+        this.relationshipAddTargets.update((targets) => [
+          ...targets,
+          { ...target, selected: true }
+        ]);
+        this.relationshipAddManualTargetId.set('');
+      },
+      error: () => {
+        this.relationshipAddManualTargetError.set(`Could not load concept ${targetId}.`);
+      }
+    });
+  }
+
   protected addRelationshipToConcept(overrideWarnings = false): void {
     const request = this.buildAddRelationshipRequest(overrideWarnings);
     if (!request || !this.relationshipAddReadiness().canExecute) {
@@ -1822,6 +2122,75 @@ export class EditWorkbenchComponent implements OnInit {
       });
   }
 
+  protected addSelectedRelationshipsToConcept(overrideWarnings = false): void {
+    const request = this.buildAddRelationshipsRequest(overrideWarnings);
+    const selectedType = this.relationshipAddType().trim();
+
+    if (!request) {
+      this.relationshipAddManualTargetError.set('Select at least one other concept.');
+      return;
+    }
+
+    const actionLabel = overrideWarnings ? 'Override warnings and add' : 'Add';
+    if (
+      !window.confirm(
+        `${actionLabel} ${request.relationships.length} relationship(s) of type "${selectedType}"?`
+      )
+    ) {
+      return;
+    }
+
+    const request$ =
+      overrideWarnings && this.relationshipAddPendingRelationships()
+        ? this.mutationApi.addRelationshipsToConcept(request)
+        : this.contentApi
+            .getInverseRelationshipType(
+              request.relationships[0]?.terminology || this.conceptTerminology(),
+              request.relationships[0]?.version || this.conceptVersion(),
+              selectedType
+            )
+            .pipe(
+              switchMap((inverseRelationshipType) =>
+                this.mutationApi.addRelationshipsToConcept({
+                  ...request,
+                  relationships: request.relationships.map((relationship) => ({
+                    ...relationship,
+                    relationshipType:
+                      inverseRelationshipType.trim() || relationship.relationshipType
+                  }))
+                })
+              )
+            );
+
+    this.addingRelationship.set(true);
+    this.relationshipAddResult.set(null);
+    request$
+      .pipe(finalize(() => this.addingRelationship.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.relationshipAddResult.set(result);
+          if (validationBlocksCommit(result)) {
+            this.relationshipAddPendingRelationships.set(null);
+            this.notifications.error('Relationship add failed validation.');
+            return;
+          }
+          if (!overrideWarnings && validationNeedsWarningOverride(result)) {
+            this.relationshipAddPendingRelationships.set(request.relationships);
+            this.notifications.error('Relationship add returned warnings. Review and override to continue.');
+            return;
+          }
+
+          this.relationshipAddPendingRelationships.set(null);
+          this.addRelationshipDialogOpen.set(false);
+          this.loadRelationships();
+          this.refreshConcept();
+        },
+        error: () => {
+          this.notifications.error('Relationships could not be added.');
+        }
+      });
+  }
+
   protected canRemoveRelationship(rel: ContentRelationship): boolean {
     if (this.removingRelationshipId() !== null || !rel.id) {
       return false;
@@ -1841,8 +2210,7 @@ export class EditWorkbenchComponent implements OnInit {
     rel: ContentRelationship,
     overrideWarnings = false
   ): void {
-    const request = this.buildRemoveRelationshipRequest(rel, overrideWarnings);
-    if (!request || !this.canRemoveRelationship(rel)) {
+    if (!this.canRemoveRelationship(rel) || !rel.id) {
       return;
     }
     const label = overrideWarnings ? 'Override warnings and remove' : 'Remove';
@@ -1855,9 +2223,11 @@ export class EditWorkbenchComponent implements OnInit {
     }
     this.removingRelationshipId.set(rel.id ?? null);
     this.relationshipRemovalResult.set(null);
-    this.mutationApi
-      .removeRelationshipFromConcept(request)
-      .pipe(finalize(() => this.removingRelationshipId.set(null)))
+    this.relationshipRemovalContext(rel, overrideWarnings)
+      .pipe(
+        switchMap((request) => this.mutationApi.removeRelationshipFromConcept(request)),
+        finalize(() => this.removingRelationshipId.set(null))
+      )
       .subscribe({
         next: (result) => {
           this.relationshipRemovalResult.set(result);
@@ -1874,12 +2244,28 @@ export class EditWorkbenchComponent implements OnInit {
             return;
           }
           this.relationshipRemovalPendingRelationship.set(null);
-          this.loadConcept();
+          this.loadRelationships();
+          this.refreshConcept();
         },
         error: () => {
           this.notifications.error('Relationship could not be removed.');
         }
       });
+  }
+
+  protected transferSelectedRelationshipsToEditor(): void {
+    const conceptIds = this.selectedRelationships()
+      .map((relationship) => relationship.fromId)
+      .filter((id): id is number => Boolean(id));
+
+    if (!conceptIds.length) {
+      return;
+    }
+
+    (window.opener as Window | null)?.postMessage(
+      { type: 'concept-transfer', conceptIds },
+      window.location.origin
+    );
   }
 
   // --- Code concepts workbench ---
@@ -1938,6 +2324,10 @@ export class EditWorkbenchComponent implements OnInit {
     this.contextTreePositionError.set(null);
     this.contextTreePositions.set([]);
     this.contextTreePositionCount.set(0);
+    this.selectedContextTreePosition.set(null);
+    this.contextTree.set(null);
+    this.contextTreeCount.set(0);
+    this.contextTreeViewed.set(0);
     this.loadingContextTreePositions.set(true);
 
     this.contentApi
@@ -1946,18 +2336,202 @@ export class EditWorkbenchComponent implements OnInit {
         version,
         terminologyId,
         '',
-        buildContentPfs(1, 200, 'terminology', true, '')
+        buildContentPfs(
+          this.contextPage(),
+          this.contextPageSize(),
+          this.contextSortField(),
+          this.contextSortAscending(),
+          ''
+        )
       )
       .pipe(finalize(() => this.loadingContextTreePositions.set(false)))
       .subscribe({
         next: (response) => {
           this.contextTreePositions.set(response.items);
           this.contextTreePositionCount.set(response.totalCount);
+          if (response.items.length) {
+            this.selectContextTreePosition(response.items[0]);
+          }
         },
         error: () => {
           this.contextTreePositionError.set('Context tree positions could not be loaded.');
           this.notifications.error('Context tree positions could not be loaded.');
         }
+      });
+  }
+
+  protected selectContextTreePosition(position: ContentTreePosition): void {
+    this.selectedContextTreePosition.set(position);
+    this.loadContextTree(0);
+  }
+
+  protected isContextPositionSelected(position: ContentTreePosition): boolean {
+    return this.selectedContextTreePosition() === position;
+  }
+
+  protected loadContextTree(offset: number): void {
+    const position = this.selectedContextTreePosition();
+
+    if (!position) {
+      return;
+    }
+
+    const type = String(position.type || 'CONCEPT').toUpperCase();
+    const pfs = buildContentPfs(offset + 1, 1, 'ancestorPath', true, '');
+    const request =
+      type === 'ATOM' && position.nodeId
+        ? this.contentApi.findAtomTrees(position.nodeId, pfs)
+        : this.contentApi.findTrees(
+            type,
+            position.nodeTerminology || position.terminology || '',
+            position.nodeVersion || position.version || '',
+            position.nodeTerminologyId || '',
+            pfs
+          );
+
+    this.contextTreeError.set(null);
+    this.contextTree.set(null);
+    this.treeNodeViews.set({});
+    this.loadingContextTree.set(true);
+    request
+      .pipe(finalize(() => this.loadingContextTree.set(false)))
+      .subscribe({
+        next: (response) => {
+          const tree = response.items[0] ?? null;
+          this.contextTree.set(tree);
+          this.contextTreeCount.set(response.totalCount);
+          this.contextTreeViewed.set(tree ? offset : 0);
+          if (tree) {
+            this.treeNodeViews.set({ [this.treeNodeKey(tree)]: { expanded: true, loaded: true } });
+            this.loadInitialSiblingChildren(tree);
+          }
+        },
+        error: () => {
+          this.contextTreeError.set('Hierarchy tree could not be loaded.');
+          this.notifications.error('Hierarchy tree could not be loaded.');
+        }
+      });
+  }
+
+  protected loadContextTreeByOffset(offset: number): void {
+    const count = this.contextTreeCount();
+    if (!count) return;
+    let next = this.contextTreeViewed() + offset;
+    if (next >= count) next -= count;
+    if (next < 0) next += count;
+    this.loadContextTree(next);
+  }
+
+  protected treeNodeKey(tree: ContentTree): string {
+    return `${tree.nodeId ?? ''}|${tree.nodeTerminologyId ?? ''}|${tree.nodeName ?? ''}`;
+  }
+
+  protected treeNodeExpanded(tree: ContentTree): boolean {
+    return this.treeNodeViews()[this.treeNodeKey(tree)]?.expanded !== false;
+  }
+
+  protected treeChildren(tree: ContentTree | null | undefined): ContentTree[] {
+    return Array.from(tree?.children ?? []);
+  }
+
+  protected toggleTreeNode(tree: ContentTree): void {
+    const key = this.treeNodeKey(tree);
+    const view = this.treeNodeViews()[key] ?? { expanded: true, loaded: true };
+    const childCount = tree.childCt ?? 0;
+    const childLength = tree.children?.length ?? 0;
+
+    if (!view.expanded) {
+      this.treeNodeViews.update((views) => ({
+        ...views,
+        [key]: { ...view, expanded: true }
+      }));
+      return;
+    }
+
+    if (childCount > childLength && childLength < 10) {
+      this.loadTreeChildren(tree);
+      return;
+    }
+
+    this.treeNodeViews.update((views) => ({
+      ...views,
+      [key]: { ...view, expanded: false }
+    }));
+  }
+
+  protected loadMoreTreeChildren(tree: ContentTree): void {
+    this.loadTreeChildren(tree);
+  }
+
+  protected treeNodeIcon(tree: ContentTree): MemeIconName {
+    const childCount = tree.childCt ?? 0;
+    const childLength = tree.children?.length ?? 0;
+    if (!childCount) return 'dash';
+    if (!this.treeNodeExpanded(tree) || childLength === 0) return 'chevron-right';
+    if (childLength !== childCount && childLength < 10) return 'plus';
+    return 'chevron-down';
+  }
+
+  protected isCurrentTreeNode(tree: ContentTree): boolean {
+    return Boolean(
+      tree.nodeTerminologyId &&
+      tree.nodeTerminologyId === this.selectedContextTreePosition()?.nodeTerminologyId
+    );
+  }
+
+  private loadInitialSiblingChildren(tree: ContentTree): void {
+    let parentTree = tree;
+    while (parentTree.children?.length) {
+      const firstChild = parentTree.children[0];
+      if (!firstChild.children?.length) {
+        break;
+      }
+      parentTree = firstChild;
+    }
+    this.loadTreeChildren(parentTree, true);
+  }
+
+  private loadTreeChildren(tree: ContentTree, mergeWithExisting = false): void {
+    const selectedPosition = this.selectedContextTreePosition();
+    if (!selectedPosition) return;
+    const type = String(selectedPosition.type || 'CONCEPT').toUpperCase();
+    const startIndex = Math.max(0, (tree.children?.length ?? 0) - 1);
+    const key = this.treeNodeKey(tree);
+
+    this.loadingTreeChildrenKey.set(key);
+    this.contentApi
+      .findTreeChildren(type, tree, {
+        ascending: true,
+        maxResults: 10,
+        queryRestriction: undefined,
+        sortField: 'nodeName',
+        startIndex
+      })
+      .pipe(finalize(() => this.loadingTreeChildrenKey.set(null)))
+      .subscribe({
+        next: (response) => {
+          const existing = mergeWithExisting ? Array.from(tree.children ?? []) : Array.from(tree.children ?? []);
+          tree.children = this.concatTreeChildren(existing, response.items);
+          this.contextTree.update((current) => (current ? { ...current } : current));
+          this.treeNodeViews.update((views) => ({
+            ...views,
+            [key]: { expanded: true, loaded: true }
+          }));
+        },
+        error: () => {
+          this.contextTreeError.set('Tree children could not be loaded.');
+        }
+      });
+  }
+
+  private concatTreeChildren(existing: ContentTree[], incoming: ContentTree[]): ContentTree[] {
+    const currentTerminologyId = this.selectedContextTreePosition()?.nodeTerminologyId;
+    const existingIds = new Set(existing.map((item) => item.nodeTerminologyId || item.nodeId));
+    return [...existing, ...incoming.filter((item) => !existingIds.has(item.nodeTerminologyId || item.nodeId))]
+      .sort((a, b) => {
+        if (a.nodeTerminologyId === currentTerminologyId) return -1;
+        if (b.nodeTerminologyId === currentTerminologyId) return 1;
+        return String(a.nodeName ?? '').localeCompare(String(b.nodeName ?? ''));
       });
   }
 
@@ -2152,7 +2726,56 @@ export class EditWorkbenchComponent implements OnInit {
       return null;
     }
 
-    const relationship: ContentRelationship = pendingRelationship ?? {
+    const selectedTarget = this.relationshipAddTargets().find((target) => target.id === targetId) ?? null;
+    const relationship: ContentRelationship = pendingRelationship ?? this.buildRelationshipPayload(
+      concept,
+      targetId,
+      relationshipType,
+      selectedTarget
+    );
+
+    return { activityId, conceptId: concept.id, lastModified, overrideWarnings, projectId, relationship };
+  }
+
+  private buildAddRelationshipsRequest(
+    overrideWarnings: boolean
+  ): EditAddRelationshipsRequest | null {
+    const pendingRelationships = overrideWarnings
+      ? this.relationshipAddPendingRelationships()
+      : null;
+    const concept = this.loadedConcept();
+    const projectId = this.projectId();
+    const lastModified = this.conceptLastModified();
+    const activityId = this.workbenchActivityId().trim();
+    const relationshipType = this.relationshipAddType().trim();
+    const relationships = pendingRelationships ??
+      (concept
+        ? this.selectedRelationshipTargetsForDialog()
+            .map((target) =>
+              target.id
+                ? this.buildRelationshipPayload(concept, target.id, relationshipType, target)
+                : null
+            )
+            .filter((relationship): relationship is ContentRelationship => Boolean(relationship))
+        : []);
+
+    if (!projectId || !concept?.id || !relationships.length || !lastModified || !activityId) {
+      return null;
+    }
+
+    return { activityId, conceptId: concept.id, lastModified, overrideWarnings, projectId, relationships };
+  }
+
+  private buildRelationshipPayload(
+    concept: ContentComponentDetail,
+    targetId: number,
+    relationshipType: string,
+    selectedTarget: ContentComponentDetail | null
+  ): ContentRelationship {
+    const terminology = concept.terminology || this.conceptTerminology();
+    const version = concept.version || this.conceptVersion();
+
+    return {
       additionalRelationshipType: '',
       assertedDirection: false,
       fromId: concept.id,
@@ -2169,42 +2792,61 @@ export class EditWorkbenchComponent implements OnInit {
       relationshipType,
       stated: false,
       suppressible: false,
-      terminology: concept.terminology,
+      terminology,
       terminologyId: '',
       toId: targetId,
-      toName: '',
-      toTerminology: concept.terminology,
-      toTerminologyId: '',
-      toVersion: concept.version,
+      toName: selectedTarget?.name ?? '',
+      toTerminology: selectedTarget?.terminology ?? terminology,
+      toTerminologyId: selectedTarget?.terminologyId ?? '',
+      toVersion: selectedTarget?.version ?? version,
       type: 'RELATIONSHIP',
-      version: concept.version,
+      version,
       workflowStatus: 'NEEDS_REVIEW'
     };
-
-    return { activityId, conceptId: concept.id, lastModified, overrideWarnings, projectId, relationship };
   }
 
-  private buildRemoveRelationshipRequest(
+  private relationshipRemovalContext(
     rel: ContentRelationship,
     overrideWarnings: boolean
-  ): EditRemoveRelationshipRequest | null {
+  ) {
     const concept = this.loadedConcept();
     const projectId = this.projectId();
-    const lastModified = this.conceptLastModified();
     const activityId = this.workbenchActivityId().trim();
+    const relationshipId = rel.id;
+    const sourceConceptId = rel.fromId ?? concept?.id;
 
-    if (!projectId || !concept?.id || !rel.id || !lastModified || !activityId) {
-      return null;
+    if (!projectId || !sourceConceptId || !relationshipId || !activityId) {
+      throw new Error('Relationship removal context is incomplete.');
     }
 
-    return {
-      activityId,
-      conceptId: concept.id,
-      lastModified,
-      overrideWarnings,
-      projectId,
-      relationshipId: rel.id
-    };
+    const currentLastModified = this.conceptLastModified();
+    if (sourceConceptId === concept?.id && currentLastModified) {
+      return of({
+        activityId,
+        conceptId: sourceConceptId,
+        lastModified: currentLastModified,
+        overrideWarnings,
+        projectId,
+        relationshipId
+      });
+    }
+
+    return this.contentApi.getComponentById('CONCEPT', sourceConceptId, projectId).pipe(
+      map((sourceConcept) => {
+        const lastModified = this.toEpochMillis(sourceConcept?.lastModified);
+        if (!sourceConcept?.id || !lastModified) {
+          throw new Error('Relationship source concept could not be loaded.');
+        }
+        return {
+          activityId,
+          conceptId: sourceConcept.id,
+          lastModified,
+          overrideWarnings,
+          projectId,
+          relationshipId
+        };
+      })
+    );
   }
 
   private broadcastConceptApproved(conceptId: number): void {

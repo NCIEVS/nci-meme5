@@ -7,6 +7,7 @@ import {
   LinkedConceptInfo,
   ReportPanelTab
 } from '../../shared/concept-report-panel/concept-report-panel.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { finalize, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
@@ -109,7 +110,7 @@ interface EditPopoutLink {
 
 @Component({
   selector: 'meme-content',
-  imports: [FormsModule, DialogComponent, ConceptReportPanelComponent],
+  imports: [FormsModule, DialogComponent, ConceptReportPanelComponent, IconComponent],
   templateUrl: './content.component.html',
   styleUrl: '../operations/operations.component.css'
 })
@@ -290,6 +291,7 @@ export class ContentComponent implements OnInit {
   protected readonly projectContextError = signal<string | null>(null);
   protected readonly projectDefaultLanguage = signal('ENG');
   protected readonly projectEditingEnabled = signal<boolean | null>(null);
+  protected readonly updatingProjectEditing = signal(false);
   protected readonly projectNewAtomTermgroups = signal<string[]>([]);
   protected readonly projectValidationChecks = signal<string[]>([]);
   protected readonly mergeActivityId = signal('');
@@ -484,6 +486,9 @@ export class ContentComponent implements OnInit {
     () => this.projectContext.projectRole() || 'n/a'
   );
   protected readonly availableProjects = signal<OperationalProject[]>([]);
+  protected readonly selectedProject = computed(() =>
+    this.availableProjects().find((project) => project.id === this.projectId()) ?? null
+  );
   protected readonly availableRoles = computed<string[]>(() => {
     const user = this.auth.currentUser();
     const projectId = this.projectId();
@@ -1342,7 +1347,14 @@ export class ContentComponent implements OnInit {
 
     const onPopupMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      const data = event.data as { type?: string; conceptId?: number; fromConceptId?: number; toConceptId?: number; newConceptId?: number } | null;
+      const data = event.data as {
+        type?: string;
+        conceptId?: number;
+        conceptIds?: number[];
+        fromConceptId?: number;
+        toConceptId?: number;
+        newConceptId?: number
+      } | null;
 
       if (data?.type === 'concept-approved' && data.conceptId) {
         const id = data.conceptId;
@@ -1382,6 +1394,21 @@ export class ContentComponent implements OnInit {
         this.api.getComponentById('concept', newId, this.projectId()).subscribe({
           next: (concept) => { if (concept) this.addConceptToList(concept); },
           error: () => {}
+        });
+      }
+
+      if (data?.type === 'concept-transfer' && data.conceptIds?.length) {
+        const projectId = this.projectId();
+        if (!projectId) return;
+        data.conceptIds.forEach((conceptId) => {
+          this.api.getComponentById('concept', conceptId, projectId).subscribe({
+            next: (concept) => {
+              if (!concept) return;
+              this.addConceptToList(concept);
+              this.selectConceptFromList(concept);
+            },
+            error: () => {}
+          });
         });
       }
     };
@@ -5233,10 +5260,16 @@ export class ContentComponent implements OnInit {
 
   protected selectProject(idStr: string): void {
     const user = this.auth.currentUser();
-    const newPrefs = { ...user.userPreferences, lastProjectId: Number(idStr), lastProjectRole: null };
+    const newPrefs = {
+      ...user.userPreferences,
+      lastProjectId: Number(idStr),
+      lastProjectRole: null
+    };
     this.operationsApi.updateUserPreferences(newPrefs).subscribe({
       next: (saved) => {
         this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+        this.loadProjectContext();
+        this.refreshWorkflowForContextChange();
       },
       error: () => this.notifications.error('Could not switch project.')
     });
@@ -5248,9 +5281,39 @@ export class ContentComponent implements OnInit {
     this.operationsApi.updateUserPreferences(newPrefs).subscribe({
       next: (saved) => {
         this.auth.updateCurrentUserPreferences(saved ?? newPrefs);
+        this.refreshWorkflowForContextChange();
       },
       error: () => this.notifications.error('Could not switch role.')
     });
+  }
+
+  protected setProjectEditingEnabled(enabled: boolean): void {
+    const project = this.selectedProject();
+
+    if (!project?.id) {
+      return;
+    }
+
+    const updatedProject: OperationalProject = {
+      ...project,
+      editingEnabled: enabled
+    };
+
+    this.updatingProjectEditing.set(true);
+    this.operationsApi
+      .updateProject(updatedProject)
+      .pipe(finalize(() => this.updatingProjectEditing.set(false)))
+      .subscribe({
+        next: () => {
+          this.availableProjects.update((projects) =>
+            projects.map((item) =>
+              item.id === project.id ? { ...item, editingEnabled: enabled } : item
+            )
+          );
+          this.projectEditingEnabled.set(enabled);
+        },
+        error: () => this.notifications.error('Could not update project editing state.')
+      });
   }
 
   protected onEditAccordionToggle(group: EditAccordionGroup, event: Event): void {
@@ -5521,6 +5584,43 @@ export class ContentComponent implements OnInit {
     return { projectId, userName, role };
   }
 
+  private isCurrentWorklistUser(
+    ctx: { projectId: number; userName: string; role: string }
+  ): boolean {
+    const current = this.worklistUser();
+
+    return !!current &&
+      current.projectId === ctx.projectId &&
+      current.userName === ctx.userName &&
+      current.role === ctx.role;
+  }
+
+  private refreshWorkflowForContextChange(): void {
+    this.worklistPage.set(1);
+    this.worklistFilter.set('');
+    this.pendingEditWorklistId = null;
+    this.pendingEditRecordId = null;
+    this.pendingEditConceptId = null;
+    this.selectedWorklist.set(null);
+    this.records.set([]);
+    this.recordsTotalCount.set(0);
+    this.selectedRecord.set(null);
+    this.recordsPage.set(1);
+    this.recordsTypeFilter.set('');
+    this.recordsFilter.set('');
+    this.availableCt.set(0);
+    this.assignedCt.set(0);
+    this.doneCt.set(0);
+    this.checklistCt.set(0);
+    this.worklists.set([]);
+    this.worklistsTotalCount.set(0);
+
+    if (this.projectRole() !== 'ADMINISTRATOR') {
+      this.loadWorklists();
+      this.loadTabCounts();
+    }
+  }
+
   protected loadWorklists(): void {
     const ctx = this.worklistUser();
     if (!ctx) return;
@@ -5539,6 +5639,9 @@ export class ContentComponent implements OnInit {
 
     source$.pipe(finalize(() => this.loadingWorklists.set(false))).subscribe({
       next: (resp) => {
+        if (!this.isCurrentWorklistUser(ctx) || this.worklistMode() !== mode) {
+          return;
+        }
         const items: WorkflowWorklist[] = resp.worklists ?? resp.checklists ?? resp.objects ?? [];
         const total = resp.totalCount ?? 0;
         this.worklists.set(items);
@@ -5558,16 +5661,47 @@ export class ContentComponent implements OnInit {
     const ctx = this.worklistUser();
     if (!ctx) return;
     const minPfs: import('./content-edit.models').ContentPfsParameter = {
-      ascending: false, maxResults: 1, startIndex: 0, sortField: 'lastModified'
+      ascending: false,
+      maxResults: 1,
+      startIndex: 0,
+      sortField: 'lastModified'
     };
     this.workflowApi.findAvailableWorklists(ctx.projectId, ctx.userName, ctx.role, minPfs)
-      .subscribe({ next: (r) => this.availableCt.set(r.totalCount ?? 0), error: () => {} });
+      .subscribe({
+        next: (r) => {
+          if (this.isCurrentWorklistUser(ctx)) {
+            this.availableCt.set(r.totalCount ?? 0);
+          }
+        },
+        error: () => {}
+      });
     this.workflowApi.findAssignedWorklists(ctx.projectId, ctx.userName, ctx.role, minPfs)
-      .subscribe({ next: (r) => this.assignedCt.set(r.totalCount ?? 0), error: () => {} });
+      .subscribe({
+        next: (r) => {
+          if (this.isCurrentWorklistUser(ctx)) {
+            this.assignedCt.set(r.totalCount ?? 0);
+          }
+        },
+        error: () => {}
+      });
     this.workflowApi.findDoneWorklists(ctx.projectId, ctx.userName, ctx.role, minPfs)
-      .subscribe({ next: (r) => this.doneCt.set(r.totalCount ?? 0), error: () => {} });
+      .subscribe({
+        next: (r) => {
+          if (this.isCurrentWorklistUser(ctx)) {
+            this.doneCt.set(r.totalCount ?? 0);
+          }
+        },
+        error: () => {}
+      });
     this.workflowApi.findChecklists(ctx.projectId, '', minPfs)
-      .subscribe({ next: (r) => this.checklistCt.set(r.totalCount ?? 0), error: () => {} });
+      .subscribe({
+        next: (r) => {
+          if (this.isCurrentWorklistUser(ctx)) {
+            this.checklistCt.set(r.totalCount ?? 0);
+          }
+        },
+        error: () => {}
+      });
   }
 
   protected setWorklistMode(mode: WorklistMode): void {
@@ -5760,11 +5894,6 @@ export class ContentComponent implements OnInit {
       if (ts > maxTs) { maxTs = ts; maxState = state; }
     }
     return maxState;
-  }
-
-  protected worklistSortIndicator(field: string): string {
-    if (this.worklistSortField() !== field) return '';
-    return this.worklistSortAsc() ? ' ▲' : ' ▼';
   }
 
   protected assignWorklistToSelf(worklist: WorkflowWorklist, event: Event): void {

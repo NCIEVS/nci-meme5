@@ -68,19 +68,25 @@
                             class="icon-action"
                             title="Edit Project"
                             (click)="startEditProject(project)"
-                          >✎</span>
+                          >
+                            <meme-icon name="pencil"></meme-icon>
+                          </span>
                           <span
                             class="icon-action danger"
                             [class.is-disabled]="deletingProjectId() === project.id"
                             title="{{ deletingProjectId() === project.id ? 'Deleting…' : 'Delete Project' }}"
                             (click)="deletingProjectId() === project.id || removeProject(project)"
-                          >✕</span>
+                          >
+                            <meme-icon name="trash"></meme-icon>
+                          </span>
                         }
                         <span
                           class="icon-action"
                           title="View Log"
                           (click)="openProjectLog(project)"
-                        >☰</span>
+                        >
+                          <meme-icon name="journal-text"></meme-icon>
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -189,13 +195,17 @@
                             class="icon-action"
                             title="Edit User"
                             (click)="startEditUser(user)"
-                          >✎</span>
+                          >
+                            <meme-icon name="pencil"></meme-icon>
+                          </span>
                           <span
                             class="icon-action danger"
                             [class.is-disabled]="deletingUserId() === user.id"
                             title="{{ deletingUserId() === user.id ? 'Deleting…' : 'Delete User' }}"
                             (click)="deletingUserId() === user.id || removeUser(user)"
-                          >✕</span>
+                          >
+                            <meme-icon name="trash"></meme-icon>
+                          </span>
                         </div>
                       }
                     </td>
@@ -644,7 +654,9 @@
                         >
                           <td>{{ index + 1 }}</td>
                           <td>
-                            <span class="drag-handle" title="Drag to reorder">↕</span>
+                            <span class="drag-handle" title="Drag to reorder">
+                              <meme-icon name="grip-vertical"></meme-icon>
+                            </span>
                           </td>
                           <td>{{ entry.key || 'n/a' }}</td>
                           <td>{{ entry.value || 'n/a' }}</td>
@@ -922,8 +934,13 @@
           @if (candidateProjects().length === 0) {
             <p class="empty">No projects with administrator role.</p>
           } @else {
-            <div class="table-wrap">
-              <table>
+            <div class="table-wrap project-list-table-wrap">
+              <table class="project-list-table">
+                <colgroup>
+                  <col class="project-list-col-id" />
+                  <col class="project-list-col-name" />
+                  <col class="project-list-col-terminology" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Id</th>

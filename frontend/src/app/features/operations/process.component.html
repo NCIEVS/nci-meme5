@@ -83,7 +83,7 @@
                 title="Import process"
                 (click)="startImportProcessConfig()"
               >
-                ↑
+                <meme-icon name="upload"></meme-icon>
               </button>
             }
             @if (!canManageProcesses()) {
@@ -134,7 +134,10 @@
                       class="table-sort"
                       (click)="setProcessSortField('name')"
                     >
-                      Name {{ sortIndicator('name') }}
+                      Name
+                      @if (processSortField() === 'name') {
+                        <meme-icon [name]="processSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
                     </button>
                   </th>
                   <th>State</th>
@@ -144,7 +147,10 @@
                       class="table-sort"
                       (click)="setProcessSortField('lastModified')"
                     >
-                      Last Modified {{ sortIndicator('lastModified') }}
+                      Last Modified
+                      @if (processSortField() === 'lastModified') {
+                        <meme-icon [name]="processSortAscending() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                      }
                     </button>
                   </th>
                   <th>Actions</th>
@@ -179,7 +185,7 @@
                               title="Edit process"
                               (click)="$event.stopPropagation(); startEditProcessConfig(process)"
                             >
-                              ✎
+                              <meme-icon name="pencil"></meme-icon>
                             </button>
                           }
                           @if (selectedMode() === 'Config') {
@@ -190,7 +196,7 @@
                               title="{{ cloningConfigId() === process.id ? 'Cloning' : 'Clone process' }}"
                               (click)="$event.stopPropagation(); cloneProcessConfig(process)"
                             >
-                              ⎘
+                              <meme-icon name="files"></meme-icon>
                             </button>
                           }
                           @if (selectedMode() === 'Config') {
@@ -201,7 +207,7 @@
                               title="{{ deletingConfigId() === process.id ? 'Removing' : 'Remove process' }}"
                               (click)="$event.stopPropagation(); removeProcessConfig(process)"
                             >
-                              ✕
+                              <meme-icon name="trash"></meme-icon>
                             </button>
                           }
                           @if (selectedMode() === 'Execution') {
@@ -212,7 +218,7 @@
                               title="{{ deletingExecutionId() === process.id ? 'Removing' : 'Remove process' }}"
                               (click)="$event.stopPropagation(); removeProcessExecution(process)"
                             >
-                              ✕
+                              <meme-icon name="trash"></meme-icon>
                             </button>
                           }
                         </div>
@@ -264,7 +270,7 @@
                       title="{{ exportingConfigId() === config.id ? 'Exporting' : 'Export process' }}"
                       (click)="exportProcessConfig(config)"
                     >
-                      ↓
+                      <meme-icon name="download"></meme-icon>
                     </button>
                   }
                 </dd>
@@ -366,7 +372,9 @@
                                     (click)="$event.stopPropagation()"
                                     (change)="toggleAlgorithmStep(config, step)"
                                   />
-                                  <span class="drag-handle" title="Drag to reorder">↕</span>
+                                  <span class="drag-handle" title="Drag to reorder">
+                                    <meme-icon name="grip-vertical"></meme-icon>
+                                  </span>
                                 </span>
                               }
                               {{ step.name || step.algorithmKey || 'n/a' }}
@@ -382,7 +390,7 @@
                                     title="Clone step"
                                     (click)="$event.stopPropagation(); startCloneAlgorithmStep(config, step)"
                                   >
-                                    ⎘
+                                    <meme-icon name="files"></meme-icon>
                                   </button>
                                   <button
                                     type="button"
@@ -390,7 +398,7 @@
                                     title="Edit step"
                                     (click)="$event.stopPropagation(); startEditAlgorithmStep(config, step)"
                                   >
-                                    ✎
+                                    <meme-icon name="pencil"></meme-icon>
                                   </button>
                                   <button
                                     type="button"
@@ -399,7 +407,7 @@
                                     title="{{ deletingStepId() === step.id ? 'Removing' : 'Remove step' }}"
                                     (click)="$event.stopPropagation(); removeAlgorithmStep(config, step)"
                                   >
-                                    ✕
+                                    <meme-icon name="trash"></meme-icon>
                                   </button>
                                 </div>
                               }
@@ -478,7 +486,9 @@
                     class="icon-action"
                     title="View Log"
                     (click)="openProcessLog(execution)"
-                  >☰</span>
+                  >
+                    <meme-icon name="journal-text"></meme-icon>
+                  </span>
                 </dd>
                 @if (executionInfoEntries(execution).length) {
                   <dt>Execution Info</dt>
@@ -579,7 +589,9 @@
                                 class="icon-action"
                                 title="View Log"
                                 (click)="$event.stopPropagation(); openStepLog(step)"
-                              >☰</span>
+                              >
+                                <meme-icon name="journal-text"></meme-icon>
+                              </span>
                             </td>
                           </tr>
                           @if (isStepSelected(step) && stepParameters(step).length) {
@@ -702,7 +714,7 @@
                                       title="Edit step"
                                       (click)="$event.stopPropagation(); startEditAlgorithmStep(configForExecution, step)"
                                     >
-                                      ✎
+                                      <meme-icon name="pencil"></meme-icon>
                                     </button>
                                     <button
                                       type="button"
@@ -711,7 +723,7 @@
                                       title="{{ deletingStepId() === step.id ? 'Removing' : 'Remove step' }}"
                                       (click)="$event.stopPropagation(); removeAlgorithmStep(configForExecution, step)"
                                     >
-                                      ✕
+                                      <meme-icon name="trash"></meme-icon>
                                     </button>
                                   </div>
                                 }

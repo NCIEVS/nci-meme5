@@ -125,6 +125,7 @@ export interface ContentRelationship {
   hierarchical?: boolean | null;
   id?: number | null;
   inferred?: boolean | null;
+  lastModifiedBy?: string | null;
   name?: string | null;
   obsolete?: boolean | null;
   published?: boolean | null;

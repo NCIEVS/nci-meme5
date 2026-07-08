@@ -31,7 +31,7 @@ export class AppComponent {
         this.shellHidden.set(
           url.startsWith('/concept-report') ||
           url.startsWith('/edit/') ||
-          url === '/contexts'
+          url.startsWith('/contexts')
         );
       });
   }

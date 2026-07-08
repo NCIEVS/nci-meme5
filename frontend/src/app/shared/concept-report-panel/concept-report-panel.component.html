@@ -60,7 +60,9 @@
         @if ((concept.semanticTypes?.length ?? 0) > 0) {
           <div class="crp-section">
             <div class="crp-section-header" (click)="toggleSection('sty')">
-              <span class="crp-chevron">{{ secOpen()['sty'] ? '▼' : '▶' }}</span>
+              <span class="crp-chevron">
+                <meme-icon [name]="secOpen()['sty'] ? 'chevron-down' : 'chevron-right'"></meme-icon>
+              </span>
               <strong>Semantic Types ({{ concept.semanticTypes?.length ?? 0 }})</strong>
             </div>
             @if (secOpen()['sty']) {
@@ -77,7 +79,9 @@
         @if (effectiveDefinitions().length > 0) {
           <div class="crp-section">
             <div class="crp-section-header" (click)="toggleSection('def')">
-              <span class="crp-chevron">{{ secOpen()['def'] ? '▼' : '▶' }}</span>
+              <span class="crp-chevron">
+                <meme-icon [name]="secOpen()['def'] ? 'chevron-down' : 'chevron-right'"></meme-icon>
+              </span>
               <strong>Definitions ({{ effectiveDefinitions().length }})</strong>
             </div>
             @if (secOpen()['def']) {
@@ -102,7 +106,9 @@
         @if ((concept.atoms?.length ?? 0) > 0) {
           <div class="crp-section">
             <div class="crp-section-header" (click)="toggleSection('atoms')">
-              <span class="crp-chevron">{{ secOpen()['atoms'] ? '▼' : '▶' }}</span>
+              <span class="crp-chevron">
+                <meme-icon [name]="secOpen()['atoms'] ? 'chevron-down' : 'chevron-right'"></meme-icon>
+              </span>
               <strong>Atoms ({{ concept.atoms?.length ?? 0 }})</strong>
             </div>
             @if (secOpen()['atoms']) {
@@ -113,9 +119,13 @@
                       <!-- per-atom expand toggle -->
                       @if (atom.definitions?.length || atom.attributes?.length) {
                         <span class="crp-atom-toggle" title="Show/hide details"
-                          (click)="toggleAtom(i); $event.stopPropagation()">{{ atomOpen()[i] ? '−' : '+' }}</span>
+                          (click)="toggleAtom(i); $event.stopPropagation()">
+                          <meme-icon [name]="atomOpen()[i] ? 'dash' : 'plus'"></meme-icon>
+                        </span>
                       } @else {
-                        <span class="crp-atom-toggle crp-atom-toggle-disabled" title="No details available">+</span>
+                        <span class="crp-atom-toggle crp-atom-toggle-disabled" title="No details available">
+                          <meme-icon name="plus"></meme-icon>
+                        </span>
                       }
                       @if (atom.suppressible) { <span class="crp-label crp-label-warn" title="Suppressible">S</span> }
                       @if (atom.obsolete)     { <span class="crp-label crp-label-default" title="Obsolete">O</span> }
@@ -166,7 +176,9 @@
         @if ((concept.attributes?.length ?? 0) > 0) {
           <div class="crp-section">
             <div class="crp-section-header" (click)="toggleSection('attr')">
-              <span class="crp-chevron">{{ secOpen()['attr'] ? '▼' : '▶' }}</span>
+              <span class="crp-chevron">
+                <meme-icon [name]="secOpen()['attr'] ? 'chevron-down' : 'chevron-right'"></meme-icon>
+              </span>
               <strong>Attributes ({{ concept.attributes?.length ?? 0 }})</strong>
             </div>
             @if (secOpen()['attr']) {
@@ -186,7 +198,9 @@
         @if (rels().length > 0 || loadingRels()) {
           <div class="crp-section">
             <div class="crp-section-header" (click)="toggleSection('rels')">
-              <span class="crp-chevron">{{ secOpen()['rels'] ? '▼' : '▶' }}</span>
+              <span class="crp-chevron">
+                <meme-icon [name]="secOpen()['rels'] ? 'chevron-down' : 'chevron-right'"></meme-icon>
+              </span>
               <strong>Relationships ({{ rels().length }})</strong>
             </div>
             @if (secOpen()['rels']) {
@@ -218,7 +232,9 @@
         @if (deepRels().length > 0 || loadingDeepRels()) {
           <div class="crp-section">
             <div class="crp-section-header" (click)="toggleSection('deep')">
-              <span class="crp-chevron">{{ secOpen()['deep'] ? '▼' : '▶' }}</span>
+              <span class="crp-chevron">
+                <meme-icon [name]="secOpen()['deep'] ? 'chevron-down' : 'chevron-right'"></meme-icon>
+              </span>
               <strong>Deep Relationships ({{ deepRels().length }})</strong>
             </div>
             @if (secOpen()['deep']) {
@@ -271,11 +287,15 @@
           <div class="crp-pager crp-pager--top">
             <button type="button" class="icon-btn"
               [disabled]="actionsPage() <= 1"
-              (click)="loadActions(actionsPage() - 1)">‹</button>
+              (click)="loadActions(actionsPage() - 1)">
+              <meme-icon name="chevron-left"></meme-icon>
+            </button>
             <span>{{ actionsPage() }} / {{ actionsTotalPages() }}</span>
             <button type="button" class="icon-btn"
               [disabled]="actionsPage() >= actionsTotalPages()"
-              (click)="loadActions(actionsPage() + 1)">›</button>
+              (click)="loadActions(actionsPage() + 1)">
+              <meme-icon name="chevron-right"></meme-icon>
+            </button>
           </div>
         }
 
@@ -302,17 +322,23 @@
                   <td class="crp-nowrap crp-actions-cell">
                     @if (canUndoRedo() && isUndoable(idx)) {
                       <span class="icon-action" title="Undo action"
-                        (click)="undoAction(action); $event.stopPropagation()">&#8249;</span>
+                        (click)="undoAction(action); $event.stopPropagation()">
+                        <meme-icon name="arrow-counterclockwise"></meme-icon>
+                      </span>
                     }
                     @if (canUndoRedo() && isRedoable(idx)) {
                       <span class="icon-action" title="Redo action"
-                        (click)="redoAction(action); $event.stopPropagation()">&#8250;</span>
+                        (click)="redoAction(action); $event.stopPropagation()">
+                        <meme-icon name="arrow-clockwise"></meme-icon>
+                      </span>
                     }
                     @if (action.id != null) {
                       <span class="crp-log-btn"
                         title="Show log"
                         (mouseenter)="preloadActionLog(action)"
-                        (click)="toggleActionLogTooltip($event, action)">&#128196;</span>
+                        (click)="toggleActionLogTooltip($event, action)">
+                        <meme-icon name="file-text"></meme-icon>
+                      </span>
                     }
                   </td>
                 </tr>

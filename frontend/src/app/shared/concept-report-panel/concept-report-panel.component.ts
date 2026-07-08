@@ -16,6 +16,7 @@ import { finalize } from 'rxjs';
 import { ContentEditApiService } from '../../features/content-edit/content-edit-api.service';
 import { EditMutationApiService } from '../../features/content-edit/edit-mutation-api.service';
 import { NotificationService } from '../../core/notifications/notification.service';
+import { IconComponent } from '../icon/icon.component';
 import {
   ContentComponent as ContentComponentDetail,
   ContentDefinition,
@@ -38,7 +39,7 @@ export interface LinkedConceptInfo {
 @Component({
   selector: 'meme-concept-report-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   templateUrl: './concept-report-panel.component.html',
   styleUrl: './concept-report-panel.component.css'
 })

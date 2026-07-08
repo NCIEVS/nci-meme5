@@ -222,6 +222,18 @@ export class ContentEditApiService {
       .pipe(map((response) => normalizeContentListResponse(response, ['trees', 'objects'])));
   }
 
+  findAtomTrees(
+    atomId: number,
+    pfs: ContentPfsParameter
+  ): Observable<ContentListState<ContentTree>> {
+    return this.http
+      .post<ContentListResponse<ContentTree>>(
+        `${this.baseUrl}/content/atom/${encodeURIComponent(String(atomId))}/trees`,
+        pfs
+      )
+      .pipe(map((response) => normalizeContentListResponse(response, ['trees', 'objects'])));
+  }
+
   findDeepTreePositions(
     terminology: string,
     version: string,
@@ -276,7 +288,14 @@ export class ContentEditApiService {
     terminology: string,
     version: string,
     terminologyId: string,
-    pfs: ContentPfsParameter
+    pfs: ContentPfsParameter,
+    options: {
+      includeConceptRels?: boolean;
+      includeSelfReferential?: boolean;
+      inverseFlag?: boolean;
+      preferredOnly?: boolean;
+      query?: string;
+    } = {}
   ): Observable<ContentListState<ContentRelationship>> {
     return this.http
       .post<ContentListResponse<ContentRelationship>>(
@@ -288,11 +307,11 @@ export class ContentEditApiService {
         pfs,
         {
           params: new HttpParams()
-            .set('query', '')
-            .set('inverseFlag', 'false')
-            .set('includeConceptRels', 'false')
-            .set('preferredOnly', 'false')
-            .set('includeSelfReferential', 'false')
+            .set('query', options.query ?? '')
+            .set('inverseFlag', options.inverseFlag ?? false)
+            .set('includeConceptRels', options.includeConceptRels ?? false)
+            .set('preferredOnly', options.preferredOnly ?? false)
+            .set('includeSelfReferential', options.includeSelfReferential ?? false)
         }
       )
       .pipe(
@@ -300,6 +319,34 @@ export class ContentEditApiService {
           normalizeContentListResponse(response, ['relationships', 'objects'])
         )
       );
+  }
+
+  findTreeChildren(
+    type: ContentComponentType | string,
+    tree: ContentTree,
+    pfs: ContentPfsParameter
+  ): Observable<ContentListState<ContentTree>> {
+    const componentPath = contentTypePath(type);
+    const request =
+      componentPath === 'atom'
+        ? this.http.post<ContentListResponse<ContentTree>>(
+            `${this.baseUrl}/content/atom/${encodeURIComponent(String(tree.nodeId))}/trees/children`,
+            pfs
+          )
+        : this.http.post<ContentListResponse<ContentTree>>(
+            `${this.baseUrl}/content/${componentPath}/${encodeURIComponent(
+              tree.terminology || tree.nodeTerminology || ''
+            )}/${encodeURIComponent(tree.version || tree.nodeVersion || '')}/${encodeURIComponent(
+              tree.nodeTerminologyId || ''
+            )}/trees/children`,
+            pfs
+          );
+
+    return request.pipe(
+      map((response) =>
+        normalizeContentListResponse(response, ['trees', 'objects'])
+      )
+    );
   }
 
   findMappings(

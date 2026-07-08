@@ -42,20 +42,42 @@ h2 {
 }
 
 .dialog-close {
-  min-height: var(--meme-btn-height);
-  padding: var(--meme-btn-padding);
-  color: var(--meme-btn-quiet-color);
-  background: var(--meme-btn-quiet-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  padding: 2px;
+  color: var(--meme-text-secondary);
+  background: transparent;
   border: 0;
-  border-radius: var(--meme-btn-radius);
+  border-radius: 50%;
   cursor: pointer;
-  font-weight: 700;
+  line-height: 1;
+}
+
+.dialog-close svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.dialog-close:hover {
+  color: var(--meme-text);
+  background: transparent;
+}
+
+.dialog-close:focus-visible {
+  outline: 2px solid rgb(47 143 157 / 55%);
+  outline-offset: 2px;
 }
 
 .dialog-close:disabled {
-  color: var(--meme-btn-disabled-color);
-  background: var(--meme-btn-disabled-bg);
+  color: var(--meme-text-muted);
+  background: transparent;
   cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .dialog-body {

@@ -15,6 +15,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/pager/pager.component';
 import { buildOperationalPfs } from './operational-api.helpers';
 import { OperationalApiService } from './operational-api.service';
@@ -90,7 +91,7 @@ interface StepLogState {
 
 @Component({
   selector: 'meme-process',
-  imports: [DialogComponent, FormsModule, PagerComponent],
+  imports: [DialogComponent, FormsModule, IconComponent, PagerComponent],
   templateUrl: './process.component.html',
   styleUrl: './operations.component.css'
 })
@@ -404,14 +405,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.configPage.set(1);
     this.executionPage.set(1);
     this.load();
-  }
-
-  protected sortIndicator(field: ProcessSortField): string {
-    if (this.processSortField() !== field) {
-      return '';
-    }
-
-    return this.processSortAscending() ? '▲' : '▼';
   }
 
   protected clearFilter(): void {

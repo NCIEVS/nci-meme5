@@ -79,23 +79,25 @@
   --meme-input-radius:  4px;
 
   /* ── Buttons ─────────────────────────────────────────── */
-  /* Default: neutral outlined — matches legacy Bootstrap btn-default character */
-  --meme-btn-height:       36px;
-  --meme-btn-padding:      7px 12px;
-  --meme-btn-radius:       4px;
-  --meme-btn-weight:       700;
-  --meme-btn-bg:           #f7fafc;
-  --meme-btn-border:       1px solid #9fb0bd;
-  --meme-btn-color:        #243444;
-  --meme-btn-hover-bg:     #edf3f7;
+  /* Compact legacy-style command buttons */
+  --meme-btn-height:       28px;
+  --meme-btn-padding:      3px 8px;
+  --meme-btn-radius:       3px;
+  --meme-btn-weight:       600;
+  --meme-btn-font-size:    0.84rem;
+  --meme-btn-bg:           #337ab7;
+  --meme-btn-border:       1px solid #2e6da4;
+  --meme-btn-color:        #ffffff;
+  --meme-btn-hover-bg:     #286090;
+  --meme-btn-hover-border: 1px solid #204d74;
   /* Primary: Bootstrap 3 btn-primary blue — matches legacy */
   --meme-btn-primary-bg:    #337ab7;
   --meme-btn-primary-color: #ffffff;
   --meme-btn-primary-border: 1px solid #2e6da4;
   --meme-btn-primary-hover-bg: #286090;
   /* Quiet: subtle teal tint — secondary teal actions */
-  --meme-btn-quiet-bg:    #e8f1f4;
-  --meme-btn-quiet-color: var(--meme-brand-action);
+  --meme-btn-quiet-bg:    var(--meme-btn-bg);
+  --meme-btn-quiet-color: #ffffff;
   /* Danger */
   --meme-btn-danger-bg:     #fbecea;
   --meme-btn-danger-border: 1px solid #c78c82;
@@ -167,6 +169,123 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* Broad content-area button normalization.
+   Keeps navigation/tab controls tab-like while giving command buttons the
+   compact blue/white legacy profile across pages and dialogs. */
+.app-main button:not([role='tab']):not(.process-tab):not(.wl-tab):not(.crp-tab):not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort),
+.app-main .legacy-link,
+.app-main input[type='button'],
+.app-main input[type='submit'],
+.app-main input[type='reset'] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  min-height: var(--meme-btn-height) !important;
+  padding: var(--meme-btn-padding) !important;
+  color: var(--meme-btn-color) !important;
+  background: var(--meme-btn-bg) !important;
+  border: var(--meme-btn-border) !important;
+  border-radius: var(--meme-btn-radius) !important;
+  box-shadow: none !important;
+  font-size: var(--meme-btn-font-size) !important;
+  font-weight: var(--meme-btn-weight) !important;
+  line-height: 1.2 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: background-color 0.12s ease, border-color 0.12s ease, opacity 0.12s ease !important;
+}
+
+.app-main button:not([role='tab']):not(.process-tab):not(.wl-tab):not(.crp-tab):not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):hover:not(:disabled),
+.app-main .legacy-link:hover,
+.app-main input[type='button']:hover:not(:disabled),
+.app-main input[type='submit']:hover:not(:disabled),
+.app-main input[type='reset']:hover:not(:disabled) {
+  background: var(--meme-btn-hover-bg) !important;
+  border: var(--meme-btn-hover-border) !important;
+}
+
+.app-main button:not([role='tab']):not(.process-tab):not(.wl-tab):not(.crp-tab):not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):focus-visible,
+.app-main .legacy-link:focus-visible,
+.app-main input[type='button']:focus-visible,
+.app-main input[type='submit']:focus-visible,
+.app-main input[type='reset']:focus-visible {
+  outline: 2px solid rgb(47 143 157 / 55%) !important;
+  outline-offset: 1px !important;
+}
+
+.app-main button:not([role='tab']):not(.process-tab):not(.wl-tab):not(.crp-tab):not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):disabled,
+.app-main input[type='button']:disabled,
+.app-main input[type='submit']:disabled,
+.app-main input[type='reset']:disabled {
+  color: var(--meme-btn-disabled-color) !important;
+  background: var(--meme-btn-disabled-bg) !important;
+  border: var(--meme-btn-disabled-border) !important;
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+}
+
+.app-main button.btn-xs:not([role='tab']):not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort) {
+  min-height: 24px !important;
+  padding: 2px 7px !important;
+  font-size: 0.78rem !important;
+}
+
+meme-pager button.icon-btn {
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 24px !important;
+  width: 24px !important;
+  min-height: 0 !important;
+  height: 24px !important;
+  padding: 0 !important;
+  color: #000 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+}
+
+meme-pager button.icon-btn:hover:not(:disabled) {
+  color: #000 !important;
+  background: var(--meme-border) !important;
+  border-color: var(--meme-border) !important;
+}
+
+meme-pager button.icon-btn:disabled {
+  color: #000 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+}
+
+.pager-select {
+  appearance: none !important;
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 2px 20px 2px 6px !important;
+  color: var(--meme-text) !important;
+  background: var(--meme-surface) !important;
+  background-image: linear-gradient(45deg, transparent 50%, var(--meme-text-secondary) 50%),
+    linear-gradient(135deg, var(--meme-text-secondary) 50%, transparent 50%) !important;
+  background-position: calc(100% - 12px) 9px, calc(100% - 7px) 9px !important;
+  background-repeat: no-repeat !important;
+  background-size: 5px 5px, 5px 5px !important;
+  border: 1px solid var(--meme-border-input) !important;
+  border-radius: var(--meme-input-radius) !important;
+  box-shadow: none !important;
+  font-size: var(--meme-text-xs) !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
 }
 
 /* ── Global utility classes ───────────────────────────────────────────────── */

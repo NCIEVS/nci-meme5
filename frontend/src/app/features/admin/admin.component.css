@@ -1,14 +1,19 @@
 .admin-view {
   display: grid;
   gap: var(--meme-space-lg);
-  padding: 28px 32px 40px;
+  padding: 12px 32px 40px;
 }
 
 .view-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--meme-space-lg);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .kicker {
@@ -221,7 +226,7 @@ input[type="checkbox"] {
   padding: 0;
 }
 
-button {
+button:not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort) {
   min-height: var(--meme-btn-height);
   padding: var(--meme-btn-padding);
   color: var(--meme-btn-color);
@@ -232,14 +237,48 @@ button {
   font-weight: var(--meme-btn-weight);
 }
 
-button:hover {
+button:not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):hover {
   background: var(--meme-btn-hover-bg);
 }
 
-button:disabled {
+button:not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):disabled {
   background: var(--meme-btn-bg);
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+:host ::ng-deep meme-pager button.icon-btn {
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 24px !important;
+  width: 24px !important;
+  min-height: 0 !important;
+  height: 24px !important;
+  padding: 0 !important;
+  color: #000 !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+}
+
+:host ::ng-deep meme-pager button.icon-btn:hover:not(:disabled) {
+  color: #000 !important;
+  background: var(--meme-border) !important;
+  border-color: var(--meme-border) !important;
+}
+
+:host ::ng-deep meme-pager button.icon-btn:disabled {
+  color: #000 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
 }
 
 .primary-button {
@@ -381,10 +420,40 @@ button:disabled {
   overflow: auto;
 }
 
+.project-list-table-wrap {
+  overflow-x: hidden;
+}
+
 table {
   width: 100%;
   min-width: 760px;
   border-collapse: collapse;
+}
+
+.project-list-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.project-list-table .project-list-col-id {
+  width: 92px;
+}
+
+.project-list-table .project-list-col-terminology {
+  width: 128px;
+}
+
+.project-list-table th,
+.project-list-table td {
+  overflow-wrap: anywhere;
+}
+
+.project-list-table th:first-child,
+.project-list-table td:first-child,
+.project-list-table th:nth-child(3),
+.project-list-table td:nth-child(3) {
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 .compact-table table {
@@ -479,7 +548,7 @@ dd {
 
 .icon-action {
   cursor: pointer;
-  color: var(--meme-text);
+  color: #000;
   font-size: 1rem;
   opacity: 0.8;
   user-select: none;
@@ -490,7 +559,7 @@ dd {
 }
 
 .icon-action.danger {
-  color: var(--meme-btn-danger-color);
+  color: #000;
 }
 
 .icon-action.is-disabled {
@@ -604,12 +673,7 @@ tbody tr.precedence-touched {
 
 @media (max-width: 760px) {
   .admin-view {
-    padding: 22px var(--meme-space-lg) 34px;
-  }
-
-  .view-header {
-    align-items: flex-start;
-    flex-direction: column;
+    padding: 10px var(--meme-space-lg) 34px;
   }
 
   .toolbar,

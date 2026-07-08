@@ -38,6 +38,24 @@
       } @else {
         <span class="readonly-value">{{ projectRole() }}</span>
       }
+      @if (projectRole() !== 'AUTHOR' && projectRole() !== 'n/a') {
+        <div class="project-editing-row">
+          <label class="checkbox-label" for="edit-editing-enabled">
+            <input
+              id="edit-editing-enabled"
+              type="checkbox"
+              [ngModel]="projectEditingEnabled() === true"
+              (ngModelChange)="setProjectEditingEnabled($event)"
+              [disabled]="loadingProjectContext() || updatingProjectEditing() || !selectedProject()"
+              name="edit-editing-enabled"
+            />
+            Editing enabled
+          </label>
+          @if (projectEditingEnabled() === false) {
+            <span class="empty-alert editing-disabled-alert">Editing is disabled.</span>
+          }
+        </div>
+      }
     </div>
   }
 
@@ -84,9 +102,13 @@
                 (ngModelChange)="setWorklistFilter($event)"
               />
               <div class="wl-pager">
-                <button type="button" class="icon-btn" title="Previous page" [disabled]="worklistPage() === 1" (click)="worklistPage.set(worklistPage() - 1); loadWorklists()">‹</button>
+                <button type="button" class="icon-btn" title="Previous page" [disabled]="worklistPage() === 1" (click)="worklistPage.set(worklistPage() - 1); loadWorklists()">
+                  <meme-icon name="chevron-left"></meme-icon>
+                </button>
                 <span>{{ worklistPage() }} / {{ worklistTotalPages() }}</span>
-                <button type="button" class="icon-btn" title="Next page" [disabled]="worklistPage() === worklistTotalPages()" (click)="worklistPage.set(worklistPage() + 1); loadWorklists()">›</button>
+                <button type="button" class="icon-btn" title="Next page" [disabled]="worklistPage() === worklistTotalPages()" (click)="worklistPage.set(worklistPage() + 1); loadWorklists()">
+                  <meme-icon name="chevron-right"></meme-icon>
+                </button>
               </div>
             </div>
 
@@ -103,10 +125,16 @@
                   <thead>
 	                    <tr>
 	                      <th (click)="setWorklistSortField('name')" class="sortable-col">
-	                        Name{{ worklistSortIndicator('name') }}
+	                        Name
+                          @if (worklistSortField() === 'name') {
+                            <meme-icon [name]="worklistSortAsc() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                          }
 	                      </th>
 	                      <th (click)="setWorklistSortField('lastModified')" class="sortable-col">
-	                        Last Modified{{ worklistSortIndicator('lastModified') }}
+	                        Last Modified
+                          @if (worklistSortField() === 'lastModified') {
+                            <meme-icon [name]="worklistSortAsc() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                          }
 	                      </th>
 	                      @if (worklistMode() !== 'Checklists') {
 	                        <th>Actions</th>
@@ -127,34 +155,50 @@
 	                          <td class="nobreak">
 	                            <!-- Admin: delete -->
 	                            @if (projectRole() === 'ADMINISTRATOR') {
-	                              <span class="icon-action danger" title="Remove" (click)="deleteWorklist(wl, $event)">✕</span>
+	                              <span class="icon-action danger" title="Remove" (click)="deleteWorklist(wl, $event)">
+                                  <meme-icon name="trash"></meme-icon>
+                                </span>
 	                            }
 	                            <!-- Claim (Available, non-admin) -->
 	                            @if (worklistMode() === 'Available') {
-	                              <span class="icon-action" title="Claim worklist" (click)="assignWorklistToSelf(wl, $event)">→</span>
+	                              <span class="icon-action" title="Claim worklist" (click)="assignWorklistToSelf(wl, $event)">
+                                  <meme-icon name="arrow-right"></meme-icon>
+                                </span>
 	                            }
 	                            <!-- Unassign (Assigned, non-REVIEW_DONE) -->
 	                            @if (worklistMode() === 'Assigned' && wl.workflowStatus !== 'REVIEW_DONE') {
-	                              <span class="icon-action" title="Unassign worklist" (click)="unassignWorklist(wl, $event)">←</span>
+	                              <span class="icon-action" title="Unassign worklist" (click)="unassignWorklist(wl, $event)">
+                                  <meme-icon name="arrow-left"></meme-icon>
+                                </span>
 	                            }
 	                            <!-- Reassign (Done: AUTHOR sees EDITING_DONE, REVIEWER sees READY_FOR_PUBLICATION) -->
 	                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'EDITING_DONE' && projectRole() === 'AUTHOR') {
-	                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
+	                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">
+                                  <meme-icon name="arrow-counterclockwise"></meme-icon>
+                                </span>
 	                            }
 	                            @if (worklistMode() === 'Done' && wl.workflowStatus === 'READY_FOR_PUBLICATION' && projectRole() === 'REVIEWER') {
-	                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">↩</span>
+	                              <span class="icon-action" title="Reassign worklist" (click)="reassignWorklist(wl, $event)">
+                                  <meme-icon name="arrow-counterclockwise"></meme-icon>
+                                </span>
 	                            }
 	                            <!-- Stamp (Assigned reviewer with reviewers) -->
 	                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && wl.workflowStatus !== 'REVIEW_DONE' && (wl.reviewers?.length ?? 0) > 0) {
-	                              <span class="icon-action" title="Stamp worklist" (click)="stampWorklist(wl, $event)">✦</span>
+	                              <span class="icon-action" title="Stamp worklist" (click)="stampWorklist(wl, $event)">
+                                  <meme-icon name="check-circle"></meme-icon>
+                                </span>
 	                            }
 	                            <!-- Return (Assigned, non-admin) -->
 	                            @if (worklistMode() === 'Assigned' && getWorkflowState(wl) === 'Assigned') {
-	                              <span class="icon-action" title="Return worklist" (click)="finishWorklist(wl, $event)">✓</span>
+	                              <span class="icon-action" title="Return worklist" (click)="finishWorklist(wl, $event)">
+                                  <meme-icon name="check"></meme-icon>
+                                </span>
 	                            }
 	                            <!-- Finish (Assigned reviewer, Review Assigned state) -->
 	                            @if (worklistMode() === 'Assigned' && projectRole() === 'REVIEWER' && getWorkflowState(wl) === 'Review Assigned') {
-	                              <span class="icon-action" title="Finish worklist" (click)="finishWorklist(wl, $event)">✓</span>
+	                              <span class="icon-action" title="Finish worklist" (click)="finishWorklist(wl, $event)">
+                                  <meme-icon name="check"></meme-icon>
+                                </span>
 	                            }
 	                          </td>
 	                        }
@@ -175,9 +219,13 @@
                   <span class="wl-cluster-count">({{ recordsTotalCount() }})</span>
                 }
                 <div class="wl-pager">
-                  <button type="button" class="icon-btn" title="Previous page" [disabled]="recordsPage() === 1" (click)="setRecordsPage(recordsPage() - 1)">‹</button>
+                  <button type="button" class="icon-btn" title="Previous page" [disabled]="recordsPage() === 1" (click)="setRecordsPage(recordsPage() - 1)">
+                    <meme-icon name="chevron-left"></meme-icon>
+                  </button>
                   <span>{{ recordsPage() }} / {{ recordsTotalPages() }}</span>
-                  <button type="button" class="icon-btn" title="Next page" [disabled]="recordsPage() === recordsTotalPages()" (click)="setRecordsPage(recordsPage() + 1)">›</button>
+                  <button type="button" class="icon-btn" title="Next page" [disabled]="recordsPage() === recordsTotalPages()" (click)="setRecordsPage(recordsPage() + 1)">
+                    <meme-icon name="chevron-right"></meme-icon>
+                  </button>
                 </div>
               </div>
 
@@ -674,8 +722,12 @@
                     }
                   </td>
                   <td class="nobreak">
-                    <span class="icon-action" title="Reload concept" (click)="reloadConceptInList(concept); $event.stopPropagation()">↺</span>
-                    <span class="icon-action danger" title="Remove from list" (click)="removeConceptFromList(concept); $event.stopPropagation()">✕</span>
+                    <span class="icon-action" title="Reload concept" (click)="reloadConceptInList(concept); $event.stopPropagation()">
+                      <meme-icon name="arrow-clockwise"></meme-icon>
+                    </span>
+                    <span class="icon-action danger" title="Remove from list" (click)="removeConceptFromList(concept); $event.stopPropagation()">
+                      <meme-icon name="trash"></meme-icon>
+                    </span>
                   </td>
                 </tr>
               }
@@ -772,9 +824,13 @@
                 <option [value]="t.terminology ?? ''">{{ t.terminology }}</option>
               }
             </select>
-            <span class="icon-action" title="Edit Root Terminology" (click)="metaNotImplemented('Root terminology editing is not yet implemented.')">✎</span>
+            <span class="icon-action" title="Edit Root Terminology" (click)="metaNotImplemented('Root terminology editing is not yet implemented.')">
+              <meme-icon name="pencil"></meme-icon>
+            </span>
             <span class="meta-terminology-version">{{ selectedMetadataTerminology()?.version }}</span>
-            <span class="icon-action" title="Edit Terminology" (click)="metaNotImplemented('Terminology editing is not yet implemented.')">✎</span>
+            <span class="icon-action" title="Edit Terminology" (click)="metaNotImplemented('Terminology editing is not yet implemented.')">
+              <meme-icon name="pencil"></meme-icon>
+            </span>
           </div>
 
           <div class="metadata-grid">
@@ -794,9 +850,13 @@
                     (ngModelChange)="setTermTypesFilter($event)"
                   />
                   <div class="meta-pager">
-                    <button type="button" class="icon-btn" title="Previous page" [disabled]="termTypesPage() === 1" (click)="termTypesPage.set(termTypesPage() - 1)">‹</button>
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="termTypesPage() === 1" (click)="termTypesPage.set(termTypesPage() - 1)">
+                      <meme-icon name="chevron-left"></meme-icon>
+                    </button>
                     <span>{{ termTypesPage() }} / {{ termTypesTotalPages() }}</span>
-                    <button type="button" class="icon-btn" title="Next page" [disabled]="termTypesPage() === termTypesTotalPages()" (click)="termTypesPage.set(termTypesPage() + 1)">›</button>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="termTypesPage() === termTypesTotalPages()" (click)="termTypesPage.set(termTypesPage() + 1)">
+                      <meme-icon name="chevron-right"></meme-icon>
+                    </button>
                   </div>
                   <button type="button" class="btn-primary" (click)="openAddTermType()">Add</button>
                 </div>
@@ -815,13 +875,17 @@
                           <td>{{ entry.key }}</td>
                           <td>{{ entry.value }}</td>
                           <td class="nobreak">
-                            <span class="icon-action" title="Edit term type" (click)="openEditTermType(entry.key ?? '')">✎</span>
+                            <span class="icon-action" title="Edit term type" (click)="openEditTermType(entry.key ?? '')">
+                              <meme-icon name="pencil"></meme-icon>
+                            </span>
                             <span
                               class="icon-action danger"
                               [class.is-disabled]="removingTermTypeKey() === entry.key"
                               title="{{ removingTermTypeKey() === entry.key ? 'Removing…' : 'Delete term type' }}"
                               (click)="removingTermTypeKey() === entry.key || removeTermType(entry.key ?? '')"
-                            >✕</span>
+                            >
+                              <meme-icon name="trash"></meme-icon>
+                            </span>
                           </td>
                         </tr>
                       } @empty {
@@ -846,9 +910,13 @@
                     (ngModelChange)="setAttributeNamesFilter($event)"
                   />
                   <div class="meta-pager">
-                    <button type="button" class="icon-btn" title="Previous page" [disabled]="attributeNamesPage() === 1" (click)="attributeNamesPage.set(attributeNamesPage() - 1)">‹</button>
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="attributeNamesPage() === 1" (click)="attributeNamesPage.set(attributeNamesPage() - 1)">
+                      <meme-icon name="chevron-left"></meme-icon>
+                    </button>
                     <span>{{ attributeNamesPage() }} / {{ attributeNamesTotalPages() }}</span>
-                    <button type="button" class="icon-btn" title="Next page" [disabled]="attributeNamesPage() === attributeNamesTotalPages()" (click)="attributeNamesPage.set(attributeNamesPage() + 1)">›</button>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="attributeNamesPage() === attributeNamesTotalPages()" (click)="attributeNamesPage.set(attributeNamesPage() + 1)">
+                      <meme-icon name="chevron-right"></meme-icon>
+                    </button>
                   </div>
                   <button type="button" class="btn-primary" (click)="openAddAttributeName()">Add</button>
                 </div>
@@ -867,13 +935,17 @@
                           <td>{{ entry.key }}</td>
                           <td>{{ entry.value }}</td>
                           <td class="nobreak">
-                            <span class="icon-action" title="Edit attribute name" (click)="openEditAttributeName(entry.key ?? '')">✎</span>
+                            <span class="icon-action" title="Edit attribute name" (click)="openEditAttributeName(entry.key ?? '')">
+                              <meme-icon name="pencil"></meme-icon>
+                            </span>
                             <span
                               class="icon-action danger"
                               [class.is-disabled]="removingAttributeNameKey() === entry.key"
                               title="{{ removingAttributeNameKey() === entry.key ? 'Removing…' : 'Delete attribute name' }}"
                               (click)="removingAttributeNameKey() === entry.key || removeMetadataAttributeName(entry.key ?? '')"
-                            >✕</span>
+                            >
+                              <meme-icon name="trash"></meme-icon>
+                            </span>
                           </td>
                         </tr>
                       } @empty {
@@ -925,7 +997,9 @@
                             >
                               <td>{{ i + 1 }}</td>
                               <td>
-                                <span class="drag-handle" title="Drag to reorder">↕</span>
+                                <span class="drag-handle" title="Drag to reorder">
+                                  <meme-icon name="grip-vertical"></meme-icon>
+                                </span>
                               </td>
                               <td>{{ entry.key || 'n/a' }}</td>
                               <td>{{ entry.value || 'n/a' }}</td>
@@ -957,9 +1031,13 @@
                     (ngModelChange)="setRelationshipTypesFilter($event)"
                   />
                   <div class="meta-pager">
-                    <button type="button" class="icon-btn" title="Previous page" [disabled]="relationshipTypesPage() === 1" (click)="relationshipTypesPage.set(relationshipTypesPage() - 1)">‹</button>
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="relationshipTypesPage() === 1" (click)="relationshipTypesPage.set(relationshipTypesPage() - 1)">
+                      <meme-icon name="chevron-left"></meme-icon>
+                    </button>
                     <span>{{ relationshipTypesPage() }} / {{ relationshipTypesTotalPages() }}</span>
-                    <button type="button" class="icon-btn" title="Next page" [disabled]="relationshipTypesPage() === relationshipTypesTotalPages()" (click)="relationshipTypesPage.set(relationshipTypesPage() + 1)">›</button>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="relationshipTypesPage() === relationshipTypesTotalPages()" (click)="relationshipTypesPage.set(relationshipTypesPage() + 1)">
+                      <meme-icon name="chevron-right"></meme-icon>
+                    </button>
                   </div>
                   <button type="button" class="btn-primary" (click)="openAddRelationshipType()">Add</button>
                 </div>
@@ -978,13 +1056,17 @@
                           <td>{{ entry.key }}</td>
                           <td>{{ entry.value }}</td>
                           <td class="nobreak">
-                            <span class="icon-action" title="Edit relationship type" (click)="openEditRelationshipType(entry.key ?? '')">✎</span>
+                            <span class="icon-action" title="Edit relationship type" (click)="openEditRelationshipType(entry.key ?? '')">
+                              <meme-icon name="pencil"></meme-icon>
+                            </span>
                             <span
                               class="icon-action danger"
                               [class.is-disabled]="removingRelationshipTypeKey() === entry.key"
                               title="{{ removingRelationshipTypeKey() === entry.key ? 'Removing…' : 'Delete relationship type' }}"
                               (click)="removingRelationshipTypeKey() === entry.key || removeMetadataRelationshipType(entry.key ?? '')"
-                            >✕</span>
+                            >
+                              <meme-icon name="trash"></meme-icon>
+                            </span>
                           </td>
                         </tr>
                       } @empty {
@@ -1009,9 +1091,13 @@
                     (ngModelChange)="setAdditionalRelTypesFilter($event)"
                   />
                   <div class="meta-pager">
-                    <button type="button" class="icon-btn" title="Previous page" [disabled]="additionalRelTypesPage() === 1" (click)="additionalRelTypesPage.set(additionalRelTypesPage() - 1)">‹</button>
+                    <button type="button" class="icon-btn" title="Previous page" [disabled]="additionalRelTypesPage() === 1" (click)="additionalRelTypesPage.set(additionalRelTypesPage() - 1)">
+                      <meme-icon name="chevron-left"></meme-icon>
+                    </button>
                     <span>{{ additionalRelTypesPage() }} / {{ additionalRelTypesTotalPages() }}</span>
-                    <button type="button" class="icon-btn" title="Next page" [disabled]="additionalRelTypesPage() === additionalRelTypesTotalPages()" (click)="additionalRelTypesPage.set(additionalRelTypesPage() + 1)">›</button>
+                    <button type="button" class="icon-btn" title="Next page" [disabled]="additionalRelTypesPage() === additionalRelTypesTotalPages()" (click)="additionalRelTypesPage.set(additionalRelTypesPage() + 1)">
+                      <meme-icon name="chevron-right"></meme-icon>
+                    </button>
                   </div>
                   <button type="button" class="btn-primary" (click)="openAddAdditionalRelType()">Add</button>
                 </div>
@@ -1030,13 +1116,17 @@
                           <td>{{ entry.key }}</td>
                           <td>{{ entry.value }}</td>
                           <td class="nobreak">
-                            <span class="icon-action" title="Edit additional relationship type" (click)="openEditAdditionalRelType(entry.key ?? '')">✎</span>
+                            <span class="icon-action" title="Edit additional relationship type" (click)="openEditAdditionalRelType(entry.key ?? '')">
+                              <meme-icon name="pencil"></meme-icon>
+                            </span>
                             <span
                               class="icon-action danger"
                               [class.is-disabled]="removingAdditionalRelTypeKey() === entry.key"
                               title="{{ removingAdditionalRelTypeKey() === entry.key ? 'Removing…' : 'Delete additional relationship type' }}"
                               (click)="removingAdditionalRelTypeKey() === entry.key || removeAdditionalRelType(entry.key ?? '')"
-                            >✕</span>
+                            >
+                              <meme-icon name="trash"></meme-icon>
+                            </span>
                           </td>
                         </tr>
                       } @empty {
@@ -1307,7 +1397,9 @@
                     <td>{{ result.terminologyId || result.id }}</td>
                     <td>{{ result.value || result.name }}</td>
                     <td class="nobreak">
-                      <span class="icon-action" title="Add to list" (click)="finderSelectedResult.set(result); addFinderResultToList(); $event.stopPropagation()">+</span>
+                      <span class="icon-action" title="Add to list" (click)="finderSelectedResult.set(result); addFinderResultToList(); $event.stopPropagation()">
+                        <meme-icon name="plus"></meme-icon>
+                      </span>
                     </td>
                   </tr>
                 }
@@ -1315,16 +1407,17 @@
             </table>
           </div>
           <div class="wl-pager">
-            <button type="button" class="icon-btn" [disabled]="finderResultsPage() === 1" (click)="finderResultsPage.set(finderResultsPage() - 1); runFinderSearch()">‹</button>
+            <button type="button" class="icon-btn" [disabled]="finderResultsPage() === 1" (click)="finderResultsPage.set(finderResultsPage() - 1); runFinderSearch()">
+              <meme-icon name="chevron-left"></meme-icon>
+            </button>
             <span>{{ finderResultsPage() }}</span>
-            <button type="button" class="icon-btn" [disabled]="finderResults().length < finderResultsPageSize" (click)="finderResultsPage.set(finderResultsPage() + 1); runFinderSearch()">›</button>
+            <button type="button" class="icon-btn" [disabled]="finderResults().length < finderResultsPageSize" (click)="finderResultsPage.set(finderResultsPage() + 1); runFinderSearch()">
+              <meme-icon name="chevron-right"></meme-icon>
+            </button>
           </div>
         } @else if (finderQuery()) {
           <p class="empty compact-empty">No matching concepts found.</p>
         }
-        <div class="form-actions">
-          <button type="button" (click)="closeFinderDialog()">Close</button>
-        </div>
       </div>
 
       <!-- Right: report panel -->

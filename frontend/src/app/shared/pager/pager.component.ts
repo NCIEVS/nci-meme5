@@ -1,11 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { IconComponent } from '../icon/icon.component';
 
 let nextPagerId = 0;
 
 @Component({
   selector: 'meme-pager',
-  imports: [FormsModule],
+  imports: [FormsModule, IconComponent],
   templateUrl: './pager.component.html',
   styleUrl: './pager.component.css'
 })

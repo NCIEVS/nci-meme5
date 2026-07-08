@@ -18,6 +18,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import {
   ConceptReportPanelComponent,
   LinkedConceptInfo,
@@ -143,6 +144,7 @@ interface WorkflowChecklistComputeForm {
     DatePipe,
     DialogComponent,
     FormsModule,
+    IconComponent,
     NgClass,
     NgTemplateOutlet
   ],
@@ -256,7 +258,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly listDetailRecords = signal<TrackingRecord[]>([]);
   protected readonly listDetailRecordsTotal = signal(0);
   protected readonly listDetailRecordsPage = signal(1);
-  protected readonly listDetailRecordsPageSize = 20;
+  protected readonly listDetailRecordsPageSize = 200;
   protected readonly listDetailRecordsTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.listDetailRecordsTotal() / this.listDetailRecordsPageSize))
   );
@@ -307,6 +309,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly selectedWorkflowAssignmentUserName = signal('');
   protected readonly savingChecklist = signal(false);
   protected readonly savingWorklist = signal(false);
+  protected readonly updatingProjectEditing = signal(false);
   protected readonly downloadingWorkflowReportKey = signal<string | null>(null);
   protected readonly sortOrderOptions: Array<{
     label: string;
@@ -351,11 +354,13 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly projectRole = computed(
     () => this.projectContext.projectRole() || 'n/a'
   );
+  protected readonly currentProject = computed(() =>
+    this.selectedProject() ??
+    this.availableProjects().find((project) => project.id === this.projectId()) ??
+    null
+  );
   protected readonly projectEditingEnabled = computed(
-    () =>
-      (this.selectedProject()?.editingEnabled ??
-        this.availableProjects().find((project) => project.id === this.projectId())
-          ?.editingEnabled) === true
+    () => this.currentProject()?.editingEnabled === true
   );
   protected readonly availableRoles = computed<string[]>(() => {
     const user = this.auth.currentUser();
@@ -523,6 +528,41 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       },
       error: () => this.notifications.error('Could not switch role.')
     });
+  }
+
+  protected setProjectEditingEnabled(enabled: boolean): void {
+    const project = this.currentProject();
+
+    if (!project?.id) {
+      return;
+    }
+
+    const updatedProject: OperationalProject = {
+      ...project,
+      editingEnabled: enabled
+    };
+
+    this.updatingProjectEditing.set(true);
+    this.api
+      .updateProject(updatedProject)
+      .pipe(finalize(() => this.updatingProjectEditing.set(false)))
+      .subscribe({
+        next: () => {
+          this.availableProjects.update((projects) =>
+            projects.map((item) =>
+              item.id === project.id ? { ...item, editingEnabled: enabled } : item
+            )
+          );
+          const selectedProject = this.selectedProject();
+          if (selectedProject?.id === project.id) {
+            this.selectedProject.set({
+              ...selectedProject,
+              editingEnabled: enabled
+            });
+          }
+        },
+        error: () => this.notifications.error('Could not update project editing state.')
+      });
   }
 
   protected reloadWorklists(): void {
@@ -1787,7 +1827,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     this.worklistCreationFormErrors.set([]);
     this.worklistCreationForm.set({
-      availableClusterCount: this.binStatValue(stats, 'unassigned'),
+      availableClusterCount: this.availableWorklistClusterCount(stats),
       bin,
       clusterCount: 100,
       clusterType: stats.clusterType ?? 'default',
@@ -1873,7 +1913,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     if (numberOfWorklists < 1) {
       this.worklistCreationFormErrors.set([
-        'No unassigned clusters are available for the requested worklist range.'
+        'No clusters are available for the requested worklist range.'
       ]);
       return;
     }
@@ -3165,6 +3205,19 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
   }
 
+  protected displayDateParts(value: string | number | null | undefined): string[] {
+    if (!value) {
+      return ['n/a'];
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return [String(value)];
+    }
+
+    return [date.toLocaleDateString(), date.toLocaleTimeString()];
+  }
+
   protected recordCount(recordHolder: Checklist | Worklist | null): number {
     return recordHolder?.trackingRecords?.length ?? recordHolder?.stats?.['clusterCt'] ?? 0;
   }
@@ -3198,6 +3251,18 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     key: 'all' | 'assigned' | 'unassigned'
   ): number {
     return stats.stats?.[key] ?? 0;
+  }
+
+  protected availableWorklistClusterCount(stats: ClusterTypeStats): number {
+    return this.selectedConfigType() === 'MUTUALLY_EXCLUSIVE'
+      ? this.binStatValue(stats, 'all')
+      : this.binStatValue(stats, 'unassigned');
+  }
+
+  protected worklistClusterAvailabilityLabel(): string {
+    return this.selectedConfigType() === 'MUTUALLY_EXCLUSIVE'
+      ? 'clusters available'
+      : 'unassigned clusters available';
   }
 
   protected displayRunTime(value: number | null | undefined): string {
@@ -3849,7 +3914,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   ): boolean {
     return (
       this.canCreateChecklistForStat(bin, stats) &&
-      this.binStatValue(stats, 'unassigned') > 0
+      this.availableWorklistClusterCount(stats) > 0
     );
   }
 

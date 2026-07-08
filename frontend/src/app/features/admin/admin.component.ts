@@ -7,6 +7,7 @@ import { UserPreferences } from '../../core/auth/auth.models';
 import { AuthService } from '../../core/auth/auth.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/pager/pager.component';
 import { buildPfs } from './admin-api.helpers';
 import { AdminApiService } from './admin-api.service';
@@ -81,7 +82,7 @@ interface UserForm {
 
 @Component({
   selector: 'meme-admin',
-  imports: [DialogComponent, FormsModule, PagerComponent],
+  imports: [DialogComponent, FormsModule, IconComponent, PagerComponent],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css'
 })
