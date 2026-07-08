@@ -166,6 +166,14 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly feedbackUpdatedAt = signal<number | null>(null);
   protected readonly terminologies = signal<OperationalTerminology[]>([]);
   protected readonly updatingStepId = signal<number | null>(null);
+  protected readonly currentTerminologies = computed(() =>
+    this.terminologies()
+      .filter((terminology) => terminology.current !== false)
+      .slice()
+      .sort((a, b) =>
+        (a.terminology ?? '').localeCompare(b.terminology ?? '')
+      )
+  );
 
   protected readonly displayedExecutions = computed(() => {
     const seen = new Set<string>();
@@ -212,6 +220,10 @@ export class ProcessComponent implements OnInit, OnDestroy {
     () => this.projectContext.projectRole() === 'ADMINISTRATOR'
   );
   protected readonly availableProjects = signal<OperationalProject[]>([]);
+  protected readonly currentProject = computed(() =>
+    this.availableProjects().find((project) => project.id === this.projectId()) ??
+    null
+  );
   protected readonly availableRoles = computed<string[]>(() => {
     const user = this.auth.currentUser();
     const projectId = this.projectId();
@@ -407,15 +419,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.load();
   }
 
-  protected clearFilter(): void {
-    if (!this.filter()) {
-      return;
-    }
-
-    this.filter.set('');
-    this.load();
-  }
-
   protected setProcessType(value: string): void {
     const processType = this.matchingProcessType(value) ?? 'Insertion';
 
@@ -439,6 +442,11 @@ export class ProcessComponent implements OnInit, OnDestroy {
   }
 
   protected startAddProcessConfig(): void {
+    const terminology =
+      this.currentProject()?.terminology ??
+      this.currentTerminologies()[0]?.terminology ??
+      '';
+
     this.processConfigFormErrors.set([]);
     this.processConfigForm.set({
       description: '',
@@ -448,9 +456,12 @@ export class ProcessComponent implements OnInit, OnDestroy {
       mode: 'add',
       name: '',
       processConfig: null,
-      terminology: this.terminologies()[0]?.terminology ?? '',
+      terminology,
       type: this.defaultProcessType(),
-      version: this.terminologies()[0]?.version ?? ''
+      version:
+        this.processFormVersionForTerminology(terminology) ??
+        this.currentProject()?.version ??
+        ''
     });
   }
 
@@ -494,16 +505,12 @@ export class ProcessComponent implements OnInit, OnDestroy {
   }
 
   protected setProcessFormTerminology(value: string): void {
-    const terminology = this.terminologies().find(
-      (entry) => entry.terminology === value
-    );
-
     this.processConfigForm.update((form) =>
       form
         ? {
             ...form,
             terminology: value,
-            version: terminology?.version ?? form.version
+            version: this.processFormVersionForTerminology(value) ?? form.version
           }
         : form
     );
@@ -521,15 +528,12 @@ export class ProcessComponent implements OnInit, OnDestroy {
     );
   }
 
-  protected processConfigTypeOptions(): string[] {
-    const formType = this.processConfigForm()?.type;
-    const options: string[] = this.processTypes;
-
-    if (formType && !options.includes(formType)) {
-      return [formType, ...options];
-    }
-
-    return options;
+  private processFormVersionForTerminology(
+    terminology: string
+  ): string | null | undefined {
+    return this.currentTerminologies().find(
+      (entry) => entry.terminology === terminology
+    )?.version;
   }
 
   protected saveProcessConfig(): void {
@@ -2610,12 +2614,52 @@ export class ProcessComponent implements OnInit, OnDestroy {
   }
 
   private processQueryRestriction(): string {
-    return [this.filter().trim(), this.processTypeQueryRestriction()]
+    const queryRestriction = [
+      this.processFilterQueryRestriction(),
+      `type:${this.escapeLuceneTerm(this.selectedProcessType())}`
+    ]
       .filter(Boolean)
+      .join(' AND ');
+
+    return queryRestriction;
+  }
+
+  private processFilterQueryRestriction(): string {
+    const filter = this.filter().trim();
+
+    if (!filter) {
+      return '';
+    }
+
+    if (this.isExplicitProcessQuery(filter)) {
+      return `(${filter})`;
+    }
+
+    return filter
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => this.processFilterTokenQuery(token))
       .join(' AND ');
   }
 
-  private processTypeQueryRestriction(): string {
-    return this.selectedProcessType();
+  private processFilterTokenQuery(token: string): string {
+    const escapedToken = this.escapeLuceneTerm(token);
+    const fields = ['name', 'description', 'terminology', 'version'];
+
+    return `(${fields
+      .map((field) => `${field}:${escapedToken}*`)
+      .join(' OR ')})`;
+  }
+
+  private isExplicitProcessQuery(value: string): boolean {
+    return /[:"()]/.test(value);
+  }
+
+  private escapeLuceneTerm(value: string): string {
+    return value
+      .replace(/&&/g, '\\&&')
+      .replace(/\|\|/g, '\\||')
+      .replace(/([+\-!(){}\[\]^"~?:\\/])/g, '\\$1')
+      .replace(/\*/g, '');
   }
 }

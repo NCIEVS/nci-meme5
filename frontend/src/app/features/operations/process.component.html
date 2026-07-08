@@ -114,13 +114,6 @@
           <button type="submit" [disabled]="loading()">
             {{ loading() ? 'Loading' : 'Search' }}
           </button>
-          <button
-            type="button"
-            (click)="clearFilter()"
-            [disabled]="loading() || !filter()"
-          >
-            Clear
-          </button>
         </form>
 
         <div class="table-wrap">
@@ -237,6 +230,7 @@
 
         @if (currentProcesses().length) {
           <meme-pager
+            class="process-list-pager"
             label="Process pages"
             [page]="currentPage()"
             [totalPages]="currentTotalPages()"
@@ -296,6 +290,7 @@
                   @if (canManageProcesses()) {
                     <span class="action-row">
                       <select
+                        class="process-step-picker"
                         [ngModel]="selectedAlgorithmKey()"
                         (ngModelChange)="setSelectedAlgorithmKey($event)"
                         name="algorithm-type-list"
@@ -900,11 +895,141 @@
 
 @if (processConfigForm(); as form) {
   <meme-dialog
-    [title]="form.mode === 'add' ? 'Add Process Config' : 'Edit Process Config'"
+    [title]="form.mode === 'add' ? 'Add Process' : 'Edit Process'"
     [closeDisabled]="savingProcessConfig()"
     (closed)="closeProcessConfigForm()"
   >
     <form class="dialog-form" (ngSubmit)="saveProcessConfig()">
+      <table class="slim-table process-config-form-table">
+        <tbody>
+          <tr>
+            <th scope="row">
+              <label for="process-form-name">Name</label>
+            </th>
+            <td>
+              <input
+                id="process-form-name"
+                type="text"
+                autofocus
+                [ngModel]="form.name"
+                (ngModelChange)="updateProcessConfigForm('name', $event)"
+                name="process-name"
+                placeholder="e.g. demotions"
+                required
+              />
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label for="process-form-description">Description</label>
+            </th>
+            <td>
+              <textarea
+                id="process-form-description"
+                [ngModel]="form.description"
+                (ngModelChange)="updateProcessConfigForm('description', $event)"
+                name="process-description"
+                placeholder="Basic description of the process"
+                rows="2"
+              ></textarea>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label for="process-form-input-path">Input path</label>
+            </th>
+            <td>
+              <input
+                id="process-form-input-path"
+                type="text"
+                [ngModel]="form.inputPath"
+                (ngModelChange)="updateProcessConfigForm('inputPath', $event)"
+                name="process-input-path"
+                placeholder="e.g. NCI_2016_10E/insert"
+              />
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label for="process-form-log-path">Log path</label>
+            </th>
+            <td>
+              <input
+                id="process-form-log-path"
+                type="text"
+                [ngModel]="form.logPath"
+                (ngModelChange)="updateProcessConfigForm('logPath', $event)"
+                name="process-log-path"
+                placeholder="e.g. NCI_2016_10E/etc/qa"
+              />
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label for="process-form-feedback-email">Feedback Email</label>
+            </th>
+            <td>
+              <input
+                id="process-form-feedback-email"
+                type="text"
+                [ngModel]="form.feedbackEmail"
+                (ngModelChange)="updateProcessConfigForm('feedbackEmail', $event)"
+                name="process-feedback-email"
+                placeholder="e.g. user@example.com"
+              />
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label for="process-form-terminology">Terminology</label>
+            </th>
+            <td>
+              <div class="process-config-inline-field">
+                <input
+                  id="process-form-terminology"
+                  type="text"
+                  list="process-form-terminologies"
+                  [ngModel]="form.terminology"
+                  (ngModelChange)="setProcessFormTerminology($event)"
+                  name="process-terminology"
+                  placeholder="Enter terminology"
+                />
+                <datalist id="process-form-terminologies">
+                  @for (terminology of currentTerminologies(); track terminology.terminology) {
+                    <option [value]="terminology.terminology ?? ''"></option>
+                  }
+                </datalist>
+                @if (form.terminology) {
+                  <button
+                    type="button"
+                    class="warning"
+                    (click)="clearProcessFormTerminology()"
+                    [disabled]="savingProcessConfig()"
+                  >
+                    Clear
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label for="process-form-version">Version</label>
+            </th>
+            <td>
+              <input
+                id="process-form-version"
+                type="text"
+                [ngModel]="form.version"
+                (ngModelChange)="updateProcessConfigForm('version', $event)"
+                name="process-version"
+                placeholder="Enter version"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
       @if (processConfigFormErrors().length) {
         <ul class="form-errors">
           @for (error of processConfigFormErrors(); track error) {
@@ -913,108 +1038,14 @@
         </ul>
       }
 
-      <div class="form-grid">
-        <label class="form-field" for="process-form-name">
-          <span>Name</span>
-          <input
-            id="process-form-name"
-            type="text"
-            [ngModel]="form.name"
-            (ngModelChange)="updateProcessConfigForm('name', $event)"
-            name="process-name"
-            required
-          />
-        </label>
-        <label class="form-field" for="process-form-type">
-          <span>Type</span>
-          <select
-            id="process-form-type"
-            [ngModel]="form.type"
-            (ngModelChange)="updateProcessConfigForm('type', $event)"
-            name="process-type"
-            required
-          >
-            @for (processType of processConfigTypeOptions(); track processType) {
-              <option [value]="processType">{{ processType }}</option>
-            }
-          </select>
-        </label>
-        <label class="form-field" for="process-form-terminology">
-          <span>Terminology</span>
-          <input
-            id="process-form-terminology"
-            type="text"
-            list="process-form-terminologies"
-            [ngModel]="form.terminology"
-            (ngModelChange)="setProcessFormTerminology($event)"
-            name="process-terminology"
-          />
-          <datalist id="process-form-terminologies">
-            @for (terminology of terminologies(); track terminology.terminology) {
-              <option [value]="terminology.terminology ?? ''"></option>
-            }
-          </datalist>
-          <button
-            type="button"
-            (click)="clearProcessFormTerminology()"
-            [disabled]="savingProcessConfig()"
-          >
-            Clear
-          </button>
-        </label>
-        <label class="form-field" for="process-form-version">
-          <span>Version</span>
-          <input
-            id="process-form-version"
-            type="text"
-            [ngModel]="form.version"
-            (ngModelChange)="updateProcessConfigForm('version', $event)"
-            name="process-version"
-          />
-        </label>
-        <label class="form-field full-span" for="process-form-input-path">
-          <span>Input Path</span>
-          <input
-            id="process-form-input-path"
-            type="text"
-            [ngModel]="form.inputPath"
-            (ngModelChange)="updateProcessConfigForm('inputPath', $event)"
-            name="process-input-path"
-          />
-        </label>
-        <label class="form-field full-span" for="process-form-log-path">
-          <span>Log Path</span>
-          <input
-            id="process-form-log-path"
-            type="text"
-            [ngModel]="form.logPath"
-            (ngModelChange)="updateProcessConfigForm('logPath', $event)"
-            name="process-log-path"
-          />
-        </label>
-        <label class="form-field full-span" for="process-form-feedback-email">
-          <span>Feedback Email</span>
-          <input
-            id="process-form-feedback-email"
-            type="text"
-            [ngModel]="form.feedbackEmail"
-            (ngModelChange)="updateProcessConfigForm('feedbackEmail', $event)"
-            name="process-feedback-email"
-          />
-        </label>
-        <label class="form-field full-span" for="process-form-description">
-          <span>Description</span>
-          <textarea
-            id="process-form-description"
-            [ngModel]="form.description"
-            (ngModelChange)="updateProcessConfigForm('description', $event)"
-            name="process-description"
-            rows="4"
-          ></textarea>
-        </label>
-      </div>
-
       <div class="form-actions">
+        <button type="submit" class="btn-primary" [disabled]="savingProcessConfig()">
+          @if (savingProcessConfig()) {
+            Saving
+          } @else {
+            {{ form.mode === 'add' ? 'Add' : 'Save' }}
+          }
+        </button>
         <button
           type="button"
           class="warning"
@@ -1022,9 +1053,6 @@
           [disabled]="savingProcessConfig()"
         >
           Cancel
-        </button>
-        <button type="submit" class="btn-primary" [disabled]="savingProcessConfig()">
-          {{ savingProcessConfig() ? 'Saving' : 'Save' }}
         </button>
       </div>
     </form>

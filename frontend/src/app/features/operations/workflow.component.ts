@@ -226,6 +226,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly loadingWorkflowItemKey = signal<string | null>(null);
   protected readonly loadingWorkflowProjectUsers = signal(false);
   protected readonly addingWorkflowNoteKey = signal<string | null>(null);
+  protected readonly assignmentFormErrors = signal<string[]>([]);
   protected readonly assignmentNoteText = signal('');
   protected readonly queryTypes = ['SQL', 'LUCENE', 'JPQL', 'PROGRAM'];
   protected readonly queryStyles = ['CLUSTER', 'REPORT', 'OTHER'];
@@ -1015,12 +1016,17 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected openAssignmentDialog(worklist: Worklist): void {
     this.selectedWorkflowAssignmentUserName.set('');
     this.assignmentNoteText.set('');
-    this.viewWorkflowItem('worklist', worklist, () => this.assignmentDialogOpen.set(true));
+    this.assignmentFormErrors.set([]);
+    this.viewWorkflowItem('worklist', worklist, (detailItem) => {
+      this.selectDefaultWorkflowAssignmentUser(detailItem);
+      this.assignmentDialogOpen.set(true);
+    });
   }
   protected closeAssignmentDialog(): void {
     this.assignmentDialogOpen.set(false);
     this.selectedWorkflowAssignmentUserName.set('');
     this.assignmentNoteText.set('');
+    this.assignmentFormErrors.set([]);
   }
   protected openNotesDialog(): void { this.notesDialogOpen.set(true); }
   protected closeNotesDialog(): void { this.notesDialogOpen.set(false); }
@@ -2317,7 +2323,11 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       });
   }
 
-  protected viewWorkflowItem(kind: WorkflowListKind, item: Checklist | Worklist, afterLoad?: () => void): void {
+  protected viewWorkflowItem(
+    kind: WorkflowListKind,
+    item: Checklist | Worklist,
+    afterLoad?: (detailItem: Checklist | Worklist) => void
+  ): void {
     const projectId = this.projectId();
 
     if (!projectId || !item.id) {
@@ -2357,7 +2367,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
             this.workflowReportFileName.set(null);
           }
 
-          afterLoad?.();
+          afterLoad?.(detailItem);
         },
         error: () => {
           this.notifications.error(`${this.workflowItemLabel(kind)} details could not be loaded.`);
@@ -2388,6 +2398,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
   protected setWorkflowAssignmentUserName(value: string): void {
     this.selectedWorkflowAssignmentUserName.set(value);
+    this.assignmentFormErrors.set([]);
   }
 
   protected setAssignmentNoteText(value: string): void {
@@ -2418,17 +2429,11 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return [];
     }
 
-    const assignedNames = new Set(
-      [...(worklist.authors ?? []), ...(worklist.reviewers ?? [])].map((name) =>
-        name.toLocaleLowerCase()
-      )
-    );
-
     return this.workflowProjectUsers()
       .filter((user) => {
         const userName = user.userName ?? '';
 
-        if (!userName || assignedNames.has(userName.toLocaleLowerCase())) {
+        if (!userName) {
           return false;
         }
 
@@ -2449,6 +2454,24 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       .sort((left, right) =>
         (left.userName ?? '').localeCompare(right.userName ?? '')
       );
+  }
+
+  private selectDefaultWorkflowAssignmentUser(
+    worklist: Checklist & Partial<Worklist>
+  ): void {
+    const currentUserName = this.currentUserName().toLocaleLowerCase();
+
+    if (!currentUserName) {
+      return;
+    }
+
+    const currentUser = this.assignableWorkflowUsers(worklist).find(
+      (user) => (user.userName ?? '').toLocaleLowerCase() === currentUserName
+    );
+
+    if (currentUser?.userName) {
+      this.selectedWorkflowAssignmentUserName.set(currentUser.userName);
+    }
   }
 
   protected assignedWorkflowUsers(
@@ -2522,12 +2545,16 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     const role = this.workflowAssignmentTargetRole(worklist);
 
     if (!projectId || !worklist.id || !userName || !role) {
+      if (!userName) {
+        this.assignmentFormErrors.set(['The user must be selected.']);
+      }
       return;
     }
 
     const itemKey = this.workflowItemKey('worklist', worklist);
     const note = this.assignmentNoteText().trim();
 
+    this.assignmentFormErrors.set([]);
     this.actingWorkflowItemKey.set(itemKey);
     this.api
       .performWorkflowAction(projectId, worklist.id, userName, role, 'ASSIGN')
@@ -2559,10 +2586,12 @@ export class WorkflowComponent implements OnInit, OnDestroy {
           this.replaceWorklist(updatedWithNote);
           this.selectedWorkflowAssignmentUserName.set('');
           this.assignmentNoteText.set('');
-          this.notifications.success(`Worklist assigned to ${userName}.`);
+          this.assignmentFormErrors.set([]);
+          this.assignmentDialogOpen.set(false);
           this.load();
         },
         error: () => {
+          this.assignmentFormErrors.set([`Worklist could not be assigned to ${userName}.`]);
           this.notifications.error(`Worklist could not be assigned to ${userName}.`);
         }
       });

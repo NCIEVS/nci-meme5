@@ -281,6 +281,11 @@ button:not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):disa
   cursor: not-allowed !important;
 }
 
+:host ::ng-deep meme-pager {
+  display: block;
+  padding: 8px 12px 10px;
+}
+
 .primary-button {
   color: var(--meme-btn-primary-color);
   background: var(--meme-btn-primary-bg);

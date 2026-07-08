@@ -107,11 +107,12 @@ dt {
 }
 
 .project-editing-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  flex: 1 0 100%;
+  flex: 0 1 auto;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .editing-disabled-alert {
@@ -492,6 +493,14 @@ tbody tr.disabled-row {
   padding: 14px;
 }
 
+.detail-body > dl > dt {
+  font-weight: 400;
+}
+
+.detail-body .step-panel dl dt {
+  font-weight: 400;
+}
+
 .step-panel {
   display: grid;
   gap: 10px;
@@ -675,16 +684,38 @@ tbody tr.disabled-row {
   }
 }
 
+.assignment-dialog-body,
 .assignment-form {
   display: grid;
-  grid-template-columns: minmax(180px, 0.5fr) minmax(240px, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
-.assignee-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.assignment-worklist-summary,
+.assignment-fields-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.assignment-worklist-summary th,
+.assignment-fields-table th {
+  background: transparent;
+  width: 140px;
+  color: var(--meme-text-label);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.assignment-worklist-summary th,
+.assignment-worklist-summary td,
+.assignment-fields-table th,
+.assignment-fields-table td {
+  padding: 4px 8px;
+  vertical-align: top;
+}
+
+.assignment-fields-table select,
+.assignment-fields-table textarea {
+  width: 100%;
 }
 
 .value-list {
@@ -875,6 +906,10 @@ textarea {
   resize: vertical;
 }
 
+.note-form textarea {
+  font-weight: 400;
+}
+
 .form-errors {
   margin: 0;
   padding: 10px 12px 10px 28px;
@@ -909,6 +944,51 @@ textarea {
   gap: 10px;
 }
 
+.process-config-form-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.process-config-form-table th,
+.process-config-form-table td {
+  border-bottom: 0;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.process-config-form-table th {
+  width: 150px;
+  background: transparent;
+  color: var(--meme-text-label);
+  font-size: var(--meme-table-font-size);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.process-config-form-table th label {
+  font-weight: 800;
+}
+
+.process-config-form-table input,
+.process-config-form-table textarea {
+  width: 100%;
+}
+
+.process-config-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.process-config-inline-field input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.process-config-inline-field button {
+  flex: 0 0 auto;
+}
+
 @media (max-width: 900px) {
   .operations-view {
     padding: 10px var(--meme-space-lg) 32px;
@@ -930,6 +1010,20 @@ textarea {
   .query-field-actions,
   .field-button-group {
     justify-content: flex-start;
+  }
+
+  .process-config-form-table th,
+  .process-config-form-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .process-config-form-table th {
+    padding-bottom: 2px;
+  }
+
+  .process-config-form-table td {
+    padding-top: 0;
   }
 }
 
@@ -1128,13 +1222,41 @@ textarea {
   min-width: 130px;
 }
 
+.process-step-picker,
+.process-step-picker option {
+  font-weight: 400;
+}
+
+.process-list-pager {
+  display: block;
+  padding: 8px 12px 10px;
+}
+
+.process-list-header h2,
+.process-list-actions label,
+#process-details-title {
+  font-weight: 800;
+}
+
 .process-filter-toolbar {
+  column-gap: 14px;
   justify-content: flex-start;
+  padding: 12px 14px;
+  row-gap: 10px;
 }
 
 .process-filter-toolbar input[type='search'] {
   min-width: min(280px, 100%);
-  flex: 1 1 180px;
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+
+.process-filter-toolbar label {
+  margin-right: 4px;
+}
+
+.process-filter-toolbar button {
+  margin-left: 4px;
 }
 
 .table-sort {
@@ -1879,6 +2001,10 @@ tr.RXNORM td {
 .concept-list-wrap {
   max-height: 200px;
   overflow-y: auto;
+}
+
+.concept-list-wrap .compact-empty {
+  padding-left: 12px;
 }
 
 .concept-list-wrap .name-cell {

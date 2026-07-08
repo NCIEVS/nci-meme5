@@ -720,7 +720,7 @@
                             >
                               <meme-icon name="download"></meme-icon>
                             </button>
-                            @if (canManageWorklistAssignments()) {
+                            @if (canManageWorklistAssignments() && workflowAssignmentTargetRole(worklist)) {
                               <button
                                 type="button"
                                 class="icon-btn"
@@ -1295,134 +1295,100 @@
           [title]="'Assignments — ' + workflowListDetailTitle(detail)"
           (closed)="closeAssignmentDialog()"
         >
-          <div class="panel-header compact">
-            <p>{{ assignmentDescription(detail.item) }}</p>
-            @if (workflowAssignmentActions(detail.item).length) {
-              <div class="inline-actions">
-                @for (
-                  assignmentAction of workflowAssignmentActions(detail.item);
-                  track assignmentAction.action
-                ) {
-                  <button
-                    type="button"
-                    (click)="performWorkflowAssignment(detail.item, assignmentAction.action)"
-                    [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                  >
-                    {{ isWorkflowAssignmentRunning(detail.item) ? 'Working' : assignmentAction.label }}
-                  </button>
-                }
-              </div>
-            }
-          </div>
-          <dl>
-            <dt>Authors</dt>
-            <dd>
-              @if (assignedWorkflowUsers(detail.item, 'AUTHOR').length) {
-                <div class="assignee-list">
-                  @for (author of assignedWorkflowUsers(detail.item, 'AUTHOR'); track author) {
-                    <span class="assignee-chip">
-                      <span>{{ author }}</span>
-                      @if (canRemoveAssignedWorkflowUser(detail.item, author, 'AUTHOR')) {
-                        <button
-                          type="button"
-                          class="danger"
-                          (click)="removeAssignedWorkflowUser(detail.item, author, 'AUTHOR')"
-                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                        >Remove</button>
-                      }
-                      @if (canReassignAssignedWorkflowUser(detail.item, author, 'AUTHOR')) {
-                        <button
-                          type="button"
-                          class="warning"
-                          (click)="reassignAssignedWorkflowUser(detail.item, author, 'AUTHOR')"
-                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                        >Reassign</button>
-                      }
-                    </span>
-                  }
-                </div>
-              } @else {
-                n/a
-              }
-            </dd>
-            <dt>Reviewers</dt>
-            <dd>
-              @if (assignedWorkflowUsers(detail.item, 'REVIEWER').length) {
-                <div class="assignee-list">
-                  @for (reviewer of assignedWorkflowUsers(detail.item, 'REVIEWER'); track reviewer) {
-                    <span class="assignee-chip">
-                      <span>{{ reviewer }}</span>
-                      @if (canRemoveAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')) {
-                        <button
-                          type="button"
-                          class="danger"
-                          (click)="removeAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')"
-                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                        >Remove</button>
-                      }
-                      @if (canReassignAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')) {
-                        <button
-                          type="button"
-                          class="warning"
-                          (click)="reassignAssignedWorkflowUser(detail.item, reviewer, 'REVIEWER')"
-                          [disabled]="isWorkflowAssignmentRunning(detail.item)"
-                        >Reassign</button>
-                      }
-                    </span>
-                  }
-                </div>
-              } @else {
-                n/a
-              }
-            </dd>
-          </dl>
+          <div class="assignment-dialog-body">
+            <table class="slim-table assignment-worklist-summary">
+              <tbody>
+                <tr>
+                  <th>Name</th>
+                  <td>{{ detail.item.name || 'n/a' }}</td>
+                </tr>
+                <tr>
+                  <th>Last Modified</th>
+                  <td>{{ displayDate(detail.item.lastModified) }}</td>
+                </tr>
+                <tr>
+                  <th>Assigned</th>
+                  <td>{{ joinEditors(detail.item) || 'n/a' }}</td>
+                </tr>
+                <tr>
+                  <th>Team</th>
+                  <td>{{ detail.item.team || 'n/a' }}</td>
+                </tr>
+                <tr>
+                  <th>State</th>
+                  <td>{{ latestWorkflowState(detail.item) || detail.item.workflowStatus || 'n/a' }}</td>
+                </tr>
+              </tbody>
+            </table>
 
-          @if (canManageWorklistAssignments() && workflowAssignmentTargetRole(detail.item)) {
             <form
               class="assignment-form"
               (ngSubmit)="assignWorkflowToSelectedUser(detail.item)"
             >
-              <label class="form-field" for="assignment-dialog-user">
-                <span>Assign User</span>
-                <select
-                  id="assignment-dialog-user"
-                  [ngModel]="selectedWorkflowAssignmentUserName()"
-                  (ngModelChange)="setWorkflowAssignmentUserName($event)"
-                  name="assignment-dialog-user"
-                  [disabled]="loadingWorkflowProjectUsers() || isWorkflowAssignmentRunning(detail.item)"
-                >
-                  <option value="">
-                    {{ loadingWorkflowProjectUsers() ? 'Loading users' : 'Select user' }}
-                  </option>
-                  @for (user of assignableWorkflowUsers(detail.item); track user.userName ?? user.id) {
-                    <option [value]="user.userName ?? ''">
-                      {{ user.userName || user.name || 'Unnamed user' }}
-                      @if (user.team) { ({{ user.team }}) }
-                    </option>
+              <table class="slim-table assignment-fields-table">
+                <tbody>
+                  <tr>
+                    <th>
+                      <label for="assignment-dialog-user">Select user</label>
+                    </th>
+                    <td>
+                      <select
+                        id="assignment-dialog-user"
+                        autofocus
+                        [ngModel]="selectedWorkflowAssignmentUserName()"
+                        (ngModelChange)="setWorkflowAssignmentUserName($event)"
+                        name="assignment-dialog-user"
+                        [disabled]="loadingWorkflowProjectUsers() || isWorkflowAssignmentRunning(detail.item)"
+                      >
+                        <option value="">
+                          {{ loadingWorkflowProjectUsers() ? 'Loading users' : 'Select user' }}
+                        </option>
+                        @for (user of assignableWorkflowUsers(detail.item); track user.userName ?? user.id) {
+                          <option [value]="user.userName ?? ''">
+                            {{ user.userName || user.name || 'Unnamed user' }}
+                          </option>
+                        }
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th colspan="2">
+                      <label for="assignment-dialog-note">Note</label>
+                    </th>
+                  </tr>
+                  <tr>
+                    <td colspan="2">
+                      <textarea
+                        id="assignment-dialog-note"
+                        [ngModel]="assignmentNoteText()"
+                        (ngModelChange)="setAssignmentNoteText($event)"
+                        name="assignment-dialog-note"
+                        rows="4"
+                      ></textarea>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              @if (assignmentFormErrors().length) {
+                <ul class="form-errors">
+                  @for (error of assignmentFormErrors(); track error) {
+                    <li>{{ error }}</li>
                   }
-                </select>
-              </label>
-              <label class="form-field full-span" for="assignment-dialog-note">
-                <span>Assignment Note</span>
-                <textarea
-                  id="assignment-dialog-note"
-                  [ngModel]="assignmentNoteText()"
-                  (ngModelChange)="setAssignmentNoteText($event)"
-                  name="assignment-dialog-note"
-                  rows="2"
-                ></textarea>
-              </label>
+                </ul>
+              }
+
               <div class="form-actions">
                 <button
                   type="submit"
                   class="btn-primary"
-                  [disabled]="isWorkflowAssignmentRunning(detail.item) || !selectedWorkflowAssignmentUserName()"
+                  [disabled]="isWorkflowAssignmentRunning(detail.item)"
                 >
-                  {{ isWorkflowAssignmentRunning(detail.item) ? 'Assigning…' : 'Assign Selected User' }}
+                  {{ isWorkflowAssignmentRunning(detail.item) ? 'Assigning…' : 'Assign' }}
                 </button>
               </div>
             </form>
-          }
+          </div>
         </meme-dialog>
       }
     }
