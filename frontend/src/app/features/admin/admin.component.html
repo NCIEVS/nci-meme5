@@ -33,23 +33,17 @@
               <thead>
                 <tr>
                   <th>
-                    <button type="button" (click)="setProjectSortField('id')">
-                      Id
-                      <span>{{ projectSortIndicator('id') }}</span>
-                    </button>
+                    Id
                   </th>
                   <th>
-                    <button type="button" (click)="setProjectSortField('name')">
+                    <button type="button" class="table-sort" (click)="setProjectSortField('name')">
                       Name
                       <span>{{ projectSortIndicator('name') }}</span>
                     </button>
                   </th>
                   <th>Description</th>
                   <th>
-                    <button type="button" (click)="setProjectSortField('terminology')">
-                      Terminology
-                      <span>{{ projectSortIndicator('terminology') }}</span>
-                    </button>
+                    Terminology
                   </th>
                   <th></th>
                 </tr>
@@ -147,28 +141,22 @@
               <thead>
                 <tr>
                   <th>
-                    <button type="button" (click)="setUserSortField('userName')">
+                    <button type="button" class="table-sort" (click)="setUserSortField('userName')">
                       Username
                       <span>{{ userSortIndicator('userName') }}</span>
                     </button>
                   </th>
                   <th>
-                    <button type="button" (click)="setUserSortField('name')">
+                    <button type="button" class="table-sort" (click)="setUserSortField('name')">
                       Name
                       <span>{{ userSortIndicator('name') }}</span>
                     </button>
                   </th>
                   <th>
-                    <button type="button" (click)="setUserSortField('email')">
-                      Email
-                      <span>{{ userSortIndicator('email') }}</span>
-                    </button>
+                    Email
                   </th>
                   <th>
-                    <button type="button" (click)="setUserSortField('applicationRole')">
-                      Application Role
-                      <span>{{ userSortIndicator('applicationRole') }}</span>
-                    </button>
+                    Application Role
                   </th>
                   <th></th>
                 </tr>

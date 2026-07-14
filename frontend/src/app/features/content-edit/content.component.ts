@@ -32,6 +32,8 @@ import {
   ContentAttribute,
   ContentComponent as ContentComponentDetail,
   ContentComponentType,
+  ContentContactInfo,
+  ContentCitation,
   ContentDefinition,
   ContentKeyValuePair,
   ContentMapping,
@@ -40,6 +42,7 @@ import {
   ContentPrecedenceList,
   ContentRelationship,
   ContentRelationshipTypeDetail,
+  ContentRootTerminology,
   ContentRouteMode,
   ContentSearchResult,
   ContentSemanticType,
@@ -90,6 +93,8 @@ import {
 
 type SearchableContentType = 'CODE' | 'CONCEPT' | 'DESCRIPTOR';
 type EditAccordionGroup = 'concepts' | 'metadata' | 'worklists';
+type MetadataContactTab = 'acquisition' | 'content' | 'license';
+type MetadataCitationTab = 'Structured' | 'Raw';
 
 interface EditPagingPreference {
   filter?: unknown;
@@ -453,6 +458,22 @@ export class ContentComponent implements OnInit {
   protected readonly metaRelTypeInverseFormAbbreviation = signal('');
   protected readonly metaRelTypeInverseFormExpandedForm = signal('');
 
+  // Root terminology / terminology dialogs
+  protected readonly rootTerminologyDialogOpen = signal(false);
+  protected readonly rootTerminologyLoading = signal(false);
+  protected readonly rootTerminologySubmitting = signal(false);
+  protected readonly rootTerminologyErrors = signal<string[]>([]);
+  protected readonly rootTerminologyForm = signal<ContentRootTerminology | null>(null);
+  protected readonly rootTerminologyContactTab =
+    signal<MetadataContactTab>('acquisition');
+  protected readonly terminologyDialogOpen = signal(false);
+  protected readonly terminologyLoading = signal(false);
+  protected readonly terminologySubmitting = signal(false);
+  protected readonly terminologyErrors = signal<string[]>([]);
+  protected readonly terminologyForm = signal<ContentTerminology | null>(null);
+  protected readonly terminologyCitationTab =
+    signal<MetadataCitationTab>('Structured');
+
   // Worklists / Clusters
   protected readonly worklistsGroupOpen = signal(true);
   protected readonly conceptsGroupOpen = signal(true);
@@ -577,6 +598,14 @@ export class ContentComponent implements OnInit {
   protected readonly precedenceEntries = computed(() =>
     this.precedenceList()?.precedence?.keyValuePairs ?? []
   );
+  protected readonly metadataLanguageOptions = computed<ContentKeyValuePair[]>(() =>
+    this.metadata()?.languages ?? []
+  );
+  protected readonly sortedMetadataTerminologies = computed<ContentTerminology[]>(() =>
+    [...this.currentTerminologies()].sort((a, b) =>
+      (a.terminology ?? '').localeCompare(b.terminology ?? '')
+    )
+  );
 
   protected readonly worklistTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.worklistsTotalCount() / this.worklistPageSize))
@@ -628,6 +657,32 @@ export class ContentComponent implements OnInit {
       if (!invAbbrev || !invExpanded) return false;
     }
     return true;
+  });
+  protected readonly rootTerminologyDialogTitle = computed(() => {
+    const terminology = this.rootTerminologyForm()?.terminology;
+    return terminology ? `Edit ${terminology} Root Terminology` : 'Edit Root Terminology';
+  });
+  protected readonly rootTerminologyContact = computed<ContentContactInfo>(() =>
+    this.getRootTerminologyContact(this.rootTerminologyContactTab())
+  );
+  protected readonly rootTerminologyCanSubmit = computed(() => {
+    const form = this.rootTerminologyForm();
+    if (!form) return false;
+    return Boolean(form.terminology?.trim());
+  });
+  protected readonly terminologyDialogTitle = computed(() => {
+    const form = this.terminologyForm();
+    return form?.terminology && form.version
+      ? `Edit ${form.terminology} ${form.version}`
+      : 'Edit Terminology';
+  });
+  protected readonly terminologyCitation = computed<ContentCitation>(() =>
+    this.terminologyForm()?.citation ?? {}
+  );
+  protected readonly terminologyCanSubmit = computed(() => {
+    const form = this.terminologyForm();
+    if (!form) return false;
+    return Boolean(form.terminology?.trim() && form.version?.trim());
   });
 
   protected readonly isReportMode = computed(() => {
@@ -4541,8 +4596,291 @@ export class ContentComponent implements OnInit {
 
   // Metadata editing
 
-  protected metaNotImplemented(msg: string): void {
-    this.notifications.error(msg);
+  protected openEditRootTerminologyDialog(): void {
+    const terminology = this.selectedMetadataTerminology()?.terminology;
+    if (!terminology) {
+      this.notifications.error('Select a terminology before editing root terminology.');
+      return;
+    }
+
+    this.rootTerminologyDialogOpen.set(true);
+    this.rootTerminologyLoading.set(true);
+    this.rootTerminologyErrors.set([]);
+    this.rootTerminologyContactTab.set('acquisition');
+    this.rootTerminologyForm.set(null);
+    this.api
+      .getRootTerminology(terminology)
+      .pipe(finalize(() => this.rootTerminologyLoading.set(false)))
+      .subscribe({
+        next: (rootTerminology) =>
+          this.rootTerminologyForm.set(
+            this.normalizeRootTerminology(rootTerminology)
+          ),
+        error: () =>
+          this.rootTerminologyErrors.set([
+            'Root terminology details could not be loaded.'
+          ])
+      });
+  }
+
+  protected closeRootTerminologyDialog(): void {
+    if (!this.rootTerminologySubmitting()) {
+      this.rootTerminologyDialogOpen.set(false);
+      this.rootTerminologyForm.set(null);
+      this.rootTerminologyErrors.set([]);
+    }
+  }
+
+  protected setRootTerminologyValue<K extends keyof ContentRootTerminology>(
+    field: K,
+    value: ContentRootTerminology[K]
+  ): void {
+    const form = this.rootTerminologyForm();
+    if (!form) return;
+    this.rootTerminologyForm.set({
+      ...form,
+      [field]: value
+    });
+  }
+
+  protected setRootRestrictionLevel(value: string | number): void {
+    const parsed = Number(value);
+    this.setRootTerminologyValue(
+      'restrictionLevel',
+      Number.isFinite(parsed) ? parsed : null
+    );
+  }
+
+  protected setRootTerminologyContactTab(tab: MetadataContactTab): void {
+    this.rootTerminologyContactTab.set(tab);
+  }
+
+  protected setRootTerminologyContactValue(
+    field: keyof ContentContactInfo,
+    value: string
+  ): void {
+    const form = this.rootTerminologyForm();
+    if (!form) return;
+
+    const contactKey = this.rootTerminologyContactKey(
+      this.rootTerminologyContactTab()
+    );
+    const contact = this.getRootTerminologyContact(
+      this.rootTerminologyContactTab()
+    );
+
+    this.rootTerminologyForm.set({
+      ...form,
+      [contactKey]: {
+        ...contact,
+        [field]: value
+      }
+    });
+  }
+
+  protected submitRootTerminologyDialog(): void {
+    const form = this.rootTerminologyForm();
+    if (!form || !this.rootTerminologyCanSubmit()) return;
+
+    this.rootTerminologySubmitting.set(true);
+    this.rootTerminologyErrors.set([]);
+    this.api
+      .updateRootTerminology(form)
+      .pipe(finalize(() => this.rootTerminologySubmitting.set(false)))
+      .subscribe({
+        next: () => {
+          this.rootTerminologyDialogOpen.set(false);
+          this.rootTerminologyForm.set(null);
+          this.loadCurrentTerminologies();
+        },
+        error: () =>
+          this.rootTerminologyErrors.set([
+            'Root terminology details could not be saved.'
+          ])
+      });
+  }
+
+  protected openEditTerminologyDialog(): void {
+    const t = this.selectedMetadataTerminology();
+    if (!t?.terminology || !t.version) {
+      this.notifications.error('Select a terminology before editing terminology.');
+      return;
+    }
+
+    this.terminologyDialogOpen.set(true);
+    this.terminologyLoading.set(true);
+    this.terminologyErrors.set([]);
+    this.terminologyCitationTab.set('Structured');
+    this.terminologyForm.set(null);
+    this.api
+      .getTerminology(t.terminology, t.version)
+      .pipe(finalize(() => this.terminologyLoading.set(false)))
+      .subscribe({
+        next: (terminology) =>
+          this.terminologyForm.set(this.normalizeTerminology(terminology)),
+        error: () =>
+          this.terminologyErrors.set(['Terminology details could not be loaded.'])
+      });
+  }
+
+  protected closeTerminologyDialog(): void {
+    if (!this.terminologySubmitting()) {
+      this.terminologyDialogOpen.set(false);
+      this.terminologyForm.set(null);
+      this.terminologyErrors.set([]);
+    }
+  }
+
+  protected setTerminologyValue<K extends keyof ContentTerminology>(
+    field: K,
+    value: ContentTerminology[K]
+  ): void {
+    const form = this.terminologyForm();
+    if (!form) return;
+    this.terminologyForm.set({
+      ...form,
+      [field]: value
+    });
+  }
+
+  protected setTerminologyCitationTab(tab: MetadataCitationTab): void {
+    this.terminologyCitationTab.set(tab);
+  }
+
+  protected setTerminologyCitationValue(
+    field: keyof ContentCitation,
+    value: string
+  ): void {
+    const form = this.terminologyForm();
+    if (!form) return;
+
+    this.terminologyForm.set({
+      ...form,
+      citation: {
+        ...this.emptyCitation(),
+        ...(form.citation ?? {}),
+        [field]: value
+      }
+    });
+  }
+
+  protected submitTerminologyDialog(): void {
+    const form = this.terminologyForm();
+    if (!form || !this.terminologyCanSubmit()) return;
+
+    this.terminologySubmitting.set(true);
+    this.terminologyErrors.set([]);
+    this.api
+      .updateTerminology(form)
+      .pipe(finalize(() => this.terminologySubmitting.set(false)))
+      .subscribe({
+        next: () => {
+          this.terminologyDialogOpen.set(false);
+          this.terminologyForm.set(null);
+          this.loadCurrentTerminologies();
+        },
+        error: () =>
+          this.terminologyErrors.set(['Terminology details could not be saved.'])
+      });
+  }
+
+  private normalizeRootTerminology(
+    rootTerminology: ContentRootTerminology
+  ): ContentRootTerminology {
+    return {
+      ...rootTerminology,
+      acquisitionContact: this.normalizeContact(rootTerminology.acquisitionContact),
+      contentContact: this.normalizeContact(rootTerminology.contentContact),
+      family: rootTerminology.family ?? '',
+      hierarchicalName: rootTerminology.hierarchicalName ?? '',
+      hierarchyComputable: rootTerminology.hierarchyComputable !== false,
+      language: rootTerminology.language ?? '',
+      licenseContact: this.normalizeContact(rootTerminology.licenseContact),
+      preferredName: rootTerminology.preferredName ?? '',
+      restrictionLevel: rootTerminology.restrictionLevel ?? 0,
+      shortName: rootTerminology.shortName ?? '',
+      synonymousNames: rootTerminology.synonymousNames ?? [],
+      terminology: rootTerminology.terminology ?? ''
+    };
+  }
+
+  private normalizeTerminology(
+    terminology: ContentTerminology
+  ): ContentTerminology {
+    return {
+      ...terminology,
+      assertsRelDirection: terminology.assertsRelDirection === true,
+      citation: {
+        ...this.emptyCitation(),
+        ...(terminology.citation ?? {})
+      },
+      current: terminology.current === true,
+      includeSiblings: terminology.includeSiblings === true,
+      inverterEmail: terminology.inverterEmail ?? '',
+      organizingClassType: terminology.organizingClassType ?? '',
+      preferredName: terminology.preferredName ?? '',
+      terminology: terminology.terminology ?? '',
+      version: terminology.version ?? ''
+    };
+  }
+
+  private normalizeContact(contact?: ContentContactInfo | null): ContentContactInfo {
+    return {
+      ...this.emptyContact(),
+      ...(contact ?? {})
+    };
+  }
+
+  private emptyContact(): ContentContactInfo {
+    return {
+      address1: '',
+      address2: '',
+      city: '',
+      country: '',
+      email: '',
+      fax: '',
+      name: '',
+      organization: '',
+      stateOrProvince: '',
+      telephone: '',
+      title: '',
+      url: '',
+      zipCode: ''
+    };
+  }
+
+  private emptyCitation(): ContentCitation {
+    return {
+      author: '',
+      availabilityStatement: '',
+      contentDesignator: '',
+      dateOfRevision: '',
+      edition: '',
+      editor: '',
+      extent: '',
+      location: '',
+      notes: '',
+      organization: '',
+      placeOfPublication: '',
+      series: '',
+      title: '',
+      unstructuredValue: ''
+    };
+  }
+
+  private getRootTerminologyContact(tab: MetadataContactTab): ContentContactInfo {
+    const form = this.rootTerminologyForm();
+    if (!form) return {};
+    const contact = form[this.rootTerminologyContactKey(tab)];
+    return contact ?? {};
+  }
+
+  private rootTerminologyContactKey(
+    tab: MetadataContactTab
+  ): 'acquisitionContact' | 'contentContact' | 'licenseContact' {
+    if (tab === 'content') return 'contentContact';
+    if (tab === 'license') return 'licenseContact';
+    return 'acquisitionContact';
   }
 
   protected selectMetadataTerminology(terminologyAbbrev: string): void {

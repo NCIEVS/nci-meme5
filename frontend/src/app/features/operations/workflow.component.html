@@ -525,8 +525,26 @@
                 <table class="workflow-list-table workflow-list-table-checklists">
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Last Modified</th>
+                      <th
+                        class="sortable-col"
+                        title="Sort by name"
+                        (click)="setChecklistSortField('name')"
+                      >
+                        Name
+                        @if (checklistSortField() === 'name') {
+                          <meme-icon [name]="checklistSortAsc() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        }
+                      </th>
+                      <th
+                        class="sortable-col"
+                        title="Sort by last modified"
+                        (click)="setChecklistSortField('lastModified')"
+                      >
+                        Last Modified
+                        @if (checklistSortField() === 'lastModified') {
+                          <meme-icon [name]="checklistSortAsc() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        }
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -669,9 +687,27 @@
                 <table class="workflow-list-table workflow-list-table-worklists">
                   <thead>
                     <tr>
-                      <th>Name</th>
+                      <th
+                        class="sortable-col"
+                        title="Sort by name"
+                        (click)="setWorklistSortField('name')"
+                      >
+                        Name
+                        @if (worklistSortField() === 'name') {
+                          <meme-icon [name]="worklistSortAsc() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        }
+                      </th>
                       <th>Editor / Team</th>
-                      <th>State</th>
+                      <th
+                        class="sortable-col"
+                        title="Sort by state"
+                        (click)="setWorklistSortField('state')"
+                      >
+                        State
+                        @if (worklistSortField() === 'state') {
+                          <meme-icon [name]="worklistSortAsc() ? 'arrow-up' : 'arrow-down'"></meme-icon>
+                        }
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>

@@ -1629,9 +1629,16 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected unexecutedSteps(): ProcessStep[] {
     const config = this.selectedConfigForExecution();
     const execution = this.selectedExecution();
-    const executedCount = this.processSteps(execution).length;
+    const executionSteps = this.processSteps(execution);
 
-    return this.processSteps(config).slice(executedCount);
+    return this.enabledProcessSteps(config).filter(
+      (configStep) =>
+        !executionSteps.some(
+          (executionStep) =>
+            configStep.name === executionStep.name &&
+            configStep.description === executionStep.description
+        )
+    );
   }
 
   protected unexecutedStepStartIndex(): number {
@@ -1640,6 +1647,12 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
   protected processSteps(process: ProcessConfig | ProcessExecution | null): ProcessStep[] {
     return process?.steps ?? [];
+  }
+
+  protected enabledProcessSteps(
+    process: ProcessConfig | ProcessExecution | null
+  ): ProcessStep[] {
+    return this.processSteps(process).filter((step) => this.isStepEnabled(step));
   }
 
   protected stepParameters(step: ProcessStep): AlgorithmParameter[] {

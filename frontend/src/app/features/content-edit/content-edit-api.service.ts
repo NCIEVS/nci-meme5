@@ -20,6 +20,7 @@ import {
   ContentPrecedenceList,
   ContentRelationship,
   ContentRelationshipTypeDetail,
+  ContentRootTerminology,
   ContentSearchResult,
   ContentSemanticTypeListResponse,
   ContentSemanticTypeMetadata,
@@ -86,6 +87,34 @@ export class ContentEditApiService {
         `${this.baseUrl}/metadata/terminology/current`
       )
       .pipe(map((response) => response.terminologies ?? response.objects ?? []));
+  }
+
+  getTerminology(
+    terminology: string,
+    version: string
+  ): Observable<ContentTerminology> {
+    return this.http.get<ContentTerminology>(
+      `${this.baseUrl}/metadata/terminology/${encodeURIComponent(
+        terminology
+      )}/${encodeURIComponent(version)}`
+    );
+  }
+
+  updateTerminology(terminology: ContentTerminology): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/metadata/terminology`, terminology);
+  }
+
+  getRootTerminology(terminology: string): Observable<ContentRootTerminology> {
+    return this.http.get<ContentRootTerminology>(
+      `${this.baseUrl}/metadata/rootTerminology/${encodeURIComponent(terminology)}`
+    );
+  }
+
+  updateRootTerminology(rootTerminology: ContentRootTerminology): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/metadata/rootTerminology`,
+      rootTerminology
+    );
   }
 
   getSemanticTypes(
@@ -432,6 +461,7 @@ export class ContentEditApiService {
           return {
             additionalRelationshipTypes: find('Additional_Relationship_Types'),
             attributeNames: find('Attribute_Names'),
+            languages: find('Languages'),
             relationshipTypes: find('Relationship_Types'),
             termTypes: find('Term_Types')
           };

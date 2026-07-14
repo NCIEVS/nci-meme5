@@ -104,6 +104,8 @@ interface WorkflowFinishForm {
 }
 
 type WorkflowListSortOrder = 'clusterId' | 'indexedData' | 'RANDOM';
+type WorkflowChecklistSortField = 'name' | 'lastModified';
+type WorkflowWorklistSortField = 'name' | 'lastModified' | 'state';
 
 type WorkflowAccordionGroup = 'bins' | 'checklists' | 'worklists' | 'reports';
 
@@ -187,6 +189,9 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly checklistFilter = signal('');
   protected readonly checklistPage = signal(1);
   protected readonly checklistPageSize = 10;
+  protected readonly checklistSortField =
+    signal<WorkflowChecklistSortField>('lastModified');
+  protected readonly checklistSortAsc = signal(false);
   protected readonly checklistCreationForm =
     signal<WorkflowChecklistCreationForm | null>(null);
   protected readonly checklistCreationFormErrors = signal<string[]>([]);
@@ -341,6 +346,9 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly worklistFilter = signal('');
   protected readonly worklistPage = signal(1);
   protected readonly worklistPageSize = 20;
+  protected readonly worklistSortField =
+    signal<WorkflowWorklistSortField>('lastModified');
+  protected readonly worklistSortAsc = signal(false);
   protected readonly workflowLiveConnected = this.workflowLiveUpdates.connected;
 
   protected readonly worklistTotalPages = computed(() =>
@@ -465,8 +473,20 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const wlPfs = buildOperationalPfs(this.worklistPage(), this.worklistPageSize, 'lastModified', false, this.worklistFilter());
-    const clPfs = buildOperationalPfs(this.checklistPage(), this.checklistPageSize, 'lastModified', false, this.checklistFilter());
+    const wlPfs = buildOperationalPfs(
+      this.worklistPage(),
+      this.worklistPageSize,
+      this.worklistServerSortField(),
+      this.worklistServerSortAsc(),
+      this.worklistFilter()
+    );
+    const clPfs = buildOperationalPfs(
+      this.checklistPage(),
+      this.checklistPageSize,
+      this.checklistSortField(),
+      this.checklistSortAsc(),
+      this.checklistFilter()
+    );
     this.loading.set(true);
 
     forkJoin({
@@ -484,7 +504,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
           this.configs.set([...configs.items].sort((a, b) => (a.type ?? '').localeCompare(b.type ?? '')));
           this.currentEpoch.set(currentEpoch);
           this.epochs.set(this.sortWorkflowEpochs(epochs.items));
-          this.worklists.set(worklists.items);
+          this.worklists.set(this.sortWorklistsForDisplay(worklists.items));
           this.worklistsTotal.set(worklists.totalCount);
           this.ensureSelectedConfigType(configs.items);
           this.loadWorkflowAssignmentContext(projectId);
@@ -574,11 +594,17 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     }
 
     const query = this.prepListQuery(this.worklistFilter());
-    const pfs = buildOperationalPfs(this.worklistPage(), this.worklistPageSize, 'lastModified', false, query);
+    const pfs = buildOperationalPfs(
+      this.worklistPage(),
+      this.worklistPageSize,
+      this.worklistServerSortField(),
+      this.worklistServerSortAsc(),
+      query
+    );
 
     this.api.findWorklists(projectId, query, pfs).subscribe({
       next: (result) => {
-        this.worklists.set(result.items);
+        this.worklists.set(this.sortWorklistsForDisplay(result.items));
         this.worklistsTotal.set(result.totalCount);
       },
       error: () => this.notifications.error('Worklists could not be reloaded.')
@@ -593,7 +619,13 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     }
 
     const query = this.prepListQuery(this.checklistFilter());
-    const pfs = buildOperationalPfs(this.checklistPage(), this.checklistPageSize, 'lastModified', false, query);
+    const pfs = buildOperationalPfs(
+      this.checklistPage(),
+      this.checklistPageSize,
+      this.checklistSortField(),
+      this.checklistSortAsc(),
+      query
+    );
 
     this.api.findChecklists(projectId, query, pfs).subscribe({
       next: (result) => {
@@ -610,8 +642,56 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.reloadWorklists();
   }
 
+  protected setWorklistSortField(field: WorkflowWorklistSortField): void {
+    if (this.worklistSortField() === field) {
+      this.worklistSortAsc.set(!this.worklistSortAsc());
+    } else {
+      this.worklistSortField.set(field);
+      this.worklistSortAsc.set(true);
+    }
+    this.worklistPage.set(1);
+    this.reloadWorklists();
+  }
+
+  private worklistServerSortField(): 'name' | 'lastModified' {
+    const field = this.worklistSortField();
+    return field === 'name' ? 'name' : 'lastModified';
+  }
+
+  private worklistServerSortAsc(): boolean {
+    return this.worklistSortField() === 'state' ? false : this.worklistSortAsc();
+  }
+
+  private sortWorklistsForDisplay(items: Worklist[]): Worklist[] {
+    if (this.worklistSortField() !== 'state') {
+      return items;
+    }
+
+    const direction = this.worklistSortAsc() ? 1 : -1;
+    return [...items].sort((first, second) => {
+      const stateCompare = this.latestWorkflowState(first).localeCompare(
+        this.latestWorkflowState(second)
+      );
+      if (stateCompare !== 0) {
+        return stateCompare * direction;
+      }
+      return (first.name ?? '').localeCompare(second.name ?? '') * direction;
+    });
+  }
+
   protected setChecklistFilter(value: string): void {
     this.checklistFilter.set(value);
+    this.checklistPage.set(1);
+    this.reloadChecklists();
+  }
+
+  protected setChecklistSortField(field: WorkflowChecklistSortField): void {
+    if (this.checklistSortField() === field) {
+      this.checklistSortAsc.set(!this.checklistSortAsc());
+    } else {
+      this.checklistSortField.set(field);
+      this.checklistSortAsc.set(true);
+    }
     this.checklistPage.set(1);
     this.reloadChecklists();
   }

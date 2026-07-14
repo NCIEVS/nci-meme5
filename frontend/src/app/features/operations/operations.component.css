@@ -640,6 +640,79 @@ tbody tr.disabled-row {
   font-weight: 700;
 }
 
+.metadata-edit-dialog {
+  gap: 12px;
+}
+
+.metadata-dialog-table,
+.metadata-nested-table {
+  width: 100%;
+}
+
+.metadata-dialog-table th,
+.metadata-nested-table th {
+  width: 170px;
+  background: transparent;
+  color: var(--meme-text-label);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.metadata-dialog-table td,
+.metadata-nested-table td {
+  vertical-align: top;
+}
+
+.metadata-dialog-table input[type='text'],
+.metadata-dialog-table input[type='email'],
+.metadata-dialog-table input[type='number'],
+.metadata-dialog-table input[type='url'],
+.metadata-dialog-table select,
+.metadata-dialog-table textarea,
+.metadata-nested-table input[type='text'],
+.metadata-nested-table input[type='email'],
+.metadata-nested-table input[type='url'] {
+  width: min(420px, 100%);
+}
+
+.metadata-dialog-table textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+}
+
+.metadata-dialog-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--meme-border);
+}
+
+.metadata-dialog-tab {
+  min-height: 0;
+  padding: 4px 10px;
+  color: var(--meme-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--meme-input-radius) var(--meme-input-radius) 0 0;
+  font-size: var(--meme-text-sm);
+  font-weight: 400;
+}
+
+.metadata-dialog-tab:hover {
+  color: var(--meme-text);
+  background: var(--meme-table-hover);
+}
+
+.metadata-dialog-tab.active {
+  background: var(--meme-surface);
+  border-color: var(--meme-border);
+  font-weight: 700;
+}
+
 .precedence-list-wrap {
   max-height: 360px;
   overflow-y: auto;

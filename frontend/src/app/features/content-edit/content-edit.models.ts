@@ -70,9 +70,24 @@ export interface ContentSearchResult extends ContentComponentSummary {
 }
 
 export interface ContentTerminology {
+  assertsRelDirection?: boolean | null;
+  citation?: ContentCitation | null;
   current?: boolean | null;
+  descriptionLogicProfile?: string | null;
+  descriptionLogicTerminology?: boolean | null;
+  endDate?: string | number | null;
+  includeSiblings?: boolean | null;
+  inverterEmail?: string | null;
+  metathesaurus?: boolean | null;
   organizingClassType?: ContentComponentType | string | null;
+  preferredName?: string | null;
+  relatedTerminologies?: string[] | null;
+  rootTerminologyAbbreviation?: string | null;
+  rootTerminologyId?: number | null;
+  startDate?: string | number | null;
+  synonymousNames?: string[] | null;
   terminology?: string | null;
+  url?: string | null;
   version?: string | null;
 }
 
@@ -246,8 +261,71 @@ export interface ContentKeyValuePairLists {
 export interface ContentMetadata {
   additionalRelationshipTypes: ContentKeyValuePair[];
   attributeNames: ContentKeyValuePair[];
+  languages: ContentKeyValuePair[];
   relationshipTypes: ContentKeyValuePair[];
   termTypes: ContentKeyValuePair[];
+}
+
+export interface ContentContactInfo {
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  country?: string | null;
+  email?: string | null;
+  fax?: string | null;
+  id?: number | null;
+  lastModified?: string | number | null;
+  lastModifiedBy?: string | null;
+  name?: string | null;
+  organization?: string | null;
+  stateOrProvince?: string | null;
+  telephone?: string | null;
+  title?: string | null;
+  url?: string | null;
+  zipCode?: string | null;
+}
+
+export interface ContentCitation {
+  address?: string | null;
+  author?: string | null;
+  availabilityStatement?: string | null;
+  contentDesignator?: string | null;
+  dateOfPublication?: string | null;
+  dateOfRevision?: string | null;
+  edition?: string | null;
+  editor?: string | null;
+  extent?: string | null;
+  id?: number | null;
+  lastModified?: string | number | null;
+  lastModifiedBy?: string | null;
+  location?: string | null;
+  mediumDesignator?: string | null;
+  notes?: string | null;
+  organization?: string | null;
+  placeOfPublication?: string | null;
+  publisher?: string | null;
+  series?: string | null;
+  title?: string | null;
+  unstructuredValue?: string | null;
+}
+
+export interface ContentRootTerminology {
+  acquisitionContact?: ContentContactInfo | null;
+  contentContact?: ContentContactInfo | null;
+  family?: string | null;
+  hierarchicalName?: string | null;
+  hierarchyComputable?: boolean | null;
+  id?: number | null;
+  language?: string | null;
+  lastModified?: string | number | null;
+  lastModifiedBy?: string | null;
+  licenseContact?: ContentContactInfo | null;
+  polyhierarchy?: boolean | null;
+  preferredName?: string | null;
+  restrictionLevel?: number | null;
+  shortName?: string | null;
+  synonymousNames?: string[] | null;
+  terminology?: string | null;
 }
 
 export interface ContentPrecedenceList {

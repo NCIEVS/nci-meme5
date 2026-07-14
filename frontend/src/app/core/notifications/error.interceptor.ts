@@ -5,6 +5,7 @@ import { catchError, throwError } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
 import { RuntimeConfigService } from '../config/runtime-config.service';
+import { isCurrentSessionAuthFailure } from './error.helpers';
 import { NotificationService } from './notification.service';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
@@ -17,6 +18,10 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
         if (isAuthTokenFailure(error)) {
+          if (!isCurrentSessionAuthFailure(request.headers.get('Authorization'), auth.authToken())) {
+            return throwError(() => error);
+          }
+
           auth.clearUser();
           notifications.error('Your session has expired. Please log in again.');
 

@@ -20,8 +20,8 @@ import {
   AdminUser
 } from './admin.models';
 
-type UserSortField = 'userName' | 'name' | 'email' | 'applicationRole';
-type ProjectSortField = 'lastModified' | 'id' | 'name' | 'terminology';
+type UserSortField = 'userName' | 'name';
+type ProjectSortField = 'lastModified' | 'name';
 type AdminOperation = 'exception' | 'localException' | 'reloadConfig';
 type ProjectFormField =
   | 'automationsEnabled'

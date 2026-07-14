@@ -820,15 +820,23 @@
               [ngModel]="selectedMetadataTerminology()?.terminology ?? ''"
               (ngModelChange)="selectMetadataTerminology($event)"
             >
-              @for (t of currentTerminologies(); track t.terminology) {
+              @for (t of sortedMetadataTerminologies(); track t.terminology) {
                 <option [value]="t.terminology ?? ''">{{ t.terminology }}</option>
               }
             </select>
-            <span class="icon-action" title="Edit Root Terminology" (click)="metaNotImplemented('Root terminology editing is not yet implemented.')">
+            <span
+              class="icon-action"
+              title="Edit root {{ selectedMetadataTerminology()?.terminology }}"
+              (click)="openEditRootTerminologyDialog()"
+            >
               <meme-icon name="pencil"></meme-icon>
             </span>
             <span class="meta-terminology-version">{{ selectedMetadataTerminology()?.version }}</span>
-            <span class="icon-action" title="Edit Terminology" (click)="metaNotImplemented('Terminology editing is not yet implemented.')">
+            <span
+              class="icon-action"
+              title="Edit {{ selectedMetadataTerminology()?.terminology }}, {{ selectedMetadataTerminology()?.version }}"
+              (click)="openEditTerminologyDialog()"
+            >
               <meme-icon name="pencil"></meme-icon>
             </span>
           </div>
@@ -1147,6 +1155,525 @@
     </details>
   }
 </section>
+
+@if (rootTerminologyDialogOpen()) {
+  <meme-dialog
+    [title]="rootTerminologyDialogTitle()"
+    size="lg"
+    [closeDisabled]="rootTerminologySubmitting()"
+    (closed)="closeRootTerminologyDialog()"
+  >
+    <div class="dialog-form metadata-edit-dialog">
+      @if (rootTerminologyLoading()) {
+        <p class="empty compact-empty">Loading...</p>
+      }
+      @if (rootTerminologyForm(); as rootTerminology) {
+        <table class="slim-table metadata-dialog-table">
+          <tbody>
+            <tr>
+              <th>Name</th>
+              <td>{{ rootTerminology.preferredName }}</td>
+            </tr>
+            <tr>
+              <th>Language</th>
+              <td>
+                @if (metadataLanguageOptions().length) {
+                  <select
+                    autofocus
+                    [ngModel]="rootTerminology.language ?? ''"
+                    (ngModelChange)="setRootTerminologyValue('language', $event)"
+                  >
+                    @for (language of metadataLanguageOptions(); track language.key) {
+                      <option [value]="language.key ?? ''">{{ language.value || language.key }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    autofocus
+                    type="text"
+                    [ngModel]="rootTerminology.language ?? ''"
+                    (ngModelChange)="setRootTerminologyValue('language', $event)"
+                  />
+                }
+              </td>
+            </tr>
+            <tr>
+              <th>Restriction Level</th>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  [ngModel]="rootTerminology.restrictionLevel ?? 0"
+                  (ngModelChange)="setRootRestrictionLevel($event)"
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>Hierarchy Computable</th>
+              <td>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [ngModel]="rootTerminology.hierarchyComputable === true"
+                    (ngModelChange)="setRootTerminologyValue('hierarchyComputable', $event)"
+                  />
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <th>Contact</th>
+              <td>
+                <div class="metadata-dialog-tabs" role="tablist" aria-label="Contact type">
+                  <button
+                    type="button"
+                    class="metadata-dialog-tab"
+                    [class.active]="rootTerminologyContactTab() === 'acquisition'"
+                    (click)="setRootTerminologyContactTab('acquisition')"
+                  >
+                    Acquisition
+                  </button>
+                  <button
+                    type="button"
+                    class="metadata-dialog-tab"
+                    [class.active]="rootTerminologyContactTab() === 'content'"
+                    (click)="setRootTerminologyContactTab('content')"
+                  >
+                    Content
+                  </button>
+                  <button
+                    type="button"
+                    class="metadata-dialog-tab"
+                    [class.active]="rootTerminologyContactTab() === 'license'"
+                    (click)="setRootTerminologyContactTab('license')"
+                  >
+                    License
+                  </button>
+                </div>
+                <table class="slim-table metadata-nested-table">
+                  <tbody>
+                    <tr>
+                      <th>Name</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().name ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('name', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Address 1</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().address1 ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('address1', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Address 2</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().address2 ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('address2', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>City</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().city ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('city', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>State/Province</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().stateOrProvince ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('stateOrProvince', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Zip Code</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().zipCode ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('zipCode', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Country</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().country ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('country', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Email</th>
+                      <td>
+                        <input
+                          type="email"
+                          [ngModel]="rootTerminologyContact().email ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('email', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Telephone</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().telephone ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('telephone', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Fax</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().fax ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('fax', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Organization</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().organization ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('organization', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Title</th>
+                      <td>
+                        <input
+                          type="text"
+                          [ngModel]="rootTerminologyContact().title ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('title', $event)"
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>URL</th>
+                      <td>
+                        <input
+                          type="url"
+                          [ngModel]="rootTerminologyContact().url ?? ''"
+                          (ngModelChange)="setRootTerminologyContactValue('url', $event)"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      }
+      @if (rootTerminologyErrors().length) {
+        <ul class="form-errors">
+          @for (err of rootTerminologyErrors(); track err) {
+            <li>{{ err }}</li>
+          }
+        </ul>
+      }
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="submitRootTerminologyDialog()"
+          [disabled]="!rootTerminologyCanSubmit() || rootTerminologySubmitting() || rootTerminologyLoading()"
+        >
+          {{ rootTerminologySubmitting() ? 'Saving...' : 'Save' }}
+        </button>
+        <button
+          type="button"
+          (click)="closeRootTerminologyDialog()"
+          [disabled]="rootTerminologySubmitting()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
+
+@if (terminologyDialogOpen()) {
+  <meme-dialog
+    [title]="terminologyDialogTitle()"
+    size="lg"
+    [closeDisabled]="terminologySubmitting()"
+    (closed)="closeTerminologyDialog()"
+  >
+    <div class="dialog-form metadata-edit-dialog">
+      @if (terminologyLoading()) {
+        <p class="empty compact-empty">Loading...</p>
+      }
+      @if (terminologyForm(); as terminology) {
+        <table class="slim-table metadata-dialog-table">
+          <tbody>
+            <tr>
+              <th>Terminology</th>
+              <td>{{ terminology.terminology }} {{ terminology.version }}</td>
+            </tr>
+            <tr>
+              <th>Inverter Email</th>
+              <td>
+                <input
+                  autofocus
+                  type="email"
+                  [ngModel]="terminology.inverterEmail ?? ''"
+                  (ngModelChange)="setTerminologyValue('inverterEmail', $event)"
+                />
+              </td>
+            </tr>
+            <tr>
+              <th>Asserts Rels Direction</th>
+              <td>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [ngModel]="terminology.assertsRelDirection === true"
+                    (ngModelChange)="setTerminologyValue('assertsRelDirection', $event)"
+                  />
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <th>Current</th>
+              <td>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [ngModel]="terminology.current === true"
+                    (ngModelChange)="setTerminologyValue('current', $event)"
+                  />
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <th>Include Siblings</th>
+              <td>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    [ngModel]="terminology.includeSiblings === true"
+                    (ngModelChange)="setTerminologyValue('includeSiblings', $event)"
+                  />
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <th>Citation</th>
+              <td>
+                <div class="metadata-dialog-tabs" role="tablist" aria-label="Citation mode">
+                  <button
+                    type="button"
+                    class="metadata-dialog-tab"
+                    [class.active]="terminologyCitationTab() === 'Structured'"
+                    (click)="setTerminologyCitationTab('Structured')"
+                  >
+                    Structured
+                  </button>
+                  <button
+                    type="button"
+                    class="metadata-dialog-tab"
+                    [class.active]="terminologyCitationTab() === 'Raw'"
+                    (click)="setTerminologyCitationTab('Raw')"
+                  >
+                    Raw Value
+                  </button>
+                </div>
+                @if (terminologyCitationTab() === 'Raw') {
+                  <textarea
+                    rows="10"
+                    [ngModel]="terminologyCitation().unstructuredValue ?? ''"
+                    (ngModelChange)="setTerminologyCitationValue('unstructuredValue', $event)"
+                  ></textarea>
+                } @else {
+                  <table class="slim-table metadata-nested-table">
+                    <tbody>
+                      <tr>
+                        <th>Organization</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().organization ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('organization', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Place of Publication</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().placeOfPublication ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('placeOfPublication', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Editor</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().editor ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('editor', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Edition</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().edition ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('edition', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Content Designator</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().contentDesignator ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('contentDesignator', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Author</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().author ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('author', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Series</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().series ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('series', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Title</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().title ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('title', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Notes</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().notes ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('notes', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Location</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().location ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('location', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Extent</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().extent ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('extent', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Availability Statement</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().availabilityStatement ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('availabilityStatement', $event)"
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <th>Date of Revision</th>
+                        <td>
+                          <input
+                            type="text"
+                            [ngModel]="terminologyCitation().dateOfRevision ?? ''"
+                            (ngModelChange)="setTerminologyCitationValue('dateOfRevision', $event)"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                }
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      }
+      @if (terminologyErrors().length) {
+        <ul class="form-errors">
+          @for (err of terminologyErrors(); track err) {
+            <li>{{ err }}</li>
+          }
+        </ul>
+      }
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="submitTerminologyDialog()"
+          [disabled]="!terminologyCanSubmit() || terminologySubmitting() || terminologyLoading()"
+        >
+          {{ terminologySubmitting() ? 'Saving...' : 'Save' }}
+        </button>
+        <button
+          type="button"
+          (click)="closeTerminologyDialog()"
+          [disabled]="terminologySubmitting()"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
 
 @if (metaTermTypeDialogOpen()) {
   <meme-dialog
