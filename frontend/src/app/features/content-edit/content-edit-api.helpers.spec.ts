@@ -1,6 +1,7 @@
 import {
   buildContentPfs,
   buildContentSearchPfs,
+  buildWorkflowListFilterQuery,
   contentTypePath,
   normalizeContentListResponse
 } from './content-edit-api.helpers';
@@ -84,5 +85,27 @@ describe('content edit API helpers', () => {
       sortField: 'name',
       startIndex: 0
     });
+  });
+
+  it('builds workflow list prefix filters against name', () => {
+    expect(buildWorkflowListFilterQuery(' wrk25 ')).toBe('name:wrk25*');
+  });
+
+  it('builds workflow list filters for multiple plain terms', () => {
+    expect(buildWorkflowListFilterQuery('wrk25 snomedct')).toBe(
+      'name:wrk25* AND name:snomedct*'
+    );
+  });
+
+  it('treats underscores like spaces for workflow list filters', () => {
+    expect(buildWorkflowListFilterQuery('wrk25b_snomedct')).toBe(
+      'name:wrk25b* AND name:snomedct*'
+    );
+  });
+
+  it('passes through advanced workflow list filters', () => {
+    expect(buildWorkflowListFilterQuery('workflowStatus:NEW')).toBe(
+      'workflowStatus:NEW'
+    );
   });
 });

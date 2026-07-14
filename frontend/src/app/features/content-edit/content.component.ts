@@ -18,6 +18,7 @@ import { OperationalProject } from '../operations/operational.models';
 import {
   buildContentPfs,
   buildContentSearchPfs,
+  buildWorkflowListFilterQuery,
   contentTypePath
 } from './content-edit-api.helpers';
 import { ContentEditApiService } from './content-edit-api.service';
@@ -5892,7 +5893,7 @@ export class ContentComponent implements OnInit {
     return {
       ascending: this.worklistSortAsc(),
       maxResults: this.worklistPageSize,
-      queryRestriction: this.worklistFilter().trim() || undefined,
+      queryRestriction: buildWorkflowListFilterQuery(this.worklistFilter()),
       sortField: this.worklistSortField(),
       startIndex: (this.worklistPage() - 1) * this.worklistPageSize
     };
@@ -5973,7 +5974,7 @@ export class ContentComponent implements OnInit {
           ? this.workflowApi.findAssignedWorklists(ctx.projectId, ctx.userName, ctx.role, pfs)
           : mode === 'Done'
             ? this.workflowApi.findDoneWorklists(ctx.projectId, ctx.userName, ctx.role, pfs)
-            : this.workflowApi.findChecklists(ctx.projectId, this.worklistFilter().trim(), pfs);
+            : this.workflowApi.findChecklists(ctx.projectId, '', pfs);
 
     source$.pipe(finalize(() => this.loadingWorklists.set(false))).subscribe({
       next: (resp) => {

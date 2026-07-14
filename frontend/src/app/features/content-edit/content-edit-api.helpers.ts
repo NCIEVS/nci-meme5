@@ -68,6 +68,39 @@ export function buildContentSearchPfs(
   };
 }
 
+export function buildWorkflowListFilterQuery(
+  filter: string | null | undefined
+): string | undefined {
+  const trimmedFilter = filter?.trim() ?? '';
+
+  if (!trimmedFilter) {
+    return undefined;
+  }
+
+  if (isLuceneWorkflowListFilter(trimmedFilter)) {
+    return trimmedFilter;
+  }
+
+  const terms = trimmedFilter
+    .split(/[\s_]+/)
+    .map((term) => escapeLuceneTerm(term))
+    .filter(Boolean);
+
+  if (!terms.length) {
+    return undefined;
+  }
+
+  return terms.map((term) => `name:${term}*`).join(' AND ');
+}
+
+function isLuceneWorkflowListFilter(filter: string): boolean {
+  return /[:()[\]{}"~*?^]|\b(?:AND|OR|NOT)\b|&&|\|\|/i.test(filter);
+}
+
+function escapeLuceneTerm(term: string): string {
+  return term.replace(/([+\-!(){}\[\]^"~*?:\\/])/g, '\\$1');
+}
+
 export function normalizeContentListResponse<T>(
   response: ContentListResponse<T> | null | undefined,
   keys: ContentListKey[]
