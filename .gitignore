@@ -238,3 +238,7 @@ frontend/.angular/
 frontend/coverage/
 frontend/cypress/screenshots/
 frontend/cypress/videos/
+
+# Track selected production bin scripts even though generic bin directories are ignored.
+!config/prod-nci-meta/src/main/resources/bin/
+!config/prod-nci-meta/src/main/resources/bin/list_s3.csh

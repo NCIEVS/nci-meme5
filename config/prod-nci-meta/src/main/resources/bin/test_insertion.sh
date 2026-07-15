@@ -21,9 +21,9 @@ APP_SERVICE="${APP_SERVICE:-nci-meme5}"
 RESTART_SERVER_FOR_INSERTION_SNAPSHOT="${RESTART_SERVER_FOR_INSERTION_SNAPSHOT:-true}"
 MEME_TEST_DB="${MEME_TEST_DB:-meme-test}"
 MEME_RELEASE_DB="${MEME_RELEASE_DB:-meme-release}"
-MEME_SOURCE_DB="${MEME_SOURCE_DB:-meme-edit}"
+MEME_SOURCE_DB="${MEME_SOURCE_DB:-meme-edit-new}"
 RDS_MANUAL_SNAPSHOT_ID="${RDS_MANUAL_SNAPSHOT_ID:-meme-edit-manual-snapshot}"
-RDS_PARAMETER_GROUP="${RDS_PARAMETER_GROUP:-meme-db}"
+RDS_PARAMETER_GROUP="${RDS_PARAMETER_GROUP:-meme-db-84}"
 RDS_AVAILABILITY_ZONE="${RDS_AVAILABILITY_ZONE:-us-east-1d}"
 RDS_SUBNET_GROUP="${RDS_SUBNET_GROUP:-default-vpc-dca724a4}"
 RDS_SECURITY_GROUP_IDS="${RDS_SECURITY_GROUP_IDS:-sg-05993d12d18c40cae}"
@@ -75,7 +75,7 @@ echo "APP_SERVICE: $APP_SERVICE"
 server_stopped=0
 restart_server() {
   if [[ "$server_stopped" -eq 1 && "$RESTART_SERVER_FOR_INSERTION_SNAPSHOT" == "true" ]]; then
-    sudo service "$APP_SERVICE" start
+    sudo systemctl start "$APP_SERVICE"
   fi
 }
 trap restart_server EXIT
@@ -83,7 +83,7 @@ trap restart_server EXIT
 cd "$MEME_BIN"
 
 if [[ "$RESTART_SERVER_FOR_INSERTION_SNAPSHOT" == "true" ]]; then
-  sudo service "$APP_SERVICE" stop
+  sudo systemctl stop "$APP_SERVICE"
   server_stopped=1
 else
   echo "Skipping service stop because RESTART_SERVER_FOR_INSERTION_SNAPSHOT=$RESTART_SERVER_FOR_INSERTION_SNAPSHOT"
