@@ -3,7 +3,9 @@ name: Trivy Vulnerability Scan
 on:
   pull_request:
     branches:
-      - dss/NM-291-migration-phase2
+      - dss/NM-291-migration-phase2 
+      - dss/NM-313-angular-20-migration
+      - develop
   workflow_dispatch:
 
 permissions:
