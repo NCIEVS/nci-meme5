@@ -257,6 +257,9 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     // rejects when it is later referenced as the "from" or "to" field of a
     // persisted ConceptRelationshipJpa.
     setToConcept(addConcept(getToConcept()));
+    // Ensure updateComponent() can reload the new concept's empty baseline
+    // after detaching it for old-vs-new atomic action comparison.
+    getEntityManager().flush();
     getToConcept().setTerminologyId(getToConcept().getId().toString());
     conceptsChanged.add(getToConcept());
 
