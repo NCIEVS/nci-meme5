@@ -249,6 +249,11 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     // new ConceptJpa(...) would produce a detached/transient copy that Hibernate
     // rejects when it is later referenced as the "from" or "to" field of a
     // persisted ConceptRelationshipJpa.
+    // Initialize collections before the baseline flush so later additions are
+    // made to Hibernate-managed collections instead of post-flush plain lists.
+    getToConcept().getAtoms();
+    getToConcept().getRelationships();
+    getToConcept().getSemanticTypes();
     setToConcept(addConcept(getToConcept()));
     // Ensure updateComponent() can reload the new concept's empty baseline
     // after detaching it for old-vs-new atomic action comparison.
