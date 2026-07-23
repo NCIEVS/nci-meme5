@@ -275,6 +275,8 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     // Update and add objects
     //
 
+    final List<SemanticTypeComponent> newSemanticTypes = new ArrayList<>();
+
     // Set workflow status of "from" atoms and add to the "to" concept.
     // Use getAtom() to get the managed entity from the session; atom copies are treated
     // as transient by Hibernate 6 and would cause TransientObjectException in @ManyToMany.
@@ -296,6 +298,7 @@ public class SplitMolecularAction extends AbstractMolecularAction {
         }
         final SemanticTypeComponent newSty =
             addSemanticTypeComponent(sty, getToConcept());
+        newSemanticTypes.add(newSty);
         getToConcept().getSemanticTypes().add(newSty);
       }
     }
@@ -398,6 +401,31 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     for (final Concept concept : conceptsChanged) {
       updateConcept(concept);
     }
+
+    // The updateComponent old-vs-new comparison detaches and merges the newly
+    // created concept. With Hibernate 6 the merge path does not reliably flush
+    // the new concept's join-table memberships, so reapply them to the managed
+    // target concept after the atomic actions have been recorded.
+    final Concept managedToConcept = getConcept(getToConcept().getId());
+    for (final Atom atom : moveAtomsCopies) {
+      final Atom managedAtom = getAtom(atom.getId());
+      if (managedAtom == null) {
+        throw new LocalException("Split atom " + atom.getId() + " not found after update");
+      }
+      removeById(managedToConcept.getAtoms(), managedAtom.getId());
+      managedToConcept.getAtoms().add(managedAtom);
+    }
+    for (final SemanticTypeComponent sty : newSemanticTypes) {
+      final SemanticTypeComponent managedSty = getSemanticTypeComponent(sty.getId());
+      if (managedSty == null) {
+        throw new LocalException(
+            "Split semantic type " + sty.getId() + " not found after update");
+      }
+      removeById(managedToConcept.getSemanticTypes(), managedSty.getId());
+      managedToConcept.getSemanticTypes().add(managedSty);
+    }
+    setToConcept(managedToConcept);
+    getEntityManager().flush();
 
   }
 
