@@ -5,6 +5,72 @@ terminology editing, metadata loading, release support, validation, and REST UI
 workflows. The application is a Java 17 Gradle project that packages a WAR and
 can also run locally through Spring Boot.
 
+## Quick Deploy
+
+Use this path for a normal redeploy when the target database, data directories,
+indexes, and server-owned environment file are already in place. The detailed
+database, migration, and test setup notes below are still available for
+first-time environments and validation work.
+
+Build the Spring Boot executable WAR from the checked-out branch:
+
+```sh
+./gradlew clean bootWar
+```
+
+Install the built artifact on the server:
+
+```sh
+mkdir -p /local/content/MEME/MEME5/ncim/deploy
+cp build/libs/ROOT-2.0.0-SNAPSHOT-webapp.war \
+  /local/content/MEME/MEME5/ncim/deploy/nci-meme5-webapp.war
+```
+
+Confirm the server environment file exists and points at the intended database,
+data, index, source-data, and port settings:
+
+```sh
+test -r /local/content/MEME/MEME5/ncim/setenv.sh
+```
+
+Restart the Spring Boot service:
+
+```sh
+sudo systemctl restart nci-meme5
+sudo systemctl status nci-meme5
+```
+
+For a foreground smoke run instead of systemd:
+
+```sh
+source /local/content/MEME/MEME5/ncim/setenv.sh
+java -Dcatalina.base=/local/content/MEME/MEME5/ncim \
+  -jar /local/content/MEME/MEME5/ncim/deploy/nci-meme5-webapp.war
+```
+
+Open the configured context path, for example:
+
+```text
+http://<server>:<SERVER_PORT>/<SERVER_SERVLET_CONTEXT_PATH>
+```
+
+For local defaults this is usually `http://localhost:8080/umls-server-rest`;
+NCI-META production normally uses `/ncim-server-rest`.
+
+Do not deploy this WAR under an external Tomcat `webapps` directory. Production
+uses the executable WAR with embedded Tomcat; see
+`config/prod-nci-meta/src/main/resources/README.txt` for service and production
+overlay details.
+
+The Angular 20 UI build is currently a separate artifact:
+
+```sh
+make frontend-install
+make frontend-build
+```
+
+The production Angular output is written to `build/generated-ui20`.
+
 ## Architecture
 
 At a high level the project is organized around:
@@ -78,55 +144,78 @@ Run Gradle verification checks:
 make quality
 ```
 
-Check integration-test prerequisites before running a profile:
+Check integration-test prerequisites before running a profile. These targets are
+read-only, but each profile expects its own fixture database; the default
+`DB_NAME=ncimdb` is for normal local app startup and is intentionally rejected
+by these preflights.
 
 ```sh
-make preflight-sample
-make preflight-ncimeta
-make preflight-rest
-make preflight-insertion
-make preflight-admin
+DB_NAME=ncimdbmeta make preflight-sample
+DB_NAME=ncimdbncimeta make preflight-ncimeta
+DB_NAME=ncimdbmeta make preflight-rest
+DB_NAME=ncimdbinsert make preflight-insertion
+DB_NAME=ncimdbadminload make preflight-admin
 ```
 
-The sample, REST, NCI-META, insertion, and admin-loader preflights verify that
-the selected database matches the documented fixture schema. For example,
-`sample-jpa` and `rest` expect `ncimdbmeta`, not the default `ncimdb`; the
-admin-loader profile expects disposable `ncimdbadminload`. REST preflight also
-probes the running server for sample fixture data so an app started against the
-wrong database fails before the REST test classes run.
+REST preflight also probes the running server for sample fixture data, so the
+app must already be running from the same environment. For example, if the REST
+server is on port `18080`, run:
+
+```sh
+DB_NAME=ncimdbmeta SERVER_PORT=18080 \
+BASE_URL=http://localhost:18080/umls-server-rest make preflight-rest
+```
+
+If a preflight reports missing fixture rows, prepare or refresh that fixture
+before running the matching integration profile.
+
+Stop any local Spring Boot or Tomcat app that is using the same `INDEX_DIR`
+before running the sample, NCI-META, insertion, or admin-loader integration
+profiles. These tests open Lucene/Hibernate Search indexes directly and will
+fail with `LockObtainFailedException` if the application already holds the
+index writer locks. REST integration is the exception: it requires the app to
+be running from the same database and index environment being tested.
 
 Prepare the sample integration-test database fixture:
 
 ```sh
-make prepare-sample
+DB_NAME=ncimdbmeta make prepare-sample
 ```
 
 Prepare the NCI-META integration-test database fixture:
 
 ```sh
-make prepare-ncimeta
+DB_NAME=ncimdbncimeta make prepare-ncimeta
 ```
 
 Prepare the insertion integration-test database fixture:
 
 ```sh
-make prepare-insertion
+DB_NAME=ncimdbinsert make prepare-insertion
 ```
 
 Prepare the disposable admin/load integration-test database fixture:
 
 ```sh
-make prepare-admin
+DB_NAME=ncimdbadminload make prepare-admin
 ```
 
-Run named integration-test profiles from the same sourced environment:
+Run named integration-test profiles with the same fixture database:
 
 ```sh
+DB_NAME=ncimdbmeta make integration-sample
+DB_NAME=ncimdbncimeta make integration-ncimeta
+DB_NAME=ncimdbmeta make integration-rest
+DB_NAME=ncimdbinsert make integration-insertion
+DB_NAME=ncimdbadminload make integration-admin
+```
+
+Or export the fixture database once before running multiple commands:
+
+```sh
+export DB_NAME=ncimdbmeta
+make preflight-sample
 make integration-sample
-make integration-ncimeta
-make integration-rest
-make integration-insertion
-make integration-admin
 ```
 
 Run Flyway integration tests with generated disposable schemas:
