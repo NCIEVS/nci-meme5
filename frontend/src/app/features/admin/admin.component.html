@@ -6,6 +6,82 @@
 
   </header>
 
+  <details class="accordion-panel" [open]="maintenanceWindowsGroupOpen()" (toggle)="onAccordionToggle('maintenanceWindows', $event)">
+    <summary class="accordion-heading">
+      <span class="accordion-arrow">&#9658;</span>
+      Maintenance Windows
+    </summary>
+    <div class="accordion-body">
+      <section class="list-panel" aria-labelledby="maintenance-windows-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="maintenance-windows-title">Maintenance Windows</h2>
+            <p>{{ loadingMaintenanceWindows() ? 'Loading maintenance windows' : 'Upcoming windows shown in Eastern Time' }}</p>
+          </div>
+          <div class="panel-actions">
+            @if (canMutateMaintenanceWindows()) {
+              <button
+                type="button"
+                (click)="startAddMaintenanceWindow()"
+              >
+                Add Window
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (maintenanceWindows().length === 0) {
+          <p class="empty">
+            {{ loadingMaintenanceWindows() ? 'Loading maintenance windows...' : 'No upcoming maintenance windows.' }}
+          </p>
+        } @else {
+          <div class="table-wrap maintenance-window-table-wrap">
+            <table class="maintenance-window-table">
+              <thead>
+                <tr>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Entered By</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (window of maintenanceWindows(); track window.id ?? window.startDate) {
+                  <tr>
+                    <td>{{ displayEasternDateTime(window.startDate) }}</td>
+                    <td>{{ displayEasternDateTime(window.endDate) }}</td>
+                    <td>{{ window.lastModifiedBy || 'n/a' }}</td>
+                    <td>
+                      @if (canMutateMaintenanceWindows()) {
+                        <div class="icon-actions">
+                          <span
+                            class="icon-action"
+                            title="Edit Window"
+                            (click)="startEditMaintenanceWindow(window)"
+                          >
+                            <meme-icon name="pencil"></meme-icon>
+                          </span>
+                          <span
+                            class="icon-action danger"
+                            [class.is-disabled]="deletingMaintenanceWindowId() === window.id"
+                            title="{{ deletingMaintenanceWindowId() === window.id ? 'Deleting...' : 'Delete Window' }}"
+                            (click)="deletingMaintenanceWindowId() === window.id || removeMaintenanceWindow(window)"
+                          >
+                            <meme-icon name="trash"></meme-icon>
+                          </span>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    </div>
+  </details>
+
   <details class="accordion-panel" [open]="projectsGroupOpen()" (toggle)="onAccordionToggle('projects', $event)">
     <summary class="accordion-heading">
       <span class="accordion-arrow">&#9658;</span>
@@ -328,6 +404,90 @@
       }
     </div>
   </details>
+
+  @if (maintenanceWindowForm(); as form) {
+    <meme-dialog
+      [title]="form.mode === 'edit' ? 'Edit Maintenance Window' : 'New Maintenance Window'"
+      [closeDisabled]="savingMaintenanceWindow()"
+      (closed)="cancelMaintenanceWindowForm()"
+    >
+      <form class="user-form" (ngSubmit)="saveMaintenanceWindow()" aria-label="Maintenance window form">
+        @if (maintenanceWindowFormErrors().length) {
+          <ul class="form-errors" aria-live="polite">
+            @for (error of maintenanceWindowFormErrors(); track error) {
+              <li>{{ error }}</li>
+            }
+          </ul>
+        }
+
+        <div class="form-grid maintenance-window-form">
+          <label for="maintenance-window-start-date">Start</label>
+          <div class="date-time-row">
+            <input
+              id="maintenance-window-start-date"
+              type="date"
+              [ngModel]="form.startDate"
+              (ngModelChange)="updateMaintenanceWindowForm('startDate', $event)"
+              name="maintenance-window-start-date"
+              [disabled]="savingMaintenanceWindow()"
+              required
+              autofocus
+            >
+            <input
+              type="time"
+              [ngModel]="form.startTime"
+              (ngModelChange)="updateMaintenanceWindowForm('startTime', $event)"
+              name="maintenance-window-start-time"
+              [disabled]="savingMaintenanceWindow()"
+              required
+            >
+          </div>
+
+          <label for="maintenance-window-end-date">End</label>
+          <div class="date-time-row">
+            <input
+              id="maintenance-window-end-date"
+              type="date"
+              [ngModel]="form.endDate"
+              (ngModelChange)="updateMaintenanceWindowForm('endDate', $event)"
+              name="maintenance-window-end-date"
+              [disabled]="savingMaintenanceWindow()"
+              required
+            >
+            <input
+              type="time"
+              [ngModel]="form.endTime"
+              (ngModelChange)="updateMaintenanceWindowForm('endTime', $event)"
+              name="maintenance-window-end-time"
+              [disabled]="savingMaintenanceWindow()"
+              required
+            >
+          </div>
+
+          <span class="field-label">Time Zone</span>
+          <span class="readonly-value">Eastern Time</span>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="quiet-button"
+            (click)="cancelMaintenanceWindowForm()"
+            [disabled]="savingMaintenanceWindow()"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="primary-button"
+            [disabled]="savingMaintenanceWindow()"
+          >
+            {{ savingMaintenanceWindow() ? 'Saving' : (form.mode === 'edit' ? 'Save Window' : 'Add Window') }}
+          </button>
+        </div>
+      </form>
+    </meme-dialog>
+  }
 
   @if (projectForm(); as form) {
     <meme-dialog

@@ -3,6 +3,10 @@ import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 
 import { MEME_API_BASE_URL } from '../../core/meme-api.tokens';
+import {
+  MaintenanceWindow,
+  MaintenanceWindowListResponse
+} from '../../core/maintenance-window.models';
 import { UserPreferences } from '../../core/auth/auth.models';
 import {
   AdminKeyValuePair,
@@ -49,8 +53,32 @@ export class AdminApiService {
     return this.http.put<AdminUser>(`${this.baseUrl}/security/user/add`, user);
   }
 
+  addMaintenanceWindow(
+    maintenanceWindow: MaintenanceWindow
+  ): Observable<MaintenanceWindow> {
+    return this.http.put<MaintenanceWindow>(
+      `${this.baseUrl}/project/maintenance`,
+      maintenanceWindow
+    );
+  }
+
+  updateMaintenanceWindow(
+    maintenanceWindow: MaintenanceWindow
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/project/maintenance`,
+      maintenanceWindow
+    );
+  }
+
   removeProject(projectId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/project/${projectId}`);
+  }
+
+  removeMaintenanceWindow(maintenanceWindowId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/project/maintenance/${maintenanceWindowId}`
+    );
   }
 
   removeUser(userId: number): Observable<void> {
@@ -149,6 +177,17 @@ export class AdminApiService {
     return this.http.get<AdminPrecedenceList>(
       `${this.baseUrl}/metadata/precedence/${precedenceListId}`
     );
+  }
+
+  getUpcomingMaintenanceWindows(): Observable<MaintenanceWindow[]> {
+    return this.http
+      .get<MaintenanceWindowListResponse>(`${this.baseUrl}/project/maintenance`)
+      .pipe(
+        map(
+          (response) =>
+            response.maintenanceWindows ?? response.objects ?? []
+        )
+      );
   }
 
   getProjectLog(projectId: number, message = '', lines = 1000): Observable<string> {

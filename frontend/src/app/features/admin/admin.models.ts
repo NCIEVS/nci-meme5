@@ -14,6 +14,7 @@ export interface AdminListState<T> {
 }
 
 export interface AdminListResponse<T> {
+  maintenanceWindows?: T[];
   objects?: T[];
   projects?: T[];
   strings?: T[];

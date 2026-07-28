@@ -18,6 +18,7 @@ export interface OperationalListResponse<T> {
   configs?: T[];
   epochs?: T[];
   keyValuePairs?: T[];
+  maintenanceWindows?: T[];
   objects?: T[];
   processes?: T[];
   projects?: T[];

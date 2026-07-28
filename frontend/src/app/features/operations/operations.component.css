@@ -1017,6 +1017,15 @@ textarea {
   gap: 10px;
 }
 
+.maintenance-warning-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.maintenance-warning-dialog p {
+  margin: 0;
+}
+
 .process-config-form-table {
   width: 100%;
   border-collapse: collapse;
