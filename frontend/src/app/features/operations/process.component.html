@@ -319,7 +319,7 @@
                     type="button"
                     class="btn-primary legacy-action"
                     (click)="runProcessOperation('prepare', config)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'prepare' ? 'Preparing' : 'Prepare' }}
                   </button>
@@ -440,7 +440,7 @@
                     type="button"
                     class="btn-primary legacy-action"
                     (click)="runProcessOperation('prepare', config)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'prepare' ? 'Preparing' : 'Prepare' }}
                   </button>
@@ -623,7 +623,7 @@
                     type="button"
                     class="btn-primary"
                     (click)="runProcessOperation('execute', execution)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'execute' ? 'Executing' : 'Execute' }}
                   </button>
@@ -633,7 +633,7 @@
                     type="button"
                     class="btn-primary"
                     (click)="runProcessOperation('cancel', execution)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'cancel' ? 'Cancelling' : 'Cancel' }}
                   </button>
@@ -643,7 +643,7 @@
                     type="button"
                     class="btn-primary"
                     (click)="runProcessOperation('restart', execution)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'restart' ? 'Restarting' : 'Restart' }}
                   </button>
@@ -653,7 +653,7 @@
                     type="button"
                     class="btn-primary"
                     (click)="runProcessOperation('step', execution)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'step' ? 'Stepping' : 'Step' }}
                   </button>
@@ -663,7 +663,7 @@
                     type="button"
                     class="btn-primary"
                     (click)="runProcessOperation('unstep', execution)"
-                    [disabled]="runningOperation() !== null"
+                    [disabled]="processOperationInFlight()"
                   >
                     {{ runningOperation() === 'unstep' ? 'Unstepping' : 'Unstep' }}
                   </button>
@@ -768,6 +768,33 @@
     </p>
   }
 </section>
+
+@if (maintenanceWindowWarning(); as warning) {
+  <meme-dialog
+    title="Maintenance Window Warning"
+    (closed)="closeMaintenanceWindowWarning()"
+  >
+    <div class="maintenance-warning-dialog">
+      <p>
+        A maintenance window is scheduled for
+        <strong>{{ maintenanceWindowRange(warning.window) }}</strong>.
+        It may interfere with this process.
+      </p>
+      <p class="muted">
+        {{ maintenanceWarningOperationLabel(warning.operation) }}
+        {{ maintenanceWarningProcessName(warning.process) }}?
+      </p>
+      <div class="form-actions">
+        <button type="button" class="warning" (click)="closeMaintenanceWindowWarning()">
+          Cancel
+        </button>
+        <button type="button" class="btn-primary" (click)="continueMaintenanceWindowOperation()">
+          Continue
+        </button>
+      </div>
+    </div>
+  </meme-dialog>
+}
 
 @if (processLogState(); as logState) {
   <meme-dialog

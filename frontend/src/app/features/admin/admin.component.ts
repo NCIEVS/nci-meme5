@@ -5,6 +5,14 @@ import { finalize, Observable } from 'rxjs';
 
 import { UserPreferences } from '../../core/auth/auth.models';
 import { AuthService } from '../../core/auth/auth.service';
+import { MaintenanceWindow } from '../../core/maintenance-window.models';
+import {
+  dateFromLegacyValue,
+  easternDateInputValue,
+  easternTimeInputValue,
+  easternWallTimeToDate,
+  formatEasternDateTime
+} from '../../core/maintenance-window-time';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
@@ -35,6 +43,7 @@ type ProjectFormField =
   | 'workflowPath';
 type ValidationDataFormField = 'key' | 'type' | 'value';
 type UserFormField = 'applicationRole' | 'editorLevel' | 'email' | 'name' | 'userName';
+type MaintenanceWindowFormField = 'endDate' | 'endTime' | 'startDate' | 'startTime';
 
 interface RoleEntry {
   key: string;
@@ -80,6 +89,15 @@ interface UserForm {
   userName: string;
 }
 
+interface MaintenanceWindowForm {
+  endDate: string;
+  endTime: string;
+  mode: 'add' | 'edit';
+  sourceWindow: MaintenanceWindow | null;
+  startDate: string;
+  startTime: string;
+}
+
 @Component({
   selector: 'meme-admin',
   imports: [DialogComponent, FormsModule, IconComponent, PagerComponent],
@@ -95,6 +113,7 @@ export class AdminComponent implements OnInit {
   protected readonly projectRoles = signal<string[]>([]);
   protected readonly projectsGroupOpen = signal(true);
   protected readonly usersGroupOpen = signal(true);
+  protected readonly maintenanceWindowsGroupOpen = signal(true);
   protected readonly preferencesGroupOpen = signal(true);
   protected readonly projects = signal<AdminProject[]>([]);
   protected readonly projectPage = signal(1);
@@ -103,10 +122,13 @@ export class AdminComponent implements OnInit {
   protected readonly projectSortField = signal<ProjectSortField>('lastModified');
   protected readonly projectTotalCount = signal(0);
   protected readonly loadingProjects = signal(false);
+  protected readonly loadingMaintenanceWindows = signal(false);
   protected readonly loadingPrecedenceList = signal(false);
   protected readonly loadingRoles = signal(false);
   protected readonly loadingUsers = signal(false);
   protected readonly users = signal<AdminUser[]>([]);
+  protected readonly maintenanceWindows = signal<MaintenanceWindow[]>([]);
+  protected readonly deletingMaintenanceWindowId = signal<number | null>(null);
   protected readonly deletingProjectId = signal<number | null>(null);
   protected readonly deletingUserId = signal<number | null>(null);
   protected readonly userPreferenceFeedbackEmail = signal('');
@@ -135,6 +157,9 @@ export class AdminComponent implements OnInit {
   protected readonly userTotalCount = signal(0);
   protected readonly validationDataForm = signal<ValidationDataForm | null>(null);
   protected readonly validationDataFormErrors = signal<string[]>([]);
+  protected readonly maintenanceWindowForm = signal<MaintenanceWindowForm | null>(null);
+  protected readonly maintenanceWindowFormErrors = signal<string[]>([]);
+  protected readonly savingMaintenanceWindow = signal(false);
   protected readonly workflowPaths = signal<string[]>([]);
 
   // User & Project Management section
@@ -212,6 +237,9 @@ export class AdminComponent implements OnInit {
   protected readonly canAddProjects = computed(() =>
     ['ADMINISTRATOR', 'USER'].includes(this.auth.currentUser().applicationRole ?? '')
   );
+  protected readonly canMutateMaintenanceWindows = computed(() =>
+    this.auth.isLoggedIn() && !this.auth.isGuest()
+  );
   protected readonly canMutateUsers = computed(
     () => this.auth.currentUser().applicationRole === 'ADMINISTRATOR'
   );
@@ -231,16 +259,22 @@ export class AdminComponent implements OnInit {
     this.loadProjectConfiguration();
     this.loadProjects();
     this.loadUsers();
+    this.loadMaintenanceWindows();
     this.loadCandidateProjects();
   }
 
-  protected onAccordionToggle(group: 'preferences' | 'projects' | 'users', event: Event): void {
+  protected onAccordionToggle(
+    group: 'maintenanceWindows' | 'preferences' | 'projects' | 'users',
+    event: Event
+  ): void {
     const isOpen = (event.target as HTMLDetailsElement).open;
 
     if (group === 'projects') {
       this.projectsGroupOpen.set(isOpen);
     } else if (group === 'users') {
       this.usersGroupOpen.set(isOpen);
+    } else if (group === 'maintenanceWindows') {
+      this.maintenanceWindowsGroupOpen.set(isOpen);
     } else {
       this.preferencesGroupOpen.set(isOpen);
     }
@@ -261,6 +295,7 @@ export class AdminComponent implements OnInit {
 
       const projectsOpen = openFor('Projects');
       const usersOpen = openFor('Users');
+      const maintenanceWindowsOpen = openFor('Maintenance Windows');
       const preferencesOpen = openFor('User Preferences');
 
       if (projectsOpen !== undefined) {
@@ -268,6 +303,9 @@ export class AdminComponent implements OnInit {
       }
       if (usersOpen !== undefined) {
         this.usersGroupOpen.set(usersOpen);
+      }
+      if (maintenanceWindowsOpen !== undefined) {
+        this.maintenanceWindowsGroupOpen.set(maintenanceWindowsOpen);
       }
       if (preferencesOpen !== undefined) {
         this.preferencesGroupOpen.set(preferencesOpen);
@@ -281,6 +319,7 @@ export class AdminComponent implements OnInit {
     const groups = [
       { open: this.projectsGroupOpen(), title: 'Projects' },
       { open: this.usersGroupOpen(), title: 'Users' },
+      { open: this.maintenanceWindowsGroupOpen(), title: 'Maintenance Windows' },
       { open: this.preferencesGroupOpen(), title: 'User Preferences' }
     ];
 
@@ -346,6 +385,19 @@ export class AdminComponent implements OnInit {
         },
         error: () => {
           this.notifications.error('Users could not be loaded.');
+        }
+      });
+  }
+
+  protected loadMaintenanceWindows(): void {
+    this.loadingMaintenanceWindows.set(true);
+    this.api
+      .getUpcomingMaintenanceWindows()
+      .pipe(finalize(() => this.loadingMaintenanceWindows.set(false)))
+      .subscribe({
+        next: (windows) => this.maintenanceWindows.set(windows),
+        error: () => {
+          this.notifications.error('Maintenance windows could not be loaded.');
         }
       });
   }
@@ -849,6 +901,138 @@ export class AdminComponent implements OnInit {
     }
 
     this.saveUserPreferences(preferences, 'User preferences reset.');
+  }
+
+  protected startAddMaintenanceWindow(): void {
+    const easternDate = easternDateInputValue();
+
+    this.maintenanceWindowForm.set({
+      endDate: easternDate,
+      endTime: '09:00',
+      mode: 'add',
+      sourceWindow: null,
+      startDate: easternDate,
+      startTime: '03:00'
+    });
+    this.maintenanceWindowFormErrors.set([]);
+  }
+
+  protected startEditMaintenanceWindow(
+    maintenanceWindow: MaintenanceWindow
+  ): void {
+    const startDate = dateFromLegacyValue(maintenanceWindow.startDate);
+    const endDate = dateFromLegacyValue(maintenanceWindow.endDate);
+
+    if (!startDate || !endDate) {
+      this.notifications.error('Maintenance window dates could not be edited.');
+      return;
+    }
+
+    this.maintenanceWindowForm.set({
+      endDate: easternDateInputValue(endDate),
+      endTime: easternTimeInputValue(endDate),
+      mode: 'edit',
+      sourceWindow: maintenanceWindow,
+      startDate: easternDateInputValue(startDate),
+      startTime: easternTimeInputValue(startDate)
+    });
+    this.maintenanceWindowFormErrors.set([]);
+  }
+
+  protected cancelMaintenanceWindowForm(): void {
+    if (this.savingMaintenanceWindow()) {
+      return;
+    }
+
+    this.maintenanceWindowForm.set(null);
+    this.maintenanceWindowFormErrors.set([]);
+  }
+
+  protected updateMaintenanceWindowForm(
+    field: MaintenanceWindowFormField,
+    value: string
+  ): void {
+    this.maintenanceWindowForm.update((form) =>
+      form ? { ...form, [field]: value } : form
+    );
+  }
+
+  protected saveMaintenanceWindow(): void {
+    const form = this.maintenanceWindowForm();
+
+    if (!form || this.savingMaintenanceWindow()) {
+      return;
+    }
+
+    const errors = this.validateMaintenanceWindowForm(form);
+    this.maintenanceWindowFormErrors.set(errors);
+
+    if (errors.length) {
+      return;
+    }
+
+    this.savingMaintenanceWindow.set(true);
+    const payload = this.buildMaintenanceWindowPayload(form);
+    const request: Observable<MaintenanceWindow | void> =
+      form.mode === 'edit'
+        ? this.api.updateMaintenanceWindow(payload)
+        : this.api.addMaintenanceWindow(payload);
+
+    request
+      .pipe(finalize(() => this.savingMaintenanceWindow.set(false)))
+      .subscribe({
+        next: () => {
+          this.maintenanceWindowForm.set(null);
+          this.maintenanceWindowFormErrors.set([]);
+          this.notifications.success(
+            form.mode === 'edit'
+              ? 'Maintenance window updated.'
+              : 'Maintenance window added.'
+          );
+          this.loadMaintenanceWindows();
+        },
+        error: () => {
+          this.maintenanceWindowFormErrors.set([
+            'Maintenance window could not be saved.'
+          ]);
+        }
+      });
+  }
+
+  protected removeMaintenanceWindow(
+    maintenanceWindow: MaintenanceWindow
+  ): void {
+    if (
+      !maintenanceWindow.id ||
+      this.deletingMaintenanceWindowId() === maintenanceWindow.id
+    ) {
+      return;
+    }
+
+    const startDate = this.displayEasternDateTime(maintenanceWindow.startDate);
+    if (!window.confirm(`Delete maintenance window starting ${startDate}?`)) {
+      return;
+    }
+
+    this.deletingMaintenanceWindowId.set(maintenanceWindow.id);
+    this.api
+      .removeMaintenanceWindow(maintenanceWindow.id)
+      .pipe(finalize(() => this.deletingMaintenanceWindowId.set(null)))
+      .subscribe({
+        next: () => {
+          this.notifications.success('Maintenance window removed.');
+          this.loadMaintenanceWindows();
+        },
+        error: () => {
+          this.notifications.error('Maintenance window could not be removed.');
+        }
+      });
+  }
+
+  protected displayEasternDateTime(
+    value: string | number | null | undefined
+  ): string {
+    return formatEasternDateTime(value);
   }
 
   protected preferencePropertyEntries(): RoleEntry[] {
@@ -1666,6 +1850,35 @@ export class AdminComponent implements OnInit {
     return errors;
   }
 
+  private validateMaintenanceWindowForm(form: MaintenanceWindowForm): string[] {
+    const errors: string[] = [];
+    const startDate = easternWallTimeToDate(form.startDate, form.startTime);
+    const endDate = easternWallTimeToDate(form.endDate, form.endTime);
+
+    if (!form.startDate || !form.startTime || !form.endDate || !form.endTime) {
+      errors.push('The start and end date/time fields cannot be blank.');
+    }
+
+    if (form.mode === 'edit' && !form.sourceWindow?.id) {
+      errors.push('The maintenance window id is required.');
+    }
+
+    if (!startDate || !endDate) {
+      errors.push('Enter valid maintenance window dates and times.');
+      return errors;
+    }
+
+    if (endDate.getTime() <= startDate.getTime()) {
+      errors.push('The end date and time must be after the start date and time.');
+    }
+
+    if (endDate.getTime() <= Date.now()) {
+      errors.push('The maintenance window must not already be over.');
+    }
+
+    return errors;
+  }
+
   private validateUserForm(form: UserForm): string[] {
     const errors: string[] = [];
 
@@ -1696,6 +1909,19 @@ export class AdminComponent implements OnInit {
       validationData: form.validationData,
       version: form.version.trim(),
       workflowPath: form.workflowPath.trim() || null
+    };
+  }
+
+  private buildMaintenanceWindowPayload(
+    form: MaintenanceWindowForm
+  ): MaintenanceWindow {
+    const startDate = easternWallTimeToDate(form.startDate, form.startTime);
+    const endDate = easternWallTimeToDate(form.endDate, form.endTime);
+
+    return {
+      ...(form.sourceWindow ?? {}),
+      endDate: endDate?.getTime() ?? null,
+      startDate: startDate?.getTime() ?? null
     };
   }
 

@@ -4,12 +4,15 @@
 package com.wci.umls.server.rest.impl;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import com.wci.umls.server.jpa.model.ProjectJpa;
 import com.wci.umls.server.jpa.model.UserJpa;
 import com.wci.umls.server.jpa.model.actions.AtomicActionListJpa;
 import com.wci.umls.server.jpa.model.actions.MolecularActionListJpa;
+import com.wci.umls.server.jpa.model.helpers.MaintenanceWindowJpa;
+import com.wci.umls.server.jpa.model.helpers.MaintenanceWindowListJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.PrecedenceListJpa;
 import com.wci.umls.server.jpa.model.helpers.ProjectListJpa;
@@ -26,7 +29,9 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -35,6 +40,7 @@ import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.LogEntry;
+import com.wci.umls.server.helpers.MaintenanceWindowList;
 import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.ProjectList;
@@ -50,6 +56,7 @@ import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.ProjectServiceRest;
 import com.wci.umls.server.model.actions.AtomicActionList;
 import com.wci.umls.server.model.actions.MolecularActionList;
+import com.wci.umls.server.model.admin.MaintenanceWindow;
 import com.wci.umls.server.services.MetadataService;
 import com.wci.umls.server.services.ProjectService;
 import com.wci.umls.server.services.SecurityService;
@@ -1240,6 +1247,253 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
       securityService.close();
     }
 
+  }
+
+  /* see superclass */
+  @Override
+  @RequestMapping(value = "/maintenance", method = RequestMethod.PUT)
+  @PUT
+  @Path("/maintenance")
+  @Operation(summary = "Add maintenance window",
+      description = "Adds a planned maintenance window. Requires a valid application user.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Maintenance window created",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = MaintenanceWindowJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or maintenance window could not be created",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
+  public MaintenanceWindow addMaintenanceWindow(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Maintenance window", required = true) @RequestBody MaintenanceWindowJpa maintenanceWindow,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    Logger.getLogger(getClass()).info(
+        "RESTful call (Project): /maintenance " + maintenanceWindow);
+
+    final ProjectService projectService = new ProjectServiceJpa();
+    try {
+      final String userName = authorizeMaintenanceWindowMutation(authToken,
+          "add maintenance windows");
+      projectService.setLastModifiedBy(userName);
+      validateMaintenanceWindow(maintenanceWindow);
+
+      maintenanceWindow.setId(null);
+      final MaintenanceWindow newWindow =
+          projectService.addMaintenanceWindow(maintenanceWindow);
+      projectService.addLogEntry(userName, null, newWindow.getId(), null, null,
+          "ADD maintenance window - " + newWindow);
+      return newWindow;
+    } catch (Exception e) {
+      handleException(e, "trying to add a maintenance window");
+      return null;
+    } finally {
+      projectService.close();
+      securityService.close();
+    }
+  }
+
+  /* see superclass */
+  @Override
+  @RequestMapping(value = "/maintenance", method = RequestMethod.POST)
+  @POST
+  @Path("/maintenance")
+  @Operation(summary = "Update maintenance window",
+      description = "Updates a planned maintenance window. Requires a valid application user.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Maintenance window updated"),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or maintenance window could not be updated",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
+  public void updateMaintenanceWindow(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Maintenance window", required = true) @RequestBody MaintenanceWindowJpa maintenanceWindow,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    Logger.getLogger(getClass()).info(
+        "RESTful call (Project): /maintenance update " + maintenanceWindow);
+
+    final ProjectService projectService = new ProjectServiceJpa();
+    try {
+      final String userName = authorizeMaintenanceWindowMutation(authToken,
+          "update maintenance windows");
+      projectService.setLastModifiedBy(userName);
+      if (maintenanceWindow == null || maintenanceWindow.getId() == null) {
+        throw new LocalException("Maintenance window id is required.");
+      }
+      validateMaintenanceWindow(maintenanceWindow);
+
+      projectService.updateMaintenanceWindow(maintenanceWindow);
+      projectService.addLogEntry(userName, null, maintenanceWindow.getId(),
+          null, null, "UPDATE maintenance window - " + maintenanceWindow);
+    } catch (Exception e) {
+      handleException(e, "trying to update a maintenance window");
+    } finally {
+      projectService.close();
+      securityService.close();
+    }
+  }
+
+  /* see superclass */
+  @Override
+  @RequestMapping(value = "/maintenance/{id}", method = RequestMethod.DELETE)
+  @DELETE
+  @Path("/maintenance/{id}")
+  @Operation(summary = "Remove maintenance window",
+      description = "Removes a planned maintenance window by id. Requires a valid application user.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Maintenance window removed"),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or maintenance window could not be removed",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
+  public void removeMaintenanceWindow(
+    @Parameter(description = "Maintenance window id", example = "1",
+        required = true) @PathVariable("id") Long id,
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    Logger.getLogger(getClass())
+        .info("RESTful call (Project): /maintenance remove " + id);
+
+    final ProjectService projectService = new ProjectServiceJpa();
+    try {
+      final String userName = authorizeMaintenanceWindowMutation(authToken,
+          "remove maintenance windows");
+      projectService.setLastModifiedBy(userName);
+      projectService.removeMaintenanceWindow(id);
+      projectService.addLogEntry(userName, null, id, null, null,
+          "REMOVE maintenance window - " + id);
+    } catch (Exception e) {
+      handleException(e, "trying to remove a maintenance window");
+    } finally {
+      projectService.close();
+      securityService.close();
+    }
+  }
+
+  /* see superclass */
+  @Override
+  @RequestMapping(value = "/maintenance", method = RequestMethod.GET)
+  @GET
+  @Path("/maintenance")
+  @Operation(summary = "Get upcoming maintenance windows",
+      description = "Returns maintenance windows that have not yet passed.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Maintenance windows returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = MaintenanceWindowListJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or maintenance windows could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
+  public MaintenanceWindowList getUpcomingMaintenanceWindows(
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    Logger.getLogger(getClass()).info("RESTful call (Project): /maintenance");
+
+    final ProjectService projectService = new ProjectServiceJpa();
+    try {
+      authorizeApp(securityService, authToken, "get maintenance windows",
+          UserRole.VIEWER);
+      return projectService.getUpcomingMaintenanceWindows(new Date());
+    } catch (Exception e) {
+      handleException(e, "trying to get maintenance windows");
+      return null;
+    } finally {
+      projectService.close();
+      securityService.close();
+    }
+  }
+
+  /* see superclass */
+  @Override
+  @RequestMapping(value = "/maintenance/next", method = RequestMethod.GET)
+  @GET
+  @Path("/maintenance/next")
+  @Operation(summary = "Get next maintenance window",
+      description = "Returns the next maintenance window that has not yet passed.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "Maintenance window returned",
+              content = @Content(mediaType = MediaType.APPLICATION_JSON,
+                  schema = @Schema(implementation = MaintenanceWindowJpa.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Authorization failed or maintenance window could not be retrieved",
+              content = @Content(mediaType = MediaType.TEXT_PLAIN,
+                  schema = @Schema(type = "string")))
+      })
+  public MaintenanceWindow getNextMaintenanceWindow(
+    @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
+    throws Exception {
+    Logger.getLogger(getClass())
+        .info("RESTful call (Project): /maintenance/next");
+
+    final ProjectService projectService = new ProjectServiceJpa();
+    try {
+      authorizeApp(securityService, authToken, "get next maintenance window",
+          UserRole.VIEWER);
+      return projectService.getNextMaintenanceWindow(new Date());
+    } catch (Exception e) {
+      handleException(e, "trying to get the next maintenance window");
+      return null;
+    } finally {
+      projectService.close();
+      securityService.close();
+    }
+  }
+
+  /**
+   * Authorizes a maintenance window mutation.
+   *
+   * @param authToken the auth token
+   * @param action the action
+   * @return the user name
+   * @throws Exception the exception
+   */
+  private String authorizeMaintenanceWindowMutation(String authToken,
+    String action) throws Exception {
+    final String userName =
+        authorizeApp(securityService, authToken, action, UserRole.VIEWER);
+    if ("guest".equals(userName)) {
+      throw new WebApplicationException(Response.status(401).entity(
+          "Guest users do not have permissions to " + action + ".").build());
+    }
+    return userName;
+  }
+
+  /**
+   * Validates maintenance window fields.
+   *
+   * @param maintenanceWindow the maintenance window
+   * @throws Exception the exception
+   */
+  @SuppressWarnings("static-method")
+  private void validateMaintenanceWindow(MaintenanceWindow maintenanceWindow)
+    throws Exception {
+    if (maintenanceWindow == null || maintenanceWindow.getStartDate() == null
+        || maintenanceWindow.getEndDate() == null) {
+      throw new LocalException(
+          "Maintenance window start and end dates are required.");
+    }
+
+    if (!maintenanceWindow.getStartDate()
+        .before(maintenanceWindow.getEndDate())) {
+      throw new LocalException(
+          "Maintenance window end date must be after the start date.");
+    }
+
+    if (maintenanceWindow.getEndDate().before(new Date())) {
+      throw new LocalException(
+          "Maintenance window end date must not be in the past.");
+    }
   }
 
   @Override

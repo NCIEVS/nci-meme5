@@ -12,6 +12,11 @@ import {
 } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { MaintenanceWindow } from '../../core/maintenance-window.models';
+import {
+  dateFromLegacyValue,
+  formatMaintenanceWindowRange
+} from '../../core/maintenance-window-time';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
@@ -89,6 +94,12 @@ interface StepLogState {
   step: ProcessStep;
 }
 
+interface MaintenanceWindowWarningState {
+  operation: ProcessOperation;
+  process: ProcessConfig | ProcessExecution;
+  window: MaintenanceWindow;
+}
+
 @Component({
   selector: 'meme-process',
   imports: [DialogComponent, FormsModule, IconComponent, PagerComponent],
@@ -130,7 +141,9 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly loadingAlgorithmTypes = signal(false);
   protected readonly loadingConfigDetail = signal(false);
   protected readonly loadingExecutionFeedback = signal(false);
+  protected readonly checkingMaintenanceWindowOperation = signal<ProcessOperation | null>(null);
   protected readonly loadingExecutionDetail = signal(false);
+  protected readonly maintenanceWindowWarning = signal<MaintenanceWindowWarningState | null>(null);
   protected readonly queryPreviewMap = signal<Record<string, boolean>>({});
   protected readonly testingQueryKey = signal<string | null>(null);
   protected readonly activeStepId = signal<number | null>(null);
@@ -1485,11 +1498,83 @@ export class ProcessComponent implements OnInit, OnDestroy {
   ): void {
     const projectId = this.projectId();
 
-    if (!projectId || !process.id || !this.canManageProcesses()) {
+    if (
+      !projectId ||
+      !process.id ||
+      !this.canManageProcesses() ||
+      this.processOperationInFlight()
+    ) {
       return;
     }
 
+    if (this.processOperationNeedsMaintenanceWarning(operation)) {
+      this.checkMaintenanceWindowBeforeOperation(operation, process);
+      return;
+    }
+
+    this.submitProcessOperationWithConfirmation(operation, process);
+  }
+
+  protected processOperationInFlight(): boolean {
+    return (
+      this.runningOperation() !== null ||
+      this.checkingMaintenanceWindowOperation() !== null
+    );
+  }
+
+  protected closeMaintenanceWindowWarning(): void {
+    if (this.runningOperation() !== null) {
+      return;
+    }
+
+    this.maintenanceWindowWarning.set(null);
+  }
+
+  protected continueMaintenanceWindowOperation(): void {
+    const warning = this.maintenanceWindowWarning();
+
+    if (!warning || this.runningOperation() !== null) {
+      return;
+    }
+
+    this.maintenanceWindowWarning.set(null);
+    this.submitProcessOperation(warning.operation, warning.process);
+  }
+
+  protected maintenanceWindowRange(window: MaintenanceWindow): string {
+    return formatMaintenanceWindowRange(window);
+  }
+
+  protected maintenanceWarningProcessName(
+    process: ProcessConfig | ProcessExecution
+  ): string | number {
+    return process.name || process.id || 'process';
+  }
+
+  protected maintenanceWarningOperationLabel(
+    operation: ProcessOperation
+  ): string {
+    return this.processOperationLabel(operation).toLocaleLowerCase();
+  }
+
+  private submitProcessOperationWithConfirmation(
+    operation: ProcessOperation,
+    process: ProcessConfig | ProcessExecution
+  ): void {
     if (!this.confirmProcessOperation(operation, process)) {
+      return;
+    }
+
+    this.submitProcessOperation(operation, process);
+  }
+
+  private submitProcessOperation(
+    operation: ProcessOperation,
+    process: ProcessConfig | ProcessExecution
+  ): void {
+    const projectId = this.projectId();
+
+    if (!projectId || !process.id || this.runningOperation() !== null) {
       return;
     }
 
@@ -1508,6 +1593,46 @@ export class ProcessComponent implements OnInit, OnDestroy {
         this.notifications.error('Process operation could not be completed.');
       }
     });
+  }
+
+  private checkMaintenanceWindowBeforeOperation(
+    operation: ProcessOperation,
+    process: ProcessConfig | ProcessExecution
+  ): void {
+    this.checkingMaintenanceWindowOperation.set(operation);
+    this.api
+      .getNextMaintenanceWindow()
+      .pipe(finalize(() => this.checkingMaintenanceWindowOperation.set(null)))
+      .subscribe({
+        next: (window) => {
+          if (this.shouldWarnForMaintenanceWindow(window)) {
+            this.maintenanceWindowWarning.set({ operation, process, window });
+            return;
+          }
+
+          this.submitProcessOperationWithConfirmation(operation, process);
+        },
+        error: () => {
+          this.notifications.error('Maintenance windows could not be checked.');
+          this.submitProcessOperationWithConfirmation(operation, process);
+        }
+      });
+  }
+
+  private shouldWarnForMaintenanceWindow(
+    window: MaintenanceWindow | null
+  ): window is MaintenanceWindow {
+    const startDate = dateFromLegacyValue(window?.startDate);
+    const endDate = dateFromLegacyValue(window?.endDate);
+
+    if (!startDate || !endDate) {
+      return false;
+    }
+
+    const now = Date.now();
+    const fourDaysFromNow = now + 4 * 24 * 60 * 60 * 1000;
+
+    return endDate.getTime() >= now && startDate.getTime() <= fourDaysFromNow;
   }
 
   protected canPrepareProcess(config: ProcessConfig): boolean {
@@ -2536,6 +2661,36 @@ export class ProcessComponent implements OnInit, OnDestroy {
     }
 
     return true;
+  }
+
+  private processOperationNeedsMaintenanceWarning(
+    operation: ProcessOperation
+  ): boolean {
+    return operation !== 'cancel' && operation !== 'unstep';
+  }
+
+  private processOperationLabel(operation: ProcessOperation): string {
+    if (operation === 'execute') {
+      return 'Execute';
+    }
+
+    if (operation === 'prepare') {
+      return 'Prepare';
+    }
+
+    if (operation === 'restart') {
+      return 'Restart';
+    }
+
+    if (operation === 'step') {
+      return 'Step forward';
+    }
+
+    if (operation === 'unstep') {
+      return 'Step back';
+    }
+
+    return 'Cancel';
   }
 
   private processOperationRequest(

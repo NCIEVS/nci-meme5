@@ -351,6 +351,12 @@ button:not(.icon-btn):not(.icon-action):not(.dialog-close):not(.table-sort):disa
   min-width: 160px;
 }
 
+.date-time-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 120px;
+  gap: 8px;
+}
+
 .readonly-value {
   min-height: var(--meme-input-height);
   padding: 8px 0;
@@ -463,6 +469,10 @@ table {
 
 .compact-table table {
   min-width: 0;
+}
+
+.maintenance-window-table {
+  min-width: 620px;
 }
 
 .compact-table th,
@@ -686,5 +696,9 @@ tbody tr.precedence-touched {
   .validation-check-section {
     grid-template-columns: 1fr;
     width: 100%;
+  }
+
+  .date-time-row {
+    grid-template-columns: 1fr;
   }
 }

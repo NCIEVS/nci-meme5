@@ -20,6 +20,7 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.KeyValuePairList;
+import com.wci.umls.server.helpers.MaintenanceWindowList;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.StringList;
 import com.wci.umls.server.helpers.TypeKeyValue;
@@ -28,6 +29,8 @@ import com.wci.umls.server.helpers.UserList;
 import com.wci.umls.server.jpa.model.ProjectJpa;
 import com.wci.umls.server.jpa.model.actions.AtomicActionListJpa;
 import com.wci.umls.server.jpa.model.actions.MolecularActionListJpa;
+import com.wci.umls.server.jpa.model.helpers.MaintenanceWindowJpa;
+import com.wci.umls.server.jpa.model.helpers.MaintenanceWindowListJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.ProjectListJpa;
 import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
@@ -36,6 +39,7 @@ import com.wci.umls.server.jpa.model.helpers.UserListJpa;
 import com.wci.umls.server.jpa.services.rest.ProjectServiceRest;
 import com.wci.umls.server.model.actions.AtomicActionList;
 import com.wci.umls.server.model.actions.MolecularActionList;
+import com.wci.umls.server.model.admin.MaintenanceWindow;
 
 /**
  * A client for connecting to a project REST service.
@@ -569,6 +573,125 @@ public class ProjectClientRest extends RootClientRest
       throw new Exception("Unexpected status " + response.getStatus());
     }
   }
+
+  /* see superclass */
+  @Override
+  public MaintenanceWindow addMaintenanceWindow(
+    MaintenanceWindowJpa maintenanceWindow, String authToken) throws Exception {
+    Logger.getLogger(getClass()).debug(
+        "Project Client - add maintenance window" + maintenanceWindow);
+
+    final Client client = ClientBuilder.newClient();
+    final WebTarget target =
+        client.target(config.getProperty("base.url") + "/project/maintenance");
+    final String maintenanceWindowString = ConfigUtility.getStringForGraph(
+        maintenanceWindow == null ? new MaintenanceWindowJpa()
+            : maintenanceWindow);
+    final Response response = target.request(MediaType.APPLICATION_XML)
+        .header("Authorization", authToken)
+        .put(Entity.xml(maintenanceWindowString));
+
+    final String resultString = response.readEntity(String.class);
+    if (response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
+      throw new Exception(resultString);
+    }
+
+    return ConfigUtility.getGraphForString(resultString,
+        MaintenanceWindowJpa.class);
+  }
+
+  /* see superclass */
+  @Override
+  public void updateMaintenanceWindow(MaintenanceWindowJpa maintenanceWindow,
+    String authToken) throws Exception {
+    Logger.getLogger(getClass()).debug(
+        "Project Client - update maintenance window " + maintenanceWindow);
+
+    final Client client = ClientBuilder.newClient();
+    final WebTarget target =
+        client.target(config.getProperty("base.url") + "/project/maintenance");
+    final String maintenanceWindowString = ConfigUtility.getStringForGraph(
+        maintenanceWindow == null ? new MaintenanceWindowJpa()
+            : maintenanceWindow);
+    final Response response = target.request(MediaType.APPLICATION_XML)
+        .header("Authorization", authToken)
+        .post(Entity.xml(maintenanceWindowString));
+
+    final String resultString = response.readEntity(String.class);
+    if (response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
+      throw new Exception(resultString);
+    }
+  }
+
+  /* see superclass */
+  @Override
+  public void removeMaintenanceWindow(Long id, String authToken)
+    throws Exception {
+    Logger.getLogger(getClass())
+        .debug("Project Client - remove maintenance window " + id);
+    validateNotEmpty(id, "id");
+
+    final Client client = ClientBuilder.newClient();
+    final WebTarget target = client.target(
+        config.getProperty("base.url") + "/project/maintenance/" + id);
+    final Response response = target.request(MediaType.APPLICATION_XML)
+        .header("Authorization", authToken).delete();
+
+    final String resultString = response.readEntity(String.class);
+    if (response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
+      throw new Exception(resultString);
+    }
+  }
+
+  /* see superclass */
+  @Override
+  public MaintenanceWindowList getUpcomingMaintenanceWindows(String authToken)
+    throws Exception {
+    Logger.getLogger(getClass())
+        .debug("Project Client - get maintenance windows");
+
+    final Client client = ClientBuilder.newClient();
+    final WebTarget target =
+        client.target(config.getProperty("base.url") + "/project/maintenance");
+    final Response response = target.request(MediaType.APPLICATION_XML)
+        .header("Authorization", authToken).get();
+
+    final String resultString = response.readEntity(String.class);
+    if (response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
+      throw new Exception(resultString);
+    }
+
+    return ConfigUtility.getGraphForString(resultString,
+        MaintenanceWindowListJpa.class);
+  }
+
+  /* see superclass */
+  @Override
+  public MaintenanceWindow getNextMaintenanceWindow(String authToken)
+    throws Exception {
+    Logger.getLogger(getClass())
+        .debug("Project Client - get next maintenance window");
+
+    final Client client = ClientBuilder.newClient();
+    final WebTarget target = client
+        .target(config.getProperty("base.url") + "/project/maintenance/next");
+    final Response response = target.request(MediaType.APPLICATION_XML)
+        .header("Authorization", authToken).get();
+
+    final String resultString = response.readEntity(String.class);
+    if (response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
+      throw new Exception(resultString);
+    }
+
+    if (resultString == null || resultString.trim().isEmpty()
+        || "null".equals(resultString.trim())) {
+      return null;
+    }
+
+    return ConfigUtility.getGraphForString(resultString,
+        MaintenanceWindowJpa.class);
+  }
+
   /* see superclass */
   @Override
   public TypeKeyValue addTypeKeyValue(TypeKeyValueJpa typeKeyValue, String authToken)

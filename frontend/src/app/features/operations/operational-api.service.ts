@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { forkJoin, map, Observable, of } from 'rxjs';
 
 import { UserPreferences } from '../../core/auth/auth.models';
+import { MaintenanceWindow } from '../../core/maintenance-window.models';
 import { MEME_API_BASE_URL } from '../../core/meme-api.tokens';
 import {
   buildOperationalPfs,
@@ -69,6 +70,12 @@ export class OperationalApiService {
     return this.http.post<UserPreferences>(
       `${this.baseUrl}/security/user/preferences/update`,
       userPreferences
+    );
+  }
+
+  getNextMaintenanceWindow(): Observable<MaintenanceWindow | null> {
+    return this.http.get<MaintenanceWindow | null>(
+      `${this.baseUrl}/project/maintenance/next`
     );
   }
 

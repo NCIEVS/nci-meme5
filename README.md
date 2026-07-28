@@ -283,6 +283,9 @@ administrative tasks are:
 - `make migrate-info` or `./gradlew adminFlywayInfo`
 - `make migrate-validate` or `./gradlew adminFlywayValidate`
 
+Migration `V1.2__maintenance_windows.sql` adds the `maintenance_windows` table
+used by the Admin UI to warn process operators about upcoming maintenance.
+
 For an existing populated legacy database, baseline explicitly before applying
 later migrations:
 

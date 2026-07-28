@@ -9,16 +9,19 @@ package com.wci.umls.server.jpa.services.rest;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.KeyValuePairList;
+import com.wci.umls.server.helpers.MaintenanceWindowList;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.helpers.StringList;
 import com.wci.umls.server.helpers.TypeKeyValue;
 import com.wci.umls.server.helpers.TypeKeyValueList;
 import com.wci.umls.server.helpers.UserList;
+import com.wci.umls.server.jpa.model.helpers.MaintenanceWindowJpa;
 import com.wci.umls.server.jpa.model.ProjectJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.jpa.model.helpers.TypeKeyValueJpa;
 import com.wci.umls.server.model.actions.AtomicActionList;
 import com.wci.umls.server.model.actions.MolecularActionList;
+import com.wci.umls.server.model.admin.MaintenanceWindow;
 
 /**
  * Represents a content available via a REST service.
@@ -238,6 +241,57 @@ public interface ProjectServiceRest {
    * @throws Exception the exception
    */
   public void forceException(Boolean localFlag, String authToken)
+    throws Exception;
+
+  /**
+   * Adds the maintenance window.
+   *
+   * @param maintenanceWindow the maintenance window
+   * @param authToken the auth token
+   * @return the maintenance window
+   * @throws Exception the exception
+   */
+  public MaintenanceWindow addMaintenanceWindow(
+    MaintenanceWindowJpa maintenanceWindow, String authToken) throws Exception;
+
+  /**
+   * Updates the maintenance window.
+   *
+   * @param maintenanceWindow the maintenance window
+   * @param authToken the auth token
+   * @throws Exception the exception
+   */
+  public void updateMaintenanceWindow(MaintenanceWindowJpa maintenanceWindow,
+    String authToken) throws Exception;
+
+  /**
+   * Removes the maintenance window.
+   *
+   * @param id the id
+   * @param authToken the auth token
+   * @throws Exception the exception
+   */
+  public void removeMaintenanceWindow(Long id, String authToken)
+    throws Exception;
+
+  /**
+   * Returns upcoming maintenance windows.
+   *
+   * @param authToken the auth token
+   * @return the maintenance window list
+   * @throws Exception the exception
+   */
+  public MaintenanceWindowList getUpcomingMaintenanceWindows(String authToken)
+    throws Exception;
+
+  /**
+   * Returns the next maintenance window.
+   *
+   * @param authToken the auth token
+   * @return the next maintenance window
+   * @throws Exception the exception
+   */
+  public MaintenanceWindow getNextMaintenanceWindow(String authToken)
     throws Exception;
 
   /**
