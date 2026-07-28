@@ -49,4 +49,9 @@ export class HeaderComponent {
 
     return path === `/${tab.link}` || path.startsWith(`/${tab.link}/`);
   }
+
+  protected showTabs(): boolean {
+    const path = this.currentUrl.split(/[?#]/)[0] || '/';
+    return path !== '/landing' && path !== '/license' && path !== '/login';
+  }
 }

@@ -25,20 +25,22 @@
   </div>
 </header>
 
-<nav class="app-tabs" aria-label="Enabled tabs">
-  @for (tab of navigation.tabs(); track tab.key) {
-    @if (tab.accessible) {
-      <a
-        [routerLink]="['/', tab.link]"
-        [class.active]="isTabActive(tab)"
-        [attr.aria-current]="isTabActive(tab) ? 'page' : null"
-      >
-        {{ tab.label }}
-      </a>
-    } @else {
-      <button type="button" disabled [attr.aria-label]="tab.label + ' unavailable'">
-        {{ tab.label }}
-      </button>
+@if (showTabs()) {
+  <nav class="app-tabs" aria-label="Enabled tabs">
+    @for (tab of navigation.tabs(); track tab.key) {
+      @if (tab.accessible) {
+        <a
+          [routerLink]="['/', tab.link]"
+          [class.active]="isTabActive(tab)"
+          [attr.aria-current]="isTabActive(tab) ? 'page' : null"
+        >
+          {{ tab.label }}
+        </a>
+      } @else {
+        <button type="button" disabled [attr.aria-label]="tab.label + ' unavailable'">
+          {{ tab.label }}
+        </button>
+      }
     }
-  }
-</nav>
+  </nav>
+}

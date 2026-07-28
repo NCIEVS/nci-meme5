@@ -75,7 +75,6 @@ Page-area size:
 | `configure` | 2 | 89 | Setup/destructive config area |
 | `header` | 2 | 79 | Shell/navigation support |
 | `license` | 2 | 73 | License cookie flow |
-| `landing` | 2 | 55 | Startup/entry route |
 | `general` | 7 | 46 | Shared general templates |
 | `footer` | 2 | 146 | Shell/footer support |
 
@@ -123,7 +122,6 @@ Important properties:
 | `server.servlet.context-path` | `/umls-server-rest` | `/umls-server-rest` | Existing backend context path |
 | `base.url` | `http://localhost:${server.port}${server.servlet.context-path}` | `http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}` | Existing REST test base |
 | `deploy.enabled.tabs` | `metadata,workflow,edit,admin,process,inversion` | `workflow,edit,admin,process,inversion` | Local default enables the migrated Angular 20 feature tabs; content display/edit is owned by `edit` |
-| `deploy.landing.enabled` | `true` | `true` | Controls `/landing` and root route |
 | `deploy.license.enabled` | `true` | `true` | Controls `/license` and license cookie check |
 | `deploy.login.enabled` | `true` | `true` | Controls `/login`; source tab also requires login |
 | `deploy.simpleedit.enabled` | `false` | `false` | Any Angular 20 content/edit split should preserve this flag |
@@ -167,18 +165,15 @@ Routes are registered in `src/main/webapp/app/routes.js`.
 | `/inversion` | `app/page/inversion/inversion.html` | `InversionCtrl` | `inversion` tab | Project-role operational workflow |
 | `/content/:mode/:type/:terminology/:version/:terminologyId` | `app/page/content/{mode}.html` | `ContentCtrl` | Always registered | Dynamic report/simple mode |
 | `/content/:mode/:type/:terminology/:id` | `app/page/content/{mode}.html` | `ContentCtrl` | Always registered | Dynamic report/simple mode |
-| `/landing` | `app/page/landing/landing.html` | `LandingCtrl` | `deploy.landing.enabled=true` | Startup route |
 | `/login` | `app/page/login/login.html` | `LoginCtrl` | `deploy.login.enabled=true` | Session-critical |
 | `/license` | `app/page/license/license.html` | `LicenseCtrl` | `deploy.license.enabled=true` | License cookie flow |
-| `/` | landing, login, license, or content | varies | Derived from deploy flags | Root priority is landing, then login, then license, then content |
+| `/` | login, license, or content | varies | Derived from deploy flags | Root priority is login, then license, then content |
 
 Default route behavior:
 
-- If landing is enabled, `/` routes to `/landing`.
-- If landing is disabled and login is enabled, `/` routes to `/login`.
-- If landing and login are disabled and license is enabled, `/` routes to
-  `/license`.
-- If landing, login, and license are all disabled, `/` routes to `/content`.
+- If login is enabled, `/` routes to `/login` until a user is authenticated.
+- If login is disabled and license is enabled, `/` routes to `/license`.
+- If login and license are both disabled, `/` routes to the first accessible tab.
 - `otherwise` redirects to `/`.
 
 ## Tab And Navigation Inventory
@@ -485,7 +480,6 @@ interact with websocket event suppression.
 | Page Area | Primary Services | Migration Notes |
 | --- | --- | --- |
 | `login` | `securityService`, `configureService`, `tabService` | Small UI, high session importance |
-| `landing` | `securityService`, `tabService` | Routes authorized users to preferred tab |
 | `license` | `securityService`, `tabService` | Cookie flow before app access |
 | `terminology` | `metadataService`, `contentService`, `projectService`, `securityService` | Best independent read-only candidate |
 | `metadata` | `metadataService`, `projectService`, `securityService` | Depends on selected metadata model; redirects to `/content` if absent |
@@ -604,7 +598,7 @@ Recommended first Cypress smoke cases once the Angular 20 workspace exists:
 
 ```typescript
 describe('legacy MEME UI smoke', () => {
-  it('loads the legacy landing or login route', () => {
+  it('loads the legacy login route', () => {
     cy.visit('/umls-server-rest/');
     cy.contains(/NCI|META|Terminology|Login|License/);
   });
@@ -621,7 +615,7 @@ Recommended manual legacy smoke checklist:
 
 | Route | Preconditions | Smoke Notes |
 | --- | --- | --- |
-| `/` | local server running | Confirms root route resolves to landing/login/license/content based on deploy flags |
+| `/` | local server running | Confirms root route resolves to login/license/content based on deploy flags |
 | `/login` | login enabled | Authenticate with a local DEFAULT-security user |
 | `/license` | license enabled | Accept license and verify cookie behavior |
 | `/terminology` | `terminology` tab enabled | Load list, select terminology, view details, navigate to metadata |

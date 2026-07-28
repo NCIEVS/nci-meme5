@@ -23,22 +23,6 @@ export class NavigationService {
   );
 
   startupRoute(): string {
-    if (this.config.isTrue('deploy.landing.enabled')) {
-      return '/landing';
-    }
-
-    if (this.config.isTrue('deploy.login.enabled') && !this.auth.isLoggedIn()) {
-      return '/login';
-    }
-
-    if (this.config.isTrue('deploy.license.enabled') && !this.auth.acceptsLicense()) {
-      return '/license';
-    }
-
-    return this.routeForStartingTab();
-  }
-
-  routeAfterLaunch(): string {
     if (this.config.isTrue('deploy.login.enabled') && !this.auth.isLoggedIn()) {
       return '/login';
     }
@@ -61,12 +45,12 @@ export class NavigationService {
         ? preferredTab
         : this.firstAccessibleTab() ?? this.config.firstTab();
 
-    return tab ? `/${tab.link}` : '/landing';
+    return tab ? `/${tab.link}` : '/login';
   }
 
   routeForUnavailableTab(): string {
     const tab = this.firstAccessibleTab();
-    return tab ? `/${tab.link}` : '/landing';
+    return tab ? `/${tab.link}` : '/login';
   }
 
   legacyUrl(tab: EnabledTab): string {

@@ -8,7 +8,6 @@ import { InversionComponent } from './features/operations/inversion.component';
 import { ProcessComponent } from './features/operations/process.component';
 import { WorkflowComponent } from './features/operations/workflow.component';
 import { FeaturePlaceholderComponent } from './pages/feature-placeholder/feature-placeholder.component';
-import { LandingComponent } from './pages/landing/landing.component';
 import { LicenseComponent } from './pages/license/license.component';
 import { LoginComponent } from './pages/login/login.component';
 import { StartupComponent } from './pages/startup/startup.component';
@@ -53,8 +52,8 @@ export const routes: Routes = [
   },
   {
     path: 'landing',
-    component: LandingComponent,
-    title: 'NCI-META Landing'
+    pathMatch: 'full',
+    redirectTo: ''
   },
   {
     path: 'login',
