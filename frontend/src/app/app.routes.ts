@@ -8,7 +8,6 @@ import { InversionComponent } from './features/operations/inversion.component';
 import { ProcessComponent } from './features/operations/process.component';
 import { WorkflowComponent } from './features/operations/workflow.component';
 import { FeaturePlaceholderComponent } from './pages/feature-placeholder/feature-placeholder.component';
-import { LicenseComponent } from './pages/license/license.component';
 import { LoginComponent } from './pages/login/login.component';
 import { StartupComponent } from './pages/startup/startup.component';
 
@@ -59,11 +58,6 @@ export const routes: Routes = [
     path: 'login',
     component: LoginComponent,
     title: 'NCI-META Login'
-  },
-  {
-    path: 'license',
-    component: LicenseComponent,
-    title: 'NCI-META License'
   },
   {
     path: 'content',

@@ -129,26 +129,6 @@ export class AuthService {
     }
   }
 
-  acceptsLicense(): boolean {
-    if (!this.config.isTrue('deploy.license.enabled')) {
-      return true;
-    }
-
-    const cookieName = this.licenseCookieName();
-    const cookie = this.getCookie(cookieName);
-
-    if (cookie === 'license_accepted') {
-      this.acceptLicense();
-      return true;
-    }
-
-    return false;
-  }
-
-  acceptLicense(): void {
-    this.setCookie(this.licenseCookieName(), 'license_accepted', 30);
-  }
-
   private normalizeUser(data: MemeUser): MemeUser {
     const preferences: UserPreferences = {
       ...(data.userPreferences ?? {}),
@@ -236,10 +216,6 @@ export class AuthService {
 
     window.localStorage?.setItem('user', JSON.stringify(user));
     this.setCookie('user', JSON.stringify(this.compactUser(user)), 30);
-  }
-
-  private licenseCookieName(): string {
-    return `WCI ${this.config.title()}`;
   }
 
   private getCookie(name: string): string | null {

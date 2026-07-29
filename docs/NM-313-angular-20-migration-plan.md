@@ -395,7 +395,6 @@ The service should preserve:
 - current user model
 - guest-user behavior
 - `user` cookie compatibility
-- license cookie/flow compatibility
 - role and permission checks
 
 Early coexistence should use the cookie/header path as the primary bridge
@@ -609,7 +608,7 @@ Deliverables:
 - global loader service
 - global notification/error service
 - basic login page
-- landing/license route compatibility
+- landing/login route compatibility
 
 Acceptance:
 
@@ -631,13 +630,12 @@ Phase 2 implementation notes:
   handoff shape.
 - Added login/logout support for
   `/security/authenticate/{userName}` and `/security/logout/{authToken}`.
-- Added license acceptance with the same `WCI <deploy.title>` cookie contract.
 - Added config-driven header navigation, footer, global loading indicator, and
   notification/error display.
-- Added route compatibility for landing, login, license, and enabled-tab
+- Added route compatibility for landing, login, and enabled-tab
   placeholder routes. Actual feature screens remain Phase 3+.
 - Added Cypress smoke coverage for config/tab rendering, login persistence,
-  logout cleanup, and license cookie behavior.
+  and logout cleanup.
 - Updated Cypress scripts to unset `ELECTRON_RUN_AS_NODE`, which is required
   when running the Electron-based Cypress runner from this Codex/VS Code shell.
 

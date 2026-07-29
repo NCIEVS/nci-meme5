@@ -122,7 +122,6 @@ Important properties:
 | `server.servlet.context-path` | `/umls-server-rest` | `/umls-server-rest` | Existing backend context path |
 | `base.url` | `http://localhost:${server.port}${server.servlet.context-path}` | `http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}` | Existing REST test base |
 | `deploy.enabled.tabs` | `metadata,workflow,edit,admin,process,inversion` | `workflow,edit,admin,process,inversion` | Local default enables the migrated Angular 20 feature tabs; content display/edit is owned by `edit` |
-| `deploy.license.enabled` | `true` | `true` | Controls `/license` and license cookie check |
 | `deploy.login.enabled` | `true` | `true` | Controls `/login`; source tab also requires login |
 | `deploy.simpleedit.enabled` | `false` | `false` | Any Angular 20 content/edit split should preserve this flag |
 | `security.guest.disabled` | `true` | inherited | Guest behavior still exists in frontend |
@@ -166,14 +165,12 @@ Routes are registered in `src/main/webapp/app/routes.js`.
 | `/content/:mode/:type/:terminology/:version/:terminologyId` | `app/page/content/{mode}.html` | `ContentCtrl` | Always registered | Dynamic report/simple mode |
 | `/content/:mode/:type/:terminology/:id` | `app/page/content/{mode}.html` | `ContentCtrl` | Always registered | Dynamic report/simple mode |
 | `/login` | `app/page/login/login.html` | `LoginCtrl` | `deploy.login.enabled=true` | Session-critical |
-| `/license` | `app/page/license/license.html` | `LicenseCtrl` | `deploy.license.enabled=true` | License cookie flow |
-| `/` | login, license, or content | varies | Derived from deploy flags | Root priority is login, then license, then content |
+| `/` | login or content | varies | Derived from deploy flags | Root priority is login, then content |
 
 Default route behavior:
 
 - If login is enabled, `/` routes to `/login` until a user is authenticated.
-- If login is disabled and license is enabled, `/` routes to `/license`.
-- If login and license are both disabled, `/` routes to the first accessible tab.
+- If login is disabled, `/` routes to the first accessible tab.
 - `otherwise` redirects to `/`.
 
 ## Tab And Navigation Inventory
@@ -214,12 +211,6 @@ Login/logout endpoints:
 
 - `POST security/authenticate/{userName}` with `text/plain` password body
 - `GET security/logout/{authToken}`
-
-License behavior:
-
-- Cookie name is `WCI ` plus `deploy.title`.
-- Cookie value is `license_accepted`.
-- Expiration is refreshed to 30 days when license is checked.
 
 Guest behavior:
 
@@ -615,9 +606,8 @@ Recommended manual legacy smoke checklist:
 
 | Route | Preconditions | Smoke Notes |
 | --- | --- | --- |
-| `/` | local server running | Confirms root route resolves to login/license/content based on deploy flags |
+| `/` | local server running | Confirms root route resolves to login/content based on deploy flags |
 | `/login` | login enabled | Authenticate with a local DEFAULT-security user |
-| `/license` | license enabled | Accept license and verify cookie behavior |
 | `/terminology` | `terminology` tab enabled | Load list, select terminology, view details, navigate to metadata |
 | `/metadata` | terminology selected or metadata model loaded | View metadata entries and precedence list |
 | `/admin` | app `USER` or `ADMINISTRATOR` | View users/projects without mutating |

@@ -27,10 +27,6 @@ export class NavigationService {
       return '/login';
     }
 
-    if (this.config.isTrue('deploy.license.enabled') && !this.auth.acceptsLicense()) {
-      return '/license';
-    }
-
     return this.routeForStartingTab();
   }
 

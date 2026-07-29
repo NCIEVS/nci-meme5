@@ -52,6 +52,6 @@ export class HeaderComponent {
 
   protected showTabs(): boolean {
     const path = this.currentUrl.split(/[?#]/)[0] || '/';
-    return path !== '/landing' && path !== '/license' && path !== '/login';
+    return path !== '/landing' && path !== '/login';
   }
 }

@@ -39,12 +39,7 @@ export class LoginComponent {
 
     try {
       await this.auth.authenticate(userName, password);
-
-      if (this.config.isTrue('deploy.license.enabled')) {
-        await this.router.navigateByUrl('/license');
-      } else {
-        await this.router.navigateByUrl(this.navigation.routeForStartingTab());
-      }
+      await this.router.navigateByUrl(this.navigation.routeForStartingTab());
     } catch {
       this.notifications.error('Login failed.');
     } finally {

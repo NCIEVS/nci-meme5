@@ -64,7 +64,6 @@ export DEPLOY_FEEDBACK_EMAIL="${DEPLOY_FEEDBACK_EMAIL:-info@westcoastinformatics
 export DEPLOY_PASSWORD_RESET="${DEPLOY_PASSWORD_RESET:-http://passwordreset.example.com}"
 export DEPLOY_PRESENTED_BY="${DEPLOY_PRESENTED_BY:-Presented by <a href=\"http://www.westcoastinformatics.com\">West Coast Informatics, LLC</a>}"
 export DEPLOY_ENABLED_TABS="${DEPLOY_ENABLED_TABS:-workflow,edit,admin,process,inversion}"
-export DEPLOY_LICENSE_ENABLED="${DEPLOY_LICENSE_ENABLED:-true}"
 export DEPLOY_LOGIN_ENABLED="${DEPLOY_LOGIN_ENABLED:-true}"
 export DEPLOY_SIMPLEEDIT_ENABLED="${DEPLOY_SIMPLEEDIT_ENABLED:-false}"
 export DEPLOY_TRACKING_CODE="${DEPLOY_TRACKING_CODE:-<!-- sample tracking code -->}"

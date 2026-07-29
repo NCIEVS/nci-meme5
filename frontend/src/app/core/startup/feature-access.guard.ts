@@ -24,10 +24,6 @@ export const featureAccessGuard: CanActivateFn = (route) => {
     return router.parseUrl('/login');
   }
 
-  if (config.isTrue('deploy.license.enabled') && !auth.acceptsLicense()) {
-    return router.parseUrl('/license');
-  }
-
   if (!permissions.canAccessTab(tab)) {
     return router.parseUrl(navigation.routeForUnavailableTab());
   }
