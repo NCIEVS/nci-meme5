@@ -70,8 +70,8 @@ building the backend artifact:
 ```
 
 The legacy UI remains at `/index.html#/login`. The Angular 20 UI is available
-under the same servlet context at `/ui20/#/login`; for example,
-`http://localhost:8080/umls-server-rest/ui20/#/login`.
+under the same servlet context at `/ui20/index.html#/login`; for example,
+`http://localhost:8080/umls-server-rest/ui20/index.html#/login`.
 
 ## Architecture
 
