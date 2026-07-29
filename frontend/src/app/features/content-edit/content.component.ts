@@ -12,6 +12,7 @@ import { finalize, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
+import { rewriteMemeConceptReportLinks } from '../../core/meme-report-links';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { OperationalApiService } from '../operations/operational-api.service';
@@ -4478,7 +4479,9 @@ export class ContentComponent implements OnInit {
         if (this.selectedResult() !== result) {
           return;
         }
-        this.reportHtml.set(report || '');
+        this.reportHtml.set(
+          rewriteMemeConceptReportLinks(report || '', this.projectId())
+        );
         this.reportError.set(null);
         this.loadingReport.set(false);
       },
@@ -5542,6 +5545,36 @@ export class ContentComponent implements OnInit {
       return;
     }
     window.open(url, windowName, 'width=700,height=700,scrollbars=yes');
+  }
+
+  protected handleReportClick(event: MouseEvent): void {
+    if (!(event.target instanceof HTMLElement)) {
+      return;
+    }
+
+    const anchor = event.target.closest(
+      'a[data-concept-id]'
+    ) as HTMLAnchorElement | null;
+    if (!anchor) {
+      return;
+    }
+
+    event.preventDefault();
+    const conceptId = Number(anchor.getAttribute('data-concept-id'));
+    if (!Number.isFinite(conceptId)) {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    const projectId = this.projectId();
+    if (projectId) params.set('projectId', String(projectId));
+    params.set('tab', 'Report');
+    params.set('id', String(conceptId));
+    window.open(
+      memeAppRouteUrl('/concept-report', params),
+      `concept_id_${conceptId}`,
+      'width=700,height=700,scrollbars=yes'
+    );
   }
 
   protected addFinderResultToList(): void {

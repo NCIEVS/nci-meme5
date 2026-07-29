@@ -16,6 +16,7 @@ import { finalize } from 'rxjs';
 import { ContentEditApiService } from '../../features/content-edit/content-edit-api.service';
 import { EditMutationApiService } from '../../features/content-edit/edit-mutation-api.service';
 import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
+import { rewriteMemeConceptReportLinks } from '../../core/meme-report-links';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { IconComponent } from '../icon/icon.component';
 import {
@@ -150,21 +151,6 @@ export class ConceptReportPanelComponent implements OnChanges {
     }
   }
 
-  private processReportHtml(html: string): string {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const conceptLinkPattern = /\/content\/(?:report|content)\/CONCEPT\/[^/]+\/(\d+)/i;
-    doc.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
-      const match = (a.getAttribute('href') ?? '').match(conceptLinkPattern);
-      if (!match) return;
-      a.removeAttribute('onclick');
-      a.removeAttribute('target');
-      a.setAttribute('href', 'javascript:void(0)');
-      a.setAttribute('data-concept-id', match[1]);
-      a.classList.add('crp-report-link');
-    });
-    return doc.body.innerHTML;
-  }
-
   private loadReport(): void {
     const concept = this.concept;
     if (!concept?.id) return;
@@ -175,7 +161,11 @@ export class ConceptReportPanelComponent implements OnChanges {
       .pipe(finalize(() => this.loadingReport.set(false)))
       .subscribe({
         next: (html) =>
-          this.reportHtml.set(this.sanitizer.bypassSecurityTrustHtml(this.processReportHtml(html))),
+          this.reportHtml.set(
+            this.sanitizer.bypassSecurityTrustHtml(
+              rewriteMemeConceptReportLinks(html, this.projectId)
+            )
+          ),
         error: () => this.reportError.set('Could not load report.')
       });
   }

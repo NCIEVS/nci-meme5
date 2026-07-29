@@ -1,7 +1,7 @@
 const DEFAULT_API_BASE_URL = '/umls-server-rest';
 const UI20_PATH_SEGMENT = '/ui20';
 
-interface MemeLocation {
+export interface MemeLocation {
   origin: string;
   pathname: string;
 }

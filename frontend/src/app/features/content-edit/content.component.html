@@ -659,7 +659,7 @@
 
             @if (reportHtml(); as report) {
               <div class="log-panel">
-                <pre [innerHTML]="report"></pre>
+                <pre [innerHTML]="report" (click)="handleReportClick($event)"></pre>
               </div>
             } @else if (!loadingReport() && !reportError()) {
               <p class="empty compact-empty">No preformatted report returned.</p>
