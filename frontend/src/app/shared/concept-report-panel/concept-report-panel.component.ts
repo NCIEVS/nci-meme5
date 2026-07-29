@@ -15,6 +15,7 @@ import { finalize } from 'rxjs';
 
 import { ContentEditApiService } from '../../features/content-edit/content-edit-api.service';
 import { EditMutationApiService } from '../../features/content-edit/edit-mutation-api.service';
+import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { IconComponent } from '../icon/icon.component';
 import {
@@ -366,7 +367,11 @@ export class ConceptReportPanelComponent implements OnChanges {
     if (this.projectId) params.set('projectId', String(this.projectId));
     params.set('tab', 'Report');
     params.set('id', String(numericId));
-    window.open(`/concept-report?${params}`, `concept_id_${numericId}`, 'width=700,height=700,scrollbars=yes');
+    window.open(
+      memeAppRouteUrl('/concept-report', params),
+      `concept_id_${numericId}`,
+      'width=700,height=700,scrollbars=yes'
+    );
   }
 
   protected formatTimestamp(ts: string | null | undefined): string {

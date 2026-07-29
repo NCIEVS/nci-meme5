@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 
+import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { ContentEditApiService } from '../../features/content-edit/content-edit-api.service';
 import { ContentComponent as ContentComponentDetail } from '../../features/content-edit/content-edit.models';
 import { ConceptReportPanelComponent, LinkedConceptInfo, ReportPanelTab } from '../../shared/concept-report-panel/concept-report-panel.component';
@@ -77,12 +78,14 @@ export class ConceptReportComponent implements OnInit {
     let url: string;
     let windowName: string;
     if (info.terminologyId && info.terminology && info.version) {
-      const query = params.toString();
-      url = `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}${query ? '?' + query : ''}`;
+      url = memeAppRouteUrl(
+        `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}`,
+        params
+      );
       windowName = `concept_${info.terminologyId}`;
     } else if (info.id) {
       params.set('id', String(info.id));
-      url = `/concept-report?${params.toString()}`;
+      url = memeAppRouteUrl('/concept-report', params);
       windowName = `concept_id_${info.id}`;
     } else {
       return;

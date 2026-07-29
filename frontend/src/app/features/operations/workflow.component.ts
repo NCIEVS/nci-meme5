@@ -15,6 +15,7 @@ import {
 } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
@@ -1131,12 +1132,14 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     let windowName: string;
 
     if (info.terminologyId && info.terminology && info.version) {
-      const query = params.toString();
-      url = `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}${query ? '?' + query : ''}`;
+      url = memeAppRouteUrl(
+        `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}`,
+        params
+      );
       windowName = `concept_${info.terminologyId}`;
     } else if (info.id) {
       params.set('id', String(info.id));
-      url = `/concept-report?${params.toString()}`;
+      url = memeAppRouteUrl('/concept-report', params);
       windowName = `concept_id_${info.id}`;
     } else {
       return;

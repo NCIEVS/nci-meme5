@@ -1,4 +1,8 @@
-import { legacyMemeUrl, resolveMemeApiBaseUrl } from './meme-deployment-paths';
+import {
+  legacyMemeUrl,
+  memeAppRouteUrl,
+  resolveMemeApiBaseUrl
+} from './meme-deployment-paths';
 
 describe('meme deployment paths', () => {
   it('uses the default local API base outside a packaged ui20 path', () => {
@@ -25,5 +29,38 @@ describe('meme deployment paths', () => {
     expect(legacyMemeUrl('/process', '/ncim-server-rest/')).toBe(
       '/ncim-server-rest/#/process'
     );
+  });
+
+  it('builds Angular hash-route URLs under the packaged ui20 index', () => {
+    expect(
+      memeAppRouteUrl(
+        '/concept-report',
+        'projectId=39751&tab=Report&id=323696',
+        {
+          origin: 'http://ncias-q3794-c.nci.nih.gov:8080',
+          pathname: '/ncim-server-rest/ui20/index.html'
+        }
+      )
+    ).toBe(
+      'http://ncias-q3794-c.nci.nih.gov:8080/ncim-server-rest/ui20/index.html#/concept-report?projectId=39751&tab=Report&id=323696'
+    );
+  });
+
+  it('normalizes packaged ui20 directory URLs to the explicit Angular index', () => {
+    expect(
+      memeAppRouteUrl('/login', undefined, {
+        origin: 'http://localhost:8080',
+        pathname: '/umls-server-rest/ui20/'
+      })
+    ).toBe('http://localhost:8080/umls-server-rest/ui20/index.html#/login');
+  });
+
+  it('builds Angular hash-route URLs for local frontend serving', () => {
+    expect(
+      memeAppRouteUrl('/concept-report', new URLSearchParams('id=1'), {
+        origin: 'http://localhost:4200',
+        pathname: '/'
+      })
+    ).toBe('http://localhost:4200/#/concept-report?id=1');
   });
 });

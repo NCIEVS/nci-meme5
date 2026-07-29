@@ -11,6 +11,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
 import { finalize, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { OperationalApiService } from '../operations/operational-api.service';
@@ -2032,14 +2033,14 @@ export class ContentComponent implements OnInit {
     link: EditPopoutLink,
     component: ContentComponentDetail
   ): string {
-    const url = new URL(link.route.replace(/^\//, ''), document.baseURI);
+    const params = new URLSearchParams();
     const queryParams = this.buildEditPopoutQueryParams(component);
 
     Object.entries(queryParams).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
+      params.set(key, value);
     });
 
-    return url.toString();
+    return memeAppRouteUrl(link.route, params);
   }
 
   protected openEditPopout(
@@ -5528,12 +5529,14 @@ export class ContentComponent implements OnInit {
     let url: string;
     let windowName: string;
     if (info.terminologyId && info.terminology && info.version) {
-      const query = params.toString();
-      url = `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}${query ? '?' + query : ''}`;
+      url = memeAppRouteUrl(
+        `/concept-report/${encodeURIComponent(info.terminology)}/${encodeURIComponent(info.version)}/${encodeURIComponent(info.terminologyId)}`,
+        params
+      );
       windowName = `concept_${info.terminologyId}`;
     } else if (info.id) {
       params.set('id', String(info.id));
-      url = `/concept-report?${params.toString()}`;
+      url = memeAppRouteUrl('/concept-report', params);
       windowName = `concept_id_${info.id}`;
     } else {
       return;
