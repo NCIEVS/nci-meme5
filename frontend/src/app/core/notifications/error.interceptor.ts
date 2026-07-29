@@ -5,7 +5,10 @@ import { catchError, throwError } from 'rxjs';
 
 import { AuthService } from '../auth/auth.service';
 import { RuntimeConfigService } from '../config/runtime-config.service';
-import { isCurrentSessionAuthFailure } from './error.helpers';
+import {
+  isCurrentSessionAuthFailure,
+  shouldReportGlobalHttpError
+} from './error.helpers';
 import { NotificationService } from './notification.service';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
@@ -32,7 +35,9 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
           return throwError(() => error);
         }
 
-        notifications.error(describeHttpError(error));
+        if (shouldReportGlobalHttpError(request.url)) {
+          notifications.error(describeHttpError(error));
+        }
       }
 
       return throwError(() => error);

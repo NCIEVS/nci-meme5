@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -13,7 +13,7 @@ import { NotificationService } from '../../core/notifications/notification.servi
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
   private readonly navigation = inject(NavigationService);
@@ -27,7 +27,12 @@ export class LoginComponent {
     password: ['', Validators.required]
   });
 
+  ngOnInit(): void {
+    this.notifications.clear();
+  }
+
   protected async login(): Promise<void> {
+    this.notifications.clear();
     this.form.markAllAsTouched();
 
     if (this.form.invalid || this.working()) {

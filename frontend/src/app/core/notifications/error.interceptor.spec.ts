@@ -1,4 +1,7 @@
-import { isCurrentSessionAuthFailure } from './error.helpers';
+import {
+  isCurrentSessionAuthFailure,
+  shouldReportGlobalHttpError
+} from './error.helpers';
 
 describe('errorInterceptor auth failure handling', () => {
   it('ignores auth failures from stale requests after a new login token is active', () => {
@@ -15,5 +18,19 @@ describe('errorInterceptor auth failure handling', () => {
 
   it('handles auth failures when no session is active', () => {
     expect(isCurrentSessionAuthFailure('expired-token', null)).toBe(true);
+  });
+
+  it('suppresses global banners for login authentication requests', () => {
+    expect(
+      shouldReportGlobalHttpError(
+        '/umls-server-rest/security/authenticate/DSS?attempt=1'
+      )
+    ).toBe(false);
+  });
+
+  it('reports global banners for non-login requests', () => {
+    expect(
+      shouldReportGlobalHttpError('/umls-server-rest/project/current')
+    ).toBe(true);
   });
 });

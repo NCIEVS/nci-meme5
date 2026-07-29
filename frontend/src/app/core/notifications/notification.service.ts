@@ -1,12 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 
-export type NotificationLevel = 'error' | 'success';
+import { appendNotificationMessage } from './notification.helpers';
+import type {
+  NotificationLevel,
+  NotificationMessage
+} from './notification.helpers';
 
-export interface NotificationMessage {
-  id: number;
-  level: NotificationLevel;
-  message: string;
-}
+export type { NotificationLevel, NotificationMessage } from './notification.helpers';
 
 @Injectable({
   providedIn: 'root'
@@ -36,13 +36,19 @@ export class NotificationService {
   }
 
   private add(level: NotificationLevel, message: string): void {
-    this.messagesState.update((messages) => [
-      ...messages,
-      {
-        id: this.nextId++,
+    this.messagesState.update((messages) => {
+      const nextMessage = {
+        id: this.nextId,
         level,
         message
+      };
+      const updatedMessages = appendNotificationMessage(messages, nextMessage);
+
+      if (updatedMessages !== messages) {
+        this.nextId++;
       }
-    ]);
+
+      return updatedMessages;
+    });
   }
 }
