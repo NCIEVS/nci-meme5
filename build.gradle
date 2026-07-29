@@ -255,8 +255,34 @@ tasks.named('check') {
 
 // ── Webapp packaging ──────────────────────────────────────────────────────────
 def generatedWebappDir = file("$buildDir/generated-webapp")
+def generatedUi20BrowserDir = file("$buildDir/generated-ui20/browser")
 def configWebResourcesDir = file(project.findProperty('web.config.resources.dir')
         ?: 'config/prod-nci-meta/src/main/resources')
+def frontendDir = file('frontend')
+def npmExecutable = System.getProperty('os.name').toLowerCase().contains('windows')
+        ? 'npm.cmd' : 'npm'
+
+tasks.register('frontendInstall', Exec) {
+    workingDir frontendDir
+    commandLine npmExecutable, 'install'
+    inputs.files file("$frontendDir/package.json"), file("$frontendDir/package-lock.json")
+    outputs.dir file("$frontendDir/node_modules")
+    onlyIf {
+        !file("$frontendDir/node_modules").exists()
+    }
+}
+
+tasks.register('frontendBuild', Exec) {
+    dependsOn tasks.named('frontendInstall')
+    workingDir frontendDir
+    commandLine npmExecutable, 'run', 'build'
+    inputs.files file("$frontendDir/package.json"),
+            file("$frontendDir/package-lock.json"),
+            file("$frontendDir/angular.json"),
+            fileTree("$frontendDir/src"),
+            fileTree("$frontendDir/public")
+    outputs.dir generatedUi20BrowserDir
+}
 
 tasks.register('prepareWebapp', Sync) {
     into generatedWebappDir
@@ -283,11 +309,19 @@ tasks.register('prepareWebapp', Sync) {
     }
 }
 
+tasks.register('copyUi20Frontend', Sync) {
+    dependsOn tasks.named('prepareWebapp')
+    dependsOn tasks.named('frontendBuild')
+    from generatedUi20BrowserDir
+    into file("$generatedWebappDir/ui20")
+}
+
 // ── WAR packaging ─────────────────────────────────────────────────────────────
 war {
     archiveBaseName = 'ROOT'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     dependsOn prepareWebapp
+    dependsOn tasks.named('copyUi20Frontend')
     webAppDirectory = generatedWebappDir
 
     // Legacy label.prop packaging is no longer required for the normal local
@@ -304,11 +338,12 @@ bootWar {
     archiveClassifier = 'webapp'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     dependsOn prepareWebapp
+    dependsOn tasks.named('copyUi20Frontend')
     webAppDirectory = generatedWebappDir
 }
 
 bootRun {
-    dependsOn prepareWebapp
+    dependsOn tasks.named('copyUi20Frontend')
     systemProperty 'spring.web.resources.static-locations', generatedWebappDir.toURI().toString()
     doFirst {
         def base = localCatalinaBase()

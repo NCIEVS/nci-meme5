@@ -62,14 +62,16 @@ uses the executable WAR with embedded Tomcat; see
 `config/prod-nci-meta/src/main/resources/README.txt` for service and production
 overlay details.
 
-The Angular 20 UI build is currently a separate artifact:
+The Angular 20 UI is packaged into the executable WAR under `ui20/` when
+building the backend artifact:
 
 ```sh
-make frontend-install
-make frontend-build
+./gradlew clean bootWar
 ```
 
-The production Angular output is written to `build/generated-ui20`.
+The legacy UI remains at `/index.html#/login`. The Angular 20 UI is available
+under the same servlet context at `/ui20/#/login`; for example,
+`http://localhost:8080/umls-server-rest/ui20/#/login`.
 
 ## Architecture
 

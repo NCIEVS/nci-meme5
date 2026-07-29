@@ -14,7 +14,7 @@
   min-height: var(--meme-shell-header-height);
   padding: 0 32px;
   color: #ffffff;
-  background: #00008a url('/images/background.jpg') left top;
+  background: #00008a url('../../../../public/images/background.jpg') left top;
   border-bottom: 4px solid var(--meme-brand-accent);
 }
 

@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { EnabledTab } from '../config/runtime-config.models';
 import { RuntimeConfigService } from '../config/runtime-config.service';
+import { legacyMemeUrl } from '../meme-deployment-paths';
+import { MEME_API_BASE_URL } from '../meme-api.tokens';
 import { PermissionService } from './permission.service';
 
 @Injectable({
@@ -11,6 +13,7 @@ import { PermissionService } from './permission.service';
 })
 export class NavigationService {
   private readonly auth = inject(AuthService);
+  private readonly apiBaseUrl = inject(MEME_API_BASE_URL);
   private readonly config = inject(RuntimeConfigService);
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
@@ -50,7 +53,11 @@ export class NavigationService {
   }
 
   legacyUrl(tab: EnabledTab): string {
-    return `/umls-server-rest/#/${tab.link}`;
+    return legacyMemeUrl(tab.link, this.apiBaseUrl);
+  }
+
+  legacyRootUrl(): string {
+    return legacyMemeUrl('', this.apiBaseUrl);
   }
 
   async goHome(): Promise<void> {

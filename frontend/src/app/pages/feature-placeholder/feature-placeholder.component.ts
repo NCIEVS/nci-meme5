@@ -27,6 +27,6 @@ export class FeaturePlaceholderComponent {
 
   protected readonly legacyUrl = computed(() => {
     const tab = this.tab();
-    return tab ? this.navigation.legacyUrl(tab) : '/umls-server-rest/';
+    return tab ? this.navigation.legacyUrl(tab) : this.navigation.legacyRootUrl();
   });
 }
