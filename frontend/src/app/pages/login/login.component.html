@@ -44,9 +44,5 @@
         {{ working() ? 'Signing in' : 'Sign In' }}
       </button>
     </form>
-
-    @if (config.get('deploy.password.reset'); as resetUrl) {
-      <a class="login-help" [href]="resetUrl">Forgot Password?</a>
-    }
   </section>
 </section>

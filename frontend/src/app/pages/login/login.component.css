@@ -107,19 +107,6 @@ button.login-submit {
   font-weight: 700 !important;
 }
 
-.login-help {
-  display: inline-flex;
-  align-self: flex-start;
-  margin-top: 18px;
-  color: var(--meme-brand-action);
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.login-help:hover {
-  color: #163f55;
-}
-
 @media (max-width: 820px) {
   .login-page {
     grid-template-columns: 1fr;
