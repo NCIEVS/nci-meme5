@@ -343,9 +343,10 @@ public abstract class AbstractMolecularAction extends AbstractAlgorithm
       rollback();
       throw new LocalException(
           "Concept is stale, click 'Refresh' and try again ("
-              + ConfigUtility.DATE_FORMAT4.format(new Date(lastModified))
+              + ConfigUtility.formatDisplayTimestamp(new Date(lastModified))
               + (concept != null ? ", "
-                  + ConfigUtility.DATE_FORMAT4.format(concept.getLastModified())
+                  + ConfigUtility
+                      .formatDisplayTimestamp(concept.getLastModified())
                   : " ")
               + ")");
     }

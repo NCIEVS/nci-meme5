@@ -1,4 +1,4 @@
-import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -15,6 +15,12 @@ import {
 } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import {
+  dateFromLegacyValue,
+  formatEasternDate,
+  formatEasternDateTime,
+  formatEasternTime
+} from '../../core/maintenance-window-time';
 import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
@@ -144,7 +150,6 @@ interface WorkflowChecklistComputeForm {
   selector: 'meme-workflow',
   imports: [
     ConceptReportPanelComponent,
-    DatePipe,
     DialogComponent,
     FormsModule,
     IconComponent,
@@ -3312,9 +3317,9 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     if (!value) {
       return 'n/a';
     }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+    return dateFromLegacyValue(value)
+      ? formatEasternDateTime(value)
+      : String(value);
   }
 
   protected displayDateParts(value: string | number | null | undefined): string[] {
@@ -3322,12 +3327,11 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return ['n/a'];
     }
 
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
+    if (!dateFromLegacyValue(value)) {
       return [String(value)];
     }
 
-    return [date.toLocaleDateString(), date.toLocaleTimeString()];
+    return [formatEasternDate(value), formatEasternTime(value)];
   }
 
   protected recordCount(recordHolder: Checklist | Worklist | null): number {

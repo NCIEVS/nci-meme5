@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { formatEasternDate } from '../../core/maintenance-window-time';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { DialogComponent } from '../../shared/dialog/dialog.component';
@@ -65,9 +66,11 @@ export class InversionComponent implements OnInit {
   }
 
   protected toDateString(value: string | number | null | undefined): string {
-    if (!value) return '';
-    const ms = Number(value);
-    return isNaN(ms) ? String(value) : new Date(ms).toLocaleDateString();
+    if (!value) {
+      return '';
+    }
+    const formatted = formatEasternDate(value);
+    return formatted === 'n/a' ? String(value) : formatted;
   }
 
   private restoreInversionAccordionState(): void {

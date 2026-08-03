@@ -122,7 +122,7 @@ public class ReportServiceJpa extends HistoryServiceJpa
       final ValidationResult validationResult =
           validateConcept(project.getValidationChecks(), concept);
       sb.append("As of ");
-      sb.append(new Date());
+      sb.append(ConfigUtility.formatDisplayTimestamp(new Date()));
       if (validationResult.getWarnings().size() > 0
           || validationResult.getErrors().size() > 0) {
         sb.append(", this entry has the following problems/issues: \n");
@@ -405,7 +405,9 @@ public class ReportServiceJpa extends HistoryServiceJpa
             .append(
                 WordUtils.wrap(
                     "  - " + note.getLastModifiedBy() + "/"
-                        + note.getLastModified() + "  " + note.getNote(),
+                        + ConfigUtility
+                            .formatDisplayTimestamp(note.getLastModified())
+                        + "  " + note.getNote(),
                     65, "\r\n    ", true));
       }
       if (notesBuffer.toString().length() > notesLabel.length()) {
@@ -422,7 +424,9 @@ public class ReportServiceJpa extends HistoryServiceJpa
               .append(
                   WordUtils.wrap(
                       "  - " + note.getLastModifiedBy() + "/"
-                          + note.getLastModified() + "  " + note.getNote(),
+                          + ConfigUtility
+                              .formatDisplayTimestamp(note.getLastModified())
+                          + "  " + note.getNote(),
                       65, "\r\n    ", true));
         }
       }
@@ -756,7 +760,8 @@ public class ReportServiceJpa extends HistoryServiceJpa
       } else if (comp instanceof Code) {
         sb.append("Code");
       }
-      sb.append(" was last touched on ").append(comp.getLastModified())
+      sb.append(" was last touched on ")
+          .append(ConfigUtility.formatDisplayTimestamp(comp.getLastModified()))
           .append(" by ").append(comp.getLastModifiedBy()).append(".")
           .append(lineEnd);
     }
@@ -764,7 +769,9 @@ public class ReportServiceJpa extends HistoryServiceJpa
       if (concept.getLastApproved() != null
           && concept.getLastApprovedBy() != null) {
         sb.append("Concept was last approved on ")
-            .append(concept.getLastApproved()).append(" by ")
+            .append(ConfigUtility
+                .formatDisplayTimestamp(concept.getLastApproved()))
+            .append(" by ")
             .append(concept.getLastApprovedBy()).append(".").append(lineEnd);
       }
     }

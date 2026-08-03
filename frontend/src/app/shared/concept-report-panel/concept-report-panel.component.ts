@@ -15,6 +15,7 @@ import { finalize } from 'rxjs';
 
 import { ContentEditApiService } from '../../features/content-edit/content-edit-api.service';
 import { EditMutationApiService } from '../../features/content-edit/edit-mutation-api.service';
+import { formatEasternDateTime } from '../../core/maintenance-window-time';
 import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { rewriteMemeConceptReportLinks } from '../../core/meme-report-links';
 import { NotificationService } from '../../core/notifications/notification.service';
@@ -366,10 +367,7 @@ export class ConceptReportPanelComponent implements OnChanges {
 
   protected formatTimestamp(ts: string | null | undefined): string {
     if (!ts) return '';
-    try {
-      return new Date(ts).toLocaleString();
-    } catch {
-      return ts;
-    }
+    const formatted = formatEasternDateTime(ts);
+    return formatted === 'n/a' ? ts : formatted;
   }
 }

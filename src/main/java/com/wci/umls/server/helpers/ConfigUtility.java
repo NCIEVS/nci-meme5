@@ -21,12 +21,18 @@ import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.DateTimeException;
+import java.time.ZoneId;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.TimeZone;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -70,10 +76,9 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
-import org.hibernate.Hibernate;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
-import java.util.Collection;
+import org.hibernate.Hibernate;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
@@ -125,6 +130,17 @@ public class ConfigUtility {
   public static final FastDateFormat DATE_YYYYMMDDHHMMSS =
       FastDateFormat.getInstance("yyyyMMddHHmmss");
 
+  /** The display timezone property. */
+  public static final String DISPLAY_TIME_ZONE_PROPERTY =
+      "app.display.timezone";
+
+  /** The default display timezone. */
+  public static final String DEFAULT_DISPLAY_TIME_ZONE = "America/New_York";
+
+  /** The display timestamp pattern. */
+  public static final String DISPLAY_TIMESTAMP_PATTERN =
+      "yyyy-MM-dd HH:mm:ss.SSS z";
+
   /** The Constant PUNCTUATION. */
   public static final String PUNCTUATION =
       " \t-({[)}]_!@#%&*\\:;\"',.?/~+=|<>$`^";
@@ -139,6 +155,55 @@ public class ConfigUtility {
   /** The date format. */
   public static final FastDateFormat format =
       FastDateFormat.getInstance("yyyyMMdd");
+
+  /**
+   * Returns the application display timezone id.
+   *
+   * @return the display timezone id
+   */
+  public static String getDisplayTimeZoneId() {
+    String timeZoneId = System.getProperty(DISPLAY_TIME_ZONE_PROPERTY);
+    if (isEmpty(timeZoneId)) {
+      timeZoneId = System.getenv("APP_DISPLAY_TIMEZONE");
+    }
+    if (isEmpty(timeZoneId)) {
+      timeZoneId = PropertyUtility.getProperty(DISPLAY_TIME_ZONE_PROPERTY);
+    }
+    return isEmpty(timeZoneId) ? DEFAULT_DISPLAY_TIME_ZONE : timeZoneId;
+  }
+
+  /**
+   * Returns the application display timezone.
+   *
+   * @return the display timezone
+   */
+  public static TimeZone getDisplayTimeZone() {
+    final String timeZoneId = getDisplayTimeZoneId();
+    try {
+      return TimeZone.getTimeZone(ZoneId.of(timeZoneId));
+    } catch (DateTimeException e) {
+      Logger.getLogger(ConfigUtility.class).warn(
+          "Invalid app display timezone " + timeZoneId + ", using "
+              + DEFAULT_DISPLAY_TIME_ZONE,
+          e);
+      return TimeZone.getTimeZone(DEFAULT_DISPLAY_TIME_ZONE);
+    }
+  }
+
+  /**
+   * Formats a timestamp for user-facing application display.
+   *
+   * @param date the date
+   * @return the formatted timestamp
+   */
+  public static String formatDisplayTimestamp(final Date date) {
+    if (date == null) {
+      return "";
+    }
+    return FastDateFormat
+        .getInstance(DISPLAY_TIMESTAMP_PATTERN, getDisplayTimeZone(), Locale.US)
+        .format(date);
+  }
 
   static {
     try {
