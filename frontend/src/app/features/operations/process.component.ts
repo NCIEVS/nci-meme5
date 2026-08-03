@@ -15,6 +15,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MaintenanceWindow } from '../../core/maintenance-window.models';
 import {
   dateFromLegacyValue,
+  formatEasternDateTime,
   formatMaintenanceWindowRange
 } from '../../core/maintenance-window-time';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
@@ -1952,9 +1953,9 @@ export class ProcessComponent implements OnInit, OnDestroy {
     if (!value) {
       return 'n/a';
     }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+    return dateFromLegacyValue(value)
+      ? formatEasternDateTime(value)
+      : String(value);
   }
 
   protected stepCount(process: ProcessConfig | ProcessExecution | null): number {

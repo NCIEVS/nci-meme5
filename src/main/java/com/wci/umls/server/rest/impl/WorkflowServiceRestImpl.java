@@ -2608,7 +2608,8 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
       for (int i = entries.size() - 1; i >= 0; i--) {
         final LogEntry entry = entries.get(i);
         final StringBuilder message = new StringBuilder();
-        message.append("[").append(ConfigUtility.DATE_FORMAT4.format(entry.getLastModified()));
+        message.append("[").append(
+            ConfigUtility.formatDisplayTimestamp(entry.getLastModified()));
         message.append("] ");
         message.append(entry.getLastModifiedBy()).append(" ");
         message.append(entry.getMessage()).append("\r\n");

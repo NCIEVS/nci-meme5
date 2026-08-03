@@ -914,7 +914,7 @@
                           (click)="selectReport(report)"
                         >
                           <td>{{ report.name }}</td>
-                          <td>{{ report.lastModified | date:'short' }}</td>
+                          <td>{{ displayDate(report.lastModified) }}</td>
                           <td class="nobreak">
                             <div class="icon-actions">
                               <button

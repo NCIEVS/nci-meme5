@@ -12,7 +12,9 @@ import java.io.File;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -35,6 +37,7 @@ public class ConfigUtilityUnitTest {
   @After
   public void teardown() throws Exception {
     System.clearProperty("app.dir");
+    System.clearProperty("app.display.timezone");
     System.clearProperty("DB_POOL_NAME");
     System.clearProperty("spring.profiles.active");
     System.clearProperty("run.config.umls");
@@ -70,6 +73,23 @@ public class ConfigUtilityUnitTest {
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
     assertFalse(properties.containsKey("spring.profiles.active"));
+  }
+
+  /**
+   * Verifies user-facing timestamps use the configured display timezone.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testFormatDisplayTimestampUsesConfiguredTimeZone()
+    throws Exception {
+    System.setProperty("app.display.timezone", "America/New_York");
+
+    final Date timestamp =
+        Date.from(Instant.parse("2026-06-30T17:10:45Z"));
+
+    assertEquals("2026-06-30 13:10:45.000 EDT",
+        ConfigUtility.formatDisplayTimestamp(timestamp));
   }
 
   /**

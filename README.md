@@ -93,6 +93,10 @@ with environment variables supplied by `config/local/setenv.sh`. The project
 keeps Hibernate/JPA and Flyway wiring explicit in the application/admin code
 instead of relying on Spring Boot JDBC or JPA auto-configuration.
 
+User-facing timestamps are formatted with `APP_DISPLAY_TIMEZONE`, which
+defaults to `America/New_York`. Database/JDBC timestamp interpretation remains
+controlled separately by `DB_SERVER_TIMEZONE`, which defaults to `UTC`.
+
 ## Prerequisites
 
 - Java 17.

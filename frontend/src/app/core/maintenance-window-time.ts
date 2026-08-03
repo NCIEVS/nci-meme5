@@ -13,6 +13,20 @@ const easternDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric'
 });
 
+const easternDateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: EASTERN_TIME_ZONE,
+  year: 'numeric'
+});
+
+const easternTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: EASTERN_TIME_ZONE,
+  timeZoneName: 'short'
+});
+
 const easternInputFormatter = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
   hour: '2-digit',
@@ -94,6 +108,20 @@ export function formatEasternDateTime(
 ): string {
   const date = dateFromLegacyValue(value);
   return date ? easternDateTimeFormatter.format(date) : 'n/a';
+}
+
+export function formatEasternDate(
+  value: string | number | null | undefined
+): string {
+  const date = dateFromLegacyValue(value);
+  return date ? easternDateFormatter.format(date) : 'n/a';
+}
+
+export function formatEasternTime(
+  value: string | number | null | undefined
+): string {
+  const date = dateFromLegacyValue(value);
+  return date ? easternTimeFormatter.format(date) : 'n/a';
 }
 
 export function formatMaintenanceWindowRange(

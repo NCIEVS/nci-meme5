@@ -905,7 +905,8 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
         final LogEntry entry = entries.get(i);
         final StringBuilder msg = new StringBuilder();
         msg.append("[")
-            .append(ConfigUtility.DATE_FORMAT4.format(entry.getLastModified()));
+            .append(ConfigUtility.formatDisplayTimestamp(
+                entry.getLastModified()));
         msg.append("] ");
         msg.append(entry.getLastModifiedBy()).append(" ");
         msg.append(entry.getMessage()).append("\n");
@@ -994,7 +995,8 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
         final LogEntry entry = entries.get(i);
         final StringBuilder message = new StringBuilder();
         message.append("[")
-            .append(ConfigUtility.DATE_FORMAT4.format(entry.getLastModified()));
+            .append(ConfigUtility.formatDisplayTimestamp(
+                entry.getLastModified()));
         message.append("] ");
         message.append(entry.getLastModifiedBy()).append(" ");
         message.append(entry.getMessage()).append("\n");

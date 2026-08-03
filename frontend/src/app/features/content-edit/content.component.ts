@@ -11,6 +11,7 @@ import { IconComponent } from '../../shared/icon/icon.component';
 import { finalize, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { formatEasternDate } from '../../core/maintenance-window-time';
 import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
 import { rewriteMemeConceptReportLinks } from '../../core/meme-report-links';
 import { ProjectContextService } from '../../core/navigation/project-context.service';
@@ -6352,9 +6353,11 @@ export class ContentComponent implements OnInit {
   }
 
   protected formatWorklistDate(ts: string | number | null | undefined): string {
-    if (!ts) return '';
-    const d = new Date(typeof ts === 'string' ? ts : Number(ts));
-    return isNaN(d.getTime()) ? String(ts) : d.toLocaleDateString();
+    if (!ts) {
+      return '';
+    }
+    const formatted = formatEasternDate(ts);
+    return formatted === 'n/a' ? String(ts) : formatted;
   }
 
   private buildApproveConceptRequest(overrideWarnings: boolean) {
