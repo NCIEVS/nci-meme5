@@ -72,6 +72,8 @@ public class ConfigUtilityUnitTest {
         properties.getProperty("source.data.dir"));
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
+    assertEquals("meme-team@westcoastinformatics.com",
+        properties.getProperty("insertion.notification.recipients"));
     assertFalse(properties.containsKey("spring.profiles.active"));
   }
 

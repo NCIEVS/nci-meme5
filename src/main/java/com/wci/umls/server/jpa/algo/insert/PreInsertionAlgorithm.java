@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
@@ -15,6 +16,7 @@ import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +30,7 @@ import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
+import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 
@@ -35,6 +38,13 @@ import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
  * Implementation of an algorithm to save information before an insertion.
  */
 public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
+
+  /** The estimated completion field name. */
+  private static final String ESTIMATED_COMPLETION_FIELD =
+      "estimatedCompletion";
+
+  /** The algorithm properties. */
+  private Properties properties = new Properties();
 
   /**
    * Instantiates an empty {@link PreInsertionAlgorithm}.
@@ -310,7 +320,105 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     // NOTE: the processExecution is updated by the calling method,
     // typically RunProcessAsThread in ProcessServiceRestImpl
 
+    sendPreInsertionEmail(processExecution);
+
     logInfo("Finished " + getName());
+  }
+
+  /**
+   * Sends an insertion-in-progress notification.
+   *
+   * @param processExecution the process execution
+   * @throws Exception the exception
+   */
+  private void sendPreInsertionEmail(final ProcessExecution processExecution)
+    throws Exception {
+
+    final Properties config = PropertyUtility.getProperties();
+    final String recipients = getInsertionNotificationRecipients(config);
+    if (isBlank(recipients)) {
+      logInfo(" No insertion notification recipients configured; "
+          + "skipping pre-insertion email.");
+      return;
+    }
+
+    if ("false".equals(config.getProperty("mail.enabled"))) {
+      logInfo(" Mail disabled; skipping pre-insertion email.");
+      return;
+    }
+
+    final String estimatedCompletion =
+        properties.getProperty(ESTIMATED_COMPLETION_FIELD, "").trim();
+    if (isBlank(estimatedCompletion)) {
+      throw new LocalException("Required property " + ESTIMATED_COMPLETION_FIELD
+          + " missing for pre-insertion email.");
+    }
+
+    final String from = getMailFrom(config);
+
+    final String insertionName = processExecution.getTerminology() + "_"
+        + processExecution.getVersion();
+    final String server = InetAddress.getLocalHost().getHostName();
+    final String insertionEnvironment = getInsertionEnvironment(server);
+    final String insertionType = getInsertionType(insertionEnvironment);
+    final String subjectPrefix =
+        "test".equals(insertionType) ? "Test Insertion" : "Insertion";
+    final String subject = subjectPrefix + " of " + insertionName
+        + ": IN PROGRESS ("
+        + insertionEnvironment.toUpperCase(Locale.ROOT) + ")";
+    final String body = "Hi all,\n\nThe " + insertionType + " insertion of "
+        + insertionName + " is in progress on "
+        + insertionEnvironment.toLowerCase(Locale.ROOT)
+        + ". We expect that it will be complete "
+        + asSentence(estimatedCompletion) + "\n\n"
+        + getEmailSignature(processExecution);
+
+    ConfigUtility.sendEmail(subject, from, recipients, body, config);
+    logInfo(" Sent pre-insertion email to " + recipients);
+  }
+
+  /**
+   * Returns the process executor signature for the email.
+   *
+   * @param processExecution the process execution
+   * @return the email signature
+   */
+  private String getEmailSignature(final ProcessExecution processExecution) {
+
+    if (!isBlank(getLastModifiedBy())) {
+      return getLastModifiedBy();
+    }
+    if (!isBlank(processExecution.getLastModifiedBy())) {
+      return processExecution.getLastModifiedBy();
+    }
+    return "";
+  }
+
+  /**
+   * Ensures a sentence-ending punctuation mark is present.
+   *
+   * @param value the value
+   * @return the value as a sentence
+   */
+  private String asSentence(final String value) {
+
+    final String trimmed = value.trim();
+    if (trimmed.endsWith(".") || trimmed.endsWith("!")
+        || trimmed.endsWith("?")) {
+      return trimmed;
+    }
+    return trimmed + ".";
+  }
+
+  /**
+   * Indicates whether the string is blank.
+   *
+   * @param value the value
+   * @return true if the value is blank
+   */
+  private boolean isBlank(final String value) {
+
+    return value == null || value.trim().isEmpty();
   }
 
   /**
@@ -329,19 +437,28 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
   /* see superclass */
   @Override
   public void checkProperties(Properties p) throws Exception {
-    // n/a
+    if (p == null) {
+      throw new LocalException("Algorithm properties must not be null");
+    }
   }
 
   /* see superclass */
   @Override
   public void setProperties(Properties p) throws Exception {
-    // n/a
+    checkProperties(p);
+    properties = new Properties();
+    properties.putAll(p);
   }
 
   /* see superclass */
   @Override
   public List<AlgorithmParameter> getParameters() throws Exception {
     final List<AlgorithmParameter> params = super.getParameters();
+    params.add(new AlgorithmParameterJpa("Estimated Completion",
+        ESTIMATED_COMPLETION_FIELD,
+        "Estimated time frame for the insertion completion email.",
+        "e.g. by tomorrow morning July 24th", 255,
+        AlgorithmParameter.Type.STRING, ""));
 
     return params;
   }

@@ -18,6 +18,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import com.wci.umls.server.model.algo.AlgorithmConfig;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ProcessConfig;
@@ -191,6 +194,40 @@ public class AlgorithmConfigJpaUnitTest extends ModelUnitSupport {
     tester.proxy(Project.class, 1, p1);
     tester.proxy(ProcessConfig.class, 1, pc1);
     assertTrue(tester.testXmlSerialization());
+  }
+
+  /**
+   * Test JSON deserialization with transient algorithm parameters.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testJsonDeserializeWithParameters() throws Exception {
+    Logger.getLogger(getClass()).debug("TEST " + name.getMethodName());
+
+    final ObjectMapper mapper = new ObjectMapper();
+    final AnnotationIntrospector introspector =
+        new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory());
+    mapper.setAnnotationIntrospector(introspector);
+
+    final AlgorithmConfigJpa config = mapper.readValue(
+        "{\"id\":5,\"algorithmKey\":\"PREINSERTION\","
+            + "\"name\":\"Pre Insertion\","
+            + "\"description\":\"Pre Insertion\",\"enabled\":true,"
+            + "\"processId\":1,\"projectId\":39751,"
+            + "\"parameters\":[{\"name\":\"Estimated Completion\","
+            + "\"fieldName\":\"estimatedCompletion\",\"type\":\"STRING\","
+            + "\"length\":255,\"value\":\"by tomorrow morning\","
+            + "\"values\":[],\"possibleValues\":[]}]}",
+        AlgorithmConfigJpa.class);
+
+    assertTrue(Long.valueOf(5).equals(config.getId()));
+    assertTrue(Long.valueOf(1).equals(config.getProcessId()));
+    assertTrue(Long.valueOf(39751).equals(config.getProjectId()));
+    assertTrue(config.getParameters().size() == 1);
+    assertTrue(config.getParameters().get(0) instanceof AlgorithmParameterJpa);
+    assertTrue("estimatedCompletion"
+        .equals(config.getParameters().get(0).getFieldName()));
   }
 
   /**

@@ -30,18 +30,81 @@ tsApp.controller('AlgorithmModalCtrl', [
       return "";
     }
 
+    // Keep PREINSERTION configurable even when older templates omit the field.
+    function ensurePreInsertionEstimatedCompletionParameter(algorithm) {
+      var estimatedCompletionField = 'estimatedCompletion';
+      if (!algorithm || (algorithm.algorithmKey || '').toUpperCase() != 'PREINSERTION') {
+        return algorithm;
+      }
+
+      algorithm.parameters = algorithm.parameters || [];
+      for (var i = 0; i < algorithm.parameters.length; i++) {
+        if (algorithm.parameters[i].fieldName == estimatedCompletionField) {
+          if (!algorithm.parameters[i].value && algorithm.properties
+            && algorithm.properties[estimatedCompletionField]) {
+            algorithm.parameters[i].value = algorithm.properties[estimatedCompletionField];
+          }
+          return algorithm;
+        }
+      }
+
+      algorithm.parameters.push({
+        description : 'Estimated time frame for the insertion completion email.',
+        fieldName : estimatedCompletionField,
+        length : 255,
+        name : 'Estimated Completion',
+        placeholder : 'e.g. by tomorrow morning July 24th',
+        possibleValues : [],
+        type : 'STRING',
+        value : algorithm.properties ? algorithm.properties[estimatedCompletionField] || '' : '',
+        values : []
+      });
+      return algorithm;
+    }
+
+    function getPreInsertionEstimatedCompletion(algorithm) {
+      var estimatedCompletionField = 'estimatedCompletion';
+      if (!algorithm || (algorithm.algorithmKey || '').toUpperCase() != 'PREINSERTION') {
+        return '';
+      }
+
+      algorithm.parameters = algorithm.parameters || [];
+      for (var i = 0; i < algorithm.parameters.length; i++) {
+        if (algorithm.parameters[i].fieldName == estimatedCompletionField) {
+          return (algorithm.parameters[i].value || '').trim();
+        }
+      }
+
+      return algorithm.properties && algorithm.properties[estimatedCompletionField]
+        ? algorithm.properties[estimatedCompletionField].trim()
+        : '';
+    }
+
+    function buildAlgorithmPayload(algorithm) {
+      return {
+        algorithmKey : algorithm.algorithmKey || '',
+        description : algorithm.description || '',
+        enabled : algorithm.enabled !== false && algorithm.enabled !== 0,
+        id : algorithm.id || null,
+        name : algorithm.name || '',
+        parameters : angular.copy(algorithm.parameters || []),
+        processId : selected.process.id,
+        projectId : $scope.project.id
+      };
+    }
+
     if ($scope.action == 'Edit') {
       processService.getAlgorithmConfig($scope.project.id, $scope.algorithm.id).then(
       // Success
       function(data) {
-        $scope.algorithm = data;
+        $scope.algorithm = ensurePreInsertionEstimatedCompletionParameter(data);
       });
     } else if ($scope.action == 'Add') {
       if ($scope.algorithm) {
         processService.getAlgorithmConfig($scope.project.id, $scope.algorithm.id).then(
         // Success
         function(data) {
-          $scope.algorithm = data;
+          $scope.algorithm = ensurePreInsertionEstimatedCompletionParameter(data);
           $scope.algorithm.id = null;
         });
       } else {
@@ -52,14 +115,16 @@ tsApp.controller('AlgorithmModalCtrl', [
           $scope.algorithm.algorithmKey = selected.algorithmConfigType.key;
           $scope.algorithm.name = selected.algorithmConfigType.value;
           $scope.description = selected.algorithmConfigType.value + ' ' + (new Date().getTime());
+          $scope.algorithm = ensurePreInsertionEstimatedCompletionParameter($scope.algorithm);
         });
       }
     }
 
     // Update algorithm
     $scope.submitAlgorithm = function(algorithm) {
+      var payload = buildAlgorithmPayload(algorithm);
       if (action == 'Edit') {
-        processService.updateAlgorithmConfig($scope.project.id, selected.process.id, algorithm)
+        processService.updateAlgorithmConfig($scope.project.id, selected.process.id, payload)
           .then(
           // Success
           function(data) {
@@ -71,7 +136,7 @@ tsApp.controller('AlgorithmModalCtrl', [
           });
 
       } else if (action == 'Add') {
-        processService.addAlgorithmConfig($scope.project.id, selected.process.id, algorithm).then(
+        processService.addAlgorithmConfig($scope.project.id, selected.process.id, payload).then(
         // Success
         function(data) {
           $uibModalInstance.close(algorithm);
@@ -93,7 +158,13 @@ tsApp.controller('AlgorithmModalCtrl', [
     $scope.validate = function(algorithm) {
       $scope.errors = [];
       $scope.messages = [];
-      processService.validateAlgorithmConfig($scope.project.id, selected.process.id, algorithm)
+      if ((algorithm.algorithmKey || '').toUpperCase() == 'PREINSERTION'
+        && !getPreInsertionEstimatedCompletion(algorithm)) {
+        utilService.handleDialogError($scope.errors, 'Estimated Completion cannot be blank.');
+        return;
+      }
+      processService.validateAlgorithmConfig($scope.project.id, selected.process.id,
+        buildAlgorithmPayload(algorithm))
         .then(
         // Success
         function(data) {

@@ -102,6 +102,13 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   /** The lock. */
   private static final Object LOCK = new Object();
 
+  /** The pre-insertion algorithm key. */
+  private static final String PRE_INSERTION_ALGORITHM_KEY = "PREINSERTION";
+
+  /** The estimated completion property. */
+  private static final String ESTIMATED_COMPLETION_FIELD =
+      "estimatedCompletion";
+
   /** The security service. */
   private SecurityService securityService;
 
@@ -992,6 +999,8 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       // project
       verifyProject(config, projectId);
 
+      validatePreInsertionSingleton(config, process);
+
       // Populate the algorithm's properties based on its parameters' values.
       for (final AlgorithmParameter param : config.getParameters()) {
         // Note: map either Value OR Values (comma-delimited)
@@ -1133,9 +1142,9 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       final ProcessConfigJpa process =
           (ProcessConfigJpa) processService.getProcessConfig(processId);
-      
-      
-      
+
+      validatePreInsertionSingleton(algo, process);
+
       // Populate the algorithm's properties based on its parameters' values.
       for (final AlgorithmParameter param : algo.getParameters()) {
         // Note: map either Value OR Values (comma-delimited)
@@ -1155,11 +1164,19 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       algorithm.setProject(processService.getProject(projectId));
       final Properties p = new Properties();
       p.putAll(algo.getProperties());
+      validatePreInsertionEstimatedCompletion(algo, p);
       algorithm.checkProperties(p);
       
       if (process != null) {
-        if (process.getSteps().contains(algo)) {
-          throw new LocalException("name and description must be unique in the process");
+        for (final AlgorithmConfig step : process.getSteps()) {
+          if (!step.equals(algo)) {
+            continue;
+          }
+          if (step.getId() != null && step.getId().equals(algo.getId())) {
+            continue;
+          }
+          throw new LocalException(
+              "name and description must be unique in the process");
         }
       }
 
@@ -1173,6 +1190,55 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       securityService.close();
     }
 
+  }
+
+  /**
+   * Validates pre-insertion email-specific properties.
+   *
+   * @param algo the algorithm configuration
+   * @param properties the properties
+   * @throws LocalException if required properties are missing
+   */
+  private void validatePreInsertionEstimatedCompletion(
+    final AlgorithmConfigJpa algo, final Properties properties)
+    throws LocalException {
+
+    if (!PRE_INSERTION_ALGORITHM_KEY.equals(algo.getAlgorithmKey())) {
+      return;
+    }
+
+    if (ConfigUtility
+        .isEmpty(properties.getProperty(ESTIMATED_COMPLETION_FIELD))) {
+      throw new LocalException(
+          "Estimated Completion must be specified for pre-insertion email.");
+    }
+  }
+
+  /**
+   * Validates that a process does not add a second pre-insertion step.
+   *
+   * @param algo the algorithm configuration
+   * @param process the process configuration
+   * @throws LocalException if a duplicate pre-insertion step is being added
+   */
+  private void validatePreInsertionSingleton(final AlgorithmConfigJpa algo,
+    final ProcessConfig process) throws LocalException {
+
+    if (algo == null || algo.getId() != null
+        || !PRE_INSERTION_ALGORITHM_KEY.equalsIgnoreCase(
+            algo.getAlgorithmKey())
+        || process == null) {
+      return;
+    }
+
+    for (final AlgorithmConfig step : process.getSteps()) {
+      if (PRE_INSERTION_ALGORITHM_KEY.equalsIgnoreCase(
+          step.getAlgorithmKey())) {
+        throw new LocalException(
+            "Process already has a PREINSERTION step. Edit the existing "
+                + "pre-insertion step instead.");
+      }
+    }
   }
 
   /* see superclass */
