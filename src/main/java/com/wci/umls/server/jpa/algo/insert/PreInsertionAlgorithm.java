@@ -25,6 +25,7 @@ import jakarta.persistence.NoResultException;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ProcessExecution;
+import com.wci.umls.server.model.algo.User;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
@@ -383,15 +384,20 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
    * @param processExecution the process execution
    * @return the email signature
    */
-  private String getEmailSignature(final ProcessExecution processExecution) {
+  private String getEmailSignature(final ProcessExecution processExecution)
+    throws Exception {
 
+    final String userName;
     if (!isBlank(getLastModifiedBy())) {
-      return getLastModifiedBy();
+      userName = getLastModifiedBy();
+    } else if (!isBlank(processExecution.getLastModifiedBy())) {
+      userName = processExecution.getLastModifiedBy();
+    } else {
+      return "";
     }
-    if (!isBlank(processExecution.getLastModifiedBy())) {
-      return processExecution.getLastModifiedBy();
-    }
-    return "";
+
+    final User user = getUser(userName);
+    return user != null && !isBlank(user.getName()) ? user.getName() : userName;
   }
 
   /**
