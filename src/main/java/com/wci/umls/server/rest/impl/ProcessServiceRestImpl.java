@@ -1537,9 +1537,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       // Create a thread and run the process
       runProcessAsThread(projectId, process.getProcessConfigId(),
-          process.getId(),
-          process.getTerminology() + "_" + process.getVersion(), background,
-          false, null);
+          process.getId(), userName, background, false, null);
 
       // Always return the execution id
       return processId;
@@ -1616,9 +1614,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       // Create a thread and run the process
       runProcessAsThread(projectId, processConfig.getId(),
-          processExecution.getId(), processExecution.getTerminology() + "_"
-              + processExecution.getVersion(),
-          background, true, null);
+          processExecution.getId(), userName, background, true, null);
 
       return id;
     } catch (Exception e) {
@@ -1699,9 +1695,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       // Create a thread and run the process
       runProcessAsThread(projectId, processConfig.getId(),
-          processExecution.getId(),
-          processExecution.getTerminology() + "_"
-              + processExecution.getVersion(),
+          processExecution.getId(), userName,
           background, processExecution.getSteps().size() > 0, step);
 
       return id;

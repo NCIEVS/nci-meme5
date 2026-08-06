@@ -118,8 +118,8 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
     if (ConfigUtility.isEmpty(insertionEnvironment)) {
       return "real";
     }
-    return insertionEnvironment.toLowerCase(Locale.ROOT).contains("test")
-        ? "test" : "real";
+    return insertionEnvironment.toLowerCase(Locale.ROOT).contains("edit")
+        ? "real" : "test";
   }
 
   /**
