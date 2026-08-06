@@ -463,7 +463,7 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
             ProcessExecutionJpa.class, pfs, totalCt, manager);
 
     for (final ProcessExecution pe : processExecutions) {
-      handleLazyInit(pe);
+      handleLazyInitSummary(pe);
       results.add(pe);
     }
 
@@ -628,6 +628,21 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
       handleLazyInit(algo);
     }
 
+  }
+
+  /**
+   * Handle lazy init for process execution list/search results. The REST list
+   * endpoint returns executions without steps, so avoid hydrating the ordered
+   * steps collection here.
+   *
+   * @param processExecution the process execution
+   */
+  private void handleLazyInitSummary(ProcessExecution processExecution) {
+    if (processExecution == null) {
+      return;
+    }
+    processExecution.getProject().getId();
+    ConfigUtility.initializeLazy(processExecution.getExecutionInfo());
   }
 
   /**

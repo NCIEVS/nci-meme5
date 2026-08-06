@@ -95,6 +95,20 @@ interface StepLogState {
   step: ProcessStep;
 }
 
+const PRE_INSERTION_ALGORITHM_KEY = 'PREINSERTION';
+const ESTIMATED_COMPLETION_FIELD = 'estimatedCompletion';
+const ESTIMATED_COMPLETION_PARAMETER: AlgorithmParameter = {
+  description: 'Estimated time frame for the insertion completion email.',
+  fieldName: ESTIMATED_COMPLETION_FIELD,
+  length: 255,
+  name: 'Estimated Completion',
+  placeholder: 'e.g. by tomorrow morning July 24th',
+  possibleValues: [],
+  type: 'STRING',
+  value: '',
+  values: []
+};
+
 interface MaintenanceWindowWarningState {
   operation: ProcessOperation;
   process: ProcessConfig | ProcessExecution;
@@ -766,6 +780,16 @@ export class ProcessComponent implements OnInit, OnDestroy {
     );
 
     if (!projectId || !processId || !selectedAlgorithmKey) {
+      return;
+    }
+
+    const existingPreInsertionStep = this.existingPreInsertionStep(
+      config,
+      selectedAlgorithmKey
+    );
+
+    if (existingPreInsertionStep) {
+      this.startEditAlgorithmStep(config, existingPreInsertionStep);
       return;
     }
 
@@ -2378,6 +2402,13 @@ export class ProcessComponent implements OnInit, OnDestroy {
       errors.push('Name cannot be blank.');
     }
 
+    if (
+      this.isPreInsertionAlgorithm(form.algorithm.algorithmKey ?? form.algorithmKey) &&
+      !this.preInsertionEstimatedCompletion(form.algorithm)
+    ) {
+      errors.push('Estimated Completion cannot be blank.');
+    }
+
     return errors;
   }
 
@@ -2389,36 +2420,16 @@ export class ProcessComponent implements OnInit, OnDestroy {
       ...parameter,
       values: parameter.values ? [...parameter.values] : []
     }));
-    const properties: Record<string, string> = {};
-
-    for (const parameter of parameters) {
-      if (!parameter.fieldName) {
-        continue;
-      }
-
-      if (parameter.values?.length) {
-        properties[parameter.fieldName] = parameter.values.join(',');
-      } else if (
-        parameter.value !== null &&
-        parameter.value !== undefined &&
-        String(parameter.value) !== ''
-      ) {
-        properties[parameter.fieldName] = String(parameter.value);
-      }
-    }
 
     return {
-      ...algorithm,
+      id: algorithm.id ?? null,
       algorithmKey: algorithm.algorithmKey ?? '',
       description: algorithm.description ?? '',
       enabled: this.isStepEnabled(algorithm),
       name: algorithm.name ?? '',
       parameters,
-      process: {
-        id: processId
-      },
       processId,
-      properties
+      projectId: algorithm.projectId ?? this.projectId() ?? null
     };
   }
 
@@ -2426,10 +2437,13 @@ export class ProcessComponent implements OnInit, OnDestroy {
     algorithm: ProcessStep,
     processId: number
   ): ProcessStep {
+    const preparedAlgorithm =
+      this.ensurePreInsertionEstimatedCompletionParameter(algorithm);
+
     return {
-      ...algorithm,
-      enabled: algorithm.enabled ?? true,
-      parameters: this.stepParameters(algorithm).map((parameter) => ({
+      ...preparedAlgorithm,
+      enabled: preparedAlgorithm.enabled ?? true,
+      parameters: this.stepParameters(preparedAlgorithm).map((parameter) => ({
         ...parameter,
         values: parameter.values ? [...parameter.values] : []
       })),
@@ -2438,9 +2452,85 @@ export class ProcessComponent implements OnInit, OnDestroy {
       },
       processId,
       properties: {
-        ...(algorithm.properties ?? {})
+        ...(preparedAlgorithm.properties ?? {})
       }
     };
+  }
+
+  private ensurePreInsertionEstimatedCompletionParameter(
+    algorithm: ProcessStep
+  ): ProcessStep {
+    const parameters = this.stepParameters(algorithm);
+    const existingParameter = parameters.find(
+      (parameter) => parameter.fieldName === ESTIMATED_COMPLETION_FIELD
+    );
+
+    if (!this.isPreInsertionAlgorithm(algorithm.algorithmKey)) {
+      return algorithm;
+    }
+
+    if (existingParameter) {
+      const estimatedCompletion =
+        algorithm.properties?.[ESTIMATED_COMPLETION_FIELD] ?? '';
+
+      if (!existingParameter.value && estimatedCompletion) {
+        return {
+          ...algorithm,
+          parameters: parameters.map((parameter) =>
+            parameter.fieldName === ESTIMATED_COMPLETION_FIELD
+              ? {
+                  ...parameter,
+                  value: estimatedCompletion
+                }
+              : parameter
+          )
+        };
+      }
+
+      return algorithm;
+    }
+
+    return {
+      ...algorithm,
+      parameters: [
+        ...parameters,
+        {
+          ...ESTIMATED_COMPLETION_PARAMETER,
+          possibleValues: [],
+          value: algorithm.properties?.[ESTIMATED_COMPLETION_FIELD] ?? '',
+          values: []
+        }
+      ]
+    };
+  }
+
+  private isPreInsertionAlgorithm(
+    algorithmKey: string | null | undefined
+  ): boolean {
+    return (algorithmKey ?? '').toUpperCase() === PRE_INSERTION_ALGORITHM_KEY;
+  }
+
+  private existingPreInsertionStep(
+    config: ProcessConfig,
+    algorithmKey: string | null | undefined
+  ): ProcessStep | undefined {
+    if (!this.isPreInsertionAlgorithm(algorithmKey)) {
+      return undefined;
+    }
+
+    return this.processSteps(config).find((step) =>
+      this.isPreInsertionAlgorithm(step.algorithmKey)
+    );
+  }
+
+  private preInsertionEstimatedCompletion(algorithm: ProcessStep): string {
+    const parameter = this.stepParameters(algorithm).find(
+      (entry) => entry.fieldName === ESTIMATED_COMPLETION_FIELD
+    );
+
+    return String(
+      parameter?.value ?? algorithm.properties?.[ESTIMATED_COMPLETION_FIELD] ?? ''
+    ).trim();
   }
 
   private refreshProcessConfig(id: number): void {

@@ -114,6 +114,7 @@ export interface ProcessStep {
     id?: number | null;
   } | null;
   processId?: number | null;
+  projectId?: number | null;
   properties?: Record<string, string> | null;
   startDate?: string | number | null;
   stopDate?: string | number | null;
