@@ -96,6 +96,9 @@ instead of relying on Spring Boot JDBC or JPA auto-configuration.
 User-facing timestamps are formatted with `APP_DISPLAY_TIMEZONE`, which
 defaults to `America/New_York`. Database/JDBC timestamp interpretation remains
 controlled separately by `DB_SERVER_TIMEZONE`, which defaults to `UTC`.
+Insertion progress and report-checklist notification recipients are configured
+with `INSERTION_NOTIFICATION_RECIPIENTS`; failed process runs continue to use the
+process feedback email.
 
 ## Prerequisites
 

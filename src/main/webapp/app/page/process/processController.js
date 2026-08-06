@@ -792,6 +792,21 @@ tsApp
 
         // Add new algorithm
         $scope.openAddAlgorithmModal = function(algorithm) {
+          var algorithmKey = algorithm && algorithm.algorithmKey
+            ? algorithm.algorithmKey
+            : $scope.selected.algorithmConfigType
+              && $scope.selected.algorithmConfigType.key;
+          if ((algorithmKey || '').toUpperCase() == 'PREINSERTION') {
+            var steps = $scope.selected.process && $scope.selected.process.steps
+              ? $scope.selected.process.steps
+              : [];
+            for (var i = 0; i < steps.length; i++) {
+              if ((steps[i].algorithmKey || '').toUpperCase() == 'PREINSERTION') {
+                $scope.openEditAlgorithmModal(steps[i]);
+                return;
+              }
+            }
+          }
 
           var modalInstance = $uibModal.open({
             templateUrl : 'app/page/process/editAlgorithm.html',

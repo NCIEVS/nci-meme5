@@ -23,7 +23,19 @@
       "enabled": true,
       "processId": 39854,
       "projectId": 39751,
-      "parameters": []
+      "parameters": [
+        {
+          "name": "Estimated Completion",
+          "fieldName": "estimatedCompletion",
+          "placeholder": "e.g. by tomorrow morning July 24th",
+          "type": "STRING",
+          "length": 255,
+          "description": "Estimated time frame for the insertion completion email.",
+          "possibleValues": [],
+          "value": "",
+          "values": []
+        }
+      ]
     },
     {
       "id": 40019,

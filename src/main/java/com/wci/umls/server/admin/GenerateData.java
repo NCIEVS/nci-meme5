@@ -52,6 +52,7 @@ import com.wci.umls.server.helpers.meta.SemanticTypeList;
 import com.wci.umls.server.jpa.algo.insert.RepartitionAlgorithm;
 import com.wci.umls.server.jpa.algo.maint.MatrixInitializerAlgorithm;
 import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
+import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ProcessConfigJpa;
 import com.wci.umls.server.jpa.model.ProjectJpa;
 import com.wci.umls.server.jpa.model.UserJpa;
@@ -67,6 +68,7 @@ import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.model.algo.AlgorithmConfig;
+import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ProcessConfig;
 import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.User;
@@ -95,6 +97,10 @@ import com.wci.umls.server.services.handlers.WorkflowActionHandler;
  */
 public class GenerateData extends AbstractLoader {
     private static final Logger LOGGER = Logger.getLogger(GenerateData.class);
+
+    /** The estimated completion parameter field name. */
+    private static final String ESTIMATED_COMPLETION_FIELD =
+            "estimatedCompletion";
 
     /**
      * The type (demo, sample, or nci).
@@ -1955,6 +1961,21 @@ public class GenerateData extends AbstractLoader {
         service.addAlgorithmConfig(algo);
     }
 
+    /**
+     * Adds the estimated insertion completion parameter to PREINSERTION steps.
+     *
+     * @param algoConfig the algorithm config
+     */
+    private static void addEstimatedCompletionParameter(
+            final AlgorithmConfig algoConfig) {
+
+        algoConfig.getParameters().add(new AlgorithmParameterJpa(
+                "Estimated Completion", ESTIMATED_COMPLETION_FIELD,
+                "Estimated time frame for the insertion completion email.",
+                "e.g. by tomorrow morning July 24th", 255,
+                AlgorithmParameter.Type.STRING, ""));
+    }
+
     private void regenerateBins(Project project, String type, String authToken) throws Exception {
         final ProcessService processService = new ProcessServiceJpa();
         final RepartitionAlgorithm algorithm = new RepartitionAlgorithm();
@@ -2494,6 +2515,7 @@ public class GenerateData extends AbstractLoader {
         algoConfig.setProcess(processConfig);
         algoConfig.setProject(project1);
         algoConfig.setTimestamp(new Date());
+        addEstimatedCompletionParameter(algoConfig);
         // Add algorithm and insert as step into process
         algoConfig = process.addAlgorithmConfig(projectId, processConfig.getId(),
                 (AlgorithmConfigJpa) algoConfig, authToken);
@@ -2936,6 +2958,7 @@ public class GenerateData extends AbstractLoader {
         algoConfig.setProcess(processConfig);
         algoConfig.setProject(project1);
         algoConfig.setTimestamp(new Date());
+        addEstimatedCompletionParameter(algoConfig);
         // Add algorithm and insert as step into process
         algoConfig = process.addAlgorithmConfig(projectId, processConfig.getId(),
                 (AlgorithmConfigJpa) algoConfig, authToken);
@@ -3389,6 +3412,7 @@ public class GenerateData extends AbstractLoader {
         algoConfig.setProcess(processConfig);
         algoConfig.setProject(project1);
         algoConfig.setTimestamp(new Date());
+        addEstimatedCompletionParameter(algoConfig);
         // Add algorithm and insert as step into process
         algoConfig = process.addAlgorithmConfig(projectId, processConfig.getId(),
                 (AlgorithmConfigJpa) algoConfig, authToken);
@@ -3828,6 +3852,7 @@ public class GenerateData extends AbstractLoader {
         algoConfig.setProcess(processConfig);
         algoConfig.setProject(project1);
         algoConfig.setTimestamp(new Date());
+        addEstimatedCompletionParameter(algoConfig);
         // Add algorithm and insert as step into process
         algoConfig = process.addAlgorithmConfig(projectId, processConfig.getId(),
                 (AlgorithmConfigJpa) algoConfig, authToken);

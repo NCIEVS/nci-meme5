@@ -123,7 +123,9 @@ public class SecurityServiceJpa extends RootServiceJpa
 
       Logger.getLogger(getClass()).info("update");
       userFound.setEmail(authUser.getEmail());
-      userFound.setName(authUser.getName());
+      if (shouldRefreshDisplayName(userFound, authUser)) {
+        userFound.setName(authUser.getName());
+      }
       userFound.setUserName(authUser.getUserName());
       userFound.setApplicationRole(authUser.getApplicationRole());
 
@@ -168,6 +170,27 @@ public class SecurityServiceJpa extends RootServiceJpa
     result.setAuthToken(token);
 
     return result;
+  }
+
+  /**
+   * Indicates whether the stored display name should be refreshed from auth.
+   *
+   * @param existingUser the existing user
+   * @param authenticatedUser the authenticated user
+   * @return true, if the display name should be refreshed
+   */
+  private boolean shouldRefreshDisplayName(final User existingUser,
+    final User authenticatedUser) {
+
+    final String existingName = existingUser.getName();
+    if (ConfigUtility.isEmpty(existingName)) {
+      return true;
+    }
+
+    final String authenticatedName = authenticatedUser.getName();
+    return existingName.equals(existingUser.getUserName())
+        && !ConfigUtility.isEmpty(authenticatedName)
+        && !authenticatedName.equals(existingName);
   }
 
   /* see superclass */

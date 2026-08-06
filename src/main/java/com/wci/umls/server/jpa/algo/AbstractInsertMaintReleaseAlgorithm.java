@@ -6,6 +6,7 @@ package com.wci.umls.server.jpa.algo;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,7 +15,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import jakarta.persistence.Query;
@@ -25,6 +28,7 @@ import com.wci.umls.server.helpers.ComponentInfo;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.PrecedenceList;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
 import com.wci.umls.server.jpa.model.content.AttributeJpa;
 import com.wci.umls.server.jpa.model.content.CodeJpa;
@@ -57,6 +61,10 @@ import com.wci.umls.server.services.handlers.SearchHandler;
 public abstract class AbstractInsertMaintReleaseAlgorithm
     extends AbstractAlgorithm {
 
+  /** The insertion notification recipients property. */
+  protected static final String INSERTION_NOTIFICATION_RECIPIENTS =
+      "insertion.notification.recipients";
+
   /**
    * Instantiates an empty {@link AbstractInsertMaintReleaseAlgorithm}.
    *
@@ -64,6 +72,109 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
    */
   public AbstractInsertMaintReleaseAlgorithm() throws Exception {
     // n/a
+  }
+
+  /**
+   * Returns the display environment for insertion emails.
+   *
+   * @param server the local server hostname
+   * @return the display environment
+   */
+  protected String getInsertionEnvironment(final String server) {
+
+    final Properties config = PropertyUtility.getProperties();
+    final String configuredEnvironment =
+        config.getProperty("insertion.report.environment");
+    if (!ConfigUtility.isEmpty(configuredEnvironment)) {
+      final String trimmedEnvironment = configuredEnvironment.trim();
+      if (!ConfigUtility.isEmpty(trimmedEnvironment)) {
+        return trimmedEnvironment;
+      }
+    }
+
+    final String baseUrlEnvironment =
+        getEnvironmentFromBaseUrl(config.getProperty("base.url"));
+    if (!ConfigUtility.isEmpty(baseUrlEnvironment)) {
+      return baseUrlEnvironment;
+    }
+
+    final String serverName = server == null ? "" : server;
+    if (serverName.startsWith("ncias-q3795-c")
+        || serverName.startsWith("ncias-q3794-c")
+        || serverName.startsWith("ncias-d3777-c")) {
+      return "meme-test";
+    }
+    return "meme-edit";
+  }
+
+  /**
+   * Returns the insertion type label for the display environment.
+   *
+   * @param insertionEnvironment the display environment
+   * @return the insertion type
+   */
+  protected String getInsertionType(final String insertionEnvironment) {
+
+    if (ConfigUtility.isEmpty(insertionEnvironment)) {
+      return "real";
+    }
+    return insertionEnvironment.toLowerCase(Locale.ROOT).contains("edit")
+        ? "real" : "test";
+  }
+
+  /**
+   * Returns the configured recipients for non-error insertion notifications.
+   *
+   * @param config the runtime properties
+   * @return the configured recipients, or null
+   */
+  protected String getInsertionNotificationRecipients(final Properties config) {
+
+    if (config == null) {
+      return null;
+    }
+
+    final String recipients =
+        config.getProperty(INSERTION_NOTIFICATION_RECIPIENTS);
+    return ConfigUtility.isEmpty(recipients) ? null : recipients.trim();
+  }
+
+  /**
+   * Returns the configured mail sender.
+   *
+   * @param config the runtime properties
+   * @return the sender address
+   */
+  protected String getMailFrom(final Properties config) {
+
+    if (config.containsKey("mail.smtp.from")) {
+      return config.getProperty("mail.smtp.from");
+    }
+    return config.getProperty("mail.smtp.user");
+  }
+
+  /**
+   * Derives a friendly environment label from the configured base URL.
+   *
+   * @param baseUrl the base URL
+   * @return the environment label, or null
+   */
+  protected String getEnvironmentFromBaseUrl(final String baseUrl) {
+
+    if (ConfigUtility.isEmpty(baseUrl)) {
+      return null;
+    }
+
+    try {
+      final String host = new URI(baseUrl).getHost();
+      if (ConfigUtility.isEmpty(host) || "localhost".equals(host)) {
+        return null;
+      }
+      final String label = host.split("\\.")[0].toLowerCase(Locale.ROOT);
+      return label.startsWith("meme-") ? label : null;
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   /** The handler. */

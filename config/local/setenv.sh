@@ -98,6 +98,7 @@ export MAIL_PORT="${MAIL_PORT:-587}"
 export MAIL_STARTTLS_ENABLE="${MAIL_STARTTLS_ENABLE:-false}"
 export MAIL_SMTP_AUTH="${MAIL_SMTP_AUTH:-true}"
 export MAIL_TO="${MAIL_TO:-}"
+export INSERTION_NOTIFICATION_RECIPIENTS="${INSERTION_NOTIFICATION_RECIPIENTS:-meme-team@westcoastinformatics.com}"
 
 set +a
 
