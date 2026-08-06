@@ -973,18 +973,14 @@
           }
 
           <label for="user-form-name">Name</label>
-          @if (form.mode === 'add') {
-            <input
-              id="user-form-name"
-              type="text"
-              [ngModel]="form.name"
-              (ngModelChange)="updateUserForm('name', $event)"
-              name="name"
-              [disabled]="savingUser()"
-            >
-          } @else {
-            <span class="readonly-value">{{ form.name || 'n/a' }}</span>
-          }
+          <input
+            id="user-form-name"
+            type="text"
+            [ngModel]="form.name"
+            (ngModelChange)="updateUserForm('name', $event)"
+            name="name"
+            [disabled]="savingUser()"
+          >
 
           <label for="user-form-email">Email</label>
           @if (form.mode === 'add') {
