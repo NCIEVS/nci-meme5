@@ -81,18 +81,6 @@ public class ServerRestartAlgorithm extends AbstractAlgorithm {
           "Server Restart requires the application to be running under systemd.");
     }
 
-    @SuppressWarnings("unchecked")
-    final List<Long> activeProcessIds = getEntityManager().createQuery(
-        "select pe.id from ProcessExecutionJpa pe "
-            + "where pe.startDate is not null and pe.finishDate is null "
-            + "and pe.failDate is null and pe.stopDate is null "
-            + "and pe.id <> :processId")
-        .setParameter("processId", getProcess().getId()).getResultList();
-    if (!activeProcessIds.isEmpty()) {
-      result.addError("Server Restart cannot run while other process "
-          + "executions are active: " + activeProcessIds);
-    }
-
     return result;
   }
 
