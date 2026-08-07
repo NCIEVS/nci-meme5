@@ -59,6 +59,8 @@ import com.wci.umls.server.helpers.ProcessConfigList;
 import com.wci.umls.server.helpers.ProcessExecutionList;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
+import com.wci.umls.server.helpers.ServerRestartException;
+import com.wci.umls.server.jpa.algo.maint.ServerRestartAlgorithm;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
@@ -1581,6 +1583,47 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
               authToken, "restart process execution", UserRole.ADMINISTRATOR);
       processService.setLastModifiedBy(userName);
 
+      return restartProcessInternal(projectId, id, background, userName);
+    } catch (Exception e) {
+      handleException(e, "trying to restart a process execution");
+    } finally {
+      processService.close();
+      securityService.close();
+    }
+    return null;
+  }
+
+  /**
+   * Restarts a process execution without REST authorization.
+   *
+   * @param projectId the project id
+   * @param id the process execution id
+   * @param background the background
+   * @return the process execution id
+   * @throws Exception the exception
+   */
+  public Long restartProcessInternal(Long projectId, Long id, Boolean background)
+    throws Exception {
+
+    return restartProcessInternal(projectId, id, background, null);
+  }
+
+  /**
+   * Restarts a process execution without REST authorization.
+   *
+   * @param projectId the project id
+   * @param id the process execution id
+   * @param background the background
+   * @param userName the user name
+   * @return the process execution id
+   * @throws Exception the exception
+   */
+  public Long restartProcessInternal(Long projectId, Long id, Boolean background,
+    String userName) throws Exception {
+
+    final ProcessService processService = new ProcessServiceJpa();
+
+    try {
       // Load processExecution object
       final ProcessExecution processExecution =
           processService.getProcessExecution(id);
@@ -1614,16 +1657,33 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       // Create a thread and run the process
       runProcessAsThread(projectId, processConfig.getId(),
-          processExecution.getId(), userName, background, true, null);
+          processExecution.getId(), resolveProcessUserName(userName,
+              processExecution), background, true, null);
 
       return id;
-    } catch (Exception e) {
-      handleException(e, "trying to restart a process execution");
     } finally {
       processService.close();
-      securityService.close();
     }
-    return null;
+  }
+
+  /**
+   * Resolves the user to associate with an internal process run.
+   *
+   * @param userName the supplied user name
+   * @param processExecution the process execution
+   * @return the user name
+   */
+  private String resolveProcessUserName(String userName,
+    ProcessExecution processExecution) {
+
+    if (!ConfigUtility.isEmpty(userName)) {
+      return userName;
+    }
+    if (processExecution != null
+        && !ConfigUtility.isEmpty(processExecution.getLastModifiedBy())) {
+      return processExecution.getLastModifiedBy();
+    }
+    return "SYSTEM";
   }
 
   /* see superclass */
@@ -2304,6 +2364,22 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
               algorithmExecution.setFinishDate(new Date());
               processExecution.setFinishDate(new Date());
+            } else if (e instanceof ServerRestartException) {
+
+              ServerRestartAlgorithm.markRestartRequest(
+                  processExecution.getExecutionInfo(),
+                  algorithmExecution.getActivityId(), algorithmExecution.getId());
+
+              processService.addLogEntry(processExecution.getProject().getId(),
+                  processExecution.getLastModifiedBy(),
+                  processExecution.getTerminology(),
+                  processExecution.getVersion(),
+                  algorithmExecution.getActivityId(),
+                  processExecution.getWorkId(), "SERVER RESTART REQUESTED");
+              Logger.getLogger(getClass()).info("SERVER RESTART REQUESTED");
+
+              algorithmExecution.setFinishDate(new Date());
+              processExecution.setFinishDate(new Date());
             } else {
               processService.addLogEntry(processExecution.getProject().getId(),
                   processExecution.getLastModifiedBy(),
@@ -2364,6 +2440,13 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
                     from, recipients, processService.getProcessLog(projectId,
                         processExecutionId, null, 100),
                     config);
+              } else if (e instanceof ServerRestartException) {
+                ConfigUtility.sendEmail(
+                    "[Terminology Server] Server Restart Requested for Process: "
+                        + processExecution.getName(),
+                    from, recipients, processService.getProcessLog(projectId,
+                        processExecutionId, null, 100),
+                    config);
               } else {
                 ConfigUtility.sendEmail(
                     "[Terminology Server] Process Run Failed for Process: "
@@ -2379,7 +2462,9 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
           }
 
           // Do this if IS running in the background
-          if (handleException) {
+          if (e instanceof ServerRestartException) {
+            ServerRestartCoordinator.requestRestart();
+          } else if (handleException) {
             handleException(e, "trying to execute a process");
           }
 

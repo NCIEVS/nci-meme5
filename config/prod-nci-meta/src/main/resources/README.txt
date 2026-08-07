@@ -92,6 +92,19 @@ for example:
 /local/content/MEME/MEME5/ncim/logs/nci-meme5.out
 ```
 
+Server Restart process steps depend on systemd restarting the executable WAR
+after an intentional clean application exit. The `nci-meme5` unit must retain a
+restart policy such as:
+
+```
+Restart=always
+RestartSec=10
+```
+
+When a `SERVERRESTART` step runs, MEME records the pending process execution,
+exits the Spring Boot application, and resumes the same process automatically
+after systemd starts the service again.
+
 If a file is used for stdout/stderr, configure log rotation for it. The public
 URL should continue routing through the existing proxy:
 
