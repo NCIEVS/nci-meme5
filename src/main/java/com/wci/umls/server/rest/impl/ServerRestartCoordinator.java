@@ -17,9 +17,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.algo.maint.ServerRestartAlgorithm;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
+import com.wci.umls.server.model.algo.AlgorithmExecution;
 import com.wci.umls.server.model.algo.ProcessExecution;
 
 /**
@@ -111,15 +113,107 @@ public class ServerRestartCoordinator {
 
     for (final ProcessExecution execution : pendingExecutions) {
       try {
+        final String algorithmExecutionId = execution.getExecutionInfo()
+            .get(ServerRestartAlgorithm.RESTART_ALGORITHM_EXECUTION_ID_KEY);
         LOGGER.info("Auto-resuming process execution " + execution.getId()
             + " after Server Restart.");
         new ProcessServiceRestImpl().restartProcessInternal(
             execution.getProject().getId(), execution.getId(), true);
+        sendResumeEmail(execution.getProject().getId(), execution.getId(),
+            algorithmExecutionId);
       } catch (Exception e) {
         LOGGER.error("Unable to auto-resume process execution "
             + execution.getId() + " after Server Restart.", e);
       }
     }
+  }
+
+  /**
+   * Sends email after the process has been restarted.
+   *
+   * @param projectId the project id
+   * @param processExecutionId the process execution id
+   * @param algorithmExecutionId the resumed algorithm execution id
+   */
+  private void sendResumeEmail(final Long projectId,
+    final Long processExecutionId, final String algorithmExecutionId) {
+    ProcessServiceJpa processService = null;
+    try {
+      processService = new ProcessServiceJpa();
+      final ProcessExecution processExecution =
+          processService.getProcessExecution(processExecutionId);
+      if (processExecution == null
+          || ConfigUtility.isEmpty(processExecution.getFeedbackEmail())) {
+        return;
+      }
+
+      final AlgorithmExecution algorithmExecution =
+          getAlgorithmExecution(processService, algorithmExecutionId);
+      final String stepName = getStepName(algorithmExecution);
+      processService.addLogEntry(processExecution.getProject().getId(),
+          processExecution.getLastModifiedBy(),
+          processExecution.getTerminology(), processExecution.getVersion(),
+          algorithmExecution == null ? null : algorithmExecution.getActivityId(),
+          processExecution.getWorkId(),
+          "PROCESS RESUMED AFTER SERVER RESTART AT " + stepName);
+
+      final Properties config = PropertyUtility.getProperties();
+      final String from = config.containsKey("mail.smtp.from")
+          ? config.getProperty("mail.smtp.from")
+          : config.getProperty("mail.smtp.user");
+      final String body = "Process execution " + processExecutionId
+          + " has resumed after Server Restart.\n\nResumed step: " + stepName
+          + "\n\n" + processService.getProcessLog(projectId, processExecutionId,
+              null, 100);
+      ConfigUtility.sendEmail(
+          "[Terminology Server] Process Resumed After Server Restart: "
+              + processExecution.getName(),
+          from, processExecution.getFeedbackEmail(), body, config);
+    } catch (Exception e) {
+      LOGGER.error("Unable to send Server Restart resume email for process "
+          + processExecutionId + ".", e);
+    } finally {
+      if (processService != null) {
+        try {
+          processService.close();
+        } catch (Exception e) {
+          LOGGER.warn("Unable to close process service.", e);
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns the algorithm execution.
+   *
+   * @param processService the process service
+   * @param algorithmExecutionId the algorithm execution id
+   * @return the algorithm execution
+   * @throws Exception the exception
+   */
+  private AlgorithmExecution getAlgorithmExecution(
+    final ProcessServiceJpa processService, final String algorithmExecutionId)
+    throws Exception {
+    if (ConfigUtility.isEmpty(algorithmExecutionId)) {
+      return null;
+    }
+    return processService.getAlgorithmExecution(
+        Long.valueOf(algorithmExecutionId));
+  }
+
+  /**
+   * Returns the display name for a resumed step.
+   *
+   * @param algorithmExecution the algorithm execution
+   * @return the step display name
+   */
+  private String getStepName(final AlgorithmExecution algorithmExecution) {
+    if (algorithmExecution == null) {
+      return "unknown step";
+    }
+    return algorithmExecution.getName() + " ("
+        + algorithmExecution.getAlgorithmKey() + ", execution "
+        + algorithmExecution.getId() + ")";
   }
 
   /**
