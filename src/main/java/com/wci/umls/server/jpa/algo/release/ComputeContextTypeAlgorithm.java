@@ -71,7 +71,7 @@ public class ComputeContextTypeAlgorithm extends AbstractAlgorithm {
     for (final String type : types) {
       final jakarta.persistence.Query query = manager
           .createQuery("select distinct terminology, version from " + type
-              + "TreePositionJpa " + "group by terminology, version, node_id "
+              + "TreePositionJpa " + "group by terminology, version, node.id "
               + "having count(*)>1");
       final List<Object[]> results = query.getResultList();
       checkCancel();
