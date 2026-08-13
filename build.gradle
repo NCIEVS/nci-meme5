@@ -334,6 +334,13 @@ sourceSets {
     }
 }
 
+tasks.named('processResources') {
+    from('config/prod-nci-meta/src/main/resources') {
+        include 'META/MRCOLS.RRF'
+        include 'META/MRFILES.RRF'
+    }
+}
+
 // ── Integration tests (*IT.java) ──────────────────────────────────────────────
 // Preferred local usage:
 //   source config/local/setenv.sh
