@@ -15,11 +15,16 @@ import { DialogComponent } from '../../shared/dialog/dialog.component';
 import { IconComponent, MemeIconName } from '../../shared/icon/icon.component';
 import { OperationalApiService } from '../operations/operational-api.service';
 import { WorkflowApiService } from './workflow-api.service';
-import { buildContentPfs } from './content-edit-api.helpers';
+import {
+  buildContentPfs,
+  buildContentSearchPfs
+} from './content-edit-api.helpers';
 import { ContentEditApiService } from './content-edit-api.service';
 import {
   ContentAtom,
   ContentComponent as ContentComponentDetail,
+  ContentKeyValuePair,
+  ContentMetadata,
   ContentRelationship,
   ContentSearchResult,
   ContentSemanticType,
@@ -195,6 +200,7 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly loadedConcept = signal<ContentComponentDetail | null>(null);
   protected readonly loadingConcept = signal(false);
   protected readonly conceptLoadError = signal<string | null>(null);
+  protected readonly metadata = signal<ContentMetadata | null>(null);
 
   // Shared workbench editing
   protected readonly workbenchActivityId = signal('');
@@ -289,6 +295,13 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly relationshipAddManualTargetId = signal('');
   protected readonly relationshipAddManualTargetError = signal<string | null>(null);
   protected readonly relationshipAddTargets = signal<RelationshipTargetConcept[]>([]);
+  protected readonly relationshipFinderDialogOpen = signal(false);
+  protected readonly relationshipFinderQuery = signal('');
+  protected readonly relationshipFinderResults = signal<ContentSearchResult[]>([]);
+  protected readonly relationshipFinderPage = signal(1);
+  protected readonly relationshipFinderPageSize = 10;
+  protected readonly relationshipFinderError = signal<string | null>(null);
+  protected readonly searchingRelationshipFinder = signal(false);
   protected readonly relationshipAddType = signal('RO');
   protected readonly relationshipAddTargetConceptId = signal('');
   protected readonly relationshipAddPendingRelationships = signal<ContentRelationship[] | null>(null);
@@ -576,7 +589,13 @@ export class EditWorkbenchComponent implements OnInit {
     if (this.loadedConcept()?.publishable === false) {
       types.push('BBT');
     }
-    return Array.from(new Set(types));
+    const metadataTypes = this.metadata()?.relationshipTypes ?? [];
+    return Array.from(new Set(types)).map((key) => {
+      if (key === 'XR') {
+        return { key, value: '(none)' };
+      }
+      return metadataTypes.find((type) => type.key === key) ?? { key, value: '' };
+    });
   });
   protected readonly availableSemanticTypeOptions = computed<ContentSemanticTypeMetadata[]>(() => {
     const existing = new Set(
@@ -1377,6 +1396,13 @@ export class EditWorkbenchComponent implements OnInit {
     this.relationshipAddResult.set(null);
   }
 
+  protected relationshipTypeOptionLabel(option: ContentKeyValuePair): string {
+    const key = option.key?.trim() ?? '';
+    const value = option.value?.trim() ?? '';
+
+    return [key, value].filter(Boolean).join(' ');
+  }
+
   protected setRelationshipAddTargetConceptId(value: string): void {
     this.relationshipAddTargetConceptId.set(value);
     this.relationshipAddPendingRelationship.set(null);
@@ -1504,6 +1530,7 @@ export class EditWorkbenchComponent implements OnInit {
             return;
           }
           this.loadedConcept.set(concept);
+          this.loadMetadata(concept);
           const workbench = String(
             this.route.snapshot.data?.['workbench'] ??
             this.route.snapshot.routeConfig?.data?.['workbench'] ??
@@ -1518,6 +1545,18 @@ export class EditWorkbenchComponent implements OnInit {
           this.notifications.error('Concept could not be loaded.');
         }
       });
+  }
+
+  private loadMetadata(concept: ContentComponentDetail): void {
+    if (!concept.terminology || !concept.version) {
+      this.metadata.set(null);
+      return;
+    }
+
+    this.contentApi.getAllMetadata(concept.terminology, concept.version).subscribe({
+      next: (metadata) => this.metadata.set(metadata),
+      error: () => this.metadata.set(null)
+    });
   }
 
   protected refreshConcept(): void {
@@ -2080,6 +2119,101 @@ export class EditWorkbenchComponent implements OnInit {
         this.relationshipAddManualTargetError.set(`Could not load concept ${targetId}.`);
       }
     });
+  }
+
+  protected openRelationshipFinderDialog(): void {
+    this.relationshipFinderQuery.set('');
+    this.relationshipFinderResults.set([]);
+    this.relationshipFinderPage.set(1);
+    this.relationshipFinderError.set(null);
+    this.relationshipFinderDialogOpen.set(true);
+  }
+
+  protected closeRelationshipFinderDialog(): void {
+    this.relationshipFinderDialogOpen.set(false);
+  }
+
+  protected searchRelationshipFinder(): void {
+    const query = this.relationshipFinderQuery().trim();
+    const terminology = this.conceptTerminology();
+    const version = this.conceptVersion();
+    const conceptId = this.loadedConcept()?.id;
+
+    this.relationshipFinderError.set(null);
+    if (!query || !terminology || !version) {
+      this.relationshipFinderError.set('Enter a search query.');
+      this.relationshipFinderResults.set([]);
+      return;
+    }
+
+    this.searchingRelationshipFinder.set(true);
+    this.contentApi
+      .findComponents(
+        'CONCEPT',
+        terminology,
+        version,
+        query,
+        buildContentSearchPfs(
+          this.relationshipFinderPage(),
+          this.relationshipFinderPageSize,
+          '',
+          false,
+          'CONCEPT'
+        )
+      )
+      .pipe(finalize(() => this.searchingRelationshipFinder.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.relationshipFinderResults.set(
+            response.items.filter((result) => result.id !== conceptId)
+          );
+        },
+        error: () => {
+          this.relationshipFinderResults.set([]);
+          this.relationshipFinderError.set('Finder search could not be loaded.');
+        }
+      });
+  }
+
+  protected addRelationshipFinderTarget(result: ContentSearchResult): void {
+    const targetId = result.id;
+    const projectId = this.projectId();
+    const conceptId = this.loadedConcept()?.id;
+
+    if (!targetId || !projectId || targetId === conceptId) {
+      return;
+    }
+
+    if (this.relationshipAddTargets().some((target) => target.id === targetId)) {
+      this.relationshipAddTargets.update((targets) =>
+        targets.map((target) =>
+          target.id === targetId ? { ...target, selected: true } : target
+        )
+      );
+      this.closeRelationshipFinderDialog();
+      return;
+    }
+
+    this.contentApi.getComponentById('CONCEPT', targetId, projectId).subscribe({
+      next: (target) => {
+        if (!target) {
+          this.relationshipFinderError.set(`No concept found with id ${targetId}.`);
+          return;
+        }
+        this.relationshipAddTargets.update((targets) => [
+          ...targets,
+          { ...target, selected: true }
+        ]);
+        this.closeRelationshipFinderDialog();
+      },
+      error: () => {
+        this.relationshipFinderError.set(`Could not load concept ${targetId}.`);
+      }
+    });
+  }
+
+  protected relationshipFinderResultName(result: ContentSearchResult): string {
+    return result.value || result.name || result.terminologyId || `#${result.id}`;
   }
 
   protected addRelationshipToConcept(overrideWarnings = false): void {

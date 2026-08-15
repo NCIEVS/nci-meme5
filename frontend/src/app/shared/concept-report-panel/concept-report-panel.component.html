@@ -1,19 +1,32 @@
 <div class="crp-panel">
 
   <!-- Tab bar -->
-  <div class="crp-tabs" role="tablist">
-    <button type="button" role="tab" class="crp-tab"
-      [class.active]="activeTab() === 'Report'"
-      [attr.aria-selected]="activeTab() === 'Report'"
-      (click)="setTab('Report')">Report</button>
-    <button type="button" role="tab" class="crp-tab"
-      [class.active]="activeTab() === 'Interactive'"
-      [attr.aria-selected]="activeTab() === 'Interactive'"
-      (click)="setTab('Interactive')">Interactive</button>
-    <button type="button" role="tab" class="crp-tab"
-      [class.active]="activeTab() === 'Actions'"
-      [attr.aria-selected]="activeTab() === 'Actions'"
-      (click)="setTab('Actions')">Actions</button>
+  <div class="crp-tabbar">
+    <div class="crp-tabs" role="tablist">
+      <button type="button" role="tab" class="crp-tab"
+        [class.active]="activeTab() === 'Report'"
+        [attr.aria-selected]="activeTab() === 'Report'"
+        (click)="setTab('Report')">Report</button>
+      <button type="button" role="tab" class="crp-tab"
+        [class.active]="activeTab() === 'Interactive'"
+        [attr.aria-selected]="activeTab() === 'Interactive'"
+        (click)="setTab('Interactive')">Interactive</button>
+      <button type="button" role="tab" class="crp-tab"
+        [class.active]="activeTab() === 'Actions'"
+        [attr.aria-selected]="activeTab() === 'Actions'"
+        (click)="setTab('Actions')">Actions</button>
+    </div>
+    @if (concept) {
+      <button
+        type="button"
+        class="icon-btn crp-popout-btn"
+        title="Open report in new window"
+        aria-label="Open report in new window"
+        (click)="openReportWindow()"
+      >
+        <meme-icon name="box-arrow-up-right"></meme-icon>
+      </button>
+    }
   </div>
 
   <!-- Tab bodies -->

@@ -17,12 +17,18 @@
 
 /* ── Tabs ─────────────────────────────────────────── */
 
-.crp-tabs {
+.crp-tabbar {
   display: flex;
-  gap: 0;
+  align-items: center;
   border-bottom: 2px solid var(--meme-border);
   background: var(--meme-surface-accent);
   flex-shrink: 0;
+}
+
+.crp-tabs {
+  display: flex;
+  gap: 0;
+  flex: 1 1 auto;
 }
 
 .crp-tab {
@@ -46,6 +52,38 @@
   color: var(--meme-link);
   border-bottom-color: var(--meme-link);
   background: var(--meme-surface);
+}
+
+.crp-popout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  margin: 0 6px 0 auto;
+  padding: 0;
+  color: #000;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  box-shadow: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.crp-popout-btn:hover {
+  background: var(--meme-border);
+  border-color: var(--meme-border);
+  opacity: 1;
+}
+
+.crp-popout-btn:focus-visible {
+  outline: 2px solid rgb(47 143 157 / 55%);
+  outline-offset: 1px;
 }
 
 /* ── Body ─────────────────────────────────────────── */
@@ -74,10 +112,38 @@
 /* ── Report tab ───────────────────────────────────── */
 
 .crp-report-html {
-  font-size: var(--meme-text-sm);
-  line-height: 1.5;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.42857143;
   white-space: pre-wrap;
-  font-family: 'Courier New', monospace;
+}
+
+/* Legacy report status spans arrive through [innerHTML]. */
+:host ::ng-deep .crp-report-html .READY_FOR_PUBLICATION,
+:host ::ng-deep .crp-report-html .PUBLISHED {
+  color: var(--meme-wf-ready, #000);
+}
+
+:host ::ng-deep .crp-report-html .NEEDS_REVIEW {
+  color: var(--meme-wf-needs-review, red);
+}
+
+:host ::ng-deep .crp-report-html .DEMOTION {
+  color: var(--meme-wf-demotion, blue);
+}
+
+:host ::ng-deep .crp-report-html .EMBRYO,
+:host ::ng-deep .crp-report-html .UNRELEASABLE {
+  color: var(--meme-wf-embryo, green);
+}
+
+:host ::ng-deep .crp-report-html .OBSOLETE {
+  color: var(--meme-wf-obsolete, purple);
+}
+
+:host ::ng-deep .crp-report-html .RXNORM {
+  color: var(--meme-wf-rxnorm, orange);
 }
 
 /* ── Interactive tab ──────────────────────────────── */

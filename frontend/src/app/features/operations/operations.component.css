@@ -1017,6 +1017,62 @@ textarea {
   gap: 10px;
 }
 
+.merge-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.merge-concept-table,
+.merge-inner-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.merge-concept-table > tbody > tr > td,
+.merge-inner-table td {
+  border-bottom: 0;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+.merge-dialog-label {
+  width: 140px;
+  color: var(--meme-text-label);
+  white-space: nowrap;
+}
+
+.merge-concept-id-col {
+  width: 90px;
+  white-space: nowrap;
+}
+
+.merge-concept-name-col {
+  width: 46%;
+}
+
+.merge-concept-sty-col {
+  color: var(--meme-text-secondary);
+}
+
+.merge-inner-table.pointer-table tr:hover td {
+  background: var(--meme-hover, rgba(0, 0, 0, 0.04));
+}
+
+.merge-dialog-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.merge-dialog-actions {
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
 .maintenance-warning-dialog {
   display: grid;
   gap: 12px;
@@ -1924,8 +1980,37 @@ tr.RXNORM td {
   vertical-align: top;
 }
 
+.relationship-dialog-table .move-dialog-label {
+  width: 220px;
+}
+
+.relationship-concept-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.relationship-select-col {
+  width: 32px;
+}
+
+.relationship-concept-table .move-col-id {
+  width: 90px;
+}
+
+.relationship-concept-table .move-col-name {
+  width: 46%;
+}
+
+.relationship-concept-table .move-col-sty {
+  width: auto;
+}
+
 .relationship-target-add {
-  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: min(460px, 100%);
 }
 
 .relationship-target-add input {
@@ -1933,12 +2018,33 @@ tr.RXNORM td {
 }
 
 .relationship-target-table {
-  max-height: 240px;
-  overflow: auto;
+  margin-bottom: 0;
+}
+
+.relationship-dialog-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.relationship-dialog-footer .move-lookup-status {
+  align-self: center;
 }
 
 .relationship-dialog-actions {
   justify-content: flex-end;
+  margin-left: auto;
+}
+
+.relationship-finder-dialog {
+  display: grid;
+  gap: 10px;
+}
+
+.relationship-finder-results {
+  max-height: 420px;
 }
 
 .context-position-wrap {
@@ -2047,6 +2153,11 @@ tr.RXNORM td {
 
 .finder-search-input {
   flex: 1;
+}
+
+.finder-dialog-pager {
+  margin-top: -4px;
+  margin-bottom: var(--meme-space-sm);
 }
 
 .btn-xs {

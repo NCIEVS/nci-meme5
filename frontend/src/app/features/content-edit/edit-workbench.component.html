@@ -1076,15 +1076,16 @@
             [closeDisabled]="addingRelationship()"
             (closed)="closeAddRelationshipDialog()"
           >
-            <div class="dialog-form">
+            <div class="dialog-form relationship-dialog-form">
               <table class="slim-table relationship-dialog-table">
                 <tbody>
                   <tr>
                     <td class="move-dialog-label"><strong>Current Concept</strong></td>
                     <td>
-                      <table class="slim-table">
+                      <table class="slim-table relationship-concept-table">
                         <tbody>
                           <tr>
+                            <td class="relationship-select-col"></td>
                             <td class="move-col-id">{{ concept.id }}</td>
                             <td class="move-col-name">{{ concept.name }}</td>
                             <td class="move-col-sty">
@@ -1100,20 +1101,11 @@
                   <tr>
                     <td class="move-dialog-label"><strong>Other Concept(s)</strong></td>
                     <td>
-                      <div class="relationship-target-add">
-                        <input type="number" min="1" placeholder="Concept id"
-                          [ngModel]="relationshipAddManualTargetId()"
-                          (ngModelChange)="relationshipAddManualTargetId.set($event)" />
-                        <button type="button" (click)="addManualRelationshipTarget()">Add Concept</button>
-                      </div>
-                      @if (relationshipAddManualTargetError()) {
-                        <p class="move-lookup-status move-lookup-error">{{ relationshipAddManualTargetError() }}</p>
-                      }
-                      <table class="slim-table pointer-table relationship-target-table">
+                      <table class="slim-table pointer-table relationship-concept-table relationship-target-table">
                         <tbody>
                           @for (target of relationshipAddTargets(); track target.id) {
                             <tr [class.selected]="target.selected">
-                              <td>
+                              <td class="relationship-select-col">
                                 <input type="checkbox"
                                   [checked]="target.selected"
                                   (change)="setRelationshipTargetSelected(target, !target.selected)" />
@@ -1140,8 +1132,8 @@
                         [ngModel]="relationshipAddType()"
                         (ngModelChange)="setRelationshipAddType($event)"
                       >
-                        @for (t of acceptedRelationshipTypeOptions(); track t) {
-                          <option [value]="t">{{ t }}</option>
+                        @for (t of acceptedRelationshipTypeOptions(); track t.key) {
+                          <option [value]="t.key ?? ''">{{ relationshipTypeOptionLabel(t) }}</option>
                         }
                       </select>
                     </td>
@@ -1160,19 +1152,91 @@
                 </ul>
               }
 
-              <div class="form-actions relationship-dialog-actions">
-                @if (relationshipAddNeedsOverride()) {
-                  <button type="button" (click)="addSelectedRelationshipsToConcept(true)" [disabled]="addingRelationship()">
-                    Override Warnings and Add
+              <div class="relationship-dialog-footer">
+                <div class="relationship-target-add">
+                  <input type="number" min="1" placeholder="enter concept id"
+                    [ngModel]="relationshipAddManualTargetId()"
+                    (ngModelChange)="relationshipAddManualTargetId.set($event)" />
+                  <button type="button" (click)="addManualRelationshipTarget()">Search</button>
+                  <button type="button" (click)="openRelationshipFinderDialog()">Finder</button>
+                  @if (relationshipAddManualTargetError()) {
+                    <span class="move-lookup-status move-lookup-error">{{ relationshipAddManualTargetError() }}</span>
+                  }
+                </div>
+                <div class="form-actions relationship-dialog-actions">
+                  @if (relationshipAddNeedsOverride()) {
+                    <button type="button" (click)="addSelectedRelationshipsToConcept(true)" [disabled]="addingRelationship()">
+                      Override Warnings and Add
+                    </button>
+                  }
+                  <button type="button"
+                    (click)="addSelectedRelationshipsToConcept()"
+                    [disabled]="addingRelationship() || !selectedRelationshipTargetsForDialog().length">
+                    {{ addingRelationship() ? 'Adding…' : 'Add' }}
                   </button>
-                }
-                <button type="button"
-                  (click)="addSelectedRelationshipsToConcept()"
-                  [disabled]="addingRelationship() || !selectedRelationshipTargetsForDialog().length">
-                  {{ addingRelationship() ? 'Adding…' : 'Add' }}
-                </button>
-                <button type="button" (click)="closeAddRelationshipDialog()" [disabled]="addingRelationship()">Close</button>
+                  <button type="button" (click)="closeAddRelationshipDialog()" [disabled]="addingRelationship()">Close</button>
+                </div>
               </div>
+            </div>
+          </meme-dialog>
+        }
+
+        @if (relationshipFinderDialogOpen()) {
+          <meme-dialog title="Concept Finder" size="lg" (closed)="closeRelationshipFinderDialog()">
+            <div class="relationship-finder-dialog">
+              <form (ngSubmit)="relationshipFinderPage.set(1); searchRelationshipFinder()" class="finder-search-row">
+                <input
+                  type="search"
+                  autofocus
+                  [ngModel]="relationshipFinderQuery()"
+                  (ngModelChange)="relationshipFinderQuery.set($event)"
+                  name="relationship-finder-query"
+                  placeholder="Search concepts…"
+                  class="finder-search-input"
+                />
+                <button type="submit" [disabled]="searchingRelationshipFinder()">Search</button>
+              </form>
+              @if (relationshipFinderResults().length) {
+                <div class="wl-pager finder-dialog-pager">
+                  <button type="button" class="icon-btn" [disabled]="relationshipFinderPage() === 1" (click)="relationshipFinderPage.set(relationshipFinderPage() - 1); searchRelationshipFinder()">
+                    <meme-icon name="chevron-left"></meme-icon>
+                  </button>
+                  <span>{{ relationshipFinderPage() }}</span>
+                  <button type="button" class="icon-btn" [disabled]="relationshipFinderResults().length < relationshipFinderPageSize" (click)="relationshipFinderPage.set(relationshipFinderPage() + 1); searchRelationshipFinder()">
+                    <meme-icon name="chevron-right"></meme-icon>
+                  </button>
+                </div>
+              }
+
+              @if (relationshipFinderError()) {
+                <p class="move-lookup-status move-lookup-error">{{ relationshipFinderError() }}</p>
+              }
+              @if (searchingRelationshipFinder()) {
+                <p class="empty compact-empty">Searching…</p>
+              } @else if (relationshipFinderResults().length) {
+                <div class="table-wrap finder-results-wrap relationship-finder-results">
+                  <table class="slim-table pointer-table">
+                    <thead>
+                      <tr><th>Id</th><th>Name</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                      @for (result of relationshipFinderResults(); track result.id) {
+                        <tr>
+                          <td>{{ result.terminologyId || result.id }}</td>
+                          <td>{{ relationshipFinderResultName(result) }}</td>
+                          <td class="nobreak">
+                            <button type="button" class="btn-xs" (click)="addRelationshipFinderTarget(result)">
+                              Add
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else if (relationshipFinderQuery()) {
+                <p class="empty compact-empty">No matching concepts found.</p>
+              }
             </div>
           </meme-dialog>
         }

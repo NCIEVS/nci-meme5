@@ -17,7 +17,10 @@ import { ContentEditApiService } from '../../features/content-edit/content-edit-
 import { EditMutationApiService } from '../../features/content-edit/edit-mutation-api.service';
 import { formatEasternDateTime } from '../../core/maintenance-window-time';
 import { memeAppRouteUrl } from '../../core/meme-deployment-paths';
-import { rewriteMemeConceptReportLinks } from '../../core/meme-report-links';
+import {
+  memeConceptReportUrl,
+  rewriteMemeConceptReportLinks
+} from '../../core/meme-report-links';
 import { NotificationService } from '../../core/notifications/notification.service';
 import { IconComponent } from '../icon/icon.component';
 import {
@@ -346,6 +349,36 @@ export class ConceptReportPanelComponent implements OnChanges {
       version: rel.toVersion ?? this.concept?.version,
       tab: this.activeTab()
     });
+  }
+
+  protected openReportWindow(): void {
+    const concept = this.concept;
+    if (!concept) return;
+
+    const params = new URLSearchParams();
+    if (this.projectId) params.set('projectId', String(this.projectId));
+    params.set('tab', this.activeTab());
+
+    let url: string;
+    let windowName: string;
+    if (concept.id) {
+      url = memeConceptReportUrl(concept.id, this.projectId, this.activeTab());
+      windowName = `concept_id_${concept.id}`;
+    } else if (concept.terminology && concept.version && concept.terminologyId) {
+      const route =
+        `/concept-report/${encodeURIComponent(concept.terminology)}` +
+        `/${encodeURIComponent(concept.version)}` +
+        `/${encodeURIComponent(concept.terminologyId)}`;
+      url = memeAppRouteUrl(
+        route,
+        params
+      );
+      windowName = `concept_${concept.terminologyId}`;
+    } else {
+      return;
+    }
+
+    window.open(url, windowName, 'width=700,height=700,scrollbars=yes');
   }
 
   protected handleReportClick(event: MouseEvent): void {

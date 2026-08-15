@@ -97,6 +97,10 @@ import {
 
 type SearchableContentType = 'CODE' | 'CONCEPT' | 'DESCRIPTOR';
 type EditAccordionGroup = 'concepts' | 'metadata' | 'worklists';
+type FinderDialogMode = 'concept-list' | 'merge';
+type MergeTargetOption = ContentSearchResult & {
+  semanticTypes?: ContentSemanticType[];
+};
 type MetadataContactTab = 'acquisition' | 'content' | 'license';
 type MetadataCitationTab = 'Structured' | 'Raw';
 
@@ -310,6 +314,7 @@ export class ContentComponent implements OnInit {
   protected readonly mergeTargetConceptId = signal('');
   protected readonly mergeTargetDetailError = signal<string | null>(null);
   protected readonly mergeTargetQuery = signal('');
+  protected readonly mergeTargetCandidates = signal<MergeTargetOption[]>([]);
   protected readonly mergeTargetResults = signal<ContentSearchResult[]>([]);
   protected readonly mergeTargetSearchError = signal<string | null>(null);
   protected readonly mergingConcept = signal(false);
@@ -347,6 +352,7 @@ export class ContentComponent implements OnInit {
   protected readonly finderLookupId = signal('');
   protected readonly loadingFinderLookup = signal(false);
   protected readonly finderDialogOpen = signal(false);
+  protected readonly finderDialogMode = signal<FinderDialogMode>('concept-list');
   protected readonly finderQuery = signal('');
   protected readonly finderResults = signal<ContentSearchResult[]>([]);
   protected readonly finderResultsTotal = signal(0);
@@ -1031,6 +1037,31 @@ export class ContentComponent implements OnInit {
   protected readonly mergeComments = computed(() =>
     Array.from(this.mergeResult()?.comments ?? [])
   );
+  protected readonly mergeTargetOptions = computed<MergeTargetOption[]>(() => {
+    const selectedId = this.selectedComponent()?.id ?? null;
+    const seen = new Set<number>();
+    const options: MergeTargetOption[] = [];
+    const addOption = (option: MergeTargetOption): void => {
+      const id = option.id;
+      if (!id || id === selectedId || seen.has(id)) {
+        return;
+      }
+      seen.add(id);
+      options.push(option);
+    };
+
+    this.conceptList().forEach((concept) => {
+      addOption(this.toMergeTargetOption(concept));
+    });
+    this.mergeTargetCandidates().forEach(addOption);
+
+    const selectedTarget = this.selectedMergeTarget();
+    if (selectedTarget) {
+      addOption(selectedTarget as MergeTargetOption);
+    }
+
+    return options;
+  });
   protected readonly mergeFromLastModifiedEpoch = computed(() =>
     this.mergeReverseOrder()
       ? this.toEpochMillis(this.selectedMergeTarget()?.lastModified)
@@ -1038,21 +1069,22 @@ export class ContentComponent implements OnInit {
   );
   protected readonly mergeFromLabel = computed(() =>
     this.mergeReverseOrder()
-      ? this.selectedMergeTarget()?.terminologyId ||
-        this.selectedMergeTarget()?.id ||
+      ? this.selectedMergeTarget()?.id ||
+        this.selectedMergeTarget()?.terminologyId ||
         this.mergeTargetConceptId() ||
         'target concept'
-      : this.selectedComponent()?.terminologyId ||
-        this.selectedComponent()?.id ||
+      : this.selectedComponent()?.id ||
+        this.selectedComponent()?.terminologyId ||
         'selected concept'
   );
   protected readonly mergeToLabel = computed(() =>
     this.mergeReverseOrder()
-      ? this.selectedComponent()?.terminologyId ||
-        this.selectedComponent()?.id ||
+      ? this.selectedComponent()?.id ||
+        this.selectedComponent()?.terminologyId ||
         'selected concept'
-      : this.selectedMergeTarget()?.terminologyId ||
+      : this.selectedMergeTarget()?.id ||
         this.parsePositiveInteger(this.mergeTargetConceptId()) ||
+        this.selectedMergeTarget()?.terminologyId ||
         'target concept'
   );
   protected readonly mergeNeedsWarningOverride = computed(() =>
@@ -1071,7 +1103,11 @@ export class ContentComponent implements OnInit {
       this.mergeFromLastModifiedEpoch(),
       this.projectRole(),
       projectEditingEnabled !== false
-    ).reasons;
+    ).reasons.map((reason) =>
+      reason === 'Activity id is required.'
+        ? 'Select a worklist before merging.'
+        : reason
+    );
 
     if (!component || !this.isConceptComponent(component)) {
       reasons.push('Concept detail is required.');
@@ -1438,10 +1474,9 @@ export class ContentComponent implements OnInit {
       }
 
       if (data?.type === 'concept-merged' && data.fromConceptId) {
-        const fromId = data.fromConceptId;
-        this.conceptList.update(list => list.filter(c => c.id !== fromId));
+        this.refreshConceptListAfterMerge(data.fromConceptId, data.toConceptId);
         this.records.update(recs =>
-          recs.filter(r => !r.concepts?.some(c => c.id === fromId))
+          recs.filter(r => !r.concepts?.some(c => c.id === data.fromConceptId))
         );
       }
 
@@ -3187,6 +3222,17 @@ export class ContentComponent implements OnInit {
   }
 
   protected openMergeDialog(): void {
+    this.mergeResult.set(null);
+    this.mergePendingTarget.set(null);
+    this.mergeReverseOrder.set(false);
+    this.mergeTargetConceptId.set('');
+    this.mergeTargetDetailError.set(null);
+    this.mergeTargetQuery.set('');
+    this.mergeTargetCandidates.set([]);
+    this.mergeTargetResults.set([]);
+    this.mergeTargetSearchError.set(null);
+    this.selectedMergeTarget.set(null);
+    this.selectDefaultMergeTarget();
     this.mergeDialogOpen.set(true);
   }
 
@@ -3250,6 +3296,47 @@ export class ContentComponent implements OnInit {
       });
   }
 
+  protected lookupMergeTargetById(): void {
+    const rawId = this.mergeTargetConceptId().trim();
+    if (!rawId.match(/^[1-9]\d*$/)) {
+      return;
+    }
+
+    const id = Number(rawId);
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    if (!projectId || !component?.id) {
+      return;
+    }
+    if (id === component.id) {
+      this.mergeTargetDetailError.set('Merge target must be a different concept.');
+      return;
+    }
+
+    this.loadingMergeTargetDetail.set(true);
+    this.mergeTargetDetailError.set(null);
+    this.api
+      .getComponentById('CONCEPT', id, projectId)
+      .pipe(finalize(() => this.loadingMergeTargetDetail.set(false)))
+      .subscribe({
+        next: (concept) => {
+          if (!concept?.id) {
+            this.mergeTargetDetailError.set('Target concept could not be loaded.');
+            this.notifications.error('Target concept not found.');
+            return;
+          }
+
+          const target = this.toMergeTargetOption(concept);
+          this.addMergeTargetCandidate(target);
+          this.selectMergeTarget(target);
+        },
+        error: () => {
+          this.mergeTargetDetailError.set('Target concept could not be loaded.');
+          this.notifications.error('Target concept not found.');
+        }
+      });
+  }
+
   protected selectMergeTarget(result: ContentSearchResult): void {
     if (!result.id) {
       return;
@@ -3278,15 +3365,12 @@ export class ContentComponent implements OnInit {
             return;
           }
 
-          this.selectedMergeTarget.set({
+          const target = {
             ...result,
-            lastModified: component.lastModified,
-            name: component.name || result.name,
-            terminology: component.terminology || result.terminology,
-            terminologyId: component.terminologyId || result.terminologyId,
-            value: component.name || result.value,
-            version: component.version || result.version
-          });
+            ...this.toMergeTargetOption(component)
+          };
+          this.addMergeTargetCandidate(target);
+          this.selectedMergeTarget.set(target);
         },
         error: () => {
           if (this.selectedMergeTarget()?.id === result.id) {
@@ -3349,7 +3433,7 @@ export class ContentComponent implements OnInit {
               ? 'Reverse concept merge completed.'
               : 'Concept merged.'
           );
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshConceptListAfterMerge(request.conceptId, request.conceptId2);
         },
         error: () => {
           this.notifications.error('Concept could not be merged.');
@@ -3443,6 +3527,21 @@ export class ContentComponent implements OnInit {
       result.terminologyId ||
       (result.id === null || result.id === undefined ? 'n/a' : `#${result.id}`)
     );
+  }
+
+  protected mergeConceptName(concept: MergeTargetOption): string {
+    return (
+      concept.name ||
+      concept.value ||
+      concept.terminologyId ||
+      (concept.id === null || concept.id === undefined ? 'n/a' : `#${concept.id}`)
+    );
+  }
+
+  protected mergeSemanticTypeLabels(concept: MergeTargetOption): string[] {
+    return (concept.semanticTypes ?? [])
+      .map((semanticType) => semanticType.semanticType?.trim())
+      .filter((semanticType): semanticType is string => Boolean(semanticType));
   }
 
   protected addRelationshipToConcept(overrideWarnings = false): void {
@@ -4259,6 +4358,7 @@ export class ContentComponent implements OnInit {
     this.mergeTargetConceptId.set('');
     this.mergeTargetDetailError.set(null);
     this.mergeTargetQuery.set('');
+    this.mergeTargetCandidates.set([]);
     this.mergeTargetResults.set([]);
     this.mergeTargetSearchError.set(null);
     this.selectedMergeTarget.set(null);
@@ -5445,6 +5545,50 @@ export class ContentComponent implements OnInit {
     });
   }
 
+  private refreshConceptListAfterMerge(
+    fromConceptId: number,
+    toConceptId: number | null | undefined
+  ): void {
+    this.conceptList.update((list) =>
+      list.filter((concept) => concept.id !== fromConceptId)
+    );
+    if (this.selectedComponent()?.id === fromConceptId) {
+      this.selectedComponent.set(null);
+      this.selectedResult.set(null);
+      this.saveUserPreferenceProperties({ editConcept: '' });
+    }
+
+    const projectId = this.projectId();
+    if (!projectId || !toConceptId) {
+      return;
+    }
+
+    this.api.getComponentById('concept', toConceptId, projectId).subscribe({
+      next: (concept) => {
+        if (!concept) {
+          return;
+        }
+        this.conceptList.update((list) =>
+          [
+            ...list.filter((item) => item.id !== fromConceptId && item.id !== toConceptId),
+            concept
+          ].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+        );
+        this.selectConceptFromList(concept);
+      },
+      error: () => {
+        const existingTarget = this.conceptList().find(
+          (concept) => concept.id === toConceptId
+        );
+        if (existingTarget) {
+          this.selectConceptFromList(existingTarget);
+          return;
+        }
+        this.notifications.error('Merged concept could not be reloaded.');
+      }
+    });
+  }
+
   protected selectConceptFromList(concept: ContentComponentDetail): void {
     this.selectedComponent.set(concept);
     this.selectedResult.set(null);
@@ -5471,7 +5615,8 @@ export class ContentComponent implements OnInit {
     });
   }
 
-  protected openFinderDialog(): void {
+  protected openFinderDialog(mode: FinderDialogMode = 'concept-list'): void {
+    this.finderDialogMode.set(mode);
     this.finderQuery.set('');
     this.finderResults.set([]);
     this.finderResultsTotal.set(0);
@@ -5585,7 +5730,17 @@ export class ContentComponent implements OnInit {
     if (!projectId || !result.id) return;
     this.api.getComponentById('concept', result.id, projectId).subscribe({
       next: (concept) => {
-        if (concept) { this.addConceptToList(concept); this.closeFinderDialog(); }
+        if (!concept) {
+          return;
+        }
+        if (this.finderDialogMode() === 'merge') {
+          const target = this.toMergeTargetOption(concept);
+          this.addMergeTargetCandidate(target);
+          this.selectMergeTarget(target);
+        } else {
+          this.addConceptToList(concept);
+        }
+        this.closeFinderDialog();
       },
       error: () => this.notifications.error('Could not load concept.')
     });
@@ -5598,6 +5753,48 @@ export class ContentComponent implements OnInit {
       next: (concept) => { if (concept) this.addConceptToList(concept); },
       error: () => this.notifications.error('Could not load concept.')
     });
+  }
+
+  private addMergeTargetCandidate(target: MergeTargetOption): void {
+    const id = target.id;
+    if (!id || id === this.selectedComponent()?.id) {
+      return;
+    }
+
+    this.mergeTargetCandidates.update((targets) => {
+      const next = targets.filter((existing) => existing.id !== id);
+      return [...next, target];
+    });
+  }
+
+  private selectDefaultMergeTarget(): void {
+    const selectedId = this.selectedComponent()?.id;
+    const target = this.conceptList().find(
+      (concept) => Boolean(concept.id) && concept.id !== selectedId
+    );
+
+    if (target) {
+      this.selectMergeTarget(this.toMergeTargetOption(target));
+    }
+  }
+
+  private toMergeTargetOption(concept: ContentComponentDetail): MergeTargetOption {
+    return {
+      id: concept.id,
+      lastModified: concept.lastModified,
+      name: concept.name,
+      obsolete: concept.obsolete,
+      publishable: concept.publishable,
+      published: concept.published,
+      semanticTypes: concept.semanticTypes,
+      suppressible: concept.suppressible,
+      terminology: concept.terminology,
+      terminologyId: concept.terminologyId,
+      type: concept.type,
+      value: concept.name,
+      version: concept.version,
+      workflowStatus: concept.workflowStatus
+    };
   }
 
   protected nextRecord(): void {
@@ -6117,6 +6314,9 @@ export class ContentComponent implements OnInit {
     recoverPreferences = false
   ): void {
     this.selectedWorklist.set(worklist);
+    if (worklist.name?.trim()) {
+      this.editActivityId.set(worklist.name);
+    }
     this.pendingEditWorklistId = null;
     if (recoverPreferences) {
       this.applyStoredRecordPaging(

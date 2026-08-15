@@ -1889,114 +1889,112 @@
   </meme-dialog>
 }
 
-@if (finderDialogOpen()) {
-  <meme-dialog title="Concept Finder" size="lg" (closed)="closeFinderDialog()">
-    <div class="finder-dialog-layout">
-
-      <!-- Left: search + results -->
-      <div class="finder-dialog-left">
-        <form (ngSubmit)="runFinderSearch()" class="finder-search-row">
-          <input
-            type="search"
-            autofocus
-            [ngModel]="finderQuery()"
-            (ngModelChange)="finderQuery.set($event)"
-            name="finder-query"
-            placeholder="Search concepts…"
-            class="finder-search-input"
-          />
-          <button type="submit" class="btn-primary" [disabled]="loadingFinderResults()">Search</button>
-        </form>
-        @if (loadingFinderResults()) {
-          <p class="empty compact-empty">Searching…</p>
-        } @else if (finderResults().length) {
-          <div class="table-wrap finder-results-wrap">
-            <table class="slim-table pointer-table">
-              <thead>
-                <tr><th>Id</th><th>Name</th><th></th></tr>
-              </thead>
-              <tbody>
-                @for (result of finderResults(); track result.id) {
-                  <tr
-                    [class.selected]="finderSelectedResult()?.id === result.id"
-                    (click)="selectFinderResult(result)"
-                  >
-                    <td>{{ result.terminologyId || result.id }}</td>
-                    <td>{{ result.value || result.name }}</td>
-                    <td class="nobreak">
-                      <span class="icon-action" title="Add to list" (click)="finderSelectedResult.set(result); addFinderResultToList(); $event.stopPropagation()">
-                        <meme-icon name="plus"></meme-icon>
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="wl-pager">
-            <button type="button" class="icon-btn" [disabled]="finderResultsPage() === 1" (click)="finderResultsPage.set(finderResultsPage() - 1); runFinderSearch()">
-              <meme-icon name="chevron-left"></meme-icon>
-            </button>
-            <span>{{ finderResultsPage() }}</span>
-            <button type="button" class="icon-btn" [disabled]="finderResults().length < finderResultsPageSize" (click)="finderResultsPage.set(finderResultsPage() + 1); runFinderSearch()">
-              <meme-icon name="chevron-right"></meme-icon>
-            </button>
-          </div>
-        } @else if (finderQuery()) {
-          <p class="empty compact-empty">No matching concepts found.</p>
-        }
-      </div>
-
-      <!-- Right: report panel -->
-      <div class="finder-dialog-right">
-        <meme-concept-report-panel
-          [concept]="finderPreviewConcept()"
-          [projectId]="projectId()"
-          [projectRole]="projectRole()"
-          [editingEnabled]="false"
-          [initialTab]="reportPanelTab()"
-          (linkClicked)="openLinkedConceptDialog($event)"
-          (tabChanged)="onReportPanelTabChanged($event)"
-        />
-      </div>
-
-    </div>
-  </meme-dialog>
-}
-
 @if (mergeDialogOpen()) {
   <meme-dialog
-    title="Merge Concept"
+    title="Merge"
     [closeDisabled]="mergingConcept()"
     (closed)="closeMergeDialog()"
   >
-    <div class="dialog-form">
-      <dl>
-        <dt>From</dt>
-        <dd>{{ mergeFromLabel() }}</dd>
-        <dt>Into</dt>
-        <dd>{{ mergeToLabel() }}</dd>
-      </dl>
-
-      <label class="form-field" for="content-merge-target-query">
-        Find Target Concept
-        <input
-          id="content-merge-target-query"
-          type="search"
-          [ngModel]="mergeTargetQuery()"
-          (ngModelChange)="setMergeTargetQuery($event)"
-          placeholder="Search by concept id or name"
-        />
-      </label>
-      <div class="form-actions">
-        <button
-          type="button"
-          (click)="searchMergeTargets()"
-          [disabled]="!mergeTargetQuery().trim() || searchingMergeTargets()"
-        >
-          {{ searchingMergeTargets() ? 'Searching...' : 'Find Merge Target' }}
-        </button>
-      </div>
+    <div class="merge-dialog">
+      @if (selectedComponent(); as mergeComponent) {
+        <table class="slim-table merge-concept-table">
+          <tbody>
+            @if (!mergeReverseOrder()) {
+              <tr>
+                <td class="merge-dialog-label"><b>Concept</b></td>
+                <td>
+                  <table class="slim-table merge-inner-table">
+                    <tbody>
+                      <tr>
+                        <td class="merge-concept-id-col">{{ mergeComponent.id || mergeComponent.terminologyId || 'n/a' }}</td>
+                        <td class="merge-concept-name-col">{{ mergeConceptName(mergeComponent) }}</td>
+                        <td class="merge-concept-sty-col">
+                          @for (semanticType of mergeSemanticTypeLabels(mergeComponent); track $index) {
+                            <span>{{ semanticType }}</span><br />
+                          }
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td class="merge-dialog-label"><b>To Concept</b></td>
+                <td>
+                  @if (mergeTargetOptions().length) {
+                    <table class="slim-table merge-inner-table pointer-table">
+                      <tbody>
+                        @for (target of mergeTargetOptions(); track target.id ?? target.terminologyId ?? $index) {
+                          <tr
+                            [class.selected-row]="selectedMergeTarget()?.id === target.id"
+                            (click)="selectMergeTarget(target)"
+                          >
+                            <td class="merge-concept-id-col">{{ target.id || target.terminologyId || 'n/a' }}</td>
+                            <td class="merge-concept-name-col">{{ mergeConceptName(target) }}</td>
+                            <td class="merge-concept-sty-col">
+                              @for (semanticType of mergeSemanticTypeLabels(target); track $index) {
+                                <span>{{ semanticType }}</span><br />
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <p class="empty compact-empty">Use Search or Finder below to select a target concept.</p>
+                  }
+                </td>
+              </tr>
+            } @else {
+              <tr>
+                <td class="merge-dialog-label"><b>From Concept</b></td>
+                <td>
+                  @if (mergeTargetOptions().length) {
+                    <table class="slim-table merge-inner-table pointer-table">
+                      <tbody>
+                        @for (target of mergeTargetOptions(); track target.id ?? target.terminologyId ?? $index) {
+                          <tr
+                            [class.selected-row]="selectedMergeTarget()?.id === target.id"
+                            (click)="selectMergeTarget(target)"
+                          >
+                            <td class="merge-concept-id-col">{{ target.id || target.terminologyId || 'n/a' }}</td>
+                            <td class="merge-concept-name-col">{{ mergeConceptName(target) }}</td>
+                            <td class="merge-concept-sty-col">
+                              @for (semanticType of mergeSemanticTypeLabels(target); track $index) {
+                                <span>{{ semanticType }}</span><br />
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <p class="empty compact-empty">Use Search or Finder below to select a source concept.</p>
+                  }
+                </td>
+              </tr>
+              <tr>
+                <td class="merge-dialog-label"><b>To Concept</b></td>
+                <td>
+                  <table class="slim-table merge-inner-table">
+                    <tbody>
+                      <tr>
+                        <td class="merge-concept-id-col">{{ mergeComponent.id || mergeComponent.terminologyId || 'n/a' }}</td>
+                        <td class="merge-concept-name-col">{{ mergeConceptName(mergeComponent) }}</td>
+                        <td class="merge-concept-sty-col">
+                          @for (semanticType of mergeSemanticTypeLabels(mergeComponent); track $index) {
+                            <span>{{ semanticType }}</span><br />
+                          }
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
       @if (mergeTargetSearchError(); as mergeSearchError) {
         <p class="form-errors compact-empty">{{ mergeSearchError }}</p>
       }
@@ -2006,71 +2004,6 @@
       @if (mergeTargetDetailError(); as mergeDetailError) {
         <p class="form-errors compact-empty">{{ mergeDetailError }}</p>
       }
-      @if (mergeTargetResults().length) {
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Concept</th>
-                <th>Name</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (target of mergeTargetResults(); track target.id ?? target.terminologyId ?? $index) {
-                <tr [class.selected-row]="selectedMergeTarget()?.id === target.id">
-                  <td>{{ target.terminologyId || target.id || 'n/a' }}</td>
-                  <td>{{ conceptSearchTargetDisplay(target) }}</td>
-                  <td>
-                    <button
-                      type="button"
-                      (click)="selectMergeTarget(target)"
-                      [disabled]="!target.id"
-                    >
-                      Select
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-      <label class="form-field" for="content-merge-target-id">
-        Target Concept ID
-        <input
-          id="content-merge-target-id"
-          type="number"
-          min="1"
-          [ngModel]="mergeTargetConceptId()"
-          (ngModelChange)="setMergeTargetConceptId($event)"
-          placeholder="Enter target concept id"
-        />
-      </label>
-      <label class="checkbox-label" for="content-merge-reverse-order">
-        <input
-          id="content-merge-reverse-order"
-          type="checkbox"
-          [ngModel]="mergeReverseOrder()"
-          (ngModelChange)="setMergeReverseOrder($event)"
-        />
-        Reverse merge order
-      </label>
-      @if (selectedMergeTarget() || mergeTargetConceptId()) {
-        <p class="empty compact-empty">
-          Merge from {{ mergeFromLabel() }} into {{ mergeToLabel() }}.
-        </p>
-      }
-      <label class="form-field" for="content-merge-activity">
-        Merge Activity ID
-        <input
-          id="content-merge-activity"
-          type="text"
-          [ngModel]="activityIdValue(mergeActivityId())"
-          (ngModelChange)="setMergeActivityId($event)"
-          placeholder="Enter the editing activity id"
-        />
-      </label>
       @if (mergeReadiness().reasons.length) {
         <ul class="form-errors">
           @for (reason of mergeReadiness().reasons; track reason) {
@@ -2099,27 +2032,143 @@
           }
         </div>
       }
-      <div class="form-actions">
-        @if (mergeNeedsWarningOverride()) {
+      <div class="merge-dialog-footer">
+        <div class="finder-row merge-finder-row">
+          <input
+            id="content-merge-target-id"
+            type="number"
+            min="1"
+            inputmode="numeric"
+            class="finder-id-input"
+            placeholder="enter concept id"
+            [ngModel]="mergeTargetConceptId()"
+            (ngModelChange)="setMergeTargetConceptId($event)"
+            (keyup.enter)="lookupMergeTargetById()"
+            name="merge-target-id"
+          />
           <button
             type="button"
-            (click)="mergeConcept(true)"
+            class="btn-primary btn-xs"
+            [disabled]="loadingMergeTargetDetail()"
+            (click)="lookupMergeTargetById()"
+          >
+            {{ loadingMergeTargetDetail() ? '…' : 'Search' }}
+          </button>
+          <button type="button" class="btn-primary btn-xs" (click)="openFinderDialog('merge')">Finder</button>
+        </div>
+        <div class="form-actions merge-dialog-actions">
+          <button
+            type="button"
+            class="icon-btn"
+            title="Get inverse"
+            (click)="setMergeReverseOrder(!mergeReverseOrder())"
+            [disabled]="mergingConcept()"
+          >
+            <meme-icon name="arrow-down-up"></meme-icon>
+          </button>
+          @if (mergeNeedsWarningOverride()) {
+            <button
+              type="button"
+              (click)="mergeConcept(true)"
+              [disabled]="!mergeReadiness().canExecute || mergingConcept()"
+            >
+              Override Warnings and Merge
+            </button>
+          }
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="mergeConcept()"
             [disabled]="!mergeReadiness().canExecute || mergingConcept()"
           >
-            Override Warnings and Merge Concept
+            {{ mergingConcept() ? 'Merging...' : 'Merge' }}
           </button>
-        }
-        <button
-          type="button"
-          (click)="mergeConcept()"
-          [disabled]="!mergeReadiness().canExecute || mergingConcept()"
-        >
-          {{ mergingConcept() ? 'Merging...' : 'Merge Concept' }}
-        </button>
-        <button type="button" (click)="closeMergeDialog()" [disabled]="mergingConcept()">
-          Cancel
-        </button>
+          <button type="button" (click)="closeMergeDialog()" [disabled]="mergingConcept()">
+            Close
+          </button>
+        </div>
       </div>
+    </div>
+  </meme-dialog>
+}
+
+@if (finderDialogOpen()) {
+  <meme-dialog title="Concept Finder" size="lg" (closed)="closeFinderDialog()">
+    <div class="finder-dialog-layout">
+
+      <!-- Left: search + results -->
+      <div class="finder-dialog-left">
+        <form (ngSubmit)="runFinderSearch()" class="finder-search-row">
+          <input
+            type="search"
+            autofocus
+            [ngModel]="finderQuery()"
+            (ngModelChange)="finderQuery.set($event)"
+            name="finder-query"
+            placeholder="Search concepts…"
+            class="finder-search-input"
+          />
+          <button type="submit" class="btn-primary" [disabled]="loadingFinderResults()">Search</button>
+        </form>
+        @if (finderResults().length) {
+          <div class="wl-pager finder-dialog-pager">
+            <button type="button" class="icon-btn" [disabled]="finderResultsPage() === 1" (click)="finderResultsPage.set(finderResultsPage() - 1); runFinderSearch()">
+              <meme-icon name="chevron-left"></meme-icon>
+            </button>
+            <span>{{ finderResultsPage() }}</span>
+            <button type="button" class="icon-btn" [disabled]="finderResults().length < finderResultsPageSize" (click)="finderResultsPage.set(finderResultsPage() + 1); runFinderSearch()">
+              <meme-icon name="chevron-right"></meme-icon>
+            </button>
+          </div>
+        }
+        @if (loadingFinderResults()) {
+          <p class="empty compact-empty">Searching…</p>
+        } @else if (finderResults().length) {
+          <div class="table-wrap finder-results-wrap">
+            <table class="slim-table pointer-table">
+              <thead>
+                <tr><th>Id</th><th>Name</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (result of finderResults(); track result.id) {
+                  <tr
+                    [class.selected]="finderSelectedResult()?.id === result.id"
+                    (click)="selectFinderResult(result)"
+                  >
+                    <td>{{ result.terminologyId || result.id }}</td>
+                    <td>{{ result.value || result.name }}</td>
+                    <td class="nobreak">
+                      <span
+                        class="icon-action"
+                        [title]="finderDialogMode() === 'merge' ? 'Add merge target' : 'Add to list'"
+                        (click)="finderSelectedResult.set(result); addFinderResultToList(); $event.stopPropagation()"
+                      >
+                        <meme-icon name="plus"></meme-icon>
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (finderQuery()) {
+          <p class="empty compact-empty">No matching concepts found.</p>
+        }
+      </div>
+
+      <!-- Right: report panel -->
+      <div class="finder-dialog-right">
+        <meme-concept-report-panel
+          [concept]="finderPreviewConcept()"
+          [projectId]="projectId()"
+          [projectRole]="projectRole()"
+          [editingEnabled]="false"
+          [initialTab]="reportPanelTab()"
+          (linkClicked)="openLinkedConceptDialog($event)"
+          (tabChanged)="onReportPanelTabChanged($event)"
+        />
+      </div>
+
     </div>
   </meme-dialog>
 }

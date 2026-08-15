@@ -7,6 +7,8 @@ export type MemeIconName =
   | 'arrow-right'
   | 'arrow-up'
   | 'arrow-down'
+  | 'arrow-down-up'
+  | 'box-arrow-up-right'
   | 'card-checklist'
   | 'chat'
   | 'check'
