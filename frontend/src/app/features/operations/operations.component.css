@@ -2192,12 +2192,27 @@ tr.RXNORM td {
 }
 
 .concept-list-wrap {
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
 .concept-list-wrap .compact-empty {
   padding-left: 12px;
+}
+
+.concept-list-placeholder-row {
+  pointer-events: none;
+}
+
+.concept-list-placeholder-row,
+.concept-list-placeholder-row:hover {
+  background: transparent;
+  cursor: default;
+}
+
+.concept-list-placeholder-row td {
+  border-bottom-color: transparent;
+  height: 28px;
 }
 
 .concept-list-wrap .name-cell {

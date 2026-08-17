@@ -349,6 +349,9 @@ export class ContentComponent implements OnInit {
 
   // Concept list (working set for editing)
   protected readonly conceptList = signal<ContentComponentDetail[]>([]);
+  protected readonly conceptListPlaceholderRows = computed(() =>
+    Array.from({ length: Math.max(0, 5 - this.conceptList().length) })
+  );
   protected readonly finderLookupId = signal('');
   protected readonly loadingFinderLookup = signal(false);
   protected readonly finderDialogOpen = signal(false);

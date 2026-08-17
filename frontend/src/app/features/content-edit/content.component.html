@@ -731,6 +731,11 @@
                   </td>
                 </tr>
               }
+              @for (_ of conceptListPlaceholderRows(); track $index) {
+                <tr class="concept-list-placeholder-row" aria-hidden="true">
+                  <td colspan="5">&nbsp;</td>
+                </tr>
+              }
             </tbody>
           </table>
         } @else {
