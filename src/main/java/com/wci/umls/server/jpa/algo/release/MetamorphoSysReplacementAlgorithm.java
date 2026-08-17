@@ -38,6 +38,21 @@ import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
  */
 public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
+  /** MRSAB VSAB field. */
+  private static final int MRSAB_VSAB = 2;
+
+  /** MRSAB RSAB field. */
+  private static final int MRSAB_RSAB = 3;
+
+  /** MRSAB SVER field. */
+  private static final int MRSAB_SVER = 6;
+
+  /** MRSAB CURVER field. */
+  private static final int MRSAB_CURVER = 21;
+
+  /** MRSAB SABIN field. */
+  private static final int MRSAB_SABIN = 22;
+
   /** The email. */
   private String email;
   
@@ -104,6 +119,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
         + getProcess().getVersion()).append("\n");
     data.append("umls.release.date=").append(getProcess().getVersion() + "01")
         .append("\n");
+    appendIncludedReleaseProperties(data);
 
     // Write release.dat file
     Files.writeString(releaseDat.toPath(), data.toString(),
@@ -658,6 +674,112 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
         PropertyUtility.getProperties().getProperty("mail.smtp.to"));
     params.add(email);
     return params;
+  }
+
+  /**
+   * Appends source-version properties to release.dat content.
+   *
+   * @param data the release.dat content builder
+   * @throws Exception the exception
+   */
+  private void appendIncludedReleaseProperties(StringBuilder data)
+    throws Exception {
+    final File mrsabFile = new File(outputPath, "MRSAB.RRF");
+    appendRequiredReleaseProperty(data, "umls.release.ncit", mrsabFile,
+        "NCIT", "NCI");
+    appendRequiredReleaseProperty(data, "umls.release.umls", mrsabFile,
+        "MTH");
+  }
+
+  /**
+   * Appends a required release property derived from MRSAB.
+   *
+   * @param data the release.dat content builder
+   * @param property the property name
+   * @param mrsabFile the MRSAB file
+   * @param rsabs the acceptable source abbreviations
+   * @throws Exception the exception
+   */
+  private void appendRequiredReleaseProperty(StringBuilder data,
+    String property, File mrsabFile, String... rsabs) throws Exception {
+    final String version = getMrsabVersion(mrsabFile, rsabs);
+    if (ConfigUtility.isEmpty(version)) {
+      throw new LocalException("Unable to determine " + property + " from "
+          + mrsabFile.getAbsolutePath());
+    }
+    data.append(property).append("=").append(version).append("\n");
+    logInfo("    " + property + "=" + version);
+  }
+
+  /**
+   * Returns the best version for any of the supplied MRSAB RSAB values.
+   *
+   * @param mrsabFile the MRSAB file
+   * @param rsabs the acceptable source abbreviations
+   * @return the version, or blank if none was found
+   * @throws IOException the IO exception
+   */
+  private String getMrsabVersion(File mrsabFile, String... rsabs)
+    throws IOException {
+    String fallbackVersion = "";
+    try (BufferedReader reader = new BufferedReader(
+        new FileReader(mrsabFile, StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        final String[] fields = line.split("\\|", -1);
+        if (fields.length <= MRSAB_SABIN) {
+          continue;
+        }
+        if (!isMrsabSource(fields[MRSAB_RSAB].trim(), rsabs)) {
+          continue;
+        }
+        final String version = getMrsabVersion(fields);
+        if (ConfigUtility.isEmpty(version)) {
+          continue;
+        }
+        if ("Y".equals(fields[MRSAB_CURVER].trim())
+            && "Y".equals(fields[MRSAB_SABIN].trim())) {
+          return version;
+        }
+        if (ConfigUtility.isEmpty(fallbackVersion)) {
+          fallbackVersion = version;
+        }
+      }
+    }
+    return fallbackVersion;
+  }
+
+  /**
+   * Indicates whether the MRSAB source abbreviation matches one of the supplied
+   * values.
+   *
+   * @param rsab the MRSAB RSAB
+   * @param rsabs the acceptable source abbreviations
+   * @return true if the source matches
+   */
+  private boolean isMrsabSource(String rsab, String... rsabs) {
+    for (final String candidate : rsabs) {
+      if (candidate.equals(rsab)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns the source version from an MRSAB row.
+   *
+   * @param fields the MRSAB fields
+   * @return the source version
+   */
+  private String getMrsabVersion(String[] fields) {
+    final String sver = fields[MRSAB_SVER].trim();
+    if (!ConfigUtility.isEmpty(sver) && !"latest".equalsIgnoreCase(sver)) {
+      return sver;
+    }
+    final String vsab = fields[MRSAB_VSAB].trim();
+    final int index = vsab.indexOf("_");
+    return index == -1 ? "" : vsab.substring(index + 1);
   }
 
   /* see superclass */
