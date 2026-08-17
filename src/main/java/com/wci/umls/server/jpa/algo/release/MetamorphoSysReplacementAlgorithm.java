@@ -9,6 +9,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -56,11 +58,6 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
   /** The email. */
   private String email;
   
-  private String dataDir =
-      PropertyUtility.getProperties().getProperty("source.data.dir")
-          + File.separator + "ncim" + File.separator + "config"
-          + File.separator + "META";
-  
   private File outputPath = null;
   
   /**
@@ -101,7 +98,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 	        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
 	        + "META");
     logInfo("  outputPath: " + outputPath.getAbsolutePath());
-    logInfo("  dataDir: " + dataDir);
+    logInfo("  templatePath: " + getInputTemplatePath("MRCOLS.RRF").getParent());
     updateMrsab();
     updateMrcols();
     updateMrfiles();
@@ -140,8 +137,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           
           String mrfilesRow = "";
 
-          try (BufferedReader reader = new BufferedReader(new FileReader(
-              dataDir + File.separator + inputFile, StandardCharsets.UTF_8));
+          try (BufferedReader reader = newTemplateReader(inputFile);
                BufferedWriter writer = new BufferedWriter(new FileWriter(
                    outputPath + File.separator + outputFile, StandardCharsets.UTF_8))) {
 
@@ -220,6 +216,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
               e.printStackTrace();
+              throw e;
           }
       }
       
@@ -287,21 +284,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       
       
       public void updateMrcols() throws Exception {
-          String dataDir =
-              PropertyUtility.getProperties().getProperty("source.data.dir")
-                  + File.separator + "ncim" + File.separator + "config"
-                  + File.separator + "META";
           String mrcolsFile = "MRCOLS.RRF";
-          
-          // delete MRCOLS.RRF if it exists
-          File file = new File(outputPath + File.separator + mrcolsFile);
-          if (file.exists()) {
-              ConfigUtility.deleteFileIfExists(file);
-          }
 
           // parse template MRCOLS.RRF and create new one with updated column averages
-          try (BufferedReader reader = new BufferedReader(new FileReader(
-              dataDir + File.separator + mrcolsFile, StandardCharsets.UTF_8));
+          try (BufferedReader reader = newTemplateReader(mrcolsFile);
                BufferedWriter writer = new BufferedWriter(new FileWriter(
                    outputPath + File.separator + mrcolsFile, StandardCharsets.UTF_8))) {
 
@@ -347,6 +333,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
               e.printStackTrace();
+              throw e;
           }
       }
       
@@ -427,9 +414,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       }
       
       
-      public int findColumnIndex(String filename, String colname) throws IOException {
-          try (BufferedReader reader = new BufferedReader(new FileReader(
-              dataDir + File.separator + "MRFILES.RRF", StandardCharsets.UTF_8))) {
+      public int findColumnIndex(String filename, String colname)
+        throws Exception {
+          try (BufferedReader reader = newTemplateReader("MRFILES.RRF")) {
               String line;
               while ((line = reader.readLine()) != null) {
                   // Split the line by vertical bar
@@ -452,6 +439,41 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               // If we get here, we didn't find the filename
               return -1;
           }
+      }
+
+      /**
+       * Returns a reader for a release metadata template.
+       *
+       * @param fileName the file name
+       * @return the reader
+       * @throws Exception the exception
+       */
+      private BufferedReader newTemplateReader(String fileName)
+        throws Exception {
+          final Path source = getInputTemplatePath(fileName);
+          if (Files.isRegularFile(source)) {
+              return Files.newBufferedReader(source, StandardCharsets.UTF_8);
+          }
+          final InputStream in =
+              getClass().getResourceAsStream("/META/" + fileName);
+          if (in != null) {
+              return new BufferedReader(
+                  new InputStreamReader(in, StandardCharsets.UTF_8));
+          }
+          throw new LocalException("Release metadata template not found: "
+              + fileName + ". Checked input path " + source
+              + " and classpath resource META/" + fileName + ".");
+      }
+
+      /**
+       * Returns the input template path.
+       *
+       * @param fileName the file name
+       * @return the input path
+       */
+      private Path getInputTemplatePath(String fileName) {
+          return Paths.get(config.getProperty("source.data.dir"),
+              getProcess().getInputPath(), "META", fileName);
       }
       public double calculateAverageFieldLength(String filename, int fieldNumber) throws IOException {
           if (fieldNumber < 0) {
