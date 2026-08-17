@@ -482,8 +482,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           int totalLength =0;
           int count = 0;
 
-          try (BufferedReader reader = new BufferedReader(new FileReader(
-              outputPath + File.separator + filename, StandardCharsets.UTF_8), 32768)) { // Increased buffer size
+          try (BufferedReader reader = Files.newBufferedReader(
+              outputPath.toPath().resolve(filename), StandardCharsets.UTF_8)) {
         	            String line;
         	            int start, end, currentField;
         	            
