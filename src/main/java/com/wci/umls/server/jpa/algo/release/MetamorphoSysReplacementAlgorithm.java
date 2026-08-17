@@ -685,10 +685,11 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
   private void appendIncludedReleaseProperties(StringBuilder data)
     throws Exception {
     final File mrsabFile = new File(outputPath, "MRSAB.RRF");
-    appendRequiredReleaseProperty(data, "umls.release.ncit", mrsabFile,
-        "NCIT", "NCI");
-    appendRequiredReleaseProperty(data, "umls.release.umls", mrsabFile,
-        "MTH");
+    appendRequiredReleaseProperty(data, "umls.release.ncit",
+        formatNcitReleaseVersion(getMrsabVersion(mrsabFile, "NCIT", "NCI")),
+        mrsabFile);
+    appendRequiredReleaseProperty(data, "umls.release.umls",
+        getMrsabVersion(mrsabFile, "MTH"), mrsabFile);
   }
 
   /**
@@ -696,13 +697,12 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
    *
    * @param data the release.dat content builder
    * @param property the property name
+   * @param version the property value
    * @param mrsabFile the MRSAB file
-   * @param rsabs the acceptable source abbreviations
    * @throws Exception the exception
    */
   private void appendRequiredReleaseProperty(StringBuilder data,
-    String property, File mrsabFile, String... rsabs) throws Exception {
-    final String version = getMrsabVersion(mrsabFile, rsabs);
+    String property, String version, File mrsabFile) throws Exception {
     if (ConfigUtility.isEmpty(version)) {
       throw new LocalException("Unable to determine " + property + " from "
           + mrsabFile.getAbsolutePath());
@@ -747,6 +747,24 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       }
     }
     return fallbackVersion;
+  }
+
+  /**
+   * Formats an NCIT version for release.dat.
+   *
+   * @param version the MRSAB source version
+   * @return the release.dat formatted NCIT version
+   */
+  private String formatNcitReleaseVersion(String version) {
+    if (ConfigUtility.isEmpty(version)) {
+      return version;
+    }
+    final String trimmedVersion = version.trim();
+    if (trimmedVersion.matches("\\d{4}_\\d{2}[A-Za-z]")) {
+      return trimmedVersion.substring(2, 4) + "."
+          + trimmedVersion.substring(5).toLowerCase();
+    }
+    return trimmedVersion;
   }
 
   /**
