@@ -136,57 +136,57 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           String backupFile = "MRFILES.bak";
           
           String mrfilesRow = "";
+          final List<String> mrfilesLines = new ArrayList<>();
 
-          try (BufferedReader reader = newTemplateReader(inputFile);
-               BufferedWriter writer = new BufferedWriter(new FileWriter(
-                   outputPath + File.separator + outputFile, StandardCharsets.UTF_8))) {
+          try (BufferedReader reader = newTemplateReader(inputFile)) {
 
               String line;
+              int lineNumber = 0;
               while ((line = reader.readLine()) != null) {
+                  lineNumber++;
+                  if (line.trim().isEmpty()) {
+                      continue;
+                  }
                   // Split the line by pipe character
                   String[] fields = line.split("\\|");
+                  if (fields.length < 6) {
+                      throw new LocalException("Bad MRFILES.RRF template row "
+                          + lineNumber + ": " + line);
+                  }
                   
                   // Get the filename from the first field
                   String filename = fields[0];
                   
                   if (filename.equals("MRFILES.RRF")) {
-                	  mrfilesRow = line;
-                	  continue;
+                      mrfilesRow = line;
+                      continue;
                   }
-                  
+
                   try {
+                      final Path filePath = outputPath.toPath().resolve(filename);
                       // Get file size in bytes
-                      long fileSize = Files.size(Paths.get(outputPath + File.separator + filename));
-                      
+                      long fileSize = Files.size(filePath);
+
                       // Get the line count
-                      long lineCount = Files.lines(Paths.get(outputPath + File.separator + filename), StandardCharsets.UTF_8).count();
-                    	
-                      
+                      long lineCount = countFileLines(filePath);
+
                       // Create new line with all fields except last one
-                      StringBuilder newLine = new StringBuilder();
-                      for (int i = 0; i < fields.length - 2; i++) {
-                          newLine.append(fields[i]).append("|");
-                      }
-                      // Append the lineCount and a pipe
-                      newLine.append(lineCount).append("|");
-                      
-                      // Append the new file size and final pipe
-                      newLine.append(fileSize).append("|");
-                      
-                      // Write the modified line to output file
-                      writer.write(newLine.toString());
-                      writer.newLine();
-                      
-                      
+                      mrfilesLines.add(getMrfilesLine(fields, lineCount,
+                          fileSize));
+
                   } catch (NoSuchFileException e) {
-                      System.out.println("Warning: File " + filename + " not found. Keeping original line.");
-                      writer.write(line);
-                      writer.newLine();
+                      System.out.println("Warning: File " + filename
+                          + " not found. Skipping metadata row.");
                   }
               }
-              writer.write(mrfilesRow);
-              writer.newLine();
-              writer.close();
+              if (ConfigUtility.isEmpty(mrfilesRow)) {
+                  throw new LocalException("MRFILES.RRF template row not found");
+              }
+              mrfilesLines.add(getMrfilesLine(mrfilesRow.split("\\|"),
+                  mrfilesLines.size() + 1, 0));
+              mrfilesLines.sort(String::compareTo);
+              Files.write(outputPath.toPath().resolve(outputFile), mrfilesLines,
+                  StandardCharsets.UTF_8);
               
               adjustMrfilesByteCount(outputPath + File.separator + outputFile);
               
@@ -222,65 +222,74 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       
 
           public void adjustMrfilesByteCount(String filename) throws IOException {
-              // Get current file byte count
-              File file = new File(filename);
-              long actualByteCount = file.length();
-              
-              // Read all lines and get last line's byte count field
-              List<String> lines = new ArrayList<>();
-              String lastLine;
-              long claimedByteCount;
-              
-              try (BufferedReader reader = new BufferedReader(
-                  new FileReader(file, StandardCharsets.UTF_8))) {
-                  String line;
-                  while ((line = reader.readLine()) != null) {
-                      lines.add(line);
+              final Path path = Paths.get(filename);
+              final long actualByteCount = Files.size(path);
+              final List<String> lines =
+                  Files.readAllLines(path, StandardCharsets.UTF_8);
+              int mrfilesIndex = -1;
+              for (int i = 0; i < lines.size(); i++) {
+                  if (lines.get(i).startsWith("MRFILES.RRF|")) {
+                      mrfilesIndex = i;
+                      break;
                   }
-                  
-                  if (lines.isEmpty()) {
-                      throw new IOException("File is empty");
-                  }
-                  
-                  lastLine = lines.get(lines.size() - 1);
-                  String[] fields = lastLine.split("\\|");
-                  claimedByteCount = Long.parseLong(fields[fields.length - 1]);
               }
-              
-              // If byte counts match, we're done
-              if (actualByteCount == claimedByteCount) {
+              if (mrfilesIndex == -1) {
+                  throw new IOException("MRFILES.RRF row not found in "
+                      + filename);
+              }
+
+              final String[] fields = lines.get(mrfilesIndex).split("\\|");
+              final long claimedRowCount = Long.parseLong(fields[4]);
+              final long claimedByteCount = Long.parseLong(fields[5]);
+              if (actualByteCount == claimedByteCount
+                  && claimedRowCount == lines.size()) {
                   return;
               }
-              
-              // Otherwise, update the last line and rewrite the file
-              String[] lastLineFields = lastLine.split("\\|");
-              StringBuilder newLastLine = new StringBuilder();
-              
-              // Rebuild the last line with all fields except the last
-              for (int i = 0; i < lastLineFields.length - 1; i++) {
-                  newLastLine.append(lastLineFields[i]).append("|");
-              }
-              
-              // Add the actual byte count
-              newLastLine.append(actualByteCount).append("|");
-              
-              // Write all lines back to file
-              try (BufferedWriter writer = new BufferedWriter(
-                  new FileWriter(file, StandardCharsets.UTF_8))) {
-                  // Write all lines except the last
-                  for (int i = 0; i < lines.size() - 1; i++) {
-                      writer.write(lines.get(i));
-                      writer.newLine();
-                  }
-                  
-                  // Write the modified last line
-                  writer.write(newLastLine.toString());
-                  writer.newLine();
-              }
-              
-              // Recursive call to check if we're done
+
+              lines.set(mrfilesIndex, getMrfilesLine(fields, lines.size(),
+                  actualByteCount));
+              Files.write(path, lines, StandardCharsets.UTF_8);
+
+              // Recursive call to account for byte-count digit length changes.
               adjustMrfilesByteCount(filename);
           }
+
+      /**
+       * Returns an MRFILES row with updated row and byte counts.
+       *
+       * @param fields the MRFILES fields
+       * @param lineCount the row count
+       * @param fileSize the byte count
+       * @return the MRFILES row
+       */
+      private String getMrfilesLine(String[] fields, long lineCount,
+          long fileSize) {
+          final StringBuilder newLine = new StringBuilder();
+          for (int i = 0; i < fields.length - 2; i++) {
+              newLine.append(fields[i]).append("|");
+          }
+          newLine.append(lineCount).append("|");
+          newLine.append(fileSize).append("|");
+          return newLine.toString();
+      }
+
+      /**
+       * Returns the number of lines in a file.
+       *
+       * @param path the path
+       * @return the line count
+       * @throws IOException the IO exception
+       */
+      private long countFileLines(Path path) throws IOException {
+          long count = 0;
+          try (BufferedReader reader =
+              Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+              while (reader.readLine() != null) {
+                  count++;
+              }
+          }
+          return count;
+      }
       
       
       public void updateMrcols() throws Exception {
@@ -292,16 +301,36 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                    outputPath + File.separator + mrcolsFile, StandardCharsets.UTF_8))) {
 
               String line;
+              int lineNumber = 0;
               while ((line = reader.readLine()) != null) {
+                  lineNumber++;
+                  if (line.trim().isEmpty()) {
+                      continue;
+                  }
                   // Split the line by pipe character
                   String[] fields = line.split("\\|");
+                  if (fields.length < 8) {
+                      throw new LocalException("Bad MRCOLS.RRF template row "
+                          + lineNumber + ": " + line);
+                  }
                   
                   // Get the filename from the sixth field
                   String filename = fields[6];
-                  
+                  if (!Files.isRegularFile(outputPath.toPath().resolve(filename))) {
+                      System.out.println("Warning: File " + filename
+                          + " not found. Skipping metadata row.");
+                      continue;
+                  }
+
                   // Get the field number for the column listed in the first field
-                  int colIndex = findColumnIndex(filename, fields[0]);          
-                  
+                  int colIndex = findColumnIndex(filename, fields[0]);
+                  if (colIndex < 0) {
+                      System.out.println("Warning: File " + filename
+                          + " or column " + fields[0]
+                          + " not found in MRFILES.RRF. Skipping metadata row.");
+                      continue;
+                  }
+
                   try {
                       // Get the average 
                       double colAverage = calculateAverageFieldLength(filename, colIndex);
@@ -322,9 +351,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       writer.newLine();
                       
                   } catch (NoSuchFileException e) {
-                      System.out.println("Warning: File " + filename + " not found. Keeping original line.");
-                      writer.write(line);
-                      writer.newLine();
+                      System.out.println("Warning: File " + filename
+                          + " not found. Skipping metadata row.");
                   }
               }
               
@@ -418,12 +446,21 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
         throws Exception {
           try (BufferedReader reader = newTemplateReader("MRFILES.RRF")) {
               String line;
+              int lineNumber = 0;
               while ((line = reader.readLine()) != null) {
+                  lineNumber++;
+                  if (line.trim().isEmpty()) {
+                      continue;
+                  }
                   // Split the line by vertical bar
                   String[] fields = line.split("\\|");
-                  
+                  if (fields.length < 3) {
+                      throw new LocalException("Bad MRFILES.RRF template row "
+                          + lineNumber + ": " + line);
+                  }
+
                   // Check if this is the row we're looking for
-                  if (fields.length >= 3 && fields[0].equals(filename)) {
+                  if (fields[0].equals(filename)) {
                       // Get the comma-delimited column names from the third field
                       String columnNamesField = fields[2];
                       List<String> columnNames = Arrays.asList(columnNamesField.split(","));
