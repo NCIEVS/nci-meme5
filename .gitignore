@@ -228,3 +228,10 @@ pip-log.txt
 *.iml
 gradle.lockfile
 report.html
+
+#############
+## Frontend
+#############
+
+frontend/node_modules/
+frontend/.angular/
