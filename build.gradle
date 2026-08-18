@@ -2,6 +2,14 @@
 buildscript {
     ext {
         springBootVersion = '3.5.16'
+        httpCore5Version = '5.4.3'
+    }
+
+    configurations.classpath {
+        resolutionStrategy.force(
+                "org.apache.httpcomponents.core5:httpcore5:${httpCore5Version}",
+                "org.apache.httpcomponents.core5:httpcore5-h2:${httpCore5Version}"
+        )
     }
 
     repositories {
@@ -41,6 +49,7 @@ group = 'com.wcinformatics.umls.server'
 version = '2.0.0-SNAPSHOT'
 // Saved separately so adminJvmArgs can suppress the artifact version even when -Pversion overrides project.version
 ext.artifactVersion = '2.0.0-SNAPSHOT'
+ext.httpCore5Version = '5.4.3'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -92,6 +101,7 @@ ext {
 // Remove once Spring Boot 3.5.x manages Tomcat 10.1.55 or newer.
 ext['tomcat.version'] = '10.1.55'
 ext['jackson.version'] = jacksonVersion
+ext['httpcore5.version'] = httpCore5Version
 
 // ── Dependencies ───────────────────────────────────────────────────────────────
 dependencies {
