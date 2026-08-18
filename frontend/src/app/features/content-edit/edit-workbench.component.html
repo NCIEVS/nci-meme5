@@ -451,82 +451,161 @@
       @if (atomFormMode(); as mode) {
         <meme-dialog
           [title]="mode === 'add' ? 'Add Atom' : 'Edit Atom'"
-          size="xl"
           [closeDisabled]="atomFormPending()"
           (closed)="cancelAtomForm()"
         >
-          <div class="dialog-form">
+          <form class="dialog-form atom-dialog" (ngSubmit)="submitAtomForm(atomFormNeedsOverride())">
             @if (atomFormErrors().length) {
               <ul class="form-errors">
                 @for (e of atomFormErrors(); track e) { <li>{{ e }}</li> }
               </ul>
             }
             @if (atomFormWarnings().length) {
-              <ul class="form-errors" style="background:#fff7e6;border-color:#e8c16d;color:#744f11;">
+              <ul class="form-warnings">
                 @for (w of atomFormWarnings(); track w) { <li>{{ w }}</li> }
               </ul>
             }
 
-            <div class="split-grid">
-              <label class="form-field">
-                Name
-                <textarea rows="2" [ngModel]="atomFormName()" (ngModelChange)="atomFormName.set($event)"
-                          [disabled]="mode === 'edit'"></textarea>
-              </label>
-              <label class="form-field">
-                Termgroup
-                @if (mode === 'add') {
-                  <select [ngModel]="atomFormTermgroup()" (ngModelChange)="atomFormTermgroup.set($event)">
-                    @for (tg of newAtomTermgroups(); track tg) {
-                      <option [value]="tg">{{ tg }}</option>
+            <table class="atom-form-table slim-table">
+              <tbody>
+                <tr>
+                  <td class="atom-form-label">Name</td>
+                  <td>
+                    @if (mode === 'add') {
+                      <textarea
+                        autofocus
+                        rows="2"
+                        cols="40"
+                        name="atomName"
+                        placeholder="Name"
+                        [ngModel]="atomFormName()"
+                        (ngModelChange)="atomFormName.set($event)"
+                        [disabled]="atomFormPending()"
+                      ></textarea>
+                    } @else {
+                      <span class="atom-readonly-value">{{ atomFormName() }}</span>
                     }
-                  </select>
-                } @else {
-                  <input type="text" [value]="atomFormTermgroup()" disabled />
+                  </td>
+                </tr>
+                <tr>
+                  <td class="atom-form-label">Termgroup</td>
+                  <td>
+                    @if (mode === 'add') {
+                      <select
+                        name="atomTermgroup"
+                        [ngModel]="atomFormTermgroup()"
+                        (ngModelChange)="atomFormTermgroup.set($event)"
+                        [disabled]="atomFormPending()"
+                      >
+                        @for (tg of newAtomTermgroups(); track tg) {
+                          <option [value]="tg">{{ tg }}</option>
+                        }
+                      </select>
+                    } @else {
+                      <span class="atom-readonly-value">{{ atomFormTermgroup() }}</span>
+                    }
+                  </td>
+                </tr>
+                <tr>
+                  <td class="atom-form-label">Language</td>
+                  <td>
+                    @if (mode === 'add') {
+                      <select
+                        name="atomLanguage"
+                        [ngModel]="atomFormLanguage()"
+                        (ngModelChange)="atomFormLanguage.set($event)"
+                        [disabled]="atomFormPending()"
+                      >
+                        @for (language of atomLanguageOptions(); track atomLanguageOptionTrack(language, $index)) {
+                          <option [value]="atomLanguageOptionValue(language)">
+                            {{ atomLanguageOptionLabel(language) }}
+                          </option>
+                        }
+                      </select>
+                    } @else {
+                      <span class="atom-readonly-value">{{ atomFormLanguage() }}</span>
+                    }
+                  </td>
+                </tr>
+                @if (mode === 'add' || atomFormCodeId()) {
+                  <tr>
+                    <td class="atom-form-label">Code</td>
+                    <td>
+                      @if (mode === 'add') {
+                        <input
+                          type="text"
+                          name="atomCodeId"
+                          [ngModel]="atomFormCodeId()"
+                          (ngModelChange)="atomFormCodeId.set($event)"
+                          [disabled]="atomFormPending()"
+                        />
+                      } @else {
+                        <span class="atom-readonly-value">{{ atomFormCodeId() }}</span>
+                      }
+                    </td>
+                  </tr>
                 }
-              </label>
-              <label class="form-field">
-                Language
-                <input type="text" [ngModel]="atomFormLanguage()" (ngModelChange)="atomFormLanguage.set($event)"
-                       [disabled]="mode === 'edit'" />
-              </label>
-              <label class="form-field">
-                Code
-                <input type="text" [ngModel]="atomFormCodeId()" (ngModelChange)="atomFormCodeId.set($event)" [disabled]="mode === 'edit'" />
-              </label>
-              <label class="form-field">
-                Concept
-                <input type="text" [ngModel]="atomFormConceptId()" (ngModelChange)="atomFormConceptId.set($event)" [disabled]="mode === 'edit'" />
-              </label>
-              <label class="form-field">
-                Descriptor
-                <input type="text" [ngModel]="atomFormDescriptorId()" (ngModelChange)="atomFormDescriptorId.set($event)" [disabled]="mode === 'edit'" />
-              </label>
-              <label class="form-field form-field-inline">
-                <input type="checkbox" [ngModel]="atomFormPublishable()" (ngModelChange)="atomFormPublishable.set($event)" />
-                Publishable
-              </label>
-              <label class="form-field form-field-inline">
-                <input type="checkbox" [ngModel]="atomFormSuppressible()" (ngModelChange)="atomFormSuppressible.set($event)" />
-                Suppressible
-              </label>
-            </div>
+                @if (mode === 'add' || atomFormConceptId()) {
+                  <tr>
+                    <td class="atom-form-label">Concept</td>
+                    <td>
+                      @if (mode === 'add') {
+                        <input
+                          type="text"
+                          name="atomConceptId"
+                          [ngModel]="atomFormConceptId()"
+                          (ngModelChange)="atomFormConceptId.set($event)"
+                          [disabled]="atomFormPending()"
+                        />
+                      } @else {
+                        <span class="atom-readonly-value">{{ atomFormConceptId() }}</span>
+                      }
+                    </td>
+                  </tr>
+                }
+                @if (mode === 'add' || atomFormDescriptorId()) {
+                  <tr>
+                    <td class="atom-form-label">Descriptor</td>
+                    <td>
+                      @if (mode === 'add') {
+                        <input
+                          type="text"
+                          name="atomDescriptorId"
+                          [ngModel]="atomFormDescriptorId()"
+                          (ngModelChange)="atomFormDescriptorId.set($event)"
+                          [disabled]="atomFormPending()"
+                        />
+                      } @else {
+                        <span class="atom-readonly-value">{{ atomFormDescriptorId() }}</span>
+                      }
+                    </td>
+                  </tr>
+                }
+                @if (atomFormShowPublishable()) {
+                  <tr>
+                    <td class="atom-form-label">Publishable</td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        name="atomPublishable"
+                        title="Publishable flag"
+                        [ngModel]="atomFormPublishable()"
+                        (ngModelChange)="atomFormPublishable.set($event)"
+                        [disabled]="atomFormPending()"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
 
             <div class="form-actions">
-              @if (atomFormNeedsOverride()) {
-                <button type="button" class="btn-warning" (click)="submitAtomForm(true)"
-                        [disabled]="atomFormPending()">
-                  Override &amp; {{ mode === 'add' ? 'Add' : 'Update' }}
-                </button>
-              } @else {
-                <button type="button" class="btn-primary" (click)="submitAtomForm()"
-                        [disabled]="atomFormPending()">
-                  {{ atomFormPending() ? 'Saving…' : (mode === 'add' ? 'Add' : 'Update') }}
-                </button>
-              }
-              <button type="button" (click)="cancelAtomForm()" [disabled]="atomFormPending()">Cancel</button>
+              <button type="submit" class="btn-primary" [disabled]="atomFormPending()">
+                {{ atomFormPending() ? 'Saving...' : (mode === 'add' ? 'Add' : 'Edit') }}
+              </button>
+              <button type="button" class="warning" (click)="cancelAtomForm()" [disabled]="atomFormPending()">Cancel</button>
             </div>
-          </div>
+          </form>
         </meme-dialog>
       }
 

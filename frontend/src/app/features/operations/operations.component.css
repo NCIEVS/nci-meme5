@@ -2112,17 +2112,28 @@ tr.RXNORM td {
   opacity: 0;
 }
 
+.tree-more {
+  margin: 3px 0 6px;
+}
+
+.tree-more > li {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
 .highlighted {
   background: yellow;
 }
 
 .tree-more-button {
   min-height: 0;
-  padding: 0;
+  padding: 2px 4px;
   color: var(--meme-brand-action);
   background: transparent;
   border: 0;
   font-size: var(--meme-text-sm);
+  line-height: 1.35;
 }
 
 /* ─── Concept List left panel ─── */
@@ -2395,6 +2406,33 @@ tr.RXNORM td {
 }
 
 /* ─── Atoms workbench ─── */
+
+.atom-form-table {
+  width: auto;
+}
+
+.atom-form-table td {
+  padding: 4px 8px;
+  border-bottom: 0;
+}
+
+.atom-form-label {
+  width: 112px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.atom-form-table input[type="checkbox"] {
+  width: auto;
+  min-height: 0;
+  margin: 4px 0 0;
+}
+
+.atom-dialog button.warning {
+  color: var(--meme-warning-text) !important;
+  background: var(--meme-warning-bg) !important;
+  border: 1px solid var(--meme-warning-border) !important;
+}
 
 .form-field-inline {
   flex-direction: row;

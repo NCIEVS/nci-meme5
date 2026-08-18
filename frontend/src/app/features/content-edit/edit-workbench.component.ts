@@ -257,6 +257,7 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly atomFormVersion = signal('');
   protected readonly atomFormTargetId = signal<number | null>(null);
   protected readonly atomFormOriginalAtom = signal<ContentAtom | null>(null);
+  protected readonly atomFormClientErrors = signal<string[]>([]);
   protected readonly atomFormResult = signal<EditValidationResult | null>(null);
   protected readonly atomFormPending = signal(false);
 
@@ -517,7 +518,23 @@ export class EditWorkbenchComponent implements OnInit {
     return this.filteredAtoms().slice(start, start + this.atomPageSize());
   });
   protected readonly selectedAtomCount = computed(() => this.selectedAtomIds().size);
-  protected readonly atomFormErrors = computed(() => validationErrors(this.atomFormResult()));
+  protected readonly atomFormTermType = computed(() => {
+    const termgroup = this.atomFormTermgroup();
+    const slashIdx = termgroup.indexOf('/');
+    if (slashIdx >= 0) {
+      return termgroup.substring(slashIdx + 1);
+    }
+    return this.atomFormOriginalAtom()?.termType ?? '';
+  });
+  protected readonly atomFormShowPublishable = computed(() => this.atomFormTermType() === 'PN');
+  protected readonly atomLanguageOptions = computed<ContentKeyValuePair[]>(() => {
+    const languages = this.metadata()?.languages ?? [];
+    return languages.length ? languages : [{ key: 'ENG', value: 'English' }];
+  });
+  protected readonly atomFormErrors = computed(() => [
+    ...this.atomFormClientErrors(),
+    ...validationErrors(this.atomFormResult())
+  ]);
   protected readonly atomFormWarnings = computed(() => validationWarnings(this.atomFormResult()));
   protected readonly atomFormNeedsOverride = computed(
     () => validationNeedsWarningOverride(this.atomFormResult())
@@ -1063,13 +1080,14 @@ export class EditWorkbenchComponent implements OnInit {
     this.atomFormName.set('');
     this.atomFormTermgroup.set(firstTermgroup);
     this.atomFormLanguage.set('ENG');
-    this.atomFormCodeId.set('');
+    this.atomFormCodeId.set('NOCODE');
     this.atomFormConceptId.set('');
     this.atomFormDescriptorId.set('');
     this.atomFormPublishable.set(true);
     this.atomFormSuppressible.set(false);
     this.atomFormVersion.set(versionFromAtoms);
     this.atomFormTargetId.set(null);
+    this.atomFormClientErrors.set([]);
     this.atomFormResult.set(null);
   }
 
@@ -1086,12 +1104,14 @@ export class EditWorkbenchComponent implements OnInit {
     this.atomFormSuppressible.set(atom.suppressible === true);
     this.atomFormVersion.set(atom.version ?? '');
     this.atomFormTargetId.set(atom.id ?? null);
+    this.atomFormClientErrors.set([]);
     this.atomFormResult.set(null);
   }
 
   protected cancelAtomForm(): void {
     this.atomFormMode.set(null);
     this.atomFormOriginalAtom.set(null);
+    this.atomFormClientErrors.set([]);
     this.atomFormResult.set(null);
   }
 
@@ -1103,6 +1123,7 @@ export class EditWorkbenchComponent implements OnInit {
     const lastModified = this.conceptLastModified();
     const activityId = this.workbenchActivityId();
     if (!projectId || !concept?.id || !lastModified) return;
+    this.atomFormClientErrors.set([]);
 
     let atom: ContentAtom;
     if (mode === 'edit') {
@@ -1120,6 +1141,15 @@ export class EditWorkbenchComponent implements OnInit {
       const slashIdx = termgroup.indexOf('/');
       const terminology = slashIdx >= 0 ? termgroup.substring(0, slashIdx) : termgroup;
       const termType = slashIdx >= 0 ? termgroup.substring(slashIdx + 1) : '';
+      const codeId = this.atomFormCodeId().trim();
+      const conceptId = this.atomFormConceptId().trim();
+      const descriptorId = this.atomFormDescriptorId().trim();
+      if (!this.atomFormName().trim() || !termgroup.trim() || (!codeId && !conceptId && !descriptorId)) {
+        this.atomFormClientErrors.set([
+          'Name, termgroup and at least one id must be entered for new atom'
+        ]);
+        return;
+      }
       const version = this.conceptAtoms().find((a) => a.terminology === terminology)?.version
         ?? this.conceptVersion();
       atom = {
@@ -1127,10 +1157,11 @@ export class EditWorkbenchComponent implements OnInit {
         terminology,
         termType,
         version: version || undefined,
-        language: this.atomFormLanguage(),
-        codeId: this.atomFormCodeId() || undefined,
-        conceptId: this.atomFormConceptId() || undefined,
-        descriptorId: this.atomFormDescriptorId() || undefined,
+        language: this.atomFormLanguage() || 'ENG',
+        terminologyId: '',
+        codeId,
+        conceptId,
+        descriptorId,
         publishable: this.atomFormPublishable(),
         suppressible: this.atomFormSuppressible(),
         workflowStatus: 'NEEDS_REVIEW',
@@ -1401,6 +1432,18 @@ export class EditWorkbenchComponent implements OnInit {
     const value = option.value?.trim() ?? '';
 
     return [key, value].filter(Boolean).join(' ');
+  }
+
+  protected atomLanguageOptionValue(option: ContentKeyValuePair): string {
+    return option.key?.trim() || option.value?.trim() || '';
+  }
+
+  protected atomLanguageOptionLabel(option: ContentKeyValuePair): string {
+    return option.value?.trim() || option.key?.trim() || '';
+  }
+
+  protected atomLanguageOptionTrack(option: ContentKeyValuePair, index: number): string {
+    return option.key?.trim() || option.value?.trim() || String(index);
   }
 
   protected setRelationshipAddTargetConceptId(value: string): void {
