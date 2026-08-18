@@ -1,3 +1,11 @@
 @if (loading.isLoading()) {
   <div class="loading-bar" aria-label="Loading"></div>
 }
+@if (loading.isUiBlocked()) {
+  <div class="loading-glass-pane" aria-busy="true" aria-live="polite" role="status">
+    <div class="loading-glass-status">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <span>Working...</span>
+    </div>
+  </div>
+}

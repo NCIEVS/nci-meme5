@@ -6,6 +6,7 @@ import { LoadingIndicatorComponent } from './shared/loading/loading-indicator.co
 import { NotificationsComponent } from './shared/notifications/notifications.component';
 import { FooterComponent } from './shell/footer/footer.component';
 import { HeaderComponent } from './shell/header/header.component';
+import { LoadingService } from './core/http/loading.service';
 
 @Component({
   selector: 'meme-root',
@@ -21,6 +22,7 @@ import { HeaderComponent } from './shell/header/header.component';
 })
 export class AppComponent {
   private readonly router = inject(Router);
+  protected readonly loading = inject(LoadingService);
   protected readonly shellHidden = signal(false);
 
   constructor() {

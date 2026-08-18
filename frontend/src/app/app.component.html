@@ -1,13 +1,17 @@
 <meme-loading-indicator />
 @if (!shellHidden()) {
-  <meme-header />
+  <meme-header [attr.inert]="loading.isUiBlocked() ? '' : null" />
 }
-<meme-notifications />
+<meme-notifications [attr.inert]="loading.isUiBlocked() ? '' : null" />
 
-<main class="app-main" [class.app-main--bare]="shellHidden()">
+<main
+  class="app-main"
+  [class.app-main--bare]="shellHidden()"
+  [attr.inert]="loading.isUiBlocked() ? '' : null"
+>
   <router-outlet />
 </main>
 
 @if (!shellHidden()) {
-  <meme-footer />
+  <meme-footer [attr.inert]="loading.isUiBlocked() ? '' : null" />
 }
