@@ -126,7 +126,14 @@ export class ProcessComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationService);
   private readonly projectContext = inject(ProjectContextService);
+  private readonly algorithmStepDragScrollMargin = 90;
+  private readonly algorithmStepDragScrollMaxDelta = 28;
+  private readonly algorithmStepDragScrollListener = (event: DragEvent) =>
+    this.updateAlgorithmStepDragAutoScroll(event);
   private executionFeedbackSubscription: Subscription | null = null;
+  private algorithmStepDragScrollDelta = 0;
+  private algorithmStepDragScrollFrame: number | null = null;
+  private algorithmStepDragScrollTarget: HTMLElement | Window | null = null;
   private readonly runningStateSubscription = new Subscription();
 
   protected readonly configPage = signal(1);
@@ -272,6 +279,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopAlgorithmStepDragAutoScroll();
     this.stopExecutionFeedbackPolling();
     this.runningStateSubscription.unsubscribe();
   }
@@ -1355,6 +1363,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
     }
 
     this.draggingAlgorithmStepIndex.set(index);
+    this.startAlgorithmStepDragAutoScroll(event);
     event.dataTransfer?.setData('text/plain', String(index));
     event.dataTransfer?.setDragImage(event.currentTarget as Element, 0, 0);
     if (event.dataTransfer) {
@@ -1364,6 +1373,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
   protected dragOverAlgorithmStep(event: DragEvent, index: number): void {
     const sourceIndex = this.draggingAlgorithmStepIndex();
+    this.updateAlgorithmStepDragAutoScroll(event);
 
     if (
       sourceIndex !== null &&
@@ -1393,6 +1403,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
     event.preventDefault();
     event.stopPropagation();
+    this.stopAlgorithmStepDragAutoScroll();
     this.draggingAlgorithmStepIndex.set(null);
 
     if (
@@ -1409,6 +1420,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
   }
 
   protected clearAlgorithmStepDrag(): void {
+    this.stopAlgorithmStepDragAutoScroll();
     this.draggingAlgorithmStepIndex.set(null);
   }
 
@@ -1467,6 +1479,133 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
   private restoreAlgorithmStepDropViewport(left: number, top: number): void {
     requestAnimationFrame(() => window.scrollTo(left, top));
+  }
+
+  private startAlgorithmStepDragAutoScroll(event: DragEvent): void {
+    this.stopAlgorithmStepDragAutoScroll();
+    document.addEventListener('dragover', this.algorithmStepDragScrollListener, true);
+    this.updateAlgorithmStepDragAutoScroll(event);
+  }
+
+  private stopAlgorithmStepDragAutoScroll(): void {
+    document.removeEventListener('dragover', this.algorithmStepDragScrollListener, true);
+    this.algorithmStepDragScrollDelta = 0;
+    this.algorithmStepDragScrollTarget = null;
+    if (this.algorithmStepDragScrollFrame !== null) {
+      cancelAnimationFrame(this.algorithmStepDragScrollFrame);
+      this.algorithmStepDragScrollFrame = null;
+    }
+  }
+
+  private updateAlgorithmStepDragAutoScroll(event: DragEvent): void {
+    if (this.draggingAlgorithmStepIndex() === null || event.clientY < 0) {
+      this.algorithmStepDragScrollDelta = 0;
+      return;
+    }
+
+    const scrollTarget = this.findAlgorithmStepDragScrollTarget(event);
+    if (!scrollTarget) {
+      this.algorithmStepDragScrollDelta = 0;
+      return;
+    }
+
+    const bounds = this.dragScrollBounds(scrollTarget);
+    const threshold = Math.min(
+      this.algorithmStepDragScrollMargin,
+      Math.max(36, bounds.height / 3)
+    );
+    let delta = 0;
+
+    if (event.clientY < bounds.top + threshold) {
+      delta = -this.dragScrollDelta(bounds.top + threshold - event.clientY, threshold);
+    } else if (event.clientY > bounds.bottom - threshold) {
+      delta = this.dragScrollDelta(event.clientY - (bounds.bottom - threshold), threshold);
+    }
+
+    this.algorithmStepDragScrollTarget = scrollTarget;
+    this.algorithmStepDragScrollDelta = delta;
+    if (delta !== 0 && this.algorithmStepDragScrollFrame === null) {
+      this.algorithmStepDragScrollFrame = requestAnimationFrame(() => this.runAlgorithmStepDragAutoScroll());
+    }
+  }
+
+  private runAlgorithmStepDragAutoScroll(): void {
+    const target = this.algorithmStepDragScrollTarget;
+    const delta = this.algorithmStepDragScrollDelta;
+
+    if (!target || delta === 0) {
+      this.algorithmStepDragScrollFrame = null;
+      return;
+    }
+
+    if (this.isWindowDragScrollTarget(target)) {
+      window.scrollBy(0, delta);
+    } else {
+      target.scrollTop += delta;
+    }
+
+    this.algorithmStepDragScrollFrame = requestAnimationFrame(() => this.runAlgorithmStepDragAutoScroll());
+  }
+
+  private findAlgorithmStepDragScrollTarget(event: DragEvent): HTMLElement | Window | null {
+    const element = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null;
+    const scrollableElement = this.closestScrollableElement(element);
+
+    if (scrollableElement) {
+      return scrollableElement;
+    }
+
+    return this.canScrollWindow() ? window : null;
+  }
+
+  private closestScrollableElement(element: HTMLElement | null): HTMLElement | null {
+    let current = element;
+
+    while (current && current !== document.body && current !== document.documentElement) {
+      const style = window.getComputedStyle(current);
+      const canScrollY =
+        /(auto|scroll|overlay)/.test(style.overflowY) &&
+        current.scrollHeight > current.clientHeight + 1;
+
+      if (canScrollY) {
+        return current;
+      }
+
+      current = current.parentElement;
+    }
+
+    return null;
+  }
+
+  private canScrollWindow(): boolean {
+    const root = document.scrollingElement ?? document.documentElement;
+    return root.scrollHeight > window.innerHeight + 1;
+  }
+
+  private dragScrollBounds(target: HTMLElement | Window): { bottom: number; height: number; top: number } {
+    if (this.isWindowDragScrollTarget(target)) {
+      return {
+        bottom: window.innerHeight,
+        height: window.innerHeight,
+        top: 0
+      };
+    }
+
+    const rect = target.getBoundingClientRect();
+    return {
+      bottom: rect.bottom,
+      height: rect.height,
+      top: rect.top
+    };
+  }
+
+  private isWindowDragScrollTarget(target: HTMLElement | Window): target is Window {
+    return target === window;
+  }
+
+  private dragScrollDelta(distanceIntoThreshold: number, threshold: number): number {
+    const ratio = Math.min(1, Math.max(0, distanceIntoThreshold / threshold));
+    return Math.max(4, Math.round(ratio * this.algorithmStepDragScrollMaxDelta));
   }
 
   protected selectConfig(config: ProcessConfig | null): void {
