@@ -8,6 +8,7 @@ import {
   of,
   Subscription,
   switchMap,
+  timeout,
   timer
 } from 'rxjs';
 
@@ -130,10 +131,22 @@ export class ProcessComponent implements OnInit, OnDestroy {
   private readonly algorithmStepDragScrollMaxDelta = 28;
   private readonly algorithmStepDragScrollListener = (event: DragEvent) =>
     this.updateAlgorithmStepDragAutoScroll(event);
+  private readonly executionFeedbackRequestTimeoutMs = 30000;
+  private readonly executionProgressBoundaryRefreshDelayMs = 500;
+  private readonly processFocusRefreshListener = () =>
+    this.refreshProcessViewAfterResume();
+  private readonly processVisibilityRefreshListener = () => {
+    if (document.visibilityState === 'visible') {
+      this.refreshProcessViewAfterResume();
+    }
+  };
   private executionFeedbackSubscription: Subscription | null = null;
   private algorithmStepDragScrollDelta = 0;
   private algorithmStepDragScrollFrame: number | null = null;
   private algorithmStepDragScrollTarget: HTMLElement | Window | null = null;
+  private executionFeedbackRequestSeq = 0;
+  private latestAppliedExecutionFeedbackSeq = 0;
+  private progressBoundaryRefreshTimer: number | null = null;
   private readonly runningStateSubscription = new Subscription();
 
   protected readonly configPage = signal(1);
@@ -276,10 +289,13 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.loadProjects();
     this.load();
     this.startRunningStateRefresh();
+    this.startProcessResumeRefresh();
   }
 
   ngOnDestroy(): void {
     this.stopAlgorithmStepDragAutoScroll();
+    this.stopProcessResumeRefresh();
+    this.clearProgressBoundaryRefresh();
     this.stopExecutionFeedbackPolling();
     this.runningStateSubscription.unsubscribe();
   }
@@ -2032,6 +2048,8 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
     if (step.failDate && step.finishDate) {
       status = 'CANCELLED';
+    } else if (step.stopDate) {
+      status = 'STOPPED';
     } else if (step.failDate) {
       status = 'FAILED';
     } else if (step.finishDate) {
@@ -2244,6 +2262,29 @@ export class ProcessComponent implements OnInit, OnDestroy {
     );
   }
 
+  private startProcessResumeRefresh(): void {
+    window.addEventListener('focus', this.processFocusRefreshListener);
+    document.addEventListener(
+      'visibilitychange',
+      this.processVisibilityRefreshListener
+    );
+  }
+
+  private stopProcessResumeRefresh(): void {
+    window.removeEventListener('focus', this.processFocusRefreshListener);
+    document.removeEventListener(
+      'visibilitychange',
+      this.processVisibilityRefreshListener
+    );
+  }
+
+  private refreshProcessViewAfterResume(): void {
+    this.refreshRunningExecutions();
+    if (this.selectedMode() === 'Execution' && this.selectedExecution()?.id) {
+      this.refreshSelectedExecutionFeedback(false, false);
+    }
+  }
+
   private refreshRunningExecutions(): void {
     const projectId = this.projectId();
 
@@ -2286,7 +2327,10 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.stepProgress.set(null);
   }
 
-  protected refreshSelectedExecutionFeedback(polling: boolean): void {
+  protected refreshSelectedExecutionFeedback(
+    polling: boolean,
+    notifyOnError = !polling
+  ): void {
     const projectId = this.projectId();
     const executionId = this.selectedExecution()?.id;
 
@@ -2302,10 +2346,12 @@ export class ProcessComponent implements OnInit, OnDestroy {
       this.loadingExecutionDetail.set(true);
     }
 
+    const requestSeq = ++this.executionFeedbackRequestSeq;
     this.loadingExecutionFeedback.set(true);
     this.api
       .getProcessExecution(projectId, executionId)
       .pipe(
+        timeout(this.executionFeedbackRequestTimeoutMs),
         switchMap((detail) => {
           const currentStep = this.activeOrLastExecutionStep(detail);
           const currentStepId = currentStep?.id ?? null;
@@ -2314,11 +2360,17 @@ export class ProcessComponent implements OnInit, OnDestroy {
             detail: of(detail),
             processProgress: this.api
               .getProcessProgress(projectId, executionId)
-              .pipe(catchError(() => of(null))),
+              .pipe(
+                timeout(this.executionFeedbackRequestTimeoutMs),
+                catchError(() => of(null))
+              ),
             stepProgress: currentStepId
               ? this.api
                   .getAlgorithmProgress(projectId, currentStepId)
-                  .pipe(catchError(() => of(null)))
+                  .pipe(
+                    timeout(this.executionFeedbackRequestTimeoutMs),
+                    catchError(() => of(null))
+                  )
               : of(null)
           });
         }),
@@ -2331,11 +2383,15 @@ export class ProcessComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: ({ detail, processProgress, stepProgress }) => {
+          if (requestSeq < this.latestAppliedExecutionFeedbackSeq) {
+            return;
+          }
           if (this.selectedExecution()?.id !== detail.id) {
             return;
           }
 
           const currentStep = this.activeOrLastExecutionStep(detail);
+          this.latestAppliedExecutionFeedbackSeq = requestSeq;
 
           this.selectedExecution.set(detail);
           this.replaceExecution(detail);
@@ -2349,16 +2405,75 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
           if (this.isProcessRunning(detail)) {
             this.startExecutionFeedbackPolling(detail);
+            if (
+              this.shouldRefreshExecutionAfterProgressBoundary(
+                detail,
+                currentStep,
+                processProgress,
+                stepProgress
+              )
+            ) {
+              this.scheduleProgressBoundaryRefresh();
+            }
           } else {
+            this.clearProgressBoundaryRefresh();
             this.stopExecutionFeedbackPolling();
           }
         },
         error: () => {
-          if (!polling) {
+          if (notifyOnError) {
             this.notifications.error('Process execution detail could not be loaded.');
           }
         }
       });
+  }
+
+  private shouldRefreshExecutionAfterProgressBoundary(
+    execution: ProcessExecution,
+    currentStep: ProcessStep | null,
+    processProgress: number | null,
+    stepProgress: number | null
+  ): boolean {
+    if (!this.isProcessRunning(execution)) {
+      return false;
+    }
+
+    if (processProgress !== null && processProgress >= 100) {
+      return true;
+    }
+
+    return Boolean(
+      currentStep &&
+        !this.hasTerminalStepDate(currentStep) &&
+        stepProgress !== null &&
+        (stepProgress < 0 || stepProgress >= 100)
+    );
+  }
+
+  private hasTerminalStepDate(step: ProcessStep): boolean {
+    return Boolean(step.stopDate || step.failDate || step.finishDate);
+  }
+
+  private scheduleProgressBoundaryRefresh(): void {
+    if (this.progressBoundaryRefreshTimer !== null) {
+      return;
+    }
+
+    this.progressBoundaryRefreshTimer = window.setTimeout(() => {
+      this.progressBoundaryRefreshTimer = null;
+      if (this.selectedMode() === 'Execution' && this.selectedExecution()?.id) {
+        this.refreshSelectedExecutionFeedback(false, false);
+      }
+    }, this.executionProgressBoundaryRefreshDelayMs);
+  }
+
+  private clearProgressBoundaryRefresh(): void {
+    if (this.progressBoundaryRefreshTimer === null) {
+      return;
+    }
+
+    window.clearTimeout(this.progressBoundaryRefreshTimer);
+    this.progressBoundaryRefreshTimer = null;
   }
 
   protected openProcessLog(process: ProcessConfig | ProcessExecution): void {

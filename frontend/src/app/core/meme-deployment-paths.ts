@@ -2,8 +2,10 @@ const DEFAULT_API_BASE_URL = '/umls-server-rest';
 const UI20_PATH_SEGMENT = '/ui20';
 
 export interface MemeLocation {
+  hash?: string;
   origin: string;
   pathname: string;
+  search?: string;
 }
 
 export function resolveMemeApiBaseUrl(pathname = currentPathname()): string {
@@ -40,6 +42,29 @@ export function legacyMemeUrl(path: string, apiBaseUrl: string): string {
   const route = path.replace(/^\/+/, '');
 
   return `${baseUrl}/#/${route}`;
+}
+
+export function canonicalMemeAppEntryUrl(
+  location = currentLocation()
+): string | null {
+  const pathname = location.pathname || '/';
+  const ui20Match = pathname.match(/^(.*\/ui20)\/?$/i);
+
+  if (!ui20Match) {
+    return null;
+  }
+
+  return `${location.origin}${ui20Match[1]}/index.html${location.search ?? ''}${location.hash ?? ''}`;
+}
+
+export function canonicalizeMemeAppEntryUrl(): void {
+  const url = canonicalMemeAppEntryUrl();
+
+  if (!url) {
+    return;
+  }
+
+  globalThis.history.replaceState(globalThis.history.state, '', url);
 }
 
 function memeAppEntryUrl(location: MemeLocation): string {

@@ -1,4 +1,5 @@
 import {
+  canonicalMemeAppEntryUrl,
   legacyMemeUrl,
   memeAppRouteUrl,
   resolveMemeApiBaseUrl
@@ -62,5 +63,45 @@ describe('meme deployment paths', () => {
         pathname: '/'
       })
     ).toBe('http://localhost:4200/#/concept-report?id=1');
+  });
+
+  it('canonicalizes packaged ui20 hash routes to the explicit index page', () => {
+    expect(
+      canonicalMemeAppEntryUrl({
+        hash: '#/process',
+        origin: 'http://localhost:8080',
+        pathname: '/umls-server-rest/ui20/',
+        search: ''
+      })
+    ).toBe('http://localhost:8080/umls-server-rest/ui20/index.html#/process');
+
+    expect(
+      canonicalMemeAppEntryUrl({
+        hash: '#/workflow',
+        origin: 'http://localhost:8080',
+        pathname: '/umls-server-rest/ui20',
+        search: ''
+      })
+    ).toBe('http://localhost:8080/umls-server-rest/ui20/index.html#/workflow');
+  });
+
+  it('does not canonicalize already explicit index or local dev URLs', () => {
+    expect(
+      canonicalMemeAppEntryUrl({
+        hash: '#/process',
+        origin: 'http://localhost:8080',
+        pathname: '/umls-server-rest/ui20/index.html',
+        search: ''
+      })
+    ).toBeNull();
+
+    expect(
+      canonicalMemeAppEntryUrl({
+        hash: '#/process',
+        origin: 'http://localhost:4200',
+        pathname: '/',
+        search: ''
+      })
+    ).toBeNull();
   });
 });
