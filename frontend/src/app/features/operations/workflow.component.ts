@@ -168,6 +168,8 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   private readonly workflowLiveUpdates = inject(WorkflowLiveUpdateService);
 
   private binRegenerationPollSubscription: Subscription | null = null;
+  private checklistFilterReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private checklistReloadRequestId = 0;
   private workflowLiveSubscription: Subscription | null = null;
 
   protected readonly actingWorkflowItemKey = signal<string | null>(null);
@@ -467,6 +469,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.clearScheduledChecklistFilterReload();
     this.workflowLiveSubscription?.unsubscribe();
     this.stopBinRegenerationProgressPolling();
     this.workflowLiveUpdates.disconnect();
@@ -624,6 +627,9 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.clearScheduledChecklistFilterReload();
+    const requestId = ++this.checklistReloadRequestId;
+    const shouldRestoreFilterFocus = this.isElementFocused('workflow-checklist-filter');
     const query = this.prepListQuery(this.checklistFilter());
     const pfs = buildOperationalPfs(
       this.checklistPage(),
@@ -635,10 +641,21 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     this.api.findChecklists(projectId, query, pfs).subscribe({
       next: (result) => {
+        if (requestId !== this.checklistReloadRequestId) {
+          return;
+        }
+
         this.checklists.set(result.items);
         this.checklistsTotal.set(result.totalCount);
+        if (shouldRestoreFilterFocus) {
+          this.restoreFocusIfUnclaimed('workflow-checklist-filter');
+        }
       },
-      error: () => this.notifications.error('Checklists could not be reloaded.')
+      error: () => {
+        if (requestId === this.checklistReloadRequestId) {
+          this.notifications.error('Checklists could not be reloaded.');
+        }
+      }
     });
   }
 
@@ -687,6 +704,12 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
   protected setChecklistFilter(value: string): void {
     this.checklistFilter.set(value);
+    this.checklistPage.set(1);
+    this.checklistReloadRequestId++;
+    this.scheduleChecklistFilterReload();
+  }
+
+  protected applyChecklistFilterNow(): void {
     this.checklistPage.set(1);
     this.reloadChecklists();
   }
@@ -815,7 +838,24 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return '';
     }
 
-    return q.includes('(') || q.includes(':') || q.includes('"') ? q : `${q}*`;
+    if (this.isExplicitListQuery(q)) {
+      return q;
+    }
+
+    return q
+      .split(/[\s_-]+/)
+      .map((term) => this.escapeListQueryTerm(term))
+      .filter(Boolean)
+      .map((term) => `name:${term}*`)
+      .join(' AND ');
+  }
+
+  private isExplicitListQuery(query: string): boolean {
+    return /[:()[\]{}"~*?^]|\b(?:AND|OR|NOT)\b|&&|\|\|/i.test(query);
+  }
+
+  private escapeListQueryTerm(term: string): string {
+    return term.replace(/([+\-!(){}\[\]^"~*?:\\/])/g, '\\$1');
   }
 
   protected worklistPageTo(page: number): void {
@@ -826,6 +866,39 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected checklistPageTo(page: number): void {
     this.checklistPage.set(page);
     this.reloadChecklists();
+  }
+
+  private scheduleChecklistFilterReload(): void {
+    this.clearScheduledChecklistFilterReload();
+    this.checklistFilterReloadTimer = setTimeout(() => {
+      this.checklistFilterReloadTimer = null;
+      this.reloadChecklists();
+    }, 300);
+  }
+
+  private clearScheduledChecklistFilterReload(): void {
+    if (!this.checklistFilterReloadTimer) {
+      return;
+    }
+
+    clearTimeout(this.checklistFilterReloadTimer);
+    this.checklistFilterReloadTimer = null;
+  }
+
+  private isElementFocused(elementId: string): boolean {
+    return document.activeElement === document.getElementById(elementId);
+  }
+
+  private restoreFocusIfUnclaimed(elementId: string): void {
+    if (document.activeElement !== document.body) {
+      return;
+    }
+
+    setTimeout(() => {
+      if (document.activeElement === document.body) {
+        document.getElementById(elementId)?.focus({ preventScroll: true });
+      }
+    }, 0);
   }
 
   protected setFilter(value: string): void {

@@ -273,7 +273,7 @@ export class EditWorkbenchComponent implements OnInit {
 
   // Atoms workbench — split dialog
   protected readonly splitDialogOpen = signal(false);
-  protected readonly splitCopy = signal(true);
+  protected readonly splitCopy = signal(false);
   protected readonly splitRelationshipType = signal('RO');
   protected readonly splitResult = signal<EditValidationResult | null>(null);
   protected readonly splitPending = signal(false);
@@ -1281,7 +1281,7 @@ export class EditWorkbenchComponent implements OnInit {
   }
 
   protected openSplitDialog(): void {
-    this.splitCopy.set(true);
+    this.splitCopy.set(false);
     this.splitRelationshipType.set('RO');
     this.splitResult.set(null);
     this.splitDialogOpen.set(true);

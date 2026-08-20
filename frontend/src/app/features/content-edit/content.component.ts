@@ -8,7 +8,7 @@ import {
   ReportPanelTab
 } from '../../shared/concept-report-panel/concept-report-panel.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { finalize, map, Observable, of, switchMap } from 'rxjs';
+import { catchError, finalize, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { formatEasternDate } from '../../core/maintenance-window-time';
@@ -139,6 +139,8 @@ export class ContentComponent implements OnInit {
   private pendingEditConceptId: number | null = null;
   private pendingEditRecordId: number | null = null;
   private pendingEditWorklistId: number | null = null;
+  private worklistFilterReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private worklistLoadRequestId = 0;
   protected readonly projectContext = inject(ProjectContextService);
 
   protected readonly componentTypes: SearchableContentType[] = [
@@ -623,6 +625,13 @@ export class ContentComponent implements OnInit {
   protected readonly worklistTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.worklistsTotalCount() / this.worklistPageSize))
   );
+  protected readonly worklistEmptyMessage = computed(() => {
+    const kind = this.worklistMode() === 'Checklists' ? 'checklists' : 'worklists';
+
+    return this.worklistFilter()
+      ? `No matching ${kind} found.`
+      : `No ${kind}.`;
+  });
   protected readonly recordsTotalPages = computed(() =>
     Math.max(1, Math.ceil(this.recordsTotalCount() / this.recordsPageSize()))
   );
@@ -1430,7 +1439,10 @@ export class ContentComponent implements OnInit {
     (window as any).__memeGetPeerConcepts = (excludeId: number) =>
       this.conceptList().filter(c => c.id !== excludeId);
 
-    this.destroyRef.onDestroy(() => { delete (window as any).__memeGetPeerConcepts; });
+    this.destroyRef.onDestroy(() => {
+      this.clearScheduledWorklistFilterReload();
+      delete (window as any).__memeGetPeerConcepts;
+    });
 
     this.restoreEditPreferences();
     this.applyRouteContext();
@@ -5511,8 +5523,8 @@ export class ContentComponent implements OnInit {
     if (this.pendingEditConceptId && concept.id === this.pendingEditConceptId) {
       this.pendingEditConceptId = null;
       this.selectConceptFromList(concept);
-    } else if (updated.length === 1 && !this.pendingEditConceptId) {
-      this.selectConceptFromList(updated[0]);
+    } else {
+      this.selectSoleConceptIfNeeded(updated);
     }
   }
 
@@ -5526,8 +5538,8 @@ export class ContentComponent implements OnInit {
         this.selectedComponent.set(null);
         this.saveUserPreferenceProperties({ editConcept: '' });
       }
-    } else if (updated.length === 1 && !this.selectedComponent()) {
-      this.selectConceptFromList(updated[0]);
+    } else {
+      this.selectSoleConceptIfNeeded(updated);
     }
   }
 
@@ -5537,12 +5549,14 @@ export class ContentComponent implements OnInit {
     this.api.getComponentById('concept', concept.id, projectId).subscribe({
       next: (updated) => {
         if (!updated) return;
-        this.conceptList.update((list) =>
-          list.map((c) => (c.id === concept.id ? updated : c)).sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
-        );
+        const updatedList = this.conceptList()
+          .map((c) => (c.id === concept.id ? updated : c))
+          .sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+        this.conceptList.set(updatedList);
         if (this.selectedComponent()?.id === concept.id) {
           this.selectedComponent.set(updated);
         }
+        this.selectSoleConceptIfNeeded(updatedList);
       },
       error: () => {}
     });
@@ -5552,14 +5566,16 @@ export class ContentComponent implements OnInit {
     fromConceptId: number,
     toConceptId: number | null | undefined
   ): void {
-    this.conceptList.update((list) =>
-      list.filter((concept) => concept.id !== fromConceptId)
+    const remainingConcepts = this.conceptList().filter(
+      (concept) => concept.id !== fromConceptId
     );
+    this.conceptList.set(remainingConcepts);
     if (this.selectedComponent()?.id === fromConceptId) {
       this.selectedComponent.set(null);
       this.selectedResult.set(null);
       this.saveUserPreferenceProperties({ editConcept: '' });
     }
+    this.selectSoleConceptIfNeeded(remainingConcepts);
 
     const projectId = this.projectId();
     if (!projectId || !toConceptId) {
@@ -5600,8 +5616,22 @@ export class ContentComponent implements OnInit {
     }
   }
 
+  private selectSoleConceptIfNeeded(list = this.conceptList()): void {
+    if (this.pendingEditConceptId || list.length !== 1) {
+      return;
+    }
+
+    const concept = list[0];
+    if (this.selectedComponent()?.id !== concept.id) {
+      this.selectConceptFromList(concept);
+    }
+  }
+
   protected lookupConceptById(): void {
-    const rawId = String(this.finderLookupId()).trim();
+    const rawId = this.normalizeConceptIdInput(this.finderLookupId());
+    if (rawId !== this.finderLookupId()) {
+      this.finderLookupId.set(rawId);
+    }
     if (!rawId.match(/^[1-9]\d*$/)) return;
     const id = Number(rawId);
     const projectId = this.projectId();
@@ -5616,6 +5646,18 @@ export class ContentComponent implements OnInit {
       },
       error: () => this.notifications.error('Concept not found.')
     });
+  }
+
+  protected setFinderLookupId(value: string): void {
+    this.finderLookupId.set(this.normalizeConceptIdInput(value));
+  }
+
+  private normalizeConceptIdInput(value: unknown): string {
+    const raw = String(value ?? '');
+    const trimmed = raw.trim();
+    const idMatch = trimmed.match(/^\D*([1-9]\d*)\D*$/);
+
+    return idMatch?.[1] ?? raw;
   }
 
   protected openFinderDialog(mode: FinderDialogMode = 'concept-list'): void {
@@ -6200,7 +6242,10 @@ export class ContentComponent implements OnInit {
   protected loadWorklists(): void {
     const ctx = this.worklistUser();
     if (!ctx) return;
+    this.clearScheduledWorklistFilterReload();
     const mode = this.worklistMode();
+    const requestId = ++this.worklistLoadRequestId;
+    const shouldRestoreFilterFocus = this.isElementFocused('edit-worklist-filter');
     this.loadingWorklists.set(true);
     const pfs = this.worklistPfs();
 
@@ -6213,9 +6258,17 @@ export class ContentComponent implements OnInit {
             ? this.workflowApi.findDoneWorklists(ctx.projectId, ctx.userName, ctx.role, pfs)
             : this.workflowApi.findChecklists(ctx.projectId, '', pfs);
 
-    source$.pipe(finalize(() => this.loadingWorklists.set(false))).subscribe({
+    source$.pipe(finalize(() => {
+      if (requestId === this.worklistLoadRequestId) {
+        this.loadingWorklists.set(false);
+      }
+    })).subscribe({
       next: (resp) => {
-        if (!this.isCurrentWorklistUser(ctx) || this.worklistMode() !== mode) {
+        if (
+          requestId !== this.worklistLoadRequestId ||
+          !this.isCurrentWorklistUser(ctx) ||
+          this.worklistMode() !== mode
+        ) {
           return;
         }
         const items: WorkflowWorklist[] = resp.worklists ?? resp.checklists ?? resp.objects ?? [];
@@ -6228,6 +6281,9 @@ export class ContentComponent implements OnInit {
         else if (mode === 'Done') this.doneCt.set(total);
         else this.checklistCt.set(total);
         this.restoreSelectedWorklist(items);
+        if (shouldRestoreFilterFocus) {
+          this.restoreFocusIfUnclaimed('edit-worklist-filter');
+        }
       },
       error: () => {}
     });
@@ -6281,6 +6337,7 @@ export class ContentComponent implements OnInit {
   }
 
   protected setWorklistMode(mode: WorklistMode): void {
+    this.clearScheduledWorklistFilterReload();
     this.worklistMode.set(mode);
     this.worklistPage.set(1);
     this.worklistFilter.set('');
@@ -6298,7 +6355,8 @@ export class ContentComponent implements OnInit {
   protected setWorklistFilter(value: string): void {
     this.worklistFilter.set(value);
     this.worklistPage.set(1);
-    this.loadWorklists();
+    this.worklistLoadRequestId++;
+    this.scheduleWorklistFilterReload();
   }
 
   protected setWorklistSortField(field: 'name' | 'lastModified'): void {
@@ -6310,6 +6368,39 @@ export class ContentComponent implements OnInit {
     }
     this.worklistPage.set(1);
     this.loadWorklists();
+  }
+
+  private scheduleWorklistFilterReload(): void {
+    this.clearScheduledWorklistFilterReload();
+    this.worklistFilterReloadTimer = setTimeout(() => {
+      this.worklistFilterReloadTimer = null;
+      this.loadWorklists();
+    }, 300);
+  }
+
+  private clearScheduledWorklistFilterReload(): void {
+    if (!this.worklistFilterReloadTimer) {
+      return;
+    }
+
+    clearTimeout(this.worklistFilterReloadTimer);
+    this.worklistFilterReloadTimer = null;
+  }
+
+  private isElementFocused(elementId: string): boolean {
+    return document.activeElement === document.getElementById(elementId);
+  }
+
+  private restoreFocusIfUnclaimed(elementId: string): void {
+    if (document.activeElement !== document.body) {
+      return;
+    }
+
+    setTimeout(() => {
+      if (document.activeElement === document.body) {
+        document.getElementById(elementId)?.focus({ preventScroll: true });
+      }
+    }, 0);
   }
 
   protected selectWorklist(
@@ -6389,13 +6480,42 @@ export class ContentComponent implements OnInit {
     const projectId = this.projectId();
     if (!projectId || !record.concepts?.length) return;
 
-    for (const wfConcept of record.concepts) {
-      if (!wfConcept.id) continue;
-      this.api.getComponentById('concept', wfConcept.id, projectId).subscribe({
-        next: (concept) => { if (concept) this.addConceptToList(concept); },
-        error: () => {}
-      });
-    }
+    const conceptIds = Array.from(
+      new Set(record.concepts.map((concept) => concept.id).filter(Boolean))
+    );
+    if (!conceptIds.length) return;
+
+    forkJoin(
+      conceptIds.map((conceptId) =>
+        this.api.getComponentById('concept', conceptId!, projectId).pipe(
+          catchError(() => of(null))
+        )
+      )
+    ).subscribe({
+      next: (concepts) => {
+        if (this.selectedRecord()?.id !== record.id) {
+          return;
+        }
+
+        const loadedConcepts = concepts
+          .filter((concept): concept is ContentComponentDetail => Boolean(concept))
+          .sort((left, right) => (left.id ?? 0) - (right.id ?? 0));
+        this.conceptList.set(loadedConcepts);
+
+        const pendingId = this.pendingEditConceptId;
+        if (pendingId) {
+          this.pendingEditConceptId = null;
+          const pendingConcept = loadedConcepts.find((concept) => concept.id === pendingId);
+          if (pendingConcept) {
+            this.selectConceptFromList(pendingConcept);
+            return;
+          }
+        }
+
+        this.selectSoleConceptIfNeeded(loadedConcepts);
+      },
+      error: () => {}
+    });
   }
 
   private restoreSelectedWorklist(worklists: WorkflowWorklist[]): void {

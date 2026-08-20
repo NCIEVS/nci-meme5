@@ -487,8 +487,9 @@
           <section class="list-panel" aria-labelledby="checklists-title">
             <div class="panel-header">
               <h2 id="checklists-title" class="sr-only">Checklists</h2>
-              <form class="list-search-bar" (ngSubmit)="setChecklistFilter(checklistFilter())" aria-label="Search checklists">
+              <form class="list-search-bar" (ngSubmit)="applyChecklistFilterNow()" aria-label="Search checklists">
                 <input
+                  id="workflow-checklist-filter"
                   type="search"
                   placeholder="Filter checklists…"
                   [ngModel]="checklistFilter()"

@@ -82,7 +82,7 @@ export function buildWorkflowListFilterQuery(
   }
 
   const terms = trimmedFilter
-    .split(/[\s_]+/)
+    .split(/[\s_-]+/)
     .map((term) => escapeLuceneTerm(term))
     .filter(Boolean);
 

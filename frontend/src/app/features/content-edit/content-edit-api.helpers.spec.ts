@@ -103,6 +103,18 @@ describe('content edit API helpers', () => {
     );
   });
 
+  it('treats hyphens like spaces for workflow list filters', () => {
+    expect(buildWorkflowListFilterQuery('chk_ACC-AHA')).toBe(
+      'name:chk* AND name:ACC* AND name:AHA*'
+    );
+  });
+
+  it('builds pasted checklist names as tokenized prefix filters', () => {
+    expect(buildWorkflowListFilterQuery('chk_ACC-AHA_2025_07D_DEMOTION')).toBe(
+      'name:chk* AND name:ACC* AND name:AHA* AND name:2025* AND name:07D* AND name:DEMOTION*'
+    );
+  });
+
   it('passes through advanced workflow list filters', () => {
     expect(buildWorkflowListFilterQuery('workflowStatus:NEW')).toBe(
       'workflowStatus:NEW'

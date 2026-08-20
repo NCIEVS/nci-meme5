@@ -907,6 +907,10 @@ dd {
   min-height: 0;
 }
 
+.split-copy-label {
+  font-weight: 400;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;

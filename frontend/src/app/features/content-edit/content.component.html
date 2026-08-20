@@ -95,11 +95,13 @@
             <!-- Filter + pager row -->
             <div class="wl-toolbar">
               <input
+                id="edit-worklist-filter"
                 class="wl-filter"
                 type="search"
-                placeholder="Filter worklists…"
+                [placeholder]="worklistMode() === 'Checklists' ? 'Filter checklists…' : 'Filter worklists…'"
                 [ngModel]="worklistFilter()"
                 (ngModelChange)="setWorklistFilter($event)"
+                (keyup.enter)="loadWorklists()"
               />
               <div class="wl-pager">
                 <button type="button" class="icon-btn" title="Previous page" [disabled]="worklistPage() === 1" (click)="worklistPage.set(worklistPage() - 1); loadWorklists()">
@@ -117,7 +119,7 @@
               <p class="empty compact-empty">Loading…</p>
             } @else if (worklists().length === 0) {
               <p class="empty compact-empty">
-                {{ worklistFilter() ? 'No matching worklists found.' : 'No worklists.' }}
+                {{ worklistEmptyMessage() }}
               </p>
             } @else {
               <div class="table-wrap">
@@ -682,7 +684,7 @@
             class="finder-id-input"
             placeholder="concept id"
             [ngModel]="finderLookupId()"
-            (ngModelChange)="finderLookupId.set($event)"
+            (ngModelChange)="setFinderLookupId($event)"
             (keyup.enter)="lookupConceptById()"
             name="finder-id"
           />
@@ -2370,7 +2372,7 @@
         </div>
       }
 
-      <label class="checkbox-label" for="content-concept-split-copy">
+      <label class="checkbox-label split-copy-label" for="content-concept-split-copy">
         <input
           id="content-concept-split-copy"
           type="checkbox"
