@@ -31,6 +31,7 @@ import {
   LinkedConceptInfo,
   ReportPanelTab
 } from '../../shared/concept-report-panel/concept-report-panel.component';
+import { buildWorkflowListFilterQuery } from '../content-edit/content-edit-api.helpers';
 import { ContentEditApiService } from '../content-edit/content-edit-api.service';
 import { ContentComponent as ContentComponentDetail } from '../content-edit/content-edit.models';
 import { buildOperationalPfs } from './operational-api.helpers';
@@ -482,28 +483,30 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const worklistQuery = this.prepListQuery(this.worklistFilter());
+    const checklistQuery = this.prepListQuery(this.checklistFilter());
     const wlPfs = buildOperationalPfs(
       this.worklistPage(),
       this.worklistPageSize,
       this.worklistServerSortField(),
       this.worklistServerSortAsc(),
-      this.worklistFilter()
+      worklistQuery
     );
     const clPfs = buildOperationalPfs(
       this.checklistPage(),
       this.checklistPageSize,
       this.checklistSortField(),
       this.checklistSortAsc(),
-      this.checklistFilter()
+      checklistQuery
     );
     this.loading.set(true);
 
     forkJoin({
-      checklists: this.api.findChecklists(projectId, this.checklistFilter(), clPfs),
+      checklists: this.api.findChecklists(projectId, checklistQuery, clPfs),
       configs: this.api.getWorkflowConfigs(projectId),
       currentEpoch: this.api.getCurrentWorkflowEpoch(projectId),
       epochs: this.api.getWorkflowEpochs(projectId),
-      worklists: this.api.findWorklists(projectId, this.worklistFilter(), wlPfs)
+      worklists: this.api.findWorklists(projectId, worklistQuery, wlPfs)
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
@@ -832,30 +835,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   }
 
   private prepListQuery(raw: string): string {
-    const q = raw.trim();
-
-    if (!q) {
-      return '';
-    }
-
-    if (this.isExplicitListQuery(q)) {
-      return q;
-    }
-
-    return q
-      .split(/[\s_-]+/)
-      .map((term) => this.escapeListQueryTerm(term))
-      .filter(Boolean)
-      .map((term) => `name:${term}*`)
-      .join(' AND ');
-  }
-
-  private isExplicitListQuery(query: string): boolean {
-    return /[:()[\]{}"~*?^]|\b(?:AND|OR|NOT)\b|&&|\|\|/i.test(query);
-  }
-
-  private escapeListQueryTerm(term: string): string {
-    return term.replace(/([+\-!(){}\[\]^"~*?:\\/])/g, '\\$1');
+    return buildWorkflowListFilterQuery(raw) ?? '';
   }
 
   protected worklistPageTo(page: number): void {

@@ -81,20 +81,54 @@ export function buildWorkflowListFilterQuery(
     return trimmedFilter;
   }
 
-  const terms = trimmedFilter
-    .split(/[\s_-]+/)
-    .map((term) => escapeLuceneTerm(term))
-    .filter(Boolean);
+  const clauses = [
+    buildWorkflowListNameSortClause(trimmedFilter),
+    buildWorkflowListTokenClause(trimmedFilter, /[\s_]+/),
+    buildWorkflowListTokenClause(trimmedFilter, /[\s_-]+/)
+  ].filter((clause, index, list): clause is string =>
+    Boolean(clause) && list.indexOf(clause) === index
+  );
 
-  if (!terms.length) {
+  if (!clauses.length) {
     return undefined;
   }
 
-  return terms.map((term) => `name:${term}*`).join(' AND ');
+  return clauses.length === 1
+    ? clauses[0]
+    : `(${clauses.map(groupWorkflowListClause).join(' OR ')})`;
 }
 
 function isLuceneWorkflowListFilter(filter: string): boolean {
   return /[:()[\]{}"~*?^]|\b(?:AND|OR|NOT)\b|&&|\|\|/i.test(filter);
+}
+
+function buildWorkflowListNameSortClause(filter: string): string | null {
+  if (!/[_-]/.test(filter) || /\s/.test(filter)) {
+    return null;
+  }
+
+  return `nameSort:${escapeLuceneTerm(filter)}*`;
+}
+
+function buildWorkflowListTokenClause(
+  filter: string,
+  splitPattern: RegExp
+): string | null {
+  const terms = filter
+    .split(splitPattern)
+    .map((term) => escapeLuceneTerm(term.toLowerCase()))
+    .filter(Boolean);
+
+  if (!terms.length) {
+    return null;
+  }
+
+  const clause = terms.map((term) => `name:${term}*`).join(' AND ');
+  return clause;
+}
+
+function groupWorkflowListClause(clause: string): string {
+  return clause.includes(' AND ') ? `(${clause})` : clause;
 }
 
 function escapeLuceneTerm(term: string): string {

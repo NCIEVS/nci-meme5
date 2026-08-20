@@ -99,19 +99,19 @@ describe('content edit API helpers', () => {
 
   it('treats underscores like spaces for workflow list filters', () => {
     expect(buildWorkflowListFilterQuery('wrk25b_snomedct')).toBe(
-      'name:wrk25b* AND name:snomedct*'
+      '(nameSort:wrk25b_snomedct* OR (name:wrk25b* AND name:snomedct*))'
     );
   });
 
-  it('treats hyphens like spaces for workflow list filters', () => {
+  it('keeps a keyword prefix and both hyphen token strategies for workflow list filters', () => {
     expect(buildWorkflowListFilterQuery('chk_ACC-AHA')).toBe(
-      'name:chk* AND name:ACC* AND name:AHA*'
+      '(nameSort:chk_ACC\\-AHA* OR (name:chk* AND name:acc\\-aha*) OR (name:chk* AND name:acc* AND name:aha*))'
     );
   });
 
   it('builds pasted checklist names as tokenized prefix filters', () => {
     expect(buildWorkflowListFilterQuery('chk_ACC-AHA_2025_07D_DEMOTION')).toBe(
-      'name:chk* AND name:ACC* AND name:AHA* AND name:2025* AND name:07D* AND name:DEMOTION*'
+      '(nameSort:chk_ACC\\-AHA_2025_07D_DEMOTION* OR (name:chk* AND name:acc\\-aha* AND name:2025* AND name:07d* AND name:demotion*) OR (name:chk* AND name:acc* AND name:aha* AND name:2025* AND name:07d* AND name:demotion*))'
     );
   });
 
