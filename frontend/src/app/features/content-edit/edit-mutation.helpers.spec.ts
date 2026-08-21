@@ -38,7 +38,7 @@ describe('edit mutation helpers', () => {
   });
 
   it('reports missing edit prerequisites', () => {
-    expect(buildConceptMutationReadiness(null, null, 'REVIEWER', false)).toEqual({
+    expect(buildConceptMutationReadiness(null, null, 'VIEWER', false)).toEqual({
       canExecute: false,
       reasons: [
         'Project context is required.',
@@ -49,8 +49,16 @@ describe('edit mutation helpers', () => {
     });
   });
 
-  it('allows author edits with a persisted concept and editing enabled', () => {
+  it('allows author-level edits with a persisted concept and editing enabled', () => {
     expect(buildConceptMutationReadiness(3, 123, 'AUTHOR', true)).toEqual({
+      canExecute: true,
+      reasons: []
+    });
+    expect(buildConceptMutationReadiness(3, 123, 'REVIEWER', true)).toEqual({
+      canExecute: true,
+      reasons: []
+    });
+    expect(buildConceptMutationReadiness(3, 123, 'USER', true)).toEqual({
       canExecute: true,
       reasons: []
     });

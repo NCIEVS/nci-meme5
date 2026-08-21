@@ -30,7 +30,6 @@ export function buildConceptMutationReadiness(
   editingEnabled: boolean
 ): EditMutationReadiness {
   const reasons = [];
-  const normalizedProjectRole = projectRole?.toUpperCase();
 
   if (!projectId) {
     reasons.push('Project context is required.');
@@ -38,7 +37,7 @@ export function buildConceptMutationReadiness(
   if (!conceptId) {
     reasons.push('A persisted concept is required.');
   }
-  if (!['AUTHOR', 'ADMINISTRATOR'].includes(normalizedProjectRole ?? '')) {
+  if (!hasProjectPrivilegesOf(projectRole, 'AUTHOR')) {
     reasons.push('Author-level project role is required.');
   }
   if (!editingEnabled) {
@@ -49,6 +48,38 @@ export function buildConceptMutationReadiness(
     canExecute: reasons.length === 0,
     reasons
   };
+}
+
+function hasProjectPrivilegesOf(
+  projectRole: string | null | undefined,
+  requiredRole: string
+): boolean {
+  const normalizedRole = projectRole?.toUpperCase();
+  const normalizedRequiredRole = requiredRole.toUpperCase();
+
+  if (!normalizedRole) {
+    return normalizedRequiredRole === 'VIEWER';
+  }
+
+  if (normalizedRole === 'ADMINISTRATOR') {
+    return true;
+  }
+
+  if (normalizedRole === 'REVIEWER') {
+    return ['VIEWER', 'USER', 'AUTHOR', 'REVIEWER'].includes(
+      normalizedRequiredRole
+    );
+  }
+
+  if (normalizedRole === 'USER') {
+    return ['VIEWER', 'USER', 'AUTHOR'].includes(normalizedRequiredRole);
+  }
+
+  if (normalizedRole === 'AUTHOR') {
+    return ['VIEWER', 'AUTHOR'].includes(normalizedRequiredRole);
+  }
+
+  return normalizedRole === 'VIEWER' && normalizedRequiredRole === 'VIEWER';
 }
 
 export function buildAtomMutationReadiness(
