@@ -85,12 +85,32 @@ describe('meme deployment paths', () => {
     ).toBe('http://localhost:8080/umls-server-rest/ui20/index.html#/workflow');
   });
 
-  it('does not canonicalize already explicit index or local dev URLs', () => {
+  it('canonicalizes packaged ui20 path routes to hash routes under the index page', () => {
+    expect(
+      canonicalMemeAppEntryUrl({
+        hash: '',
+        origin: 'http://localhost:8080',
+        pathname: '/umls-server-rest/ui20/workflow',
+        search: '?projectId=5'
+      })
+    ).toBe('http://localhost:8080/umls-server-rest/ui20/index.html#/workflow?projectId=5');
+  });
+
+  it('does not canonicalize already explicit index, ui20 assets, or local dev URLs', () => {
     expect(
       canonicalMemeAppEntryUrl({
         hash: '#/process',
         origin: 'http://localhost:8080',
         pathname: '/umls-server-rest/ui20/index.html',
+        search: ''
+      })
+    ).toBeNull();
+
+    expect(
+      canonicalMemeAppEntryUrl({
+        hash: '',
+        origin: 'http://localhost:8080',
+        pathname: '/umls-server-rest/ui20/main-ABC123.js',
         search: ''
       })
     ).toBeNull();

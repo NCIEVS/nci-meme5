@@ -5517,7 +5517,10 @@ export class ContentComponent implements OnInit {
 
   protected addConceptToList(concept: ContentComponentDetail): void {
     const list = this.conceptList();
-    if (list.some((c) => c.id === concept.id)) return;
+    if (list.some((c) => c.id === concept.id)) {
+      this.selectSoleConceptIfNeeded(list);
+      return;
+    }
     const updated = [...list, concept].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     this.conceptList.set(updated);
     if (this.pendingEditConceptId && concept.id === this.pendingEditConceptId) {
@@ -5609,6 +5612,7 @@ export class ContentComponent implements OnInit {
   }
 
   protected selectConceptFromList(concept: ContentComponentDetail): void {
+    this.pendingEditConceptId = null;
     this.selectedComponent.set(concept);
     this.selectedResult.set(null);
     if (concept.id) {
@@ -5617,7 +5621,7 @@ export class ContentComponent implements OnInit {
   }
 
   private selectSoleConceptIfNeeded(list = this.conceptList()): void {
-    if (this.pendingEditConceptId || list.length !== 1) {
+    if (list.length !== 1) {
       return;
     }
 

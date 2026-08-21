@@ -48,13 +48,34 @@ export function canonicalMemeAppEntryUrl(
   location = currentLocation()
 ): string | null {
   const pathname = location.pathname || '/';
-  const ui20Match = pathname.match(/^(.*\/ui20)\/?$/i);
+  const ui20Match = pathname.match(/^(.*\/ui20)(?:\/(.*))?$/i);
 
   if (!ui20Match) {
     return null;
   }
 
-  return `${location.origin}${ui20Match[1]}/index.html${location.search ?? ''}${location.hash ?? ''}`;
+  const ui20Base = ui20Match[1];
+  const ui20Path = ui20Match[2] ?? '';
+
+  if (!ui20Path) {
+    return `${location.origin}${ui20Base}/index.html${location.search ?? ''}${location.hash ?? ''}`;
+  }
+
+  if (ui20Path.toLowerCase() === 'index.html') {
+    return null;
+  }
+
+  if (ui20Path.includes('.')) {
+    return null;
+  }
+
+  if (location.hash) {
+    return `${location.origin}${ui20Base}/index.html${location.search ?? ''}${location.hash}`;
+  }
+
+  const route = ui20Path.replace(/^\/+/, '');
+
+  return `${location.origin}${ui20Base}/index.html#/${route}${location.search ?? ''}`;
 }
 
 export function canonicalizeMemeAppEntryUrl(): void {
