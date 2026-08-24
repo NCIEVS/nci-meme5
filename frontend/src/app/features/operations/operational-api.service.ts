@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { forkJoin, map, Observable, of } from 'rxjs';
 
 import { UserPreferences } from '../../core/auth/auth.models';
+import { nonBlockingLoadingContext } from '../../core/http/loading.context';
 import { MaintenanceWindow } from '../../core/maintenance-window.models';
 import { MEME_API_BASE_URL } from '../../core/meme-api.tokens';
 import {
@@ -668,6 +669,7 @@ export class OperationalApiService {
         `${this.baseUrl}/workflow/checklist/find`,
         pfs,
         {
+          context: nonBlockingLoadingContext(),
           params: this.projectQueryParams(projectId, query)
         }
       )
@@ -797,6 +799,7 @@ export class OperationalApiService {
         `${this.baseUrl}/workflow/worklist/find`,
         pfs,
         {
+          context: nonBlockingLoadingContext(),
           params: this.projectQueryParams(projectId, query)
         }
       )

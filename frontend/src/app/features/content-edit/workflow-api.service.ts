@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
 
+import { nonBlockingLoadingContext } from '../../core/http/loading.context';
 import { MEME_API_BASE_URL } from '../../core/meme-api.tokens';
 import { ContentPfsParameter } from './content-edit.models';
 import {
@@ -27,7 +28,13 @@ export class WorkflowApiService {
     return this.http.post<WorkflowWorklistResponse>(
       `${this.baseUrl}/workflow/worklist/available`,
       pfs,
-      { params: new HttpParams().set('projectId', projectId).set('userName', userName).set('role', role) }
+      {
+        context: nonBlockingLoadingContext(),
+        params: new HttpParams()
+          .set('projectId', projectId)
+          .set('userName', userName)
+          .set('role', role)
+      }
     );
   }
 
@@ -40,7 +47,13 @@ export class WorkflowApiService {
     return this.http.post<WorkflowWorklistResponse>(
       `${this.baseUrl}/workflow/worklist/assigned`,
       pfs,
-      { params: new HttpParams().set('projectId', projectId).set('userName', userName).set('role', role) }
+      {
+        context: nonBlockingLoadingContext(),
+        params: new HttpParams()
+          .set('projectId', projectId)
+          .set('userName', userName)
+          .set('role', role)
+      }
     );
   }
 
@@ -53,7 +66,13 @@ export class WorkflowApiService {
     return this.http.post<WorkflowWorklistResponse>(
       `${this.baseUrl}/workflow/worklist/done`,
       pfs,
-      { params: new HttpParams().set('projectId', projectId).set('userName', userName).set('role', role) }
+      {
+        context: nonBlockingLoadingContext(),
+        params: new HttpParams()
+          .set('projectId', projectId)
+          .set('userName', userName)
+          .set('role', role)
+      }
     );
   }
 
@@ -69,7 +88,7 @@ export class WorkflowApiService {
     return this.http.post<WorkflowChecklistResponse>(
       `${this.baseUrl}/workflow/checklist/find`,
       pfs,
-      { params }
+      { context: nonBlockingLoadingContext(), params }
     );
   }
 
@@ -81,7 +100,10 @@ export class WorkflowApiService {
     return this.http.post<WorkflowRecordResponse>(
       `${this.baseUrl}/workflow/worklist/${worklistId}/records`,
       pfs,
-      { params: new HttpParams().set('projectId', projectId) }
+      {
+        context: nonBlockingLoadingContext(),
+        params: new HttpParams().set('projectId', projectId)
+      }
     );
   }
 
@@ -93,7 +115,10 @@ export class WorkflowApiService {
     return this.http.post<WorkflowRecordResponse>(
       `${this.baseUrl}/workflow/checklist/${checklistId}/records`,
       pfs,
-      { params: new HttpParams().set('projectId', projectId) }
+      {
+        context: nonBlockingLoadingContext(),
+        params: new HttpParams().set('projectId', projectId)
+      }
     );
   }
 

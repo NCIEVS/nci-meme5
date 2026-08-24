@@ -487,16 +487,17 @@
           <section class="list-panel" aria-labelledby="checklists-title">
             <div class="panel-header">
               <h2 id="checklists-title" class="sr-only">Checklists</h2>
-              <form class="list-search-bar" (ngSubmit)="applyChecklistFilterNow()" aria-label="Search checklists">
+              <div class="list-search-bar" role="search" aria-label="Search checklists">
                 <input
                   id="workflow-checklist-filter"
                   type="search"
                   placeholder="Filter checklists…"
-                  [ngModel]="checklistFilter()"
-                  (ngModelChange)="setChecklistFilter($event)"
-                  name="checklist-filter"
+                  [value]="checklistFilter()"
+                  (input)="setChecklistFilter($any($event.target).value)"
+                  (keydown.enter)="applyChecklistFilterNow()"
+                  (search)="applyChecklistFilterNow()"
                 />
-              </form>
+              </div>
               <div class="list-pager">
                 <button type="button" class="icon-btn" title="Previous page"
                         [disabled]="checklistPage() <= 1"
@@ -660,15 +661,17 @@
           <section class="list-panel" aria-labelledby="worklists-title">
             <div class="panel-header">
               <h2 id="worklists-title" class="sr-only">Worklists</h2>
-              <form class="list-search-bar" (ngSubmit)="setWorklistFilter(worklistFilter())" aria-label="Search worklists">
+              <div class="list-search-bar" role="search" aria-label="Search worklists">
                 <input
+                  id="workflow-worklist-filter"
                   type="search"
                   placeholder="Filter worklists…"
-                  [ngModel]="worklistFilter()"
-                  (ngModelChange)="setWorklistFilter($event)"
-                  name="worklist-filter"
+                  [value]="worklistFilter()"
+                  (input)="setWorklistFilter($any($event.target).value)"
+                  (keydown.enter)="applyWorklistFilterNow()"
+                  (search)="applyWorklistFilterNow()"
                 />
-              </form>
+              </div>
               <div class="list-pager">
                 <button type="button" class="icon-btn" title="Previous page"
                         [disabled]="worklistPage() <= 1"

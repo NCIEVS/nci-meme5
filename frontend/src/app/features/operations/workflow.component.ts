@@ -147,6 +147,12 @@ interface WorkflowChecklistComputeForm {
   skipClusterCount: number | null;
 }
 
+interface TextInputFocusState {
+  elementId: string;
+  selectionEnd: number | null;
+  selectionStart: number | null;
+}
+
 @Component({
   selector: 'meme-workflow',
   imports: [
@@ -171,6 +177,8 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   private binRegenerationPollSubscription: Subscription | null = null;
   private checklistFilterReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private checklistReloadRequestId = 0;
+  private worklistFilterReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private worklistReloadRequestId = 0;
   private workflowLiveSubscription: Subscription | null = null;
 
   protected readonly actingWorkflowItemKey = signal<string | null>(null);
@@ -471,6 +479,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearScheduledChecklistFilterReload();
+    this.clearScheduledWorklistFilterReload();
     this.workflowLiveSubscription?.unsubscribe();
     this.stopBinRegenerationProgressPolling();
     this.workflowLiveUpdates.disconnect();
@@ -605,6 +614,9 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.clearScheduledWorklistFilterReload();
+    const requestId = ++this.worklistReloadRequestId;
+    const focusState = this.captureTextInputFocus('workflow-worklist-filter');
     const query = this.prepListQuery(this.worklistFilter());
     const pfs = buildOperationalPfs(
       this.worklistPage(),
@@ -616,10 +628,19 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     this.api.findWorklists(projectId, query, pfs).subscribe({
       next: (result) => {
+        if (requestId !== this.worklistReloadRequestId) {
+          return;
+        }
+
         this.worklists.set(this.sortWorklistsForDisplay(result.items));
         this.worklistsTotal.set(result.totalCount);
+        this.restoreTextInputFocus(focusState);
       },
-      error: () => this.notifications.error('Worklists could not be reloaded.')
+      error: () => {
+        if (requestId === this.worklistReloadRequestId) {
+          this.notifications.error('Worklists could not be reloaded.');
+        }
+      }
     });
   }
 
@@ -632,7 +653,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     this.clearScheduledChecklistFilterReload();
     const requestId = ++this.checklistReloadRequestId;
-    const shouldRestoreFilterFocus = this.isElementFocused('workflow-checklist-filter');
+    const focusState = this.captureTextInputFocus('workflow-checklist-filter');
     const query = this.prepListQuery(this.checklistFilter());
     const pfs = buildOperationalPfs(
       this.checklistPage(),
@@ -650,9 +671,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
         this.checklists.set(result.items);
         this.checklistsTotal.set(result.totalCount);
-        if (shouldRestoreFilterFocus) {
-          this.restoreFocusIfUnclaimed('workflow-checklist-filter');
-        }
+        this.restoreTextInputFocus(focusState);
       },
       error: () => {
         if (requestId === this.checklistReloadRequestId) {
@@ -663,7 +682,15 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   }
 
   protected setWorklistFilter(value: string): void {
+    const focusState = this.captureTextInputFocus('workflow-worklist-filter');
     this.worklistFilter.set(value);
+    this.worklistPage.set(1);
+    this.worklistReloadRequestId++;
+    this.scheduleWorklistFilterReload();
+    this.restoreTextInputFocus(focusState);
+  }
+
+  protected applyWorklistFilterNow(): void {
     this.worklistPage.set(1);
     this.reloadWorklists();
   }
@@ -706,10 +733,12 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   }
 
   protected setChecklistFilter(value: string): void {
+    const focusState = this.captureTextInputFocus('workflow-checklist-filter');
     this.checklistFilter.set(value);
     this.checklistPage.set(1);
     this.checklistReloadRequestId++;
     this.scheduleChecklistFilterReload();
+    this.restoreTextInputFocus(focusState);
   }
 
   protected applyChecklistFilterNow(): void {
@@ -865,20 +894,95 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.checklistFilterReloadTimer = null;
   }
 
-  private isElementFocused(elementId: string): boolean {
-    return document.activeElement === document.getElementById(elementId);
+  private scheduleWorklistFilterReload(): void {
+    this.clearScheduledWorklistFilterReload();
+    this.worklistFilterReloadTimer = setTimeout(() => {
+      this.worklistFilterReloadTimer = null;
+      this.reloadWorklists();
+    }, 300);
   }
 
-  private restoreFocusIfUnclaimed(elementId: string): void {
-    if (document.activeElement !== document.body) {
+  private clearScheduledWorklistFilterReload(): void {
+    if (!this.worklistFilterReloadTimer) {
       return;
     }
 
-    setTimeout(() => {
-      if (document.activeElement === document.body) {
-        document.getElementById(elementId)?.focus({ preventScroll: true });
-      }
-    }, 0);
+    clearTimeout(this.worklistFilterReloadTimer);
+    this.worklistFilterReloadTimer = null;
+  }
+
+  private captureTextInputFocus(elementId: string): TextInputFocusState | null {
+    const element = document.getElementById(elementId);
+
+    if (!(element instanceof HTMLInputElement) || document.activeElement !== element) {
+      return null;
+    }
+
+    return {
+      elementId,
+      selectionEnd: element.selectionEnd,
+      selectionStart: element.selectionStart
+    };
+  }
+
+  private restoreTextInputFocus(focusState: TextInputFocusState | null): void {
+    if (!focusState) {
+      return;
+    }
+
+    this.restoreTextInputFocusNow(focusState);
+    setTimeout(() => this.restoreTextInputFocusNow(focusState), 0);
+    setTimeout(() => this.restoreTextInputFocusNow(focusState), 50);
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => this.restoreTextInputFocusNow(focusState));
+    }
+  }
+
+  private restoreTextInputFocusNow(focusState: TextInputFocusState): void {
+    const activeElement = document.activeElement;
+
+    if (
+      this.isInteractiveFocusTarget(activeElement) &&
+      activeElement.id !== focusState.elementId
+    ) {
+      return;
+    }
+
+    const element = document.getElementById(focusState.elementId);
+
+    if (!(element instanceof HTMLInputElement)) {
+      return;
+    }
+
+    element.focus({ preventScroll: true });
+
+    if (
+      focusState.selectionStart !== null &&
+      focusState.selectionEnd !== null &&
+      typeof element.setSelectionRange === 'function'
+    ) {
+      element.setSelectionRange(
+        focusState.selectionStart,
+        focusState.selectionEnd
+      );
+    }
+  }
+
+  private isInteractiveFocusTarget(
+    element: Element | null
+  ): element is HTMLElement {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+
+    const tagName = element.tagName.toLocaleLowerCase();
+
+    return (
+      ['button', 'input', 'select', 'textarea'].includes(tagName) ||
+      (tagName === 'a' && element.hasAttribute('href')) ||
+      element.isContentEditable
+    );
   }
 
   protected setFilter(value: string): void {

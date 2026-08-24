@@ -18,4 +18,9 @@ describe('loading helpers', () => {
     expect(shouldBlockUiForRequestMethod('post')).toBe(true);
     expect(shouldBlockUiForRequestMethod('get')).toBe(false);
   });
+
+  it('uses an explicit request override when provided', () => {
+    expect(shouldBlockUiForRequestMethod('POST', false)).toBe(false);
+    expect(shouldBlockUiForRequestMethod('GET', true)).toBe(true);
+  });
 });
