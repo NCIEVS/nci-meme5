@@ -3413,9 +3413,58 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     String version, String branch, String filter, boolean inverseFlag, boolean includeConceptRels,
     boolean preferredOnly, boolean includeSelfReferential, PfsParameter pfs) throws Exception {
 
+    final Concept concept = getConcept(conceptId, terminology, version, branch);
+    return findConceptDeepRelationships(concept, terminology, version, filter,
+        inverseFlag, includeConceptRels, preferredOnly, includeSelfReferential,
+        pfs);
+  }
+
+  /**
+   * Find deep relationships for an already-loaded concept.
+   *
+   * @param concept the concept
+   * @param filter the filter
+   * @param inverseFlag the inverse flag
+   * @param includeConceptRels the include concept rels
+   * @param preferredOnly the preferred only
+   * @param includeSelfReferential the include self referential
+   * @param pfs the pfs
+   * @return the relationship list
+   * @throws Exception the exception
+   */
+  protected RelationshipList findConceptDeepRelationships(Concept concept,
+    String filter, boolean inverseFlag, boolean includeConceptRels,
+    boolean preferredOnly, boolean includeSelfReferential, PfsParameter pfs)
+    throws Exception {
+
+    return findConceptDeepRelationships(concept, concept.getTerminology(),
+        concept.getVersion(), filter, inverseFlag, includeConceptRels,
+        preferredOnly, includeSelfReferential, pfs);
+  }
+
+  /**
+   * Find deep relationships for an already-loaded concept.
+   *
+   * @param concept the concept
+   * @param terminology the terminology
+   * @param version the version
+   * @param filter the filter
+   * @param inverseFlag the inverse flag
+   * @param includeConceptRels the include concept rels
+   * @param preferredOnly the preferred only
+   * @param includeSelfReferential the include self referential
+   * @param pfs the pfs
+   * @return the relationship list
+   * @throws Exception the exception
+   */
+  private RelationshipList findConceptDeepRelationships(Concept concept,
+    String terminology, String version, String filter, boolean inverseFlag,
+    boolean includeConceptRels, boolean preferredOnly,
+    boolean includeSelfReferential, PfsParameter pfs) throws Exception {
+
     // TODO: this could probably all be made faster with some more indexing
     Logger.getLogger(getClass()).debug("Content Service - find deep relationships for concept "
-        + conceptId + "/" + terminology + "/" + version + "/" + filter);
+        + concept.getTerminologyId() + "/" + terminology + "/" + version + "/" + filter);
 
     // Determine if skipping suppressible (and obsolete by definition)
     final String suppressibleClause = (pfs != null
@@ -3433,7 +3482,6 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
     }
     try {
 
-      final Concept concept = getConcept(conceptId, terminology, version, branch);
       final List<Object[]> results = new ArrayList<>();
 
       String queryStr = null;
