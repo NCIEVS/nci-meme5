@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Properties;
@@ -218,69 +217,6 @@ public class ReportChecklistAlgorithm
       throw e;
     }
 
-  }
-
-  /**
-   * Returns the display environment for insertion report emails.
-   *
-   * @param server the local server hostname
-   * @return the display environment
-   */
-  private String getInsertionEnvironment(final String server) {
-
-    final Properties config = PropertyUtility.getProperties();
-    final String configuredEnvironment =
-        config.getProperty("insertion.report.environment");
-    if (!ConfigUtility.isEmpty(configuredEnvironment)) {
-      return configuredEnvironment;
-    }
-
-    final String baseUrlEnvironment =
-        getEnvironmentFromBaseUrl(config.getProperty("base.url"));
-    if (!ConfigUtility.isEmpty(baseUrlEnvironment)) {
-      return baseUrlEnvironment;
-    }
-
-    if (server.startsWith("ncias-q3795-c")
-        || server.startsWith("ncias-q3794-c")
-        || server.startsWith("ncias-d3777-c")) {
-      return "meme-test";
-    }
-    return "meme-edit";
-  }
-
-  /**
-   * Returns the insertion type label for the display environment.
-   *
-   * @param insertionEnvironment the display environment
-   * @return the insertion type
-   */
-  private String getInsertionType(final String insertionEnvironment) {
-    return insertionEnvironment.contains("test") ? "test" : "real";
-  }
-
-  /**
-   * Derives a friendly environment label from the configured base URL.
-   *
-   * @param baseUrl the base URL
-   * @return the environment label, or null
-   */
-  private String getEnvironmentFromBaseUrl(final String baseUrl) {
-
-    if (ConfigUtility.isEmpty(baseUrl)) {
-      return null;
-    }
-
-    try {
-      final String host = new URI(baseUrl).getHost();
-      if (ConfigUtility.isEmpty(host) || "localhost".equals(host)) {
-        return null;
-      }
-      final String label = host.split("\\.")[0];
-      return label.startsWith("meme-") ? label : null;
-    } catch (Exception e) {
-      return null;
-    }
   }
 
   /**
