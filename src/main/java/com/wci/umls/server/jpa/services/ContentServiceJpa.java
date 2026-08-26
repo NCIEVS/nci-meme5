@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -3555,11 +3556,14 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       results.addAll(codeRels);
       
       
-      // Use a set to "uniq" them
-      final Set<ConceptRelationship> conceptRels = new HashSet<>();
+      // Multiple deep-relationship queries can return the same relationship.
+      // De-dupe by persisted relationship id instead of Relationship.equals(),
+      // which intentionally ignores endpoint concept ids.
+      final Map<Long, ConceptRelationship> conceptRels = new LinkedHashMap<>();
       for (final Object[] result : results) {
         final ConceptRelationship relationship = new ConceptRelationshipJpa();
-        relationship.setId(Long.parseLong(result[0].toString()));
+        final Long relationshipId = Long.parseLong(result[0].toString());
+        relationship.setId(relationshipId);
         final Concept relatedConcept = new ConceptJpa();
         relatedConcept.setTerminology(concept.getTerminology());
         relatedConcept.setVersion(concept.getVersion());
@@ -3597,7 +3601,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         // handle self-referential
         if (includeSelfReferential
             || !relationship.getFrom().getId().equals(relationship.getTo().getId())) {
-          conceptRels.add(relationship);
+          conceptRels.putIfAbsent(relationshipId, relationship);
         }
       }
 
@@ -3607,7 +3611,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
       if (preferredOnly) {
         //
         final List<ConceptRelationship> tmpRelList = getComputePreferredNameHandler(terminology)
-            .sortRelationships(conceptRels, getPrecedenceList(terminology, version));
+            .sortRelationships(conceptRels.values(), getPrecedenceList(terminology, version));
         final Set<Long> seen = new HashSet<>();
         for (final ConceptRelationship rel : tmpRelList) {
           if (rel.getWorkflowStatus() != WorkflowStatus.DEMOTION && !inverseFlag
@@ -3623,7 +3627,7 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
         }
 
       } else {
-        conceptRelList.addAll(conceptRels);
+        conceptRelList.addAll(conceptRels.values());
       }
 ;
 
