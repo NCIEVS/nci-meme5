@@ -448,9 +448,8 @@ public class ReportServiceJpa extends HistoryServiceJpa
       PfsParameter pfs = new PfsParameterJpa();
       pfs.setAscending(true);
       pfs.setSortField("relationshipType");
-      relList = findConceptDeepRelationships(concept.getTerminologyId(),
-          concept.getTerminology(), concept.getVersion(), Branch.ROOT, null,
-          true, true, false, false, pfs).getObjects();
+      relList = findConceptDeepRelationships(concept, null, true, true, false,
+          false, pfs).getObjects();
     }
 
     // Handle descriptor rels
