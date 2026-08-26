@@ -57,9 +57,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
   /** The email. */
   private String email;
-  
+
   private File outputPath = null;
-  
+
   /**
    * Instantiates an empty {@link MetamorphoSysReplacementAlgorithm}.
    *
@@ -91,7 +91,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
   @Override
   public void compute() throws Exception {
     logInfo("Starting " + getName());
-    
+
 
 
     outputPath = new File(config.getProperty("source.data.dir") + "/"
@@ -102,7 +102,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
     updateMrsab();
     updateMrcols();
     updateMrfiles();
-    
+
     // Write release.dat
     logInfo("  Write release.dat file");
 
@@ -121,20 +121,20 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
     // Write release.dat file
     Files.writeString(releaseDat.toPath(), data.toString(),
         StandardCharsets.UTF_8);
-    
+
 
     logInfo("Finished " + getName());
   }
-  
-  
-  
-  
+
+
+
+
 
       public void updateMrfiles() throws Exception {
-    	  String inputFile = "MRFILES.RRF";   
+    	  String inputFile = "MRFILES.RRF";
           String outputFile = "MRFILES.mod";
           String backupFile = "MRFILES.bak";
-          
+
           String mrfilesRow = "";
           final List<String> mrfilesLines = new ArrayList<>();
 
@@ -153,10 +153,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       throw new LocalException("Bad MRFILES.RRF template row "
                           + lineNumber + ": " + line);
                   }
-                  
+
                   // Get the filename from the first field
                   String filename = fields[0];
-                  
+
                   if (filename.equals("MRFILES.RRF")) {
                       mrfilesRow = line;
                       continue;
@@ -187,39 +187,39 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               mrfilesLines.sort(String::compareTo);
               Files.write(outputPath.toPath().resolve(outputFile), mrfilesLines,
                   StandardCharsets.UTF_8);
-              
+
               adjustMrfilesByteCount(outputPath + File.separator + outputFile);
-              
+
               // make a backup of the original MRFILES, and rename the modified one MRFILES.RRF
               File backup = new File(outputPath + File.separator + backupFile);
               File modified = new File(outputPath + File.separator + outputFile);
               File original = new File(outputPath + File.separator + inputFile);
-              
+
               // Delete existing backup if it exists
               Files.deleteIfExists(backup.toPath());
-              
+
               // Rename original to backup
               if (!original.renameTo(backup)) {
                   throw new IOException("Failed to rename " + inputFile + " to " + backup.getName());
               }
-              
+
               // Rename modified to original
               if (!modified.renameTo(original)) {
                   // If second rename fails, try to restore original file
                   ConfigUtility.renameFile(backup, original);
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
-              
+
               // Delete original, bc modified is the new MRFILES
               //Files.deleteIfExists(original.toPath());
-              
+
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
               e.printStackTrace();
               throw e;
           }
       }
-      
+
 
           public void adjustMrfilesByteCount(String filename) throws IOException {
               final Path path = Paths.get(filename);
@@ -290,8 +290,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           }
           return count;
       }
-      
-      
+
+
       public void updateMrcols() throws Exception {
           String mrcolsFile = "MRCOLS.RRF";
 
@@ -313,7 +313,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       throw new LocalException("Bad MRCOLS.RRF template row "
                           + lineNumber + ": " + line);
                   }
-                  
+
                   // Get the filename from the sixth field
                   String filename = fields[6];
                   if (!Files.isRegularFile(outputPath.toPath().resolve(filename))) {
@@ -332,7 +332,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   }
 
                   try {
-                      // Get the average 
+                      // Get the average
                       double colAverage = calculateAverageFieldLength(filename, colIndex);
                       System.out.println("filename:" + filename + " " + fields[0] + " " + colAverage);
                       // Create new line with all fields except last one
@@ -345,28 +345,28 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                     		  newLine.append(fields[i]).append("|");
                     	  }
                       }
-                      
+
                       // Write the modified line to output file
                       writer.write(newLine.toString());
                       writer.newLine();
-                      
+
                   } catch (NoSuchFileException e) {
                       System.out.println("Warning: File " + filename
                           + " not found. Skipping metadata row.");
                   }
               }
-              
+
               writer.close();
-              
+
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
               e.printStackTrace();
               throw e;
           }
       }
-      
+
       public void updateMrsab() throws Exception {
-    	  String inputFile = "MRSAB.RRF";       
+    	  String inputFile = "MRSAB.RRF";
           String outputFile = "MRSAB.mod";
           String backupFile = "MRSAB.bak";
 
@@ -379,13 +379,13 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               while ((line = reader.readLine()) != null) {
                   // Split the line by pipe character
                   String[] fields = line.split("\\|");
-                  
+
                   // Get the filename from the sixth field
                   String terminology = fields[3];
-                  
-                  
+
+
                   try {
-                      // Get the average 
+                      // Get the average
                       int tfr = countTerminologyOccurrences(terminology);
                       int cfr = countUniqueTerminologyOccurrences(terminology);
                       System.out.println("terminology:" + terminology + " "  + tfr);
@@ -402,46 +402,46 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                     		  newLine.append(fields[i]).append("|");
                     	  }
                       }
-                      
+
                       // Write the modified line to output file
                       writer.write(newLine.toString());
                       writer.newLine();
-                      
+
                   } catch (NoSuchFileException e) {
                      writer.write(line);
                       writer.newLine();
                   }
               }
               writer.close();
-              
+
               // make a backup of the original MRSAB, and rename the modified one MRSAB.RRF
               File backup = new File(outputPath + File.separator + backupFile);
               File modified = new File(outputPath + File.separator + outputFile);
               File original = new File(outputPath + File.separator + inputFile);
-              
+
               // Delete existing backup if it exists
               Files.deleteIfExists(backup.toPath());
-              
+
               // Rename original to backup
               if (!original.renameTo(backup)) {
                   throw new IOException("Failed to rename " + inputFile + " to " + backup.getName());
               }
-              
+
               // Rename modified to original
               if (!modified.renameTo(original)) {
                   // If second rename fails, try to restore original file
                   ConfigUtility.renameFile(backup, original);
                   throw new IOException("Failed to rename " + outputFile + " to " + inputFile);
               }
-              
-              
+
+
           } catch (IOException e) {
               System.err.println("Error processing files: " + e.getMessage());
               e.printStackTrace();
           }
       }
-      
-      
+
+
       public int findColumnIndex(String filename, String colname)
         throws Exception {
           try (BufferedReader reader = newTemplateReader("MRFILES.RRF")) {
@@ -464,15 +464,15 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       // Get the comma-delimited column names from the third field
                       String columnNamesField = fields[2];
                       List<String> columnNames = Arrays.asList(columnNamesField.split(","));
-                      
+
                       // Find the index of the desired column name
                       int index = columnNames.indexOf(colname.trim());
-                      
+
                       // Return the index (will be -1 if not found)
                       return index;
                   }
               }
-              
+
               // If we get here, we didn't find the filename
               return -1;
           }
@@ -523,14 +523,14 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               outputPath.toPath().resolve(filename), StandardCharsets.UTF_8)) {
         	            String line;
         	            int start, end, currentField;
-        	            
+
         	            while ((line = reader.readLine()) != null) {
         	                if (line.isEmpty()) continue;
-        	                
+
         	                // Manual field parsing without splitting
         	                start = 0;
         	                currentField = 0;
-        	                
+
         	                // Find the target field
         	                while (currentField < fieldNumber && start < line.length()) {
         	                    if (line.charAt(start) == '|') {
@@ -538,50 +538,50 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
         	                    }
         	                    start++;
         	                }
-        	                
+
         	                if (currentField != fieldNumber) {
         	                    throw new IllegalArgumentException(
         	                        "Field number " + fieldNumber + " is out of bounds for line");
         	                }
-        	                
+
         	                // Find end of target field
         	                end = start;
         	                while (end < line.length() && line.charAt(end) != '|') {
         	                    end++;
         	                }
-        	                
+
         	                totalLength += (end - start);
         	                count++;
         	            }
         	        }
-        	        
+
         	        return count > 0 ? (double) totalLength / count : 0.0;
       }
-      
+
       public int countTerminologyOccurrences(String terminology) throws IOException {
           int count = 0;
           int fieldIndex = 11; // 12th field (0-based index)
-          
+
           try (BufferedReader reader = new BufferedReader(new FileReader(
               outputPath + File.separator + "MRCONSO.RRF", StandardCharsets.UTF_8), 32768)) {
               String line;
               int currentField, pos;
-              
+
               while ((line = reader.readLine()) != null) {
                   // Skip empty lines
                   if (line.isEmpty()) continue;
-                  
+
                   // Find the 12th field
                   currentField = 0;
                   pos = 0;
-                  
+
                   while (currentField < fieldIndex && pos < line.length()) {
                       if (line.charAt(pos) == '|') {
                           currentField++;
                       }
                       pos++;
                   }
-                  
+
                   // Check if we found the correct field
                   if (currentField == fieldIndex) {
                       // Find end of the field
@@ -589,7 +589,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       while (endPos < line.length() && line.charAt(endPos) != '|') {
                           endPos++;
                       }
-                      
+
                       // Compare the field value with the target terminology
                       if (endPos - pos == terminology.length()) {
                           boolean matches = true;
@@ -606,30 +606,30 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   }
               }
           }
-          
+
           return count;
       }
-      
-      
+
+
       public int countUniqueTerminologyOccurrences(String terminology) throws IOException {
           Set<String> uniqueFirstFields = new HashSet<>();
-          
+
           try (BufferedReader reader = new BufferedReader(new FileReader(
               outputPath + File.separator + "MRCONSO.RRF", StandardCharsets.UTF_8), 32768)) {
               String line;
-              
+
               while ((line = reader.readLine()) != null) {
                   if (line.isEmpty()) continue;
-                  
+
                   // Get first field value
                   int firstFieldEnd = line.indexOf('|');
                   if (firstFieldEnd == -1) continue; // Skip malformed lines
-                  
+
                   // Find 12th field (11 pipe characters)
                   int pipeCount = 0;
                   int pos = firstFieldEnd + 1;
                   int fieldStart = -1;
-                  
+
                   while (pos < line.length() && pipeCount < 11) {
                       if (line.charAt(pos) == '|') {
                           pipeCount++;
@@ -640,13 +640,13 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       }
                       pos++;
                   }
-                  
+
                   if (fieldStart == -1) continue; // Skip if we didn't find the 12th field
-                  
+
                   // Find end of 12th field
                   int fieldEnd = line.indexOf('|', fieldStart);
                   if (fieldEnd == -1) fieldEnd = line.length();
-                  
+
                   // Check if 12th field matches terminology
                   if (fieldEnd - fieldStart == terminology.length()) {
                       boolean matches = true;
@@ -656,7 +656,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                               break;
                           }
                       }
-                      
+
                       if (matches) {
                           // Add first field to set if terminology matches
                           uniqueFirstFields.add(line.substring(0, firstFieldEnd));
@@ -664,10 +664,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   }
               }
           }
-          
+
           return uniqueFirstFields.size();
       }
-      
+
   public void replaceAllInFile(String folder, String file, String previousRelease, String currentRelease) throws Exception {
 	  Path path = Paths.get(folder, file);
 	    Charset charset = StandardCharsets.UTF_8;
@@ -677,7 +677,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 	    Files.write(path, content.getBytes(charset));
   }
 
-  
+
   public static File getLastModified(File directoryFile)
   {
       File[] files = directoryFile.listFiles(File::isDirectory);
@@ -698,7 +698,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
       return chosenFile;
   }
-  
+
   /* see superclass */
   @Override
   public void reset() throws Exception {
