@@ -95,8 +95,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
 
     outputPath = new File(config.getProperty("source.data.dir") + "/"
-	        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-	        + "META");
+          + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
+          + "META");
     logInfo("  outputPath: " + outputPath.getAbsolutePath());
     logInfo("  templatePath: " + getInputTemplatePath("MRCOLS.RRF").getParent());
     updateMrsab();
@@ -131,7 +131,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
 
       public void updateMrfiles() throws Exception {
-    	  String inputFile = "MRFILES.RRF";
+        String inputFile = "MRFILES.RRF";
           String outputFile = "MRFILES.mod";
           String backupFile = "MRFILES.bak";
 
@@ -338,12 +338,12 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       // Create new line with all fields except last one
                       StringBuilder newLine = new StringBuilder();
                       for (int i = 0; i < fields.length; i++) {
-                    	  // if field = AV, replace with newly calculated column average
-                    	  if (i == 4) {
-                    		  newLine.append(String.format("%.2f", colAverage)).append("|");
-                    	  } else {
-                    		  newLine.append(fields[i]).append("|");
-                    	  }
+                        // if field = AV, replace with newly calculated column average
+                        if (i == 4) {
+                          newLine.append(String.format("%.2f", colAverage)).append("|");
+                        } else {
+                          newLine.append(fields[i]).append("|");
+                        }
                       }
 
                       // Write the modified line to output file
@@ -366,7 +366,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       }
 
       public void updateMrsab() throws Exception {
-    	  String inputFile = "MRSAB.RRF";
+        String inputFile = "MRSAB.RRF";
           String outputFile = "MRSAB.mod";
           String backupFile = "MRSAB.bak";
 
@@ -392,15 +392,15 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                       // Create new line with all fields except last one
                       StringBuilder newLine = new StringBuilder();
                       for (int i = 0; i < fields.length; i++) {
-                    	  // if field = TFR, replace with newly calculated term count for the terminology
-                    	  if (i == 14) {
-                    		  newLine.append(tfr).append("|");
-                    	  // if field = CFR, replace with newly calculated cui count for the terminology
-                    	  } else if (i == 15) {
-                        	  newLine.append(cfr).append("|");
-                    	  } else {
-                    		  newLine.append(fields[i]).append("|");
-                    	  }
+                        // if field = TFR, replace with newly calculated term count for the terminology
+                        if (i == 14) {
+                          newLine.append(tfr).append("|");
+                        // if field = CFR, replace with newly calculated cui count for the terminology
+                        } else if (i == 15) {
+                            newLine.append(cfr).append("|");
+                        } else {
+                          newLine.append(fields[i]).append("|");
+                        }
                       }
 
                       // Write the modified line to output file
@@ -521,41 +521,41 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
           try (BufferedReader reader = Files.newBufferedReader(
               outputPath.toPath().resolve(filename), StandardCharsets.UTF_8)) {
-        	            String line;
-        	            int start, end, currentField;
+                      String line;
+                      int start, end, currentField;
 
-        	            while ((line = reader.readLine()) != null) {
-        	                if (line.isEmpty()) continue;
+                      while ((line = reader.readLine()) != null) {
+                          if (line.isEmpty()) continue;
 
-        	                // Manual field parsing without splitting
-        	                start = 0;
-        	                currentField = 0;
+                          // Manual field parsing without splitting
+                          start = 0;
+                          currentField = 0;
 
-        	                // Find the target field
-        	                while (currentField < fieldNumber && start < line.length()) {
-        	                    if (line.charAt(start) == '|') {
-        	                        currentField++;
-        	                    }
-        	                    start++;
-        	                }
+                          // Find the target field
+                          while (currentField < fieldNumber && start < line.length()) {
+                              if (line.charAt(start) == '|') {
+                                  currentField++;
+                              }
+                              start++;
+                          }
 
-        	                if (currentField != fieldNumber) {
-        	                    throw new IllegalArgumentException(
-        	                        "Field number " + fieldNumber + " is out of bounds for line");
-        	                }
+                          if (currentField != fieldNumber) {
+                              throw new IllegalArgumentException(
+                                  "Field number " + fieldNumber + " is out of bounds for line");
+                          }
 
-        	                // Find end of target field
-        	                end = start;
-        	                while (end < line.length() && line.charAt(end) != '|') {
-        	                    end++;
-        	                }
+                          // Find end of target field
+                          end = start;
+                          while (end < line.length() && line.charAt(end) != '|') {
+                              end++;
+                          }
 
-        	                totalLength += (end - start);
-        	                count++;
-        	            }
-        	        }
+                          totalLength += (end - start);
+                          count++;
+                      }
+                  }
 
-        	        return count > 0 ? (double) totalLength / count : 0.0;
+                  return count > 0 ? (double) totalLength / count : 0.0;
       }
 
       public int countTerminologyOccurrences(String terminology) throws IOException {
@@ -669,12 +669,12 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       }
 
   public void replaceAllInFile(String folder, String file, String previousRelease, String currentRelease) throws Exception {
-	  Path path = Paths.get(folder, file);
-	    Charset charset = StandardCharsets.UTF_8;
+    Path path = Paths.get(folder, file);
+      Charset charset = StandardCharsets.UTF_8;
 
-	    String content = new String(Files.readAllBytes(path), charset);
-	    content = content.replaceAll(previousRelease, currentRelease);
-	    Files.write(path, content.getBytes(charset));
+      String content = new String(Files.readAllBytes(path), charset);
+      content = content.replaceAll(previousRelease, currentRelease);
+      Files.write(path, content.getBytes(charset));
   }
 
 
