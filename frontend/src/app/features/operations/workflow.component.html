@@ -408,6 +408,7 @@
                     @for (record of binRecords(); track record.clusterId ?? $index) {
                       @for (concept of (record.concepts ?? []); track concept.id ?? $index; let ci = $first) {
                         <tr
+                          [ngClass]="concept.workflowStatus || null"
                           [class.selected]="selectedConcept()?.id === concept.id"
                           (click)="selectConcept(concept)"
                           (keyup.enter)="selectConcept(concept)"
@@ -1185,6 +1186,7 @@
                 @for (record of listDetailRecords(); track record.clusterId ?? $index) {
                   @for (concept of (record.concepts ?? []); track concept.id ?? $index; let ci = $first) {
                     <tr
+                      [ngClass]="concept.workflowStatus || null"
                       [class.selected]="selectedListDetailConcept()?.id === concept.id"
                       (click)="selectListDetailConcept(concept)"
                       (keyup.enter)="selectListDetailConcept(concept)"
