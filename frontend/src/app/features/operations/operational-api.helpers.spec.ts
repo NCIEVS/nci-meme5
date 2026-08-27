@@ -1,6 +1,7 @@
 import {
   buildOperationalPfs,
-  normalizeOperationalListResponse
+  normalizeOperationalListResponse,
+  workflowBinRecordQueryRestriction
 } from './operational-api.helpers';
 
 describe('operational API helpers', () => {
@@ -28,5 +29,11 @@ describe('operational API helpers', () => {
       items: [{ name: 'wrk26a_one' }, { name: 'wrk26a_two' }],
       totalCount: 2
     });
+  });
+
+  it('builds workflow bin record restrictions for cluster type rows', () => {
+    expect(workflowBinRecordQueryRestriction('all')).toBeUndefined();
+    expect(workflowBinRecordQueryRestriction('default')).toBe('clusterType:""');
+    expect(workflowBinRecordQueryRestriction('ME')).toBe('clusterType:"ME"');
   });
 });

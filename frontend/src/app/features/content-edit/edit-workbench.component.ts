@@ -1189,7 +1189,7 @@ export class EditWorkbenchComponent implements OnInit {
         this.atomFormResult.set(result);
         if (!validationBlocksCommit(result) && !validationNeedsWarningOverride(result)) {
           this.atomFormMode.set(null);
-          this.refreshConcept();
+          this.refreshConceptAfterMutation();
         }
       },
       error: () => {
@@ -1271,7 +1271,7 @@ export class EditWorkbenchComponent implements OnInit {
         if (!validationBlocksCommit(result) && !validationNeedsWarningOverride(result)) {
           this.moveDialogOpen.set(false);
           this.clearAtomSelections();
-          this.refreshConcept();
+          this.refreshConceptAfterMutation();
         }
       },
       error: () => {
@@ -1618,6 +1618,14 @@ export class EditWorkbenchComponent implements OnInit {
     this.loadConcept();
   }
 
+  private refreshConceptAfterMutation(): void {
+    const conceptId = this.loadedConcept()?.id;
+    if (conceptId) {
+      this.broadcastConceptUpdated(conceptId);
+    }
+    this.refreshConcept();
+  }
+
   // --- STY available-list helpers ---
 
   protected setStyFilter(value: string): void {
@@ -1810,7 +1818,7 @@ export class EditWorkbenchComponent implements OnInit {
           }
           this.semanticTypeAddPendingValue.set(null);
           this.semanticTypeAddValue.set('');
-          this.loadConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Semantic type could not be added.');
@@ -1866,7 +1874,7 @@ export class EditWorkbenchComponent implements OnInit {
             return;
           }
           this.semanticTypeRemovalPendingType.set(null);
-          this.loadConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Semantic type could not be removed.');
@@ -1922,7 +1930,7 @@ export class EditWorkbenchComponent implements OnInit {
             return;
           }
           this.atomUpdatePendingAtom.set(null);
-          this.loadConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Atom status could not be updated.');
@@ -1975,7 +1983,7 @@ export class EditWorkbenchComponent implements OnInit {
             return;
           }
           this.atomRemovalPendingAtom.set(null);
-          this.loadConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Atom could not be removed.');
@@ -2291,7 +2299,7 @@ export class EditWorkbenchComponent implements OnInit {
           }
           this.relationshipAddPendingRelationship.set(null);
           this.relationshipAddTargetConceptId.set('');
-          this.loadConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Relationship could not be added.');
@@ -2360,7 +2368,7 @@ export class EditWorkbenchComponent implements OnInit {
           this.relationshipAddPendingRelationships.set(null);
           this.addRelationshipDialogOpen.set(false);
           this.loadRelationships();
-          this.refreshConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Relationships could not be added.');
@@ -2422,7 +2430,7 @@ export class EditWorkbenchComponent implements OnInit {
           }
           this.relationshipRemovalPendingRelationship.set(null);
           this.loadRelationships();
-          this.refreshConcept();
+          this.refreshConceptAfterMutation();
         },
         error: () => {
           this.notifications.error('Relationship could not be removed.');
@@ -3029,6 +3037,13 @@ export class EditWorkbenchComponent implements OnInit {
   private broadcastConceptApproved(conceptId: number): void {
     (window.opener as Window | null)?.postMessage(
       { type: 'concept-approved', conceptId },
+      window.location.origin
+    );
+  }
+
+  private broadcastConceptUpdated(conceptId: number): void {
+    (window.opener as Window | null)?.postMessage(
+      { type: 'concept-updated', conceptId },
       window.location.origin
     );
   }

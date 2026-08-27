@@ -41,6 +41,8 @@ import com.wci.umls.server.model.workflow.Worklist;
 public class CreateXRRelationshipsForCluster
     extends AbstractInsertMaintReleaseAlgorithm {
 
+  private static final int SKIPPED_RELATIONSHIP_SAMPLE_SIZE = 10;
+
   private String worklistName;
 
   private Integer clusterNumber;
@@ -221,9 +223,13 @@ public class CreateXRRelationshipsForCluster
 
           // Don't create relationships if an existing relationship blocks
           // this relationship from being added.
-          if (hasExistingBlockingRelationship(fromConcept, toConcept,
-              existingRelationships)) {
+          final ConceptRelationship blockingRelationship =
+              getExistingBlockingRelationship(fromConcept, toConcept,
+                  existingRelationships);
+          if (blockingRelationship != null) {
             relationshipsSkipped++;
+            logSkippedRelationshipSample(relationshipsSkipped,
+                blockingRelationship);
             updateProgress();
             continue;
           }
@@ -458,19 +464,56 @@ public class CreateXRRelationshipsForCluster
   }
 
   /**
-   * Indicates whether an existing relationship blocks creating this one.
+   * Returns any existing relationship that blocks creating this one.
    *
    * @param fromConcept the from concept
    * @param toConcept the to concept
    * @param existingRelationships the cached existing relationships
-   * @return true if an existing relationship blocks creation
+   * @return the relationship that blocks creation, or null
    * @throws Exception if anything goes wrong
    */
-  protected boolean hasExistingBlockingRelationship(final Concept fromConcept,
+  protected ConceptRelationship getExistingBlockingRelationship(
+    final Concept fromConcept,
     final Concept toConcept, final Map<Long, Set<Long>> existingRelationships)
     throws Exception {
-    return existingRelationships.get(fromConcept.getId())
-        .contains(toConcept.getId());
+    if (!existingRelationships.get(fromConcept.getId())
+        .contains(toConcept.getId())) {
+      return null;
+    }
+    for (final ConceptRelationship relationship : fromConcept
+        .getRelationships()) {
+      if (relationship.getTo().getId().equals(toConcept.getId())) {
+        return relationship;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Logs sample details for skipped relationships.
+   *
+   * @param skippedCount the skipped count
+   * @param relationship the skipped relationship
+   */
+  protected void logSkippedRelationshipSample(final int skippedCount,
+    final ConceptRelationship relationship) throws Exception {
+    if (skippedCount > SKIPPED_RELATIONSHIP_SAMPLE_SIZE) {
+      return;
+    }
+    if (skippedCount == 1) {
+      logInfo("Sample skipped relationship(s):");
+    }
+    logInfo("  existing relationship id=" + relationship.getId() + ", from="
+        + relationship.getFrom().getId() + ", to="
+        + relationship.getTo().getId() + ", type="
+        + relationship.getRelationshipType() + ", additionalType="
+        + relationship.getAdditionalRelationshipType() + ", terminology="
+        + relationship.getTerminology() + "/" + relationship.getVersion()
+        + ", status=" + relationship.getWorkflowStatus() + ", publishable="
+        + relationship.isPublishable() + ", obsolete="
+        + relationship.isObsolete() + ", lastModifiedBy="
+        + relationship.getLastModifiedBy() + ", lastModified="
+        + relationship.getLastModified());
   }
 
   /**

@@ -36,6 +36,26 @@ export function buildOperationalPfs(
   };
 }
 
+export function workflowBinRecordQueryRestriction(
+  clusterType: string | null | undefined
+): string | undefined {
+  const trimmedClusterType = clusterType?.trim();
+
+  if (!trimmedClusterType || trimmedClusterType.toLocaleLowerCase() === 'all') {
+    return undefined;
+  }
+
+  if (trimmedClusterType.toLocaleLowerCase() === 'default') {
+    return 'clusterType:""';
+  }
+
+  return `clusterType:${quoteLuceneValue(trimmedClusterType)}`;
+}
+
+function quoteLuceneValue(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 export function normalizeOperationalListResponse<T>(
   response: OperationalListResponse<T>,
   keys: OperationalListKey[]

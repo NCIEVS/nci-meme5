@@ -34,7 +34,10 @@ import {
 import { buildWorkflowListFilterQuery } from '../content-edit/content-edit-api.helpers';
 import { ContentEditApiService } from '../content-edit/content-edit-api.service';
 import { ContentComponent as ContentComponentDetail } from '../content-edit/content-edit.models';
-import { buildOperationalPfs } from './operational-api.helpers';
+import {
+  buildOperationalPfs,
+  workflowBinRecordQueryRestriction
+} from './operational-api.helpers';
 import { OperationalApiService } from './operational-api.service';
 import {
   WorkflowChangeEvent,
@@ -1133,18 +1136,13 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.binRecords.set([]);
     this.binRecordsTotal.set(0);
 
-    const queryRestriction =
-      clusterType === 'all' ? ''
-      : clusterType === 'default' ? ' NOT clusterType:[* TO *]'
-      : clusterType;
-
     this.api
       .findTrackingRecordsForBin(projectId, bin.id, {
         startIndex: 0,
         maxResults: 20,
         sortField: 'clusterId',
         ascending: true,
-        queryRestriction
+        queryRestriction: workflowBinRecordQueryRestriction(clusterType)
       })
       .pipe(finalize(() => this.loadingBinRecords.set(false)))
       .subscribe({

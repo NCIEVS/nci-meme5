@@ -83,6 +83,7 @@ import {
   EditAddRelationshipRequest,
   EditAddRelationshipsRequest,
   EditAddSemanticTypeRequest,
+  EditApproveConceptRequest,
   EditMergeConceptRequest,
   EditMoveAtomsRequest,
   EditMutationReadiness,
@@ -1467,25 +1468,12 @@ export class ContentComponent implements OnInit {
       } | null;
 
       if (data?.type === 'concept-approved' && data.conceptId) {
-        const id = data.conceptId;
-        this.conceptList.update(list =>
-          list.map(c => c.id === id ? { ...c, workflowStatus: 'READY_FOR_PUBLICATION' } : c)
-        );
-        this.records.update(recs =>
-          recs.map(r => {
-            const updatedConcepts = r.concepts?.map(c =>
-              c.id === id ? { ...c, workflowStatus: 'READY_FOR_PUBLICATION' } : c
-            ) ?? r.concepts;
-            const allApproved = updatedConcepts?.every(
-              c => c.workflowStatus === 'READY_FOR_PUBLICATION'
-            ) ?? false;
-            return {
-              ...r,
-              concepts: updatedConcepts,
-              workflowStatus: allApproved ? 'READY_FOR_PUBLICATION' : r.workflowStatus,
-            };
-          })
-        );
+        this.markConceptApproved(data.conceptId);
+        this.refreshConceptFromPopup(data.conceptId);
+      }
+
+      if (data?.type === 'concept-updated' && data.conceptId) {
+        this.refreshConceptFromPopup(data.conceptId);
       }
 
       if (data?.type === 'concept-merged' && data.fromConceptId) {
@@ -1879,7 +1867,7 @@ export class ContentComponent implements OnInit {
         next: () => {
           this.componentNoteText.set('');
           this.notifications.success('Note added.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.componentNoteError.set('Note could not be added.');
@@ -1916,7 +1904,7 @@ export class ContentComponent implements OnInit {
       .subscribe({
         next: () => {
           this.notifications.success('Note removed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.componentNoteError.set('Note could not be removed.');
@@ -1979,7 +1967,7 @@ export class ContentComponent implements OnInit {
       .subscribe({
         next: () => {
           this.notifications.success('Concept updated.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.conceptUpdateError.set('Concept could not be updated.');
@@ -1995,13 +1983,12 @@ export class ContentComponent implements OnInit {
       return;
     }
 
-    const actionLabel = overrideWarnings
-      ? 'Override warnings and approve'
-      : 'Approve';
-    const conceptLabel =
-      this.selectedComponent()?.terminologyId || this.selectedComponent()?.id;
-
-    if (!window.confirm(`${actionLabel} concept "${conceptLabel}"?`)) {
+    if (
+      overrideWarnings &&
+      !window.confirm(
+        `Override warnings and approve concept "${this.selectedComponent()?.terminologyId || this.selectedComponent()?.id}"?`
+      )
+    ) {
       return;
     }
 
@@ -2025,7 +2012,8 @@ export class ContentComponent implements OnInit {
           }
 
           this.notifications.success('Concept approved.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.markConceptApproved(request.conceptId);
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Concept approval could not be completed.');
@@ -2315,7 +2303,7 @@ export class ContentComponent implements OnInit {
 
           this.atomAddPendingAtom.set(null);
           this.notifications.success('Atom added.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Atom could not be added.');
@@ -2515,7 +2503,7 @@ export class ContentComponent implements OnInit {
         next: () => {
           this.atomSimpleEditTarget.set(null);
           this.notifications.success('Atom simple edit saved.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.atomSimpleEditError.set('Atom simple edit could not be saved.');
@@ -2622,7 +2610,7 @@ export class ContentComponent implements OnInit {
           this.atomEditTarget.set(null);
           this.atomEditPendingAtom.set(null);
           this.notifications.success('Atom updated.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Atom could not be updated.');
@@ -2674,7 +2662,7 @@ export class ContentComponent implements OnInit {
 
           this.atomUpdatePendingAtom.set(null);
           this.notifications.success('Atom status updated.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Atom status could not be updated.');
@@ -2721,7 +2709,7 @@ export class ContentComponent implements OnInit {
 
           this.atomRemovalPendingAtom.set(null);
           this.notifications.success('Atom removed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Atom could not be removed.');
@@ -2768,7 +2756,7 @@ export class ContentComponent implements OnInit {
 
           this.attributeAddPendingAttribute.set(null);
           this.notifications.success('Attribute added.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Attribute could not be added.');
@@ -2860,7 +2848,7 @@ export class ContentComponent implements OnInit {
 
           this.attributeRemovalPendingAttribute.set(null);
           this.notifications.success('Attribute removed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Attribute could not be removed.');
@@ -2935,7 +2923,7 @@ export class ContentComponent implements OnInit {
 
           this.semanticTypeAddPendingValue.set(null);
           this.notifications.success('Semantic type added.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Semantic type could not be added.');
@@ -3039,7 +3027,7 @@ export class ContentComponent implements OnInit {
 
           this.semanticTypeRemovalPendingType.set(null);
           this.notifications.success('Semantic type removed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Semantic type could not be removed.');
@@ -3151,7 +3139,7 @@ export class ContentComponent implements OnInit {
           this.selectedAtomMoveTarget.set(null);
           this.atomMoveDialogOpen.set(false);
           this.notifications.success('Atom move completed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Atoms could not be moved.');
@@ -3228,7 +3216,7 @@ export class ContentComponent implements OnInit {
           this.selectedAtomSplitIds.set([]);
           this.atomSplitDialogOpen.set(false);
           this.notifications.success('Concept split completed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Concept could not be split.');
@@ -3633,7 +3621,7 @@ export class ContentComponent implements OnInit {
           this.relationshipAddPendingRelationship.set(null);
           this.relationshipAddTargetConceptId.set('');
           this.notifications.success('Relationship added.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Relationship could not be added.');
@@ -3713,7 +3701,7 @@ export class ContentComponent implements OnInit {
           this.relationshipAddPendingRelationships.set(null);
           this.selectedRelationshipTargets.set([]);
           this.notifications.success('Relationships added.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Relationships could not be added.');
@@ -3813,7 +3801,7 @@ export class ContentComponent implements OnInit {
 
           this.relationshipRemovalPendingRelationship.set(null);
           this.notifications.success('Relationship removed.');
-          this.loadSelectedComponent(this.selectedResult());
+          this.refreshSelectedComponent();
         },
         error: () => {
           this.notifications.error('Relationship could not be removed.');
@@ -5552,17 +5540,148 @@ export class ContentComponent implements OnInit {
     this.api.getComponentById('concept', concept.id, projectId).subscribe({
       next: (updated) => {
         if (!updated) return;
-        const updatedList = this.conceptList()
-          .map((c) => (c.id === concept.id ? updated : c))
-          .sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
-        this.conceptList.set(updatedList);
+        this.replaceConceptInList(updated);
         if (this.selectedComponent()?.id === concept.id) {
           this.selectedComponent.set(updated);
         }
-        this.selectSoleConceptIfNeeded(updatedList);
+        this.selectSoleConceptIfNeeded();
       },
       error: () => {}
     });
+  }
+
+  private refreshSelectedComponent(): void {
+    const result = this.selectedResult();
+    if (result) {
+      this.loadSelectedComponent(result);
+      return;
+    }
+
+    const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const type = this.toSearchableContentType(component?.type || this.searchType());
+    if (!component?.id || !projectId || !type) {
+      return;
+    }
+
+    const selectedId = component.id;
+    this.loadingComponent.set(true);
+    this.selectedComponentError.set(null);
+    this.api
+      .getComponentById(type, selectedId, projectId)
+      .pipe(finalize(() => this.loadingComponent.set(false)))
+      .subscribe({
+        next: (updated) => {
+          if (this.selectedComponent()?.id !== selectedId) {
+            return;
+          }
+          if (!updated) {
+            this.selectedComponentError.set('Component detail could not be loaded.');
+            return;
+          }
+
+          this.selectedComponent.set(updated);
+          this.applyConceptUpdateDefaults(updated);
+          this.loadSemanticTypeOptionsForComponent(updated);
+          if (type === 'CONCEPT') {
+            this.replaceConceptInList(updated);
+          }
+        },
+        error: () => {
+          if (this.selectedComponent()?.id === selectedId) {
+            this.selectedComponentError.set('Component detail could not be loaded.');
+            this.notifications.error('Component detail could not be loaded.');
+          }
+        }
+      });
+  }
+
+  private replaceConceptInList(concept: ContentComponentDetail): void {
+    if (!concept.id) {
+      return;
+    }
+
+    const conceptId = concept.id;
+    this.conceptList.update((list) =>
+      list
+        .map((item) => (item.id === conceptId ? concept : item))
+        .sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+    );
+    this.records.update((records) =>
+      records.map((record) => {
+        if (!record.concepts?.some((item) => item.id === conceptId)) {
+          return record;
+        }
+
+        const concepts = record.concepts.map((item) =>
+          item.id === conceptId
+            ? {
+                ...item,
+                name: concept.name ?? item.name,
+                workflowStatus: concept.workflowStatus ?? item.workflowStatus
+              }
+            : item
+        );
+        const allApproved = concepts.every(
+          (item) => item.workflowStatus === 'READY_FOR_PUBLICATION'
+        );
+
+        return {
+          ...record,
+          concepts,
+          workflowStatus: allApproved
+            ? 'READY_FOR_PUBLICATION'
+            : record.workflowStatus
+        };
+      })
+    );
+  }
+
+  private markConceptApproved(conceptId: number): void {
+    this.conceptList.update((list) =>
+      list.map((concept) =>
+        concept.id === conceptId
+          ? { ...concept, workflowStatus: 'READY_FOR_PUBLICATION' }
+          : concept
+      )
+    );
+    this.selectedComponent.update((concept) =>
+      concept?.id === conceptId
+        ? { ...concept, workflowStatus: 'READY_FOR_PUBLICATION' }
+        : concept
+    );
+    this.records.update((records) =>
+      records.map((record) => {
+        const concepts = record.concepts?.map((concept) =>
+          concept.id === conceptId
+            ? { ...concept, workflowStatus: 'READY_FOR_PUBLICATION' }
+            : concept
+        );
+        const allApproved = concepts?.every(
+          (concept) => concept.workflowStatus === 'READY_FOR_PUBLICATION'
+        ) ?? false;
+
+        return {
+          ...record,
+          concepts: concepts ?? record.concepts,
+          workflowStatus: allApproved
+            ? 'READY_FOR_PUBLICATION'
+            : record.workflowStatus
+        };
+      })
+    );
+  }
+
+  private refreshConceptFromPopup(conceptId: number): void {
+    if (this.selectedComponent()?.id === conceptId) {
+      this.refreshSelectedComponent();
+      return;
+    }
+
+    const concept = this.conceptList().find((item) => item.id === conceptId);
+    if (concept) {
+      this.reloadConceptInList(concept);
+    }
   }
 
   private refreshConceptListAfterMerge(
@@ -5858,15 +5977,62 @@ export class ContentComponent implements OnInit {
   }
 
   protected approveAndNext(): void {
-    const list = this.conceptList();
-    if (!list.length) { this.nextRecord(); return; }
-    let remaining = list.length;
-    for (const concept of list) {
-      if (!concept.id) { remaining--; continue; }
-      this.approveSelectedConcept(false);
-      remaining--;
-      if (remaining === 0) this.nextRecord();
+    const concepts = this.conceptList().filter((concept) => Boolean(concept.id));
+    if (!concepts.length) {
+      this.nextRecord();
+      return;
     }
+
+    const requests = concepts
+      .map((concept) => this.buildApproveConceptRequestForConcept(concept, false));
+    if (requests.some((request) => request === null)) {
+      this.notifications.error('Concept approval could not be started.');
+      return;
+    }
+
+    this.approvingConcept.set(true);
+    this.approvalResult.set(null);
+    this.approveConceptRequestsAndNext(
+      requests.filter((request): request is EditApproveConceptRequest => request !== null)
+    );
+  }
+
+  private approveConceptRequestsAndNext(
+    requests: EditApproveConceptRequest[],
+    index = 0
+  ): void {
+    const request = requests[index];
+    if (!request) {
+      this.approvingConcept.set(false);
+      this.refreshSelectedComponent();
+      this.nextRecord();
+      return;
+    }
+
+    this.mutationApi.approveConcept(request).subscribe({
+      next: (result) => {
+        this.approvalResult.set(result);
+        if (validationBlocksCommit(result)) {
+          this.approvingConcept.set(false);
+          this.notifications.error('Concept approval failed validation.');
+          return;
+        }
+        if (validationNeedsWarningOverride(result)) {
+          this.approvingConcept.set(false);
+          this.notifications.error(
+            'Concept approval returned warnings. Review and override to continue.'
+          );
+          return;
+        }
+
+        this.markConceptApproved(request.conceptId);
+        this.approveConceptRequestsAndNext(requests, index + 1);
+      },
+      error: () => {
+        this.approvingConcept.set(false);
+        this.notifications.error('Concept approval could not be completed.');
+      }
+    });
   }
 
   // Project / Role selection
@@ -6687,19 +6853,32 @@ export class ContentComponent implements OnInit {
     return formatted === 'n/a' ? String(ts) : formatted;
   }
 
-  private buildApproveConceptRequest(overrideWarnings: boolean) {
-    const projectId = this.projectId();
+  private buildApproveConceptRequest(
+    overrideWarnings: boolean
+  ): EditApproveConceptRequest | null {
     const component = this.selectedComponent();
-    const lastModified = this.selectedLastModifiedEpoch();
+    if (!component) {
+      return null;
+    }
+
+    return this.buildApproveConceptRequestForConcept(component, overrideWarnings);
+  }
+
+  private buildApproveConceptRequestForConcept(
+    concept: ContentComponentDetail,
+    overrideWarnings: boolean
+  ): EditApproveConceptRequest | null {
+    const projectId = this.projectId();
+    const lastModified = this.toEpochMillis(concept.lastModified);
     const activityId = this.mutationActivityId(this.approvalActivityId());
 
-    if (!projectId || !component?.id || !lastModified || !activityId) {
+    if (!projectId || !concept.id || !lastModified || !activityId) {
       return null;
     }
 
     return {
       activityId,
-      conceptId: component.id,
+      conceptId: concept.id,
       lastModified,
       overrideWarnings,
       projectId

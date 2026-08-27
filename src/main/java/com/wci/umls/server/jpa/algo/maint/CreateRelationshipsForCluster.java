@@ -82,18 +82,18 @@ public class CreateRelationshipsForCluster
 
   /* see superclass */
   @Override
-  protected boolean hasExistingBlockingRelationship(final Concept fromConcept,
-    final Concept toConcept, final Map<Long, Set<Long>> existingRelationships)
-    throws Exception {
+  protected ConceptRelationship getExistingBlockingRelationship(
+    final Concept fromConcept, final Concept toConcept,
+    final Map<Long, Set<Long>> existingRelationships) throws Exception {
     for (final ConceptRelationship relationship : fromConcept
         .getRelationships()) {
       if (relationship.getTo().getId().equals(toConcept.getId())
           && getRelationshipTypeToCreate()
               .equals(relationship.getRelationshipType())) {
-        return true;
+        return relationship;
       }
     }
-    return false;
+    return null;
   }
 
   /* see superclass */
