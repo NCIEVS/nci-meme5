@@ -29,6 +29,7 @@ import com.wci.umls.server.jpa.model.content.ConceptRelationshipJpa;
 import com.wci.umls.server.jpa.model.helpers.PfsParameterJpa;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.ConceptRelationship;
+import com.wci.umls.server.model.meta.RelationshipType;
 import com.wci.umls.server.model.workflow.TrackingRecord;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
 import com.wci.umls.server.model.workflow.Worklist;
@@ -43,6 +44,8 @@ public class CreateXRRelationshipsForCluster
   private String worklistName;
 
   private Integer clusterNumber;
+
+  private String relationshipType = "XR";
 
   /**
    * Instantiates an empty {@link CreateXRRelationshipsForCluster}.
@@ -68,9 +71,9 @@ public class CreateXRRelationshipsForCluster
     ValidationResult validationResult = new ValidationResultJpa();
 
     if (getProject() == null) {
-      throw new Exception(
-          "Create XR Relationships For Cluster requires a project to be set");
+      throw new Exception(getName() + " requires a project to be set");
     }
+    validateRelationshipType();
 
     return validationResult;
   }
@@ -83,9 +86,11 @@ public class CreateXRRelationshipsForCluster
   /* see superclass */
   @Override
   public void compute() throws Exception {
+    validateRelationshipType();
     logInfo("Starting " + getName());
     logInfo("  worklistName = " + worklistName);
     logInfo("  clusterNumber = " + clusterNumber);
+    logInfo("  relationshipType = " + relationshipType);
     commitClearBegin();
 
     int relationshipsCreated = 0;
@@ -108,7 +113,7 @@ public class CreateXRRelationshipsForCluster
 
       Worklist worklist = worklistList.getObjects().get(0);
 
-      logInfo("[CreateXRRelationshipsForCluster] Worklist loaded: "
+      logInfo("[" + getClass().getSimpleName() + "] Worklist loaded: "
           + worklist.getName());
 
       // Get the specified cluster
@@ -169,7 +174,7 @@ public class CreateXRRelationshipsForCluster
         }
       }
 
-      // Create XR relationships between all the NCIMTH concepts, IFF there
+      // Create relationships between all the NCIMTH concepts, IFF there
       // isn't already a relationship between them.
       for (Concept fromConcept : concepts) {
         for (Concept toConcept : concepts) {
@@ -199,10 +204,10 @@ public class CreateXRRelationshipsForCluster
           fromConcept = getConcept(fromConcept.getId());
           toConcept = getConcept(toConcept.getId());
 
-          // Don't create XR relationships if a concept-relationship already
-          // exists
-          if (existingRelationships.get(fromConcept.getId())
-              .contains(toConcept.getId())) {
+          // Don't create relationships if an existing relationship blocks
+          // this relationship from being added.
+          if (hasExistingBlockingRelationship(fromConcept, toConcept,
+              existingRelationships)) {
             updateProgress();
             continue;
           }
@@ -213,16 +218,17 @@ public class CreateXRRelationshipsForCluster
           ConceptRelationship relationship = new ConceptRelationshipJpa();
           try {
 
-            // XR relationships are unpublishable
+            // All new relationships are unpublished; XR relationships are not
+            // publishable.
             relationship.setPublished(false);
-            relationship.setPublishable(false);
+            relationship.setPublishable(!"XR".equals(relationshipType));
             relationship.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
 
             relationship.setTerminology("NCIMTH");
             relationship.setVersion("latest");
             relationship.setFrom(fromConcept);
             relationship.setTo(toConcept);
-            relationship.setRelationshipType("XR");
+            relationship.setRelationshipType(relationshipType);
             relationship.setAdditionalRelationshipType("");
             relationship.setTerminologyId("");
 
@@ -235,7 +241,7 @@ public class CreateXRRelationshipsForCluster
 
             // Configure the action
             action.setProject(getProject());
-            action.setActivityId("createXRRelationshipsForCluster");
+            action.setActivityId(getRelationshipActionActivityId());
             action.setConceptId(relationship.getFrom().getId());
             action.setConceptId2(relationship.getTo().getId());
             action.setLastModifiedBy("admin");
@@ -277,46 +283,48 @@ public class CreateXRRelationshipsForCluster
         }
       }
 
-      // Perform post-action maintenance on each concept (do things this way
-      // because if post maintenance is done within add Relationships, it gets
-      // called multiple times for each concept)
-      final UpdateConceptMolecularAction action =
-          new UpdateConceptMolecularAction();
-      // Action will be performed in batch mode, so begin the transaction now.
-      action.setTransactionPerOperation(false);
-      action.beginTransaction();
-      try {
+      if (relationshipsCreated > 0) {
+        // Perform post-action maintenance on each concept (do things this way
+        // because if post maintenance is done within add Relationships, it gets
+        // called multiple times for each concept)
+        final UpdateConceptMolecularAction action =
+            new UpdateConceptMolecularAction();
+        // Action will be performed in batch mode, so begin the transaction now.
+        action.setTransactionPerOperation(false);
+        action.beginTransaction();
+        try {
 
-        for (final Concept concept : concepts) {
+          for (final Concept concept : concepts) {
 
-          final Concept rereadconcept = getConcept(concept.getId());
+            final Concept rereadconcept = getConcept(concept.getId());
 
-          // Configure the conceptUpdate molecular action
-          action.setProject(getProject());
-          action.setConceptId(rereadconcept.getId());
-          action.setConceptId2(null);
-          action.setLastModifiedBy("admin");
-          action.setLastModified(rereadconcept.getLastModified().getTime());
-          action.setOverrideWarnings(true);
-          action.setTransactionPerOperation(false);
-          action.setMolecularActionFlag(true);
-          action.setChangeStatusFlag(true);
-          action.setPublishable(rereadconcept.isPublishable());
-          action.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+            // Configure the conceptUpdate molecular action
+            action.setProject(getProject());
+            action.setConceptId(rereadconcept.getId());
+            action.setConceptId2(null);
+            action.setLastModifiedBy("admin");
+            action.setLastModified(rereadconcept.getLastModified().getTime());
+            action.setOverrideWarnings(true);
+            action.setTransactionPerOperation(false);
+            action.setMolecularActionFlag(true);
+            action.setChangeStatusFlag(true);
+            action.setPublishable(rereadconcept.isPublishable());
+            action.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
 
-          final ValidationResult result =
-              performMolecularAction(action, getLastModifiedBy(), true, true);
-          if (!result.isValid()) {
-            throw new Exception("Invalid action - " + result);
+            final ValidationResult result =
+                performMolecularAction(action, getLastModifiedBy(), true, true);
+            if (!result.isValid()) {
+              throw new Exception("Invalid action - " + result);
+            }
           }
+
+          action.commitClearBegin();
+
+        } catch (Exception e) {
+          action.rollback();
+        } finally {
+          action.close();
         }
-
-        action.commitClearBegin();
-
-      } catch (Exception e) {
-        action.rollback();
-      } finally {
-        action.close();
       }
 
     } catch (Exception e) {
@@ -326,7 +334,8 @@ public class CreateXRRelationshipsForCluster
       // n/a
     }
 
-    logInfo("Created " + relationshipsCreated + " XR relationships.");
+    logInfo("Created " + relationshipsCreated + " " + relationshipType
+        + " relationships.");
     logInfo("Finished " + getName());
 
   }
@@ -383,7 +392,11 @@ public class CreateXRRelationshipsForCluster
 
     // Only list ambig_no_rel worklists
     PfsParameter pfs = new PfsParameterJpa();
-    pfs.setQueryRestriction("ambig_no_rel*");
+    final String worklistQueryRestriction = getWorklistQueryRestriction();
+    if (worklistQueryRestriction != null
+        && !worklistQueryRestriction.isEmpty()) {
+      pfs.setQueryRestriction(worklistQueryRestriction);
+    }
     WorklistList worklistList = findWorklists(getProject(), null, pfs);
 
     List<String> worklistNames = new ArrayList<>();
@@ -399,6 +412,94 @@ public class CreateXRRelationshipsForCluster
     params.add(param);
 
     return params;
+  }
+
+  /**
+   * Returns available relationship type abbreviations for this project.
+   *
+   * @return the available relationship type abbreviations
+   * @throws Exception if anything goes wrong
+   */
+  protected List<String> getRelationshipTypeValues() throws Exception {
+    final List<String> relationshipTypeValues = new ArrayList<>();
+    for (final RelationshipType type : getRelationshipTypes(
+        getProject().getTerminology(), getProject().getVersion())
+            .getObjects()) {
+      relationshipTypeValues.add(type.getAbbreviation());
+    }
+    return relationshipTypeValues;
+  }
+
+  /**
+   * Returns the worklist query restriction used for the worklist parameter.
+   *
+   * @return the worklist query restriction
+   */
+  protected String getWorklistQueryRestriction() {
+    return "ambig_no_rel*";
+  }
+
+  /**
+   * Indicates whether an existing relationship blocks creating this one.
+   *
+   * @param fromConcept the from concept
+   * @param toConcept the to concept
+   * @param existingRelationships the cached existing relationships
+   * @return true if an existing relationship blocks creation
+   * @throws Exception if anything goes wrong
+   */
+  protected boolean hasExistingBlockingRelationship(final Concept fromConcept,
+    final Concept toConcept, final Map<Long, Set<Long>> existingRelationships)
+    throws Exception {
+    return existingRelationships.get(fromConcept.getId())
+        .contains(toConcept.getId());
+  }
+
+  /**
+   * Sets the relationship type used by this algorithm.
+   *
+   * @param relationshipType the relationship type
+   */
+  protected void setRelationshipType(String relationshipType) {
+    this.relationshipType =
+        relationshipType == null ? null : relationshipType.trim();
+  }
+
+  /**
+   * Returns the relationship type used by this algorithm.
+   *
+   * @return the relationship type
+   */
+  protected String getRelationshipTypeToCreate() {
+    return relationshipType;
+  }
+
+  /**
+   * Validate the configured relationship type.
+   *
+   * @throws Exception if the relationship type is missing or invalid
+   */
+  protected void validateRelationshipType() throws Exception {
+    if (relationshipType == null || relationshipType.trim().isEmpty()) {
+      throw new Exception(getName() + " requires a relationship type to be set");
+    }
+    relationshipType = relationshipType.trim();
+    if (getProject() != null && getRelationshipType(relationshipType,
+        getProject().getTerminology(), getProject().getVersion()) == null) {
+      throw new Exception(getName()
+          + " requires a valid relationship type, but " + relationshipType
+          + " was not found for " + getProject().getTerminology() + "/"
+          + getProject().getVersion());
+    }
+  }
+
+  /**
+   * Returns the molecular action activity id for added relationships.
+   *
+   * @return the molecular action activity id
+   */
+  protected String getRelationshipActionActivityId() {
+    return "createXRRelationshipsForCluster";
   }
 
   /* see superclass */
