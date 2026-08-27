@@ -249,7 +249,15 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     // new ConceptJpa(...) would produce a detached/transient copy that Hibernate
     // rejects when it is later referenced as the "from" or "to" field of a
     // persisted ConceptRelationshipJpa.
+    // Initialize collections before the baseline flush so later additions are
+    // made to Hibernate-managed collections instead of post-flush plain lists.
+    getToConcept().getAtoms();
+    getToConcept().getRelationships();
+    getToConcept().getSemanticTypes();
     setToConcept(addConcept(getToConcept()));
+    // Ensure updateComponent() can reload the new concept's empty baseline
+    // after detaching it for old-vs-new atomic action comparison.
+    getEntityManager().flush();
     getToConcept().setTerminologyId(getToConcept().getId().toString());
     // Do NOT add toConcept to conceptsChanged: it is a brand-new managed entity whose
     // atoms, STYs, rels, and workflowStatus changes are all tracked by Hibernate and will
@@ -266,6 +274,8 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     //
     // Update and add objects
     //
+
+    final List<SemanticTypeComponent> newSemanticTypes = new ArrayList<>();
 
     // Set workflow status of "from" atoms and add to the "to" concept.
     // Use getAtom() to get the managed entity from the session; atom copies are treated
@@ -288,6 +298,7 @@ public class SplitMolecularAction extends AbstractMolecularAction {
         }
         final SemanticTypeComponent newSty =
             addSemanticTypeComponent(sty, getToConcept());
+        newSemanticTypes.add(newSty);
         getToConcept().getSemanticTypes().add(newSty);
       }
     }
@@ -390,6 +401,31 @@ public class SplitMolecularAction extends AbstractMolecularAction {
     for (final Concept concept : conceptsChanged) {
       updateConcept(concept);
     }
+
+    // The updateComponent old-vs-new comparison detaches and merges the newly
+    // created concept. With Hibernate 6 the merge path does not reliably flush
+    // the new concept's join-table memberships, so reapply them to the managed
+    // target concept after the atomic actions have been recorded.
+    final Concept managedToConcept = getConcept(getToConcept().getId());
+    for (final Atom atom : moveAtomsCopies) {
+      final Atom managedAtom = getAtom(atom.getId());
+      if (managedAtom == null) {
+        throw new LocalException("Split atom " + atom.getId() + " not found after update");
+      }
+      removeById(managedToConcept.getAtoms(), managedAtom.getId());
+      managedToConcept.getAtoms().add(managedAtom);
+    }
+    for (final SemanticTypeComponent sty : newSemanticTypes) {
+      final SemanticTypeComponent managedSty = getSemanticTypeComponent(sty.getId());
+      if (managedSty == null) {
+        throw new LocalException(
+            "Split semantic type " + sty.getId() + " not found after update");
+      }
+      removeById(managedToConcept.getSemanticTypes(), managedSty.getId());
+      managedToConcept.getSemanticTypes().add(managedSty);
+    }
+    setToConcept(managedToConcept);
+    getEntityManager().flush();
 
   }
 

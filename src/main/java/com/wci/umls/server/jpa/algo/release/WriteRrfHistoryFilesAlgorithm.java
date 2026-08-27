@@ -112,11 +112,16 @@ public class WriteRrfHistoryFilesAlgorithm
     previousCuis.addAll(query.getResultList());
 
     // prior historical CUIs
-    query = manager.createQuery("select terminologyId from ConceptJpa a "
-        + "where terminology = :terminology and id != terminologyId"
-        + "  and publishable = false");
+    query = manager.createQuery("select a.terminologyId, a.id from ConceptJpa a "
+        + "where a.terminology = :terminology and a.publishable = false");
     query.setParameter("terminology", getProject().getTerminology());
-    previousCuis.addAll(query.getResultList());
+    for (final Object[] result : (List<Object[]>) query.getResultList()) {
+      final String terminologyId = result[0].toString();
+      final String id = result[1].toString();
+      if (!terminologyId.equals(id)) {
+        previousCuis.add(terminologyId);
+      }
+    }
     updateProgress();
 
     logInfo("  Write MRAUI.RRF");

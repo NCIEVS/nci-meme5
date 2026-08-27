@@ -71,14 +71,8 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
           + dir.getPath());
     }
 
-    // Verify that there is a "NET" directory at input path
-    final File metadir = new File(path, "META");
-    if (!metadir.exists()) {
-      result.addError(
-          "Release requires a 'META' directory at the input path with\n"
-              + "template MRCOLS.RRF and MRFILES.RRF files in it:\n "
-              + metadir.getPath());
-    }
+    checkReleaseMetadataTemplate(result, path, "MRFILES.RRF");
+    checkReleaseMetadataTemplate(result, path, "MRCOLS.RRF");
 
     // Verify that there are no concepts with workflowStatus == NEEDS_REVIEW
     final PfsParameter pfs = new PfsParameterJpa();
@@ -357,6 +351,24 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
       fireProgressEvent(currentProgress,
           "CREATE RELEASE progress: " + currentProgress + "%");
       previousProgress = currentProgress;
+    }
+  }
+
+  /**
+   * Checks that a release metadata template is available.
+   *
+   * @param result the validation result
+   * @param inputPath the release input path
+   * @param fileName the template file name
+   */
+  private void checkReleaseMetadataTemplate(ValidationResult result,
+    String inputPath, String fileName) {
+    final File template = new File(new File(inputPath, "META"), fileName);
+    if (!template.isFile()
+        && getClass().getResource("/META/" + fileName) == null) {
+      result.addError("Release requires template " + fileName
+          + " at input path " + template.getPath()
+          + " or classpath resource META/" + fileName + ".");
     }
   }
 

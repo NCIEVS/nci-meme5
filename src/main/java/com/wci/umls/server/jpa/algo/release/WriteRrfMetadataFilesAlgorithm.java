@@ -5,6 +5,7 @@ package com.wci.umls.server.jpa.algo.release;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,6 +26,7 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
+import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.helpers.content.ConceptList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -61,7 +63,10 @@ public class WriteRrfMetadataFilesAlgorithm
   /* see superclass */
   @Override
   public ValidationResult checkPreconditions() throws Exception {
-    return new ValidationResultJpa();
+    final ValidationResult result = new ValidationResultJpa();
+    checkTemplateAvailable(result, "MRFILES.RRF");
+    checkTemplateAvailable(result, "MRCOLS.RRF");
+    return result;
   }
 
   /* see superclass */
@@ -152,19 +157,84 @@ public class WriteRrfMetadataFilesAlgorithm
     // This just copies template MRCOLS/MRFILES files because
     // MetamorphoSys will ultimately compute the correct
     // files anyway.
-    Path source = Paths.get(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/META/MRFILES.RRF");
-    Path destination = Paths.get(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion()
-        + "/META/MRFILES.RRF");
-    Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+    copyTemplateFile("MRFILES.RRF");
+    copyTemplateFile("MRCOLS.RRF");
+  }
 
-    source = Paths.get(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/META/MRCOLS.RRF");
-    destination = Paths.get(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion()
-        + "/META/MRCOLS.RRF");
-    Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+  /**
+   * Checks that the specified release metadata template is available.
+   *
+   * @param result the validation result
+   * @param fileName the template file name
+   */
+  private void checkTemplateAvailable(ValidationResult result,
+    String fileName) {
+    final Path source = getInputTemplatePath(fileName);
+    if (!Files.isRegularFile(source) && !hasClasspathTemplate(fileName)) {
+      result.addError("Release metadata template not found: " + fileName
+          + ". Checked input path " + source
+          + " and classpath resource META/" + fileName + ".");
+    }
+  }
+
+  /**
+   * Copies the specified release metadata template.
+   *
+   * @param fileName the file name
+   * @throws Exception the exception
+   */
+  private void copyTemplateFile(String fileName) throws Exception {
+    final Path destination = getOutputTemplatePath(fileName);
+    ConfigUtility.ensureDirectoryExists(destination.getParent().toFile());
+
+    final Path source = getInputTemplatePath(fileName);
+    if (Files.isRegularFile(source)) {
+      Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+      return;
+    }
+
+    try (InputStream in = getClass().getResourceAsStream(
+        "/META/" + fileName)) {
+      if (in == null) {
+        throw new LocalException("Release metadata template not found: "
+            + fileName + ". Checked input path " + source
+            + " and classpath resource META/" + fileName + ".");
+      }
+      Files.copy(in, destination, StandardCopyOption.REPLACE_EXISTING);
+    }
+  }
+
+  /**
+   * Returns the input template path.
+   *
+   * @param fileName the file name
+   * @return the input path
+   */
+  private Path getInputTemplatePath(String fileName) {
+    return Paths.get(config.getProperty("source.data.dir"),
+        getProcess().getInputPath(), "META", fileName);
+  }
+
+  /**
+   * Returns the output template path.
+   *
+   * @param fileName the file name
+   * @return the output path
+   */
+  private Path getOutputTemplatePath(String fileName) {
+    return Paths.get(config.getProperty("source.data.dir"),
+        getProcess().getInputPath(), getProcess().getVersion(), "META",
+        fileName);
+  }
+
+  /**
+   * Indicates whether the template is packaged on the classpath.
+   *
+   * @param fileName the file name
+   * @return true if available, false otherwise
+   */
+  private boolean hasClasspathTemplate(String fileName) {
+    return getClass().getResource("/META/" + fileName) != null;
   }
 
   /**
