@@ -94,6 +94,7 @@ public class CreateXRRelationshipsForCluster
     commitClearBegin();
 
     int relationshipsCreated = 0;
+    int relationshipsSkipped = 0;
 
     final Long clusterId = Long.valueOf(clusterNumber);
 
@@ -133,22 +134,35 @@ public class CreateXRRelationshipsForCluster
             + worklist.getName() + " and cluster=" + clusterId);
       }
 
-      // Get NCIMTH concepts for tracking record's atoms
-      Query query = getEntityManager()
-          .createQuery("select c.id from ConceptJpa c join c.atoms a "
-              + "where c.terminology=:projectTerminology and c.version=:projectVersion and a.id in (:atomIds)");
-      query.setParameter("projectTerminology", getProject().getTerminology());
-      query.setParameter("projectVersion", getProject().getVersion());
-      query.setParameter("atomIds", trackingRecord.getComponentIds());
-
       Set<Concept> concepts = new HashSet<>();
+      if (!trackingRecord.getOrigConceptIds().isEmpty()) {
+        for (final Long conceptId : trackingRecord.getOrigConceptIds()) {
+          final Concept concept = this.getConcept(conceptId);
+          if (concept != null && getProject().getTerminology()
+              .equals(concept.getTerminology()) && getProject().getVersion()
+                  .equals(concept.getVersion())) {
+            concepts.add(concept);
+          }
+        }
+      } else {
+        // Fall back to the original atom-based lookup for older records that do
+        // not have original concept ids populated.
+        Query query = getEntityManager()
+            .createQuery("select c.id from ConceptJpa c join c.atoms a "
+                + "where c.terminology=:projectTerminology and c.version=:projectVersion and a.id in (:atomIds)");
+        query.setParameter("projectTerminology",
+            getProject().getTerminology());
+        query.setParameter("projectVersion", getProject().getVersion());
+        query.setParameter("atomIds", trackingRecord.getComponentIds());
 
-      List<Object> results = query.getResultList();
-      for (final Object result : results) {
-        final Concept concept =
-            this.getConcept(Long.valueOf(result.toString()));
-        concepts.add(concept);
+        List<Object> results = query.getResultList();
+        for (final Object result : results) {
+          final Concept concept =
+              this.getConcept(Long.valueOf(result.toString()));
+          concepts.add(concept);
+        }
       }
+      logInfo("  conceptCount = " + concepts.size());
 
       // Throw error if concepts empty
       if (concepts.size() == 0) {
@@ -158,6 +172,7 @@ public class CreateXRRelationshipsForCluster
 
       // Set the number of steps to the number of possible pairs (n * (n-1)) / 2
       setSteps(concepts.size() * (concepts.size() - 1) / 2);
+      logInfo("  candidatePairCount = " + getSteps());
 
       // Track which concept-pairs have already been processed, to avoid
       // unnecessary re-work
@@ -208,6 +223,7 @@ public class CreateXRRelationshipsForCluster
           // this relationship from being added.
           if (hasExistingBlockingRelationship(fromConcept, toConcept,
               existingRelationships)) {
+            relationshipsSkipped++;
             updateProgress();
             continue;
           }
@@ -336,6 +352,8 @@ public class CreateXRRelationshipsForCluster
 
     logInfo("Created " + relationshipsCreated + " " + relationshipType
         + " relationships.");
+    logInfo("Skipped " + relationshipsSkipped + " " + relationshipType
+        + " relationships because they already existed.");
     logInfo("Finished " + getName());
 
   }
