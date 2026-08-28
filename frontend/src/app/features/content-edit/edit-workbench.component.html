@@ -1152,6 +1152,9 @@
           <meme-dialog
             title="Add"
             size="xl"
+            [movable]="true"
+            [resizable]="true"
+            [showBackdrop]="false"
             [closeDisabled]="addingRelationship()"
             (closed)="closeAddRelationshipDialog()"
           >
@@ -1180,28 +1183,30 @@
                   <tr>
                     <td class="move-dialog-label"><strong>Other Concept(s)</strong></td>
                     <td>
-                      <table class="slim-table pointer-table relationship-concept-table relationship-target-table">
-                        <tbody>
-                          @for (target of relationshipAddTargets(); track target.id) {
-                            <tr [class.selected]="target.selected">
-                              <td class="relationship-select-col">
-                                <input type="checkbox"
-                                  [checked]="target.selected"
-                                  (change)="setRelationshipTargetSelected(target, !target.selected)" />
-                              </td>
-                              <td class="move-col-id">{{ target.id }}</td>
-                              <td class="move-col-name">{{ target.name }}</td>
-                              <td class="move-col-sty">
-                                @for (sty of (target.semanticTypes ?? []); track sty.semanticType) {
-                                  <div>{{ sty.semanticType }}</div>
-                                }
-                              </td>
-                            </tr>
-                          } @empty {
-                            <tr><td colspan="4" class="styw-empty">No other concepts selected.</td></tr>
-                          }
-                        </tbody>
-                      </table>
+                      <div class="table-wrap concept-list-wrap">
+                        <table class="slim-table pointer-table relationship-concept-table relationship-target-table">
+                          <tbody>
+                            @for (target of relationshipAddTargets(); track target.id) {
+                              <tr [class.selected]="target.selected">
+                                <td class="relationship-select-col">
+                                  <input type="checkbox"
+                                    [checked]="target.selected"
+                                    (change)="setRelationshipTargetSelected(target, !target.selected)" />
+                                </td>
+                                <td class="move-col-id">{{ target.id }}</td>
+                                <td class="move-col-name">{{ target.name }}</td>
+                                <td class="move-col-sty">
+                                  @for (sty of (target.semanticTypes ?? []); track sty.semanticType) {
+                                    <div>{{ sty.semanticType }}</div>
+                                  }
+                                </td>
+                              </tr>
+                            } @empty {
+                              <tr><td colspan="4" class="styw-empty">No other concepts selected.</td></tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
                     </td>
                   </tr>
                   <tr>

@@ -71,6 +71,8 @@ import {
   buildSemanticTypeAddReadiness,
   buildSemanticTypeMutationReadiness,
   buildSplitConceptReadiness,
+  conceptApprovalRequestErrorMessage,
+  conceptApprovalValidationMessage,
   validationBlocksCommit,
   validationErrors,
   validationNeedsWarningOverride,
@@ -1999,24 +2001,22 @@ export class ContentComponent implements OnInit {
       .pipe(finalize(() => this.approvingConcept.set(false)))
       .subscribe({
         next: (result) => {
-          this.approvalResult.set(result);
           if (validationBlocksCommit(result)) {
-            this.notifications.error('Concept approval failed validation.');
+            window.alert(conceptApprovalValidationMessage(result));
             return;
           }
           if (!overrideWarnings && validationNeedsWarningOverride(result)) {
-            this.notifications.error(
-              'Concept approval returned warnings. Review and override to continue.'
-            );
+            window.alert(conceptApprovalValidationMessage(result));
             return;
           }
 
+          this.approvalResult.set(result);
           this.notifications.success('Concept approved.');
           this.markConceptApproved(request.conceptId);
           this.refreshSelectedComponent();
         },
-        error: () => {
-          this.notifications.error('Concept approval could not be completed.');
+        error: (error: unknown) => {
+          window.alert(conceptApprovalRequestErrorMessage(error));
         }
       });
   }
@@ -6011,26 +6011,24 @@ export class ContentComponent implements OnInit {
 
     this.mutationApi.approveConcept(request).subscribe({
       next: (result) => {
-        this.approvalResult.set(result);
         if (validationBlocksCommit(result)) {
           this.approvingConcept.set(false);
-          this.notifications.error('Concept approval failed validation.');
+          window.alert(conceptApprovalValidationMessage(result));
           return;
         }
         if (validationNeedsWarningOverride(result)) {
           this.approvingConcept.set(false);
-          this.notifications.error(
-            'Concept approval returned warnings. Review and override to continue.'
-          );
+          window.alert(conceptApprovalValidationMessage(result));
           return;
         }
 
+        this.approvalResult.set(result);
         this.markConceptApproved(request.conceptId);
         this.approveConceptRequestsAndNext(requests, index + 1);
       },
-      error: () => {
+      error: (error: unknown) => {
         this.approvingConcept.set(false);
-        this.notifications.error('Concept approval could not be completed.');
+        window.alert(conceptApprovalRequestErrorMessage(error));
       }
     });
   }

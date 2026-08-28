@@ -23,6 +23,81 @@ export function validationBlocksCommit(
   return result?.valid === false || validationErrors(result).length > 0;
 }
 
+export function conceptApprovalValidationMessage(
+  result: EditValidationResult | null | undefined
+): string {
+  const errors = validationErrors(result).map(cleanValidationMessage).filter(Boolean);
+  const warnings = validationWarnings(result).map(cleanValidationMessage).filter(Boolean);
+  const comments = Array.from(result?.comments ?? [])
+    .map(cleanValidationMessage)
+    .filter(Boolean);
+  const details = [...errors, ...warnings, ...comments];
+  const message = validationBlocksCommit(result)
+    ? 'Concept could not be approved because validation found unresolved issues.'
+    : 'Concept approval returned warnings. Review the validation details before overriding.';
+
+  if (!details.length) {
+    return message;
+  }
+
+  const maxDetails = 8;
+  const lines = [
+    message,
+    '',
+    ...details.slice(0, maxDetails).map((detail) => `- ${detail}`)
+  ];
+  if (details.length > maxDetails) {
+    lines.push(`- ${details.length - maxDetails} more validation message(s).`);
+  }
+
+  return lines.join('\n');
+}
+
+export function conceptApprovalRequestErrorMessage(error: unknown): string {
+  const detail = cleanValidationMessage(extractErrorMessage(error));
+
+  return detail
+    ? `Concept approval could not be completed.\n\n${detail}`
+    : 'Concept approval could not be completed.';
+}
+
+function cleanValidationMessage(message: string | null | undefined): string {
+  return (message ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function extractErrorMessage(error: unknown): string | null {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+
+  const body = (error as { error?: unknown }).error;
+  if (typeof body === 'string') {
+    return body;
+  }
+
+  if (body && typeof body === 'object') {
+    const message = (body as { message?: unknown; error?: unknown }).message;
+    if (typeof message === 'string') {
+      return message;
+    }
+
+    const nestedError = (body as { error?: unknown }).error;
+    if (typeof nestedError === 'string') {
+      return nestedError;
+    }
+  }
+
+  return null;
+}
+
 export function buildConceptMutationReadiness(
   projectId: number | null | undefined,
   conceptId: number | null | undefined,

@@ -33,4 +33,12 @@ describe('errorInterceptor auth failure handling', () => {
       shouldReportGlobalHttpError('/umls-server-rest/project/current')
     ).toBe(true);
   });
+
+  it('suppresses global banners for concept approval requests', () => {
+    expect(
+      shouldReportGlobalHttpError(
+        '/umls-server-rest/meta/concept/approve?projectId=1&conceptId=2'
+      )
+    ).toBe(false);
+  });
 });

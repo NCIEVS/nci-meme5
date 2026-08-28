@@ -42,6 +42,8 @@ import {
   buildSemanticTypeMutationReadiness,
   buildMergeConceptReadiness,
   buildSplitConceptReadiness,
+  conceptApprovalRequestErrorMessage,
+  conceptApprovalValidationMessage,
   validationBlocksCommit,
   validationErrors,
   validationNeedsWarningOverride,
@@ -1683,13 +1685,17 @@ export class EditWorkbenchComponent implements OnInit {
     this.mutationApi.approveConcept(request).subscribe({
       next: (result) => {
         if (validationBlocksCommit(result)) {
-          this.notifications.error('Concept approval failed validation.');
+          window.alert(conceptApprovalValidationMessage(result));
+          return;
+        }
+        if (validationNeedsWarningOverride(result)) {
+          window.alert(conceptApprovalValidationMessage(result));
           return;
         }
         this.broadcastConceptApproved(concept.id!);
         this.refreshConcept();
       },
-      error: () => this.notifications.error('Concept could not be approved.')
+      error: (error: unknown) => window.alert(conceptApprovalRequestErrorMessage(error))
     });
   }
 
@@ -1747,13 +1753,17 @@ export class EditWorkbenchComponent implements OnInit {
     this.mutationApi.approveConcept(request).subscribe({
       next: (result) => {
         if (validationBlocksCommit(result)) {
-          this.notifications.error('Concept approval failed validation.');
+          window.alert(conceptApprovalValidationMessage(result));
+          return;
+        }
+        if (validationNeedsWarningOverride(result)) {
+          window.alert(conceptApprovalValidationMessage(result));
           return;
         }
         this.broadcastConceptApproved(concept.id!);
         this.goNext();
       },
-      error: () => this.notifications.error('Concept could not be approved.')
+      error: (error: unknown) => window.alert(conceptApprovalRequestErrorMessage(error))
     });
   }
 

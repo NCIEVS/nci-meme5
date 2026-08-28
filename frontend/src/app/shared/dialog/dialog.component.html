@@ -1,7 +1,16 @@
 <div class="dialog-layer">
-  <div class="dialog-backdrop" aria-hidden="true"></div>
-  <section class="dialog-panel" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId">
-    <header class="dialog-header">
+  @if (showBackdrop) {
+    <div class="dialog-backdrop" aria-hidden="true"></div>
+  }
+  <section
+    #panel
+    class="dialog-panel"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleId"
+    [style.transform]="panelTransform"
+  >
+    <header class="dialog-header" (pointerdown)="startDragging($event)">
       <h2 [id]="titleId">{{ title }}</h2>
       <button
         type="button"

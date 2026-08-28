@@ -34,6 +34,27 @@
   border-bottom: 1px solid var(--meme-border);
 }
 
+:host(.dialog-movable) .dialog-header {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+:host(.dialog-dragging) .dialog-header {
+  cursor: grabbing;
+}
+
+:host(.dialog-no-backdrop) .dialog-layer {
+  background: transparent;
+}
+
+:host(.dialog-resizable) .dialog-panel {
+  min-width: min(560px, calc(100vw - 48px));
+  min-height: min(360px, calc(100vh - 48px));
+  max-width: calc(100vw - 48px);
+  resize: both;
+}
+
 h2 {
   margin: 0;
   color: var(--meme-text);

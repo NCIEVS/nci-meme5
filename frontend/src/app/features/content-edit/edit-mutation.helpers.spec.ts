@@ -12,6 +12,8 @@ import {
   buildSemanticTypeAddReadiness,
   buildSemanticTypeMutationReadiness,
   buildSplitConceptReadiness,
+  conceptApprovalRequestErrorMessage,
+  conceptApprovalValidationMessage,
   validationBlocksCommit,
   validationNeedsWarningOverride
 } from './edit-mutation.helpers';
@@ -35,6 +37,30 @@ describe('edit mutation helpers', () => {
         warnings: []
       })
     ).toBe(true);
+  });
+
+  it('builds concept approval validation popup text', () => {
+    expect(
+      conceptApprovalValidationMessage({
+        valid: false,
+        errors: ['Resolve demotions before approval.'],
+        warnings: [],
+        comments: ['Cluster 12']
+      })
+    ).toContain('Concept could not be approved');
+    expect(
+      conceptApprovalValidationMessage({
+        valid: true,
+        errors: [],
+        warnings: ['Review relationship status.']
+      })
+    ).toContain('Concept approval returned warnings');
+  });
+
+  it('builds concept approval request error popup text', () => {
+    expect(
+      conceptApprovalRequestErrorMessage({ error: 'Concept Approval Validation' })
+    ).toContain('Concept Approval Validation');
   });
 
   it('reports missing edit prerequisites', () => {

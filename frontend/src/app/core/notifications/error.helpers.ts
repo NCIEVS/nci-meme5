@@ -10,7 +10,12 @@ export function isCurrentSessionAuthFailure(
 }
 
 export function shouldReportGlobalHttpError(url: string): boolean {
-  return !/\/security\/authenticate(?:\/|$)/.test(stripQuery(url));
+  const path = stripQuery(url);
+
+  return ![
+    /\/security\/authenticate(?:\/|$)/,
+    /\/meta\/concept\/approve(?:\/|$)/
+  ].some((ignoredPath) => ignoredPath.test(path));
 }
 
 function stripQuery(url: string): string {
