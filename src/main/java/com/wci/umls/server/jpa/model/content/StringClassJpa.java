@@ -54,7 +54,7 @@ public class StringClassJpa extends AbstractAtomClass implements StringClass {
   @JoinTable(name = "string_classes_atoms",
       inverseJoinColumns = @JoinColumn(name = "atoms_id"),
       joinColumns = @JoinColumn(name = "string_classes_id"))
-  @IndexedEmbedded(targetType = AtomJpa.class)
+  @IndexedEmbedded(targetType = AtomJpa.class, includeDepth = 1)
   @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;
 

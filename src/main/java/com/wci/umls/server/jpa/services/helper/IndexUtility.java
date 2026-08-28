@@ -232,7 +232,11 @@ public class IndexUtility {
 
         }
 
+        final IndexedEmbedded indexedEmbedded = f.getAnnotation(IndexedEmbedded.class);
         for (final String embeddedField : getIndexedFieldNames(jpaType, stringOnly)) {
+          if (!isIncludedEmbeddedField(indexedEmbedded, embeddedField)) {
+            continue;
+          }
           fieldNames.add(f.getName() + "." + embeddedField);
         }
       }
@@ -273,6 +277,44 @@ public class IndexUtility {
     }
 
     return filteredFieldNames;
+  }
+
+  /**
+   * Returns whether an embedded field is included by the Hibernate Search
+   * indexed-embedded configuration.
+   *
+   * @param indexedEmbedded the indexed embedded annotation
+   * @param embeddedField the embedded field path
+   * @return true if the field is included
+   */
+  private static boolean isIncludedEmbeddedField(final IndexedEmbedded indexedEmbedded,
+    final String embeddedField) {
+
+    if (indexedEmbedded.includePaths().length > 0) {
+      return ArrayUtils.contains(indexedEmbedded.includePaths(), embeddedField);
+    }
+    if (ArrayUtils.contains(indexedEmbedded.excludePaths(), embeddedField)) {
+      return false;
+    }
+
+    final int includeDepth = indexedEmbedded.includeDepth();
+    if (includeDepth == 0) {
+      return false;
+    }
+    if (includeDepth > 0 && getFieldPathDepth(embeddedField) > includeDepth) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Returns the number of field path segments.
+   *
+   * @param fieldPath the field path
+   * @return the field path depth
+   */
+  private static int getFieldPathDepth(final String fieldPath) {
+    return fieldPath.split("\\.").length;
   }
 
   /**

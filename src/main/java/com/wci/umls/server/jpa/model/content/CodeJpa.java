@@ -80,7 +80,7 @@ public class CodeJpa extends AbstractAtomClass implements Code {
   @JoinTable(name = "codes_atoms",
       inverseJoinColumns = @JoinColumn(name = "atoms_id"),
       joinColumns = @JoinColumn(name = "codes_id"))
-  @IndexedEmbedded(targetType = AtomJpa.class)
+  @IndexedEmbedded(targetType = AtomJpa.class, includeDepth = 1)
   @IndexingDependency(reindexOnUpdate = ReindexOnUpdate.SHALLOW)
   private List<Atom> atoms = null;
 
