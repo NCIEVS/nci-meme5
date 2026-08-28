@@ -49,10 +49,22 @@
 }
 
 :host(.dialog-resizable) .dialog-panel {
+  display: flex;
+  flex-direction: column;
+  height: min(720px, calc(100vh - 48px));
   min-width: min(560px, calc(100vw - 48px));
   min-height: min(360px, calc(100vh - 48px));
   max-width: calc(100vw - 48px);
+  overflow: hidden;
   resize: both;
+}
+
+:host(.dialog-resizable) .dialog-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 h2 {
