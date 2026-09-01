@@ -111,6 +111,8 @@ import com.wci.umls.server.model.meta.RootTerminology;
 import com.wci.umls.server.model.meta.Terminology;
 import com.wci.umls.server.model.workflow.Checklist;
 import com.wci.umls.server.model.workflow.TrackingRecord;
+import com.wci.umls.server.jpa.workflow.WorkflowBinJpa;
+import com.wci.umls.server.model.workflow.WorkflowBin;
 import com.wci.umls.server.model.workflow.WorkflowBinDefinition;
 import com.wci.umls.server.model.workflow.WorkflowConfig;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
@@ -325,6 +327,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       removeUnbalancedConceptRelationships();
     } else if (actionName.contentEquals("Write Meddra Ncit Overlap Report")) {
       writeMeddraNcitOverlapReport();
+    } else if (actionName.contentEquals("Fix Workflow Bin Ranks")) {
+      fixWorkflowBinRanks();
     } else {
       throw new Exception("Valid Action Name not specified.");
     }
@@ -5370,6 +5374,73 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 	        return conceptsToDelete;
 	    }
 	}
+
+  /**
+   * Fixes workflow bin ranks for QUALITY_ASSURANCE bins.
+   * Sets specific bins to predetermined ranks, and any leftover bins get rank 20+.
+   *
+   * @throws Exception the exception
+   */
+  @SuppressWarnings("unchecked")
+  private void fixWorkflowBinRanks() throws Exception {
+    logInfo("Starting fixWorkflowBinRanks");
+
+    // Define the bin name to rank mapping
+    Map<String, Integer> binRanks = new HashMap<>();
+    binRanks.put("nci_merge", 1);
+    binRanks.put("nci_sub_split", 2);
+    binRanks.put("sct_sepfnpt", 3);
+    binRanks.put("cdsty_coc", 4);
+    binRanks.put("multsty", 5);
+    binRanks.put("styisa", 6);
+    binRanks.put("sfo_lfo", 7);
+    binRanks.put("deleted_cui", 8);
+    binRanks.put("cbo_chem", 9);
+    binRanks.put("mdr_chem", 10);
+    binRanks.put("go_chem", 11);
+    binRanks.put("rxnorm_split", 12);
+    binRanks.put("nosty", 13);
+    binRanks.put("missing_sty", 14);
+    binRanks.put("ambig_no_pn", 15);
+    binRanks.put("ambig_no_rel", 16);
+    binRanks.put("multiple_pn", 17);
+    binRanks.put("pn_orphan", 18);
+    binRanks.put("pn_pn_ambig", 19);
+
+    // Use direct JPQL query to get QUALITY_ASSURANCE bins for the project
+    Query query = getEntityManager().createQuery(
+        "SELECT b FROM WorkflowBinJpa b WHERE b.project.id = :projectId AND b.type = :type");
+    query.setParameter("projectId", getProject().getId());
+    query.setParameter("type", "QUALITY_ASSURANCE");
+
+    List<WorkflowBin> bins = query.getResultList();
+    logInfo("  Found " + bins.size() + " QUALITY_ASSURANCE bins for project " + getProject().getId());
+
+    List<WorkflowBin> leftoverBins = new ArrayList<>();
+
+    // Assign predetermined ranks to known bins
+    for (WorkflowBin bin : bins) {
+      logInfo("  Found bin: " + bin.getName() + " with current rank " + bin.getRank());
+      if (binRanks.containsKey(bin.getName())) {
+        int newRank = binRanks.get(bin.getName());
+        bin.setRank(newRank);
+        logInfo("  Set " + bin.getName() + " to rank " + newRank);
+      } else {
+        leftoverBins.add(bin);
+      }
+    }
+
+    // Assign ranks 20+ to leftover bins
+    int currentRank = 20;
+    for (WorkflowBin bin : leftoverBins) {
+      bin.setRank(currentRank);
+      logInfo("  Set leftover bin " + bin.getName() + " to rank " + currentRank);
+      currentRank++;
+    }
+
+    logInfo("Finished fixWorkflowBinRanks - updated " + bins.size() + " bins");
+  }
+
   /**
    * Returns the parameters.
    *
@@ -5407,7 +5478,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         "Fix Component Info Atoms", "Fix atom errors to unpublishable", "Fix bequeathal rels to unpublishable",
         "Approve worklist cluster","Cleanup corrupted process config","Remove bad bequeathal relationships",
         "Update Root Terminology Contact Info From UMLS","Reload Workflow Bin Definition Queries",
-        "Remove Unbalanced Concept Relationships", "Write Meddra Ncit Overlap Report"));
+        "Remove Unbalanced Concept Relationships", "Write Meddra Ncit Overlap Report",
+        "Fix Workflow Bin Ranks"));
     params.add(param);
     param = new AlgorithmParameterJpa("Integer parameter (optional)", "integerParameter",
             "Integer parameter (optional)", "e.g. 37", 10, AlgorithmParameter.Type.INTEGER, "50");

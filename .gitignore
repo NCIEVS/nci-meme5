@@ -20,6 +20,8 @@ local.properties
 .classpath
 .settings/
 .loadpath
+.idea
+.smarttomcat
 
 # External tool builders
 .externalToolBuilders/
@@ -223,7 +225,6 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
-
 .gradle
 *.iml
 gradle.lockfile
@@ -242,3 +243,6 @@ frontend/cypress/videos/
 # Track selected production bin scripts even though generic bin directories are ignored.
 !config/prod-nci-meta/src/main/resources/bin/
 !config/prod-nci-meta/src/main/resources/bin/list_s3.csh
+
+# IDE/project file kept from incoming branch
+rest/term-server-rest.iml
