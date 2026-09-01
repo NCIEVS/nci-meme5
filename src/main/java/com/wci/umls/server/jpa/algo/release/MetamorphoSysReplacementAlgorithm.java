@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
@@ -281,14 +282,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
        * @throws IOException the IO exception
        */
       private long countFileLines(Path path) throws IOException {
-          long count = 0;
-          try (BufferedReader reader =
-              Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-              while (reader.readLine() != null) {
-                  count++;
-              }
+          try (Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8)) {
+              return lines.count();
           }
-          return count;
       }
 
 

@@ -185,7 +185,12 @@ public class WriteRrfMetadataFilesAlgorithm
    */
   private void copyTemplateFile(String fileName) throws Exception {
     final Path destination = getOutputTemplatePath(fileName);
-    ConfigUtility.ensureDirectoryExists(destination.getParent().toFile());
+    final Path destinationParent = destination.getParent();
+    if (destinationParent == null) {
+      throw new LocalException("Release metadata output path has no parent: "
+          + destination);
+    }
+    ConfigUtility.ensureDirectoryExists(destinationParent.toFile());
 
     final Path source = getInputTemplatePath(fileName);
     if (Files.isRegularFile(source)) {

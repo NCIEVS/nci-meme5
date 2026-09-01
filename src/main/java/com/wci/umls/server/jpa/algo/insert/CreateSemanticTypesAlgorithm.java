@@ -298,120 +298,88 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 				}
 				logInfo("Added(tree) count: " + count);
 
-				// now find stys via sdui for the missing ones.
-				// do it in two stages: first assign stys for LLT/OL and then for mth atoms.
-				count = 0;
-				for (String said : saidsNeedStys.keySet()) {
-					String[] parts = saidsNeedStys.get(said).split("\\|");
-					tty = parts[0];
-					sdui = parts[1];
-					if (tty.matches(".*MTH.*")) {
-						continue;
+					// now find stys via sdui for the missing ones.
+					// do it in two stages: first assign stys for LLT/OL and then for mth atoms.
+					count = 0;
+					for (String said : new ArrayList<>(saidsNeedStys.keySet())) {
+						String[] parts = saidsNeedStys.get(said).split("\\|");
+						tty = parts[0];
+						sdui = parts[1];
+						if (tty.matches(".*MTH.*")) {
+							continue;
+						}
+						if (tty.equals("LLT") || tty.equals("OL")) {
+							psaid = ttySdui2Said.get("PT|" + sdui);
+							if (said2stys.containsKey(psaid)) {
+								said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
+								String ign = saidsNeedStys.get(said);
+								ttySdui2Said.put(ign, said);
+								saidsNeedStys.remove(said);
+								count++;
+								out.write("\t" + said + "|" + ign + " added(LLT/OL): " + said2stys.get(said) + "\n");
+							}
+						}
 					}
-					if (tty.equals("LLT") || tty.equals("OL")) {
-						psaid = ttySdui2Said.get("PT|" + sdui);
+					logInfo("Added(LLT/OL) count: " + count);
+
+					// now assign stys for mth atoms via sdui
+					count = 0;
+					for (String said : new ArrayList<>(saidsNeedStys.keySet())) {
+						String[] parts = saidsNeedStys.get(said).split("\\|");
+						tty = parts[0];
+						sdui = parts[1];
+						if (!tty.matches(".*MTH.*")) {
+							continue;
+						}
+						tty = tty.replace("MTH_", "");
+						psaid = ttySdui2Said.get(tty + "|" + sdui);
 						if (said2stys.containsKey(psaid)) {
 							said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
 							String ign = saidsNeedStys.get(said);
 							ttySdui2Said.put(ign, said);
 							saidsNeedStys.remove(said);
 							count++;
-							out.write("\t" + said + "|" + ign + " added(LLT/OL): " + said2stys.get(said) + "\n");
+							out.write("\t" + said + "|" + ign + " added(MTH): " + said2stys.get(said) + "\n");
+
 						}
 					}
-				}
-				logInfo("Added(LLT/OL) count: " + count);
+					logInfo("Added(MTH) count: " + count);
 
-				// now assign stys for mth atoms via sdui
-				count = 0;
-				for (String said : saidsNeedStys.keySet()) {
-					String[] parts = saidsNeedStys.get(said).split("\\|");
-					tty = parts[0];
-					sdui = parts[1];
-					if (!tty.matches(".*MTH.*")) {
-						continue;
+					// add "Classification" as sty for all SMQ atoms
+					count = 0;
+					for (String said : smqSaids.keySet()) {
+						if (!said2stys.containsKey(said)) {
+							said2stys.put(said, new ArrayList<>());
+						}
+						said2stys.get(said).add("Classification");
+						if (saidsNeedStys.containsKey(said)) {
+							String ign = saidsNeedStys.get(said);
+							ttySdui2Said.put(ign, said);
+							saidsNeedStys.remove(said);
+							count++;
+							out.write("\t" + said + "|" + ign + " added(SMQ): " + said2stys.get(said) + "\n");
+
+						}
 					}
-					tty = tty.replace("MTH_", "");
-					psaid = ttySdui2Said.get(tty + "|" + sdui);
-					if (said2stys.containsKey(psaid)) {
-						said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
-						String ign = saidsNeedStys.get(said);
-						ttySdui2Said.put(ign, said);
-						saidsNeedStys.remove(said);
-						count++;
-						out.write("\t" + said + "|" + ign + " added(MTH): " + said2stys.get(said) + "\n");
+					logInfo("Added(SMQ) count: " + count);
 
+					// now append stys as attributes.
+					List<String> sortedSaids = new ArrayList<String>(said2stys.keySet());
+					Collections.sort(sortedSaids);
+					for (String said : sortedSaids) {
+						for (String sty : said2stys.get(said)) {
+							out.write(said + "|" + sty + "\n");
+							attAppender(pw, ++aid, said, sty);
+						}
 					}
-				}
-				logInfo("Added(MTH) count: " + count);
 
-			// now find stys via sdui for the missing ones.
-			// do it in two stages: first assign stys for LLT/OL and then for mth atoms.
-			count = 0;
-			for (String said : new ArrayList<>(saidsNeedStys.keySet())) {
-				String[] parts = saidsNeedStys.get(said).split("\\|");
-				tty = parts[0];
-				sdui = parts[1];
-				if (tty.matches(".*MTH.*")) {
-					continue;
-				}
-				if (tty.equals("LLT") || tty.equals("OL")) {
-					psaid = ttySdui2Said.get("PT|" + sdui);
-					if (psaid != null && said2stys.containsKey(psaid)) {
-						said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
+					// whatever is remaining in saidsNeedStys, we need to do something.
+					int ct = saidsNeedStys.size();
+					logInfo("The " + ct + " saids are remaining without semantic types.");
+					for (String skey : saidsNeedStys.keySet()) {
+						logInfo("\t" + skey + "|" + saidsNeedStys.get(skey));
 					}
 				}
-			}
-
-			// add "Classification" as sty for all SMQ atoms
-			count = 0;
-			for (String said : smqSaids.keySet()) {
-				if (!said2stys.containsKey(said)) {
-					said2stys.put(said, new ArrayList<>());
-				}
-				said2stys.get(said).add("Classification");
-				if (saidsNeedStys.containsKey(said)) {
-						String ign = saidsNeedStys.get(said);
-						ttySdui2Said.put(ign, said);
-						saidsNeedStys.remove(said);
-						count++;
-						out.write("\t" + said + "|" + ign + " added(SMQ): " + said2stys.get(said) + "\n");
-
-					}
-				}
-				logInfo("Added(SMQ) count: " + count);
-
-			// now assign stys for mth atoms via sdui
-			count = 0;
-			for (String said : new ArrayList<>(saidsNeedStys.keySet())) {
-				String[] parts = saidsNeedStys.get(said).split("\\|");
-				tty = parts[0];
-				sdui = parts[1];
-				if (!tty.matches(".*MTH.*")) {
-					continue;
-				}
-				psaid = ttySdui2Said.get("PT|" + sdui);
-				if (psaid != null && said2stys.containsKey(psaid)) {
-					said2stys.put(said, new ArrayList<>(said2stys.get(psaid)));
-				}
-			}
-
-			// now append stys as attributes.
-			List<String> sortedSaids = new ArrayList<String>(said2stys.keySet());
-			Collections.sort(sortedSaids);
-			for (String said : sortedSaids) {
-				for (String sty : said2stys.get(said)) {
-					out.write(said + "|" + sty + "\n");
-					attAppender(pw, ++aid, said, sty);
-				}
-
-				// whatever is remaining in saidsNeedStys, we need to do something.
-				int ct = saidsNeedStys.size();
-				logInfo("The " + ct + " saids are remaining without semantic types.");
-				for (String skey : saidsNeedStys.keySet()) {
-					logInfo("\t" + skey + "|" + saidsNeedStys.get(skey));
-				}
-			}
 
 			// attributes.src was modified in the getSrcDir folder (inversion test
 			// directory)

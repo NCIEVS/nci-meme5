@@ -3,6 +3,7 @@
  */
 package com.wci.umls.server.jpa.model;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -225,7 +226,8 @@ public class AlgorithmConfigJpaUnitTest extends ModelUnitSupport {
     assertTrue(Long.valueOf(1).equals(config.getProcessId()));
     assertTrue(Long.valueOf(39751).equals(config.getProjectId()));
     assertTrue(config.getParameters().size() == 1);
-    assertTrue(config.getParameters().get(0) instanceof AlgorithmParameterJpa);
+    assertEquals(AlgorithmParameterJpa.class,
+        config.getParameters().get(0).getClass());
     assertTrue("estimatedCompletion"
         .equals(config.getParameters().get(0).getFieldName()));
   }

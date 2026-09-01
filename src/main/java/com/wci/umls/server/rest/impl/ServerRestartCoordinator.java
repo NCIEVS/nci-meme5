@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,8 @@ public class ServerRestartCoordinator {
       new AtomicBoolean(false);
 
   /** Spring application context. */
-  private static ConfigurableApplicationContext applicationContext;
+  private static final AtomicReference<ConfigurableApplicationContext>
+      APPLICATION_CONTEXT = new AtomicReference<>();
 
   /**
    * Instantiates the coordinator.
@@ -62,7 +64,7 @@ public class ServerRestartCoordinator {
    */
   @Autowired
   public ServerRestartCoordinator(final ConfigurableApplicationContext context) {
-    applicationContext = context;
+    APPLICATION_CONTEXT.set(context);
   }
 
   /**
@@ -248,7 +250,7 @@ public class ServerRestartCoordinator {
       return;
     }
 
-    final ConfigurableApplicationContext context = applicationContext;
+    final ConfigurableApplicationContext context = APPLICATION_CONTEXT.get();
     if (context == null) {
       LOGGER.error("Server Restart requested, but application context is not "
           + "available. The application will not exit.");
