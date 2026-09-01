@@ -73,6 +73,8 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
+  relationshipAddRequestErrorMessage,
+  relationshipAddValidationMessage,
   validationBlocksCommit,
   validationErrors,
   validationNeedsWarningOverride,
@@ -3607,14 +3609,12 @@ export class ContentComponent implements OnInit {
           this.relationshipAddResult.set(result);
           if (validationBlocksCommit(result)) {
             this.relationshipAddPendingRelationship.set(null);
-            this.notifications.error('Relationship add failed validation.');
+            window.alert(relationshipAddValidationMessage(result));
             return;
           }
           if (!overrideWarnings && validationNeedsWarningOverride(result)) {
             this.relationshipAddPendingRelationship.set(submittedRelationship);
-            this.notifications.error(
-              'Relationship add returned warnings. Review and override to continue.'
-            );
+            window.alert(relationshipAddValidationMessage(result));
             return;
           }
 
@@ -3623,8 +3623,8 @@ export class ContentComponent implements OnInit {
           this.notifications.success('Relationship added.');
           this.refreshSelectedComponent();
         },
-        error: () => {
-          this.notifications.error('Relationship could not be added.');
+        error: (error: unknown) => {
+          window.alert(relationshipAddRequestErrorMessage(error));
         }
       });
   }
@@ -3687,14 +3687,14 @@ export class ContentComponent implements OnInit {
           this.relationshipAddResult.set(result);
           if (validationBlocksCommit(result)) {
             this.relationshipAddPendingRelationships.set(null);
-            this.notifications.error('Relationship add failed validation.');
+            window.alert(relationshipAddValidationMessage(result, true));
+            this.refreshSelectedComponent();
             return;
           }
           if (!overrideWarnings && validationNeedsWarningOverride(result)) {
             this.relationshipAddPendingRelationships.set(submittedRelationships);
-            this.notifications.error(
-              'Relationship add returned warnings. Review and override to continue.'
-            );
+            window.alert(relationshipAddValidationMessage(result, true));
+            this.refreshSelectedComponent();
             return;
           }
 
@@ -3703,8 +3703,9 @@ export class ContentComponent implements OnInit {
           this.notifications.success('Relationships added.');
           this.refreshSelectedComponent();
         },
-        error: () => {
-          this.notifications.error('Relationships could not be added.');
+        error: (error: unknown) => {
+          window.alert(relationshipAddRequestErrorMessage(error, true));
+          this.refreshSelectedComponent();
         }
       });
   }

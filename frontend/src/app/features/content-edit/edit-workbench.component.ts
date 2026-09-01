@@ -44,6 +44,8 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
+  relationshipAddRequestErrorMessage,
+  relationshipAddValidationMessage,
   validationBlocksCommit,
   validationErrors,
   validationNeedsWarningOverride,
@@ -1530,7 +1532,7 @@ export class EditWorkbenchComponent implements OnInit {
 
   // --- Concept loading ---
 
-  protected loadConcept(): void {
+  protected loadConcept(clearLoadedConcept = true): void {
     const context = this.selectedContext();
     const projectId = this.projectId();
 
@@ -1563,7 +1565,9 @@ export class EditWorkbenchComponent implements OnInit {
     }
 
     this.loadingConcept.set(true);
-    this.loadedConcept.set(null);
+    if (clearLoadedConcept) {
+      this.loadedConcept.set(null);
+    }
     this.conceptLoadError.set(null);
 
     request
@@ -1626,6 +1630,14 @@ export class EditWorkbenchComponent implements OnInit {
       this.broadcastConceptUpdated(conceptId);
     }
     this.refreshConcept();
+  }
+
+  private refreshConceptAfterRelationshipAttempt(): void {
+    const conceptId = this.loadedConcept()?.id;
+    if (conceptId) {
+      this.broadcastConceptUpdated(conceptId);
+    }
+    this.loadConcept(false);
   }
 
   // --- STY available-list helpers ---
@@ -2297,22 +2309,23 @@ export class EditWorkbenchComponent implements OnInit {
           this.relationshipAddResult.set(result);
           if (validationBlocksCommit(result)) {
             this.relationshipAddPendingRelationship.set(null);
-            this.notifications.error('Relationship add failed validation.');
+            window.alert(relationshipAddValidationMessage(result));
+            this.refreshConceptAfterRelationshipAttempt();
             return;
           }
           if (!overrideWarnings && validationNeedsWarningOverride(result)) {
             this.relationshipAddPendingRelationship.set(rel);
-            this.notifications.error(
-              'Relationship add returned warnings. Review and override to continue.'
-            );
+            window.alert(relationshipAddValidationMessage(result));
+            this.refreshConceptAfterRelationshipAttempt();
             return;
           }
           this.relationshipAddPendingRelationship.set(null);
           this.relationshipAddTargetConceptId.set('');
           this.refreshConceptAfterMutation();
         },
-        error: () => {
-          this.notifications.error('Relationship could not be added.');
+        error: (error: unknown) => {
+          window.alert(relationshipAddRequestErrorMessage(error));
+          this.refreshConceptAfterRelationshipAttempt();
         }
       });
   }
@@ -2335,6 +2348,7 @@ export class EditWorkbenchComponent implements OnInit {
       return;
     }
 
+    let submittedRelationships = request.relationships;
     const request$ =
       overrideWarnings && this.relationshipAddPendingRelationships()
         ? this.mutationApi.addRelationshipsToConcept(request)
@@ -2345,16 +2359,18 @@ export class EditWorkbenchComponent implements OnInit {
               selectedType
             )
             .pipe(
-              switchMap((inverseRelationshipType) =>
-                this.mutationApi.addRelationshipsToConcept({
+              switchMap((inverseRelationshipType) => {
+                const relationshipsRequest = {
                   ...request,
                   relationships: request.relationships.map((relationship) => ({
                     ...relationship,
                     relationshipType:
                       inverseRelationshipType.trim() || relationship.relationshipType
                   }))
-                })
-              )
+                };
+                submittedRelationships = relationshipsRequest.relationships;
+                return this.mutationApi.addRelationshipsToConcept(relationshipsRequest);
+              })
             );
 
     this.addingRelationship.set(true);
@@ -2366,22 +2382,24 @@ export class EditWorkbenchComponent implements OnInit {
           this.relationshipAddResult.set(result);
           if (validationBlocksCommit(result)) {
             this.relationshipAddPendingRelationships.set(null);
-            this.notifications.error('Relationship add failed validation.');
+            window.alert(relationshipAddValidationMessage(result, true));
+            this.refreshConceptAfterRelationshipAttempt();
             return;
           }
           if (!overrideWarnings && validationNeedsWarningOverride(result)) {
-            this.relationshipAddPendingRelationships.set(request.relationships);
-            this.notifications.error('Relationship add returned warnings. Review and override to continue.');
+            this.relationshipAddPendingRelationships.set(submittedRelationships);
+            window.alert(relationshipAddValidationMessage(result, true));
+            this.refreshConceptAfterRelationshipAttempt();
             return;
           }
 
           this.relationshipAddPendingRelationships.set(null);
           this.addRelationshipDialogOpen.set(false);
-          this.loadRelationships();
           this.refreshConceptAfterMutation();
         },
-        error: () => {
-          this.notifications.error('Relationships could not be added.');
+        error: (error: unknown) => {
+          window.alert(relationshipAddRequestErrorMessage(error, true));
+          this.refreshConceptAfterRelationshipAttempt();
         }
       });
   }

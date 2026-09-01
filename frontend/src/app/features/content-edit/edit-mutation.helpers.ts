@@ -61,8 +61,52 @@ export function conceptApprovalRequestErrorMessage(error: unknown): string {
     : 'Concept approval could not be completed.';
 }
 
+export function relationshipAddValidationMessage(
+  result: EditValidationResult | null | undefined,
+  multiple = false
+): string {
+  const errors = validationErrors(result).map(cleanValidationMessage).filter(Boolean);
+  const warnings = validationWarnings(result).map(cleanValidationMessage).filter(Boolean);
+  const comments = Array.from(result?.comments ?? [])
+    .map(cleanValidationMessage)
+    .filter(Boolean);
+  const details = [...errors, ...warnings, ...comments];
+  const subject = multiple ? 'Relationships' : 'Relationship';
+  const message = validationBlocksCommit(result)
+    ? `${subject} could not be added because validation found unresolved issues.`
+    : `${subject} add returned warnings. Review the validation details before overriding.`;
+
+  if (!details.length) {
+    return message;
+  }
+
+  const maxDetails = 8;
+  const lines = [
+    message,
+    '',
+    ...details.slice(0, maxDetails).map((detail) => `- ${detail}`)
+  ];
+  if (details.length > maxDetails) {
+    lines.push(`- ${details.length - maxDetails} more validation message(s).`);
+  }
+
+  return lines.join('\n');
+}
+
+export function relationshipAddRequestErrorMessage(
+  error: unknown,
+  multiple = false
+): string {
+  const detail = cleanValidationMessage(extractErrorMessage(error));
+  const subject = multiple ? 'Relationships' : 'Relationship';
+
+  return detail
+    ? `${subject} could not be added.\n\n${detail}`
+    : `${subject} could not be added.`;
+}
+
 function cleanValidationMessage(message: string | null | undefined): string {
-  return (message ?? '').replace(/\s+/g, ' ').trim();
+  return (message ?? '').replace(/\s+/g, ' ').trim().replace(/^"(.+)"$/, '$1');
 }
 
 function extractErrorMessage(error: unknown): string | null {

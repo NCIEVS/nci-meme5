@@ -14,7 +14,9 @@ export function shouldReportGlobalHttpError(url: string): boolean {
 
   return ![
     /\/security\/authenticate(?:\/|$)/,
-    /\/meta\/concept\/approve(?:\/|$)/
+    /\/meta\/concept\/approve(?:\/|$)/,
+    /\/meta\/relationship\/add(?:\/|$)/,
+    /\/meta\/relationships\/add(?:\/|$)/
   ].some((ignoredPath) => ignoredPath.test(path));
 }
 

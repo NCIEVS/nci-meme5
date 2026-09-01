@@ -41,4 +41,17 @@ describe('errorInterceptor auth failure handling', () => {
       )
     ).toBe(false);
   });
+
+  it('suppresses global banners for relationship add requests', () => {
+    expect(
+      shouldReportGlobalHttpError(
+        '/umls-server-rest/meta/relationship/add?projectId=1&conceptId=2'
+      )
+    ).toBe(false);
+    expect(
+      shouldReportGlobalHttpError(
+        '/umls-server-rest/meta/relationships/add?projectId=1&conceptId=2'
+      )
+    ).toBe(false);
+  });
 });

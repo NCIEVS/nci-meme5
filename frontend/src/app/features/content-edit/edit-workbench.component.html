@@ -1083,7 +1083,7 @@
                     </span>
                   </th>
                   <th class="rels-col-actions">
-                    <button type="button" (click)="openAddRelationshipDialog()" [disabled]="projectEditingEnabled() !== true">
+                    <button type="button" (click)="openAddRelationshipDialog()" [disabled]="projectEditingEnabled() !== true || loadingConcept()">
                       Add Rel
                     </button>
                   </th>
@@ -1126,7 +1126,7 @@
 
           <nav class="popup-footer">
             <span>
-              <button type="button" (click)="loadRelationships()" [disabled]="loadingRelationships()">Refresh</button>
+              <button type="button" (click)="refreshConcept()" [disabled]="loadingConcept() || loadingRelationships()">Refresh</button>
             </span>
             <span class="popup-footer-actions">
               <label class="checkbox-label">
@@ -1254,13 +1254,13 @@
                   </div>
                   <div class="form-actions relationship-dialog-actions">
                     @if (relationshipAddNeedsOverride()) {
-                      <button type="button" (click)="addSelectedRelationshipsToConcept(true)" [disabled]="addingRelationship()">
+                      <button type="button" (click)="addSelectedRelationshipsToConcept(true)" [disabled]="addingRelationship() || loadingConcept()">
                         Override Warnings and Add
                       </button>
                     }
                     <button type="button"
                       (click)="addSelectedRelationshipsToConcept()"
-                      [disabled]="addingRelationship() || !selectedRelationshipTargetsForDialog().length">
+                      [disabled]="addingRelationship() || loadingConcept() || !selectedRelationshipTargetsForDialog().length">
                       {{ addingRelationship() ? 'Adding…' : 'Add' }}
                     </button>
                     <button type="button" (click)="closeAddRelationshipDialog()" [disabled]="addingRelationship()">Close</button>

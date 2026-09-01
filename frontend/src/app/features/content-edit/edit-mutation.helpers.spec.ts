@@ -14,6 +14,8 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
+  relationshipAddRequestErrorMessage,
+  relationshipAddValidationMessage,
   validationBlocksCommit,
   validationNeedsWarningOverride
 } from './edit-mutation.helpers';
@@ -61,6 +63,32 @@ describe('edit mutation helpers', () => {
     expect(
       conceptApprovalRequestErrorMessage({ error: 'Concept Approval Validation' })
     ).toContain('Concept Approval Validation');
+  });
+
+  it('builds relationship add validation popup text', () => {
+    expect(
+      relationshipAddValidationMessage({
+        valid: false,
+        errors: ['Duplicate relationship - XR'],
+        warnings: [],
+        comments: ['Target concept 2512']
+      }, true)
+    ).toContain('Relationships could not be added');
+    expect(
+      relationshipAddValidationMessage({
+        valid: true,
+        errors: [],
+        warnings: ['Relationship needs review.']
+      })
+    ).toContain('Relationship add returned warnings');
+  });
+
+  it('builds relationship add request error popup text', () => {
+    expect(
+      relationshipAddRequestErrorMessage({
+        error: '"Concept is stale, click \'Refresh\' and try again"'
+      }, true)
+    ).toContain("Concept is stale, click 'Refresh' and try again");
   });
 
   it('reports missing edit prerequisites', () => {
