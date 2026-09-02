@@ -63,9 +63,11 @@ That file should contain only production overrides, such as:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
+- `DB_ALLOWED_HOSTS`
 - `SERVER_PORT=8080`
 - `SERVER_SERVLET_CONTEXT_PATH=/ncim-server-rest`
 - `BASE_URL`
+- `REST_CLIENT_ALLOWED_HOSTS`
 - `APP_SERVICE=nci-meme5`
 - `DEPLOY_*`
 - `MAIL_*`

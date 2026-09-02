@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
@@ -135,7 +136,8 @@ public final class DisposableIntegrationSchemaSetup {
 
     Class.forName(properties.getProperty("jakarta.persistence.jdbc.driver"));
     try (Connection connection = DriverManager.getConnection(
-        serverJdbcUrl(jdbcUrl),
+        ConfigUtility.validateJdbcServerUrl(serverJdbcUrl(jdbcUrl),
+            "jakarta.persistence.jdbc.url", properties),
         properties.getProperty("jakarta.persistence.jdbc.user"),
         properties.getProperty("jakarta.persistence.jdbc.password"));
         Statement statement = connection.createStatement()) {
@@ -157,7 +159,8 @@ public final class DisposableIntegrationSchemaSetup {
 
     Class.forName(properties.getProperty("jakarta.persistence.jdbc.driver"));
     try (Connection connection = DriverManager.getConnection(
-        serverJdbcUrl(jdbcUrl),
+        ConfigUtility.validateJdbcServerUrl(serverJdbcUrl(jdbcUrl),
+            "jakarta.persistence.jdbc.url", properties),
         properties.getProperty("jakarta.persistence.jdbc.user"),
         properties.getProperty("jakarta.persistence.jdbc.password"));
         Statement statement = connection.createStatement()) {

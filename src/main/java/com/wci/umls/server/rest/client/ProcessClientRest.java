@@ -65,7 +65,7 @@ public class ProcessClientRest extends RootClientRest
         .debug("ProcessConfig Client - add processConfig" + processConfig);
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/config" + "?projectId=" + projectId);
 
     final String processConfigString = ConfigUtility.getStringForGraph(
@@ -96,7 +96,7 @@ public class ProcessClientRest extends RootClientRest
     Logger.getLogger(getClass())
         .debug("Process Client - update processConfig " + processConfig);
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/config" + "?projectId=" + projectId);
 
     String processConfigString = ConfigUtility.getStringForGraph(
@@ -121,7 +121,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/process/config/" + id
+        client.target(getBaseUrl(config) + "/process/config/" + id
             + "?projectId=" + projectId + (cascade ? "&cascade=true" : ""));
 
     if (id == null)
@@ -146,7 +146,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(id, "id");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/config/" + id + "?projectId=" + projectId);
 
     Response response = target.request(MediaType.APPLICATION_XML)
@@ -176,7 +176,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/config/find" + "?projectId=" + projectId + "&query="
         + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -207,7 +207,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(id, "id");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/execution/" + id + "?projectId=" + projectId);
 
     Response response = target.request(MediaType.APPLICATION_XML)
@@ -237,7 +237,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/execution/find" + "?projectId=" + projectId + "&query="
         + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -270,7 +270,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/executing" + "?projectId=" + projectId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -297,7 +297,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
     WebTarget target = client
-        .target(config.getProperty("base.url") + "/process/execution/" + id
+        .target(getBaseUrl(config) + "/process/execution/" + id
             + "?projectId=" + projectId + (cascade ? "&cascade=true" : ""));
 
     if (id == null)
@@ -322,7 +322,7 @@ public class ProcessClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/process/config/algo"
+        client.target(getBaseUrl(config) + "/process/config/algo"
             + "?projectId=" + projectId + "&processId=" + processId);
 
     final String algorithmConfigString = ConfigUtility.getStringForGraph(
@@ -355,7 +355,7 @@ public class ProcessClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/config/algo/" + key
+        client.target(getBaseUrl(config) + "/config/algo/" + key
             + "/new" + "?projectId=" + projectId + "&processId=" + processId);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -383,7 +383,7 @@ public class ProcessClientRest extends RootClientRest
         .debug("Process Client - update algorithmConfig " + algorithmConfig);
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/process/config/algo"
+        client.target(getBaseUrl(config) + "/process/config/algo"
             + "?projectId=" + projectId + "&processId=" + processId);
 
     String algorithmConfigString = ConfigUtility.getStringForGraph(
@@ -407,7 +407,7 @@ public class ProcessClientRest extends RootClientRest
         .debug("Process Client - validate algorithmConfig " + algorithmConfig);
     Client client = ClientBuilder.newClient();
     WebTarget target = client
-        .target(config.getProperty("base.url") + "/process/config/algo/validate"
+        .target(getBaseUrl(config) + "/process/config/algo/validate"
             + "?projectId=" + projectId + "&processId=" + processId);
 
     String algorithmConfigString = ConfigUtility.getStringForGraph(
@@ -431,7 +431,7 @@ public class ProcessClientRest extends RootClientRest
         .debug("Process Client - remove algorithmConfig " + id);
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/config/algo/" + id + "?projectId=" + projectId);
 
     if (id == null)
@@ -464,7 +464,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(id, "id");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/config/algo/" + id + "?projectId=" + projectId);
 
     Response response = target.request(MediaType.APPLICATION_XML)
@@ -494,7 +494,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/algo/" + type + "?projectId=" + projectId);
 
     Response response = target.request(MediaType.APPLICATION_XML)
@@ -523,7 +523,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/execution/" + id + "/execute?projectId=" + projectId
         + (background ? "&background=true" : ""));
     final Response response = target.request().header("Authorization", authToken)
@@ -552,7 +552,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/execution/" + id + "/step?projectId=" + projectId
         + (background ? "&background=true" : "")
         + (step == null ? "&step=" + step : ""));
@@ -581,7 +581,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/config/" + id + "/prepare?projectId=" + projectId);
     final Response response = target.request().header("Authorization", authToken)
         .get();
@@ -624,7 +624,7 @@ public class ProcessClientRest extends RootClientRest
     Logger.getLogger(getClass())
         .debug("Process Client - cancel process execution " + id);
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/process/execution/" + id + "/cancel" + "?projectId=" + projectId);
 
     Response response =
@@ -652,7 +652,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/execution/" + id + "/restart?projectId=" + projectId
         + (background ? "&background=true" : ""));
     final Response response = target.request().header("Authorization", authToken)
@@ -681,7 +681,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/" + id + "/progress?projectId=" + projectId);
     final Response response = target.request().header("Authorization", authToken)
         .get();
@@ -709,7 +709,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/algo/" + id + "/progress?projectId=" + projectId);
     final Response response = target.request().header("Authorization", authToken)
         .get();
@@ -736,7 +736,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(processExecutionId, "processExecutionId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/" + processExecutionId + "/log?projectId=" + projectId
         + "&query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -765,7 +765,7 @@ public class ProcessClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/process/algo/"
+        client.target(getBaseUrl(config) + "/process/algo/"
             + algorithmExecutionId + "/log?projectId=" + projectId + "&query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
@@ -802,7 +802,7 @@ public class ProcessClientRest extends RootClientRest
     clientConfig.register(MultiPartFeature.class);
     Client client = ClientBuilder.newClient(clientConfig);
 
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/config/import" + "?projectId=" + projectId);
 
     Response response = target.request(MediaType.APPLICATION_XML)
@@ -832,7 +832,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(processId, "processId");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/config/export"
+        client.target(getBaseUrl(config) + "/config/export"
             + "?projectId=" + projectId + "&processId=" + processId);
     Response response = target.request(MediaType.APPLICATION_OCTET_STREAM)
         .header("Authorization", authToken).post(Entity.text(""));
@@ -858,7 +858,7 @@ public class ProcessClientRest extends RootClientRest
     validateNotEmpty(processId, "processId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/process/testquery?projectId=" + projectId + "&processId="
         + processId + "&queryType=" + queryType + "&queryStyle=" + queryStyle
         + "&query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")

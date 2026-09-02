@@ -107,6 +107,11 @@ make preflight-rest
 make integration-rest
 ```
 
+If `BASE_URL` uses a host other than `localhost`, `127.0.0.1`, or `::1`, set
+`REST_CLIENT_ALLOWED_HOSTS` to that host before sourcing `config/local/setenv.sh`.
+If `DB_HOST` points at a host that should not be inferred from the database URL,
+set `DB_ALLOWED_HOSTS` explicitly.
+
 For the insertion smoke:
 
 ```sh

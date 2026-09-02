@@ -62,7 +62,7 @@ public class SimpleEditClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
     validateNotEmpty(conceptId, "conceptId");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/simple/atom?projectId=" + projectId + "&conceptId=" + conceptId);
     String atomString =
         ConfigUtility.getStringForGraph(atom == null ? new AtomJpa() : atom);
@@ -89,7 +89,7 @@ public class SimpleEditClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
     validateNotEmpty(conceptId, "conceptId");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/simple/atom?projectId=" + projectId + "&conceptId=" + conceptId);
     String atomString =
         ConfigUtility.getStringForGraph(atom == null ? new AtomJpa() : atom);
@@ -113,7 +113,7 @@ public class SimpleEditClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/simple/atom/" + atomId
+        client.target(getBaseUrl(config) + "/simple/atom/" + atomId
             + "?projectId=" + projectId + "&conceptId=" + conceptId);
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).delete();

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
@@ -80,13 +81,15 @@ public final class FlywayIntegrationSchemaSetup {
 
     if (failures.isEmpty()) {
       if (DROP_MODE.equals(mode)) {
-        dropSchema(FLYWAY_JDBC_URL, migrateUrl, migrateSchema, failures);
+        dropSchema(FLYWAY_JDBC_URL, migrateUrl, migrateSchema, properties,
+            failures);
         dropSchema(FLYWAY_BASELINE_JDBC_URL, baselineUrl, baselineSchema,
-            failures);
+            properties, failures);
       } else {
-        prepareSchema(FLYWAY_JDBC_URL, migrateUrl, migrateSchema, failures);
-        prepareSchema(FLYWAY_BASELINE_JDBC_URL, baselineUrl, baselineSchema,
+        prepareSchema(FLYWAY_JDBC_URL, migrateUrl, migrateSchema, properties,
             failures);
+        prepareSchema(FLYWAY_BASELINE_JDBC_URL, baselineUrl, baselineSchema,
+            properties, failures);
       }
     }
 
@@ -160,10 +163,11 @@ public final class FlywayIntegrationSchemaSetup {
    * @param urlProperty the URL system property
    * @param jdbcUrl the JDBC URL
    * @param schemaName the schema name
+   * @param properties application properties
    * @param failures failures
    */
   private static void prepareSchema(final String urlProperty,
-    final String jdbcUrl, final String schemaName,
+    final String jdbcUrl, final String schemaName, final Properties properties,
     final List<String> failures) {
 
     System.out.println("  " + urlProperty + " schema: " + schemaName);
@@ -173,14 +177,17 @@ public final class FlywayIntegrationSchemaSetup {
     try {
       Class.forName("com.mysql.cj.jdbc.Driver");
       try (Connection connection =
-          DriverManager.getConnection(serverJdbcUrl(jdbcUrl), user, password);
+          DriverManager.getConnection(ConfigUtility.validateJdbcServerUrl(
+              serverJdbcUrl(jdbcUrl), urlProperty, properties), user, password);
           Statement statement = connection.createStatement()) {
         statement.execute("create database if not exists "
             + quoteIdentifier(schemaName));
       }
 
       try (Connection connection =
-          DriverManager.getConnection(normalizeJdbcUrl(jdbcUrl), user, password);
+          DriverManager.getConnection(ConfigUtility.validateJdbcUrl(
+              normalizeJdbcUrl(jdbcUrl), urlProperty, properties), user,
+              password);
           Statement statement = connection.createStatement();
           ResultSet resultSet = statement.executeQuery("show full tables")) {
         final List<String> tables = new ArrayList<>();
@@ -204,10 +211,12 @@ public final class FlywayIntegrationSchemaSetup {
    * @param urlProperty the URL system property
    * @param jdbcUrl the JDBC URL
    * @param schemaName the schema name
+   * @param properties application properties
    * @param failures failures
    */
   private static void dropSchema(final String urlProperty, final String jdbcUrl,
-    final String schemaName, final List<String> failures) {
+    final String schemaName, final Properties properties,
+    final List<String> failures) {
 
     System.out.println("  " + urlProperty + " schema: " + schemaName);
     final String user = System.getProperty("flyway.it.user", "root");
@@ -216,7 +225,8 @@ public final class FlywayIntegrationSchemaSetup {
     try {
       Class.forName("com.mysql.cj.jdbc.Driver");
       try (Connection connection =
-          DriverManager.getConnection(serverJdbcUrl(jdbcUrl), user, password);
+          DriverManager.getConnection(ConfigUtility.validateJdbcServerUrl(
+              serverJdbcUrl(jdbcUrl), urlProperty, properties), user, password);
           Statement statement = connection.createStatement()) {
         statement.execute("drop database if exists "
             + quoteIdentifier(schemaName));

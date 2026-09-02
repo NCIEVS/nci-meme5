@@ -126,6 +126,11 @@ source config/local/setenv.sh
 The Makefile targets source `config/local/setenv.sh` automatically before
 running Gradle.
 
+REST clients and test JDBC helpers validate configured network targets before
+opening connections. `DB_ALLOWED_HOSTS` defaults to `DB_HOST`, and
+`REST_CLIENT_ALLOWED_HOSTS` defaults to `localhost,127.0.0.1,::1`; set the
+matching allowlist when `DB_HOST` or `BASE_URL` points to a different host.
+
 ## Common Workflows
 
 Build and package the project artifacts:
@@ -174,6 +179,9 @@ server is on port `18080`, run:
 DB_NAME=ncimdbmeta SERVER_PORT=18080 \
 BASE_URL=http://localhost:18080/umls-server-rest make preflight-rest
 ```
+
+For a non-local REST endpoint, also set `REST_CLIENT_ALLOWED_HOSTS` to the host
+from `BASE_URL`.
 
 If a preflight reports missing fixture rows, prepare or refresh that fixture
 before running the matching integration profile.

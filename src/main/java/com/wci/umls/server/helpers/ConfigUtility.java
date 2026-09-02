@@ -18,7 +18,10 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.DateTimeException;
@@ -141,6 +144,27 @@ public class ConfigUtility {
   public static final String DISPLAY_TIMESTAMP_PATTERN =
       "yyyy-MM-dd HH:mm:ss.SSS z";
 
+  /** REST client allowed-hosts property. */
+  public static final String REST_CLIENT_ALLOWED_HOSTS_PROPERTY =
+      "rest.client.allowed.hosts";
+
+  /** Database client allowed-hosts property. */
+  public static final String DATABASE_ALLOWED_HOSTS_PROPERTY =
+      "database.allowed.hosts";
+
+  /** Default loopback host allowlist. */
+  private static final String DEFAULT_LOOPBACK_HOSTS =
+      "localhost,127.0.0.1,::1";
+
+  /** REST base URL shape accepted before host allowlist validation. */
+  private static final String REST_BASE_URL_PATTERN =
+      "(?i)https?://[^\\s/?#@]+(?::[0-9]{1,5})?(?:/[^?#\\s]*)?";
+
+  /** MySQL JDBC URL shape accepted before host allowlist validation. */
+  private static final String MYSQL_JDBC_URL_PATTERN =
+      "(?i)jdbc:mysql://[^\\s/?#@]+(?::[0-9]{1,5})?(?:/[^?\\s]*)?"
+          + "(?:\\?[^\\s#]*)?";
+
   /** The Constant PUNCTUATION. */
   public static final String PUNCTUATION =
       " \t-({[)}]_!@#%&*\\:;\"',.?/~+=|<>$`^";
@@ -221,6 +245,252 @@ public class ConfigUtility {
   }
 
   /**
+   * Returns a validated REST client base URL without a trailing slash.
+   *
+   * @param properties the properties
+   * @return the REST client base URL
+   */
+  public static String getRestBaseUrl(final Properties properties) {
+    final String baseUrl = requiredNetworkProperty(properties, "base.url");
+    if (!baseUrl.matches(REST_BASE_URL_PATTERN)) {
+      throw new IllegalArgumentException(
+          "Property base.url must be an HTTP(S) URL without user info, query, "
+              + "fragment, or whitespace.");
+    }
+
+    final URI uri = URI.create(baseUrl);
+    validateAllowedHost(uri, properties, REST_CLIENT_ALLOWED_HOSTS_PROPERTY,
+        DEFAULT_LOOPBACK_HOSTS);
+    return trimTrailingSlash(baseUrl);
+  }
+
+  /**
+   * Returns a validated REST URL by appending a relative path to base.url.
+   *
+   * @param properties the properties
+   * @param path the relative REST path
+   * @return the REST URL
+   */
+  public static String getRestUrl(final Properties properties,
+    final String path) {
+    return getRestBaseUrl(properties) + relativeRestPath(path);
+  }
+
+  /**
+   * Opens a connection to a validated REST URL.
+   *
+   * @param properties the properties
+   * @param path the relative REST path
+   * @return the HTTP connection
+   * @throws IOException if the connection cannot be opened
+   */
+  public static HttpURLConnection openRestConnection(
+    final Properties properties, final String path) throws IOException {
+    final URL url = URI.create(getRestUrl(properties, path)).toURL();
+    return (HttpURLConnection) url.openConnection();
+  }
+
+  /**
+   * Returns a validated JDBC URL from a named property.
+   *
+   * @param properties the properties
+   * @param propertyName the JDBC URL property name
+   * @return the JDBC URL
+   */
+  public static String getJdbcUrl(final Properties properties,
+    final String propertyName) {
+    return validateJdbcUrl(requiredNetworkProperty(properties, propertyName),
+        propertyName, properties, true);
+  }
+
+  /**
+   * Validates a JDBC URL that must include a schema path.
+   *
+   * @param jdbcUrl the JDBC URL
+   * @param propertyName the JDBC URL property name
+   * @param properties the properties
+   * @return the validated JDBC URL
+   */
+  public static String validateJdbcUrl(final String jdbcUrl,
+    final String propertyName, final Properties properties) {
+    return validateJdbcUrl(jdbcUrl, propertyName, properties, true);
+  }
+
+  /**
+   * Validates a JDBC URL that may omit the schema path.
+   *
+   * @param jdbcUrl the JDBC URL
+   * @param propertyName the JDBC URL property name
+   * @param properties the properties
+   * @return the validated JDBC URL
+   */
+  public static String validateJdbcServerUrl(final String jdbcUrl,
+    final String propertyName, final Properties properties) {
+    return validateJdbcUrl(jdbcUrl, propertyName, properties, false);
+  }
+
+  /**
+   * Validates a MySQL JDBC URL against protocol and host allowlist rules.
+   *
+   * @param jdbcUrl the JDBC URL
+   * @param propertyName the JDBC URL property name
+   * @param properties the properties
+   * @param requireSchema true if a schema path is required
+   * @return the validated JDBC URL
+   */
+  private static String validateJdbcUrl(final String jdbcUrl,
+    final String propertyName, final Properties properties,
+    final boolean requireSchema) {
+
+    final String value = requiredNetworkValue(jdbcUrl, propertyName);
+    if (!value.matches(MYSQL_JDBC_URL_PATTERN)) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must be a MySQL JDBC URL without "
+              + "user info, fragment, or whitespace.");
+    }
+
+    final URI uri = URI.create(value.substring("jdbc:".length()));
+    if (!"mysql".equalsIgnoreCase(uri.getScheme())) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must use the mysql JDBC scheme.");
+    }
+    if (!isEmpty(uri.getUserInfo())) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must not include user info.");
+    }
+    if (requireSchema && (uri.getPath() == null || uri.getPath().length() <= 1)) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must include a schema path.");
+    }
+
+    validateAllowedHost(uri, properties, DATABASE_ALLOWED_HOSTS_PROPERTY,
+        DEFAULT_LOOPBACK_HOSTS);
+    return value;
+  }
+
+  /**
+   * Validates that the URI host is explicitly allowed.
+   *
+   * @param uri the URI
+   * @param properties the properties
+   * @param propertyName the allowlist property name
+   * @param defaultHosts the default allowlist
+   */
+  private static void validateAllowedHost(final URI uri,
+    final Properties properties, final String propertyName,
+    final String defaultHosts) {
+
+    final String host = uri.getHost();
+    if (isEmpty(host)) {
+      throw new IllegalArgumentException(
+          "Network URL must include a host.");
+    }
+
+    final String normalizedHost = normalizeHost(host);
+    final String allowedHosts =
+        configuredNetworkProperty(properties, propertyName, defaultHosts);
+    for (final String allowedHost : allowedHosts.split(",")) {
+      if (normalizeHost(allowedHost).equals(normalizedHost)) {
+        return;
+      }
+    }
+    throw new IllegalArgumentException(
+        "Network host " + host + " is not listed in " + propertyName + ".");
+  }
+
+  /**
+   * Returns a configured network property, trimming whitespace.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @return the configured value
+   */
+  private static String requiredNetworkProperty(final Properties properties,
+    final String propertyName) {
+    return requiredNetworkValue(
+        properties == null ? null : properties.getProperty(propertyName),
+        propertyName);
+  }
+
+  /**
+   * Returns a configured network property or default, trimming whitespace.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @param defaultValue the default value
+   * @return the configured value
+   */
+  private static String configuredNetworkProperty(final Properties properties,
+    final String propertyName, final String defaultValue) {
+    final String value =
+        properties == null ? null : properties.getProperty(propertyName);
+    return isEmpty(value) ? defaultValue : value.trim();
+  }
+
+  /**
+   * Returns a required network value, trimming whitespace.
+   *
+   * @param value the value
+   * @param propertyName the property name
+   * @return the value
+   */
+  private static String requiredNetworkValue(final String value,
+    final String propertyName) {
+    if (value == null || value.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must not be blank.");
+    }
+    return value.trim();
+  }
+
+  /**
+   * Returns a normalized host name.
+   *
+   * @param host the host
+   * @return the normalized host
+   */
+  private static String normalizeHost(final String host) {
+    String value = host == null ? "" : host.trim().toLowerCase(Locale.ROOT);
+    if (value.startsWith("[") && value.endsWith("]")) {
+      value = value.substring(1, value.length() - 1);
+    }
+    return value;
+  }
+
+  /**
+   * Returns a relative REST path suitable for appending to base.url.
+   *
+   * @param path the path
+   * @return the normalized relative path
+   */
+  private static String relativeRestPath(final String path) {
+    if (isEmpty(path)) {
+      return "";
+    }
+    final String value = path.trim();
+    if (value.startsWith("//")
+        || value.matches("(?i)[a-z][a-z0-9+.-]*:.*")) {
+      throw new IllegalArgumentException(
+          "REST path must be relative: " + path);
+    }
+    return value.startsWith("/") ? value : "/" + value;
+  }
+
+  /**
+   * Trims trailing slashes from a URL.
+   *
+   * @param value the URL
+   * @return the URL without trailing slashes
+   */
+  private static String trimTrailingSlash(final String value) {
+    String trimmed = value;
+    while (trimmed.endsWith("/")) {
+      trimmed = trimmed.substring(0, trimmed.length() - 1);
+    }
+    return trimmed;
+  }
+
+  /**
    * Indicates whether or not the server is active.
    *
    * @return <code>true</code> if so, <code>false</code> otherwise
@@ -232,8 +502,8 @@ public class ConfigUtility {
     try {
       // Attempt to logout to verify service is up (this works like a "ping").
       Client client = ClientBuilder.newClient();
-      WebTarget target = client
-          .target(properties.getProperty("base.url") + "/security/logout/dummy");
+      WebTarget target =
+          client.target(getRestUrl(properties, "/security/logout/dummy"));
 
       Response response = target.request(MediaType.APPLICATION_JSON).get();
       if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {

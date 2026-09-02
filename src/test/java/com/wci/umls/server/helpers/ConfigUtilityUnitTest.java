@@ -72,6 +72,8 @@ public class ConfigUtilityUnitTest {
         properties.getProperty("source.data.dir"));
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
+    assertNotNull(properties.getProperty("database.allowed.hosts"));
+    assertNotNull(properties.getProperty("rest.client.allowed.hosts"));
     assertEquals("meme-team@westcoastinformatics.com",
         properties.getProperty("insertion.notification.recipients"));
     assertFalse(properties.containsKey("spring.profiles.active"));
@@ -145,17 +147,114 @@ public class ConfigUtilityUnitTest {
   @Test
   public void testSpringEnvironmentProperties() throws Exception {
     final StandardEnvironment environment = new StandardEnvironment();
+    environment.getPropertySources().remove(
+        StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+    environment.getPropertySources().remove(
+        StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
     final Properties sourceProperties = new Properties();
+    sourceProperties.setProperty("app.dir", "/tmp/nm302-env-test");
     sourceProperties.setProperty("nm302.test.value", "${app.dir}/data");
     environment.getPropertySources().addFirst(
         new PropertiesPropertySource("nm302Test", sourceProperties));
-    System.setProperty("app.dir", "/tmp/nm302-env-test");
 
     final Properties properties =
         PropertyUtility.loadEnvironmentProperties(environment);
 
     assertEquals("/tmp/nm302-env-test/data",
         properties.getProperty("nm302.test.value"));
+  }
+
+  /**
+   * Verifies REST base URLs are normalized after host allowlist validation.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRestBaseUrlValidationAllowsConfiguredHost()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty("base.url",
+        "https://terminology.example.org/ncim-server-rest/");
+    properties.setProperty(ConfigUtility.REST_CLIENT_ALLOWED_HOSTS_PROPERTY,
+        "terminology.example.org");
+
+    assertEquals("https://terminology.example.org/ncim-server-rest",
+        ConfigUtility.getRestBaseUrl(properties));
+    assertEquals(
+        "https://terminology.example.org/ncim-server-rest/security/logout/dummy",
+        ConfigUtility.getRestUrl(properties, "security/logout/dummy"));
+  }
+
+  /**
+   * Verifies REST base URL validation rejects unexpected targets.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRestBaseUrlValidationRejectsUnexpectedTargets()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty("base.url",
+        "http://169.254.169.254/umls-server-rest");
+
+    assertIllegalArgument(() -> ConfigUtility.getRestBaseUrl(properties));
+
+    properties.setProperty("base.url",
+        "http://user@localhost:8080/umls-server-rest");
+    assertIllegalArgument(() -> ConfigUtility.getRestBaseUrl(properties));
+
+    properties.setProperty("base.url",
+        "http://localhost:8080/umls-server-rest");
+    assertIllegalArgument(
+        () -> ConfigUtility.getRestUrl(properties, "http://example.org/path"));
+  }
+
+  /**
+   * Verifies MySQL JDBC URLs are allowed after host allowlist validation.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testJdbcUrlValidationAllowsConfiguredHost()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty(ConfigUtility.DATABASE_ALLOWED_HOSTS_PROPERTY,
+        "db.example.org");
+    final String jdbcUrl =
+        "jdbc:mysql://db.example.org:3306/ncimdb?serverTimezone=UTC";
+
+    assertEquals(jdbcUrl, ConfigUtility.validateJdbcUrl(jdbcUrl,
+        "jakarta.persistence.jdbc.url", properties));
+    assertEquals("jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
+        ConfigUtility.validateJdbcServerUrl(
+            "jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
+            "jakarta.persistence.jdbc.url", properties));
+  }
+
+  /**
+   * Verifies JDBC URL validation rejects unexpected targets.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testJdbcUrlValidationRejectsUnexpectedTargets()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty(ConfigUtility.DATABASE_ALLOWED_HOSTS_PROPERTY,
+        "db.example.org");
+
+    assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
+        "jdbc:mysql://169.254.169.254:3306/ncimdb",
+        "jakarta.persistence.jdbc.url", properties));
+    assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
+        "jdbc:h2:mem:test", "jakarta.persistence.jdbc.url", properties));
+    assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
+        "jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
+        "jakarta.persistence.jdbc.url", properties));
   }
 
   /**
@@ -170,6 +269,35 @@ public class ConfigUtilityUnitTest {
     } catch (ClassNotFoundException e) {
       // expected
     }
+  }
+
+  /**
+   * Asserts that a runnable throws IllegalArgumentException.
+   *
+   * @param runnable the runnable
+   * @throws Exception for unexpected exceptions
+   */
+  private static void assertIllegalArgument(final ThrowingRunnable runnable)
+    throws Exception {
+    try {
+      runnable.run();
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // expected
+    }
+  }
+
+  /**
+   * Runnable that can throw checked exceptions.
+   */
+  private interface ThrowingRunnable {
+
+    /**
+     * Runs the operation.
+     *
+     * @throws Exception the exception
+     */
+    void run() throws Exception;
   }
 
   /**

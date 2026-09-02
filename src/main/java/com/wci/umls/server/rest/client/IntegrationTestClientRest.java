@@ -62,7 +62,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/test/concept/add");
+        client.target(getBaseUrl(config) + "/test/concept/add");
 
     final String conceptString = ConfigUtility
         .getStringForGraph(concept == null ? new ConceptJpa() : concept);
@@ -90,7 +90,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/test/concept/update");
+        client.target(getBaseUrl(config) + "/test/concept/update");
 
     final String conceptString = ConfigUtility
         .getStringForGraph(concept == null ? new ConceptJpa() : concept);
@@ -114,7 +114,7 @@ public class IntegrationTestClientRest extends RootClientRest
         .debug("Integration Test Client - remove concept " + id);
     validateNotEmpty(id, "id");
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/test/concept/remove/" + id + (cascade ? "?cascade=true" : ""));
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -135,7 +135,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/test/atom/update");
+        client.target(getBaseUrl(config) + "/test/atom/update");
 
     final String atomString =
         ConfigUtility.getStringForGraph(atom == null ? new AtomJpa() : atom);
@@ -160,7 +160,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/test/concept/relationship/add");
+        getBaseUrl(config) + "/test/concept/relationship/add");
 
     final String relString = ConfigUtility.getStringForGraph(
         relationship == null ? new ConceptRelationshipJpa() : relationship);
@@ -188,7 +188,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/test/atom/relationship/add");
+        .target(getBaseUrl(config) + "/test/atom/relationship/add");
 
     final String relString = ConfigUtility.getStringForGraph(
         relationship == null ? new AtomRelationshipJpa() : relationship);
@@ -216,7 +216,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/test/concept/relationship/update");
+        getBaseUrl(config) + "/test/concept/relationship/update");
 
     final String relString = ConfigUtility.getStringForGraph(
         relationship == null ? new ConceptRelationshipJpa() : relationship);
@@ -243,7 +243,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/test/worklist/" + worklistId);
+        getBaseUrl(config) + "/test/worklist/" + worklistId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
 
@@ -271,7 +271,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/test/atom/" + atomId);
+        client.target(getBaseUrl(config) + "/test/atom/" + atomId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
 
@@ -300,7 +300,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/test/sty/" + styId);
+        client.target(getBaseUrl(config) + "/test/sty/" + styId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
 
@@ -330,7 +330,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/test/concept/relationship/" + relId);
+        getBaseUrl(config) + "/test/concept/relationship/" + relId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
 
@@ -360,7 +360,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/test/attribute/" + attributeId);
+        getBaseUrl(config) + "/test/attribute/" + attributeId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
 
@@ -388,7 +388,7 @@ public class IntegrationTestClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/test/typeKeyValue/add");
+        .target(getBaseUrl(config) + "/test/typeKeyValue/add");
 
     final String typeKeyValueString = ConfigUtility.getStringForGraph(
         typeKeyValue == null ? new ConceptJpa() : typeKeyValue);

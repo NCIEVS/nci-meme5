@@ -68,7 +68,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target = client
-        .target(config.getProperty("base.url") + "/metadata/all/" + terminology + "/" + version);
+        .target(getBaseUrl(config) + "/metadata/all/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -91,7 +91,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - get all terminologyies versions");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/metadata/terminology/current");
+        client.target(getBaseUrl(config) + "/metadata/terminology/current");
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -118,7 +118,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(
-        config.getProperty("base.url") + "/metadata/terminology/" + terminology + "/" + version);
+        getBaseUrl(config) + "/metadata/terminology/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -141,7 +141,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/metadata/rootTerminology/" + terminology);
+        client.target(getBaseUrl(config) + "/metadata/rootTerminology/" + terminology);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -168,7 +168,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(
-        config.getProperty("base.url") + "/metadata/precedence/" + terminology + "/" + version);
+        getBaseUrl(config) + "/metadata/precedence/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -190,7 +190,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/metadata/precedence/" + precedenceListId);
+        client.target(getBaseUrl(config) + "/metadata/precedence/" + precedenceListId);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -211,7 +211,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - add precedence list ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/precedence");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/precedence");
     final String precString = ConfigUtility
         .getStringForGraph(precedenceList == null ? new PrecedenceListJpa() : precedenceList);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -234,7 +234,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - update precedence list ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/precedence");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/precedence");
     final String precedenceListString = ConfigUtility
         .getStringForGraph(precedenceList == null ? new PrecedenceListJpa() : precedenceList);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -252,7 +252,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - update term type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/termType");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/termType");
     final String termTypeString =
         ConfigUtility.getStringForGraph(termType == null ? new TermTypeJpa() : termType);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -271,7 +271,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - update attribute name ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/attributeName");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/attributeName");
     final String attributeNameString = ConfigUtility
         .getStringForGraph(attributeName == null ? new AttributeNameJpa() : attributeName);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -290,7 +290,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - update relationship type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/relationshipType");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/relationshipType");
     final String relationshipTypeString = ConfigUtility
         .getStringForGraph(relationshipType == null ? new RelationshipTypeJpa() : relationshipType);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -309,7 +309,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - update root terminology ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/rootTerminology");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/rootTerminology");
     final String rootTerminologyString = ConfigUtility
         .getStringForGraph(rootTerminology == null ? new RootTerminologyJpa() : rootTerminology);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -327,7 +327,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - update terminology ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/terminology");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/terminology");
     final String terminologyString =
         ConfigUtility.getStringForGraph(terminology == null ? new TerminologyJpa() : terminology);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -347,7 +347,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/metadata/additionalRelationshipType");
+        client.target(getBaseUrl(config) + "/metadata/additionalRelationshipType");
     final String additionalRelationshipTypeString =
         ConfigUtility.getStringForGraph(additionalRelationshipType == null
             ? new AdditionalRelationshipTypeJpa() : additionalRelationshipType);
@@ -366,7 +366,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - remove precedence list ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/precedence/" + id);
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/precedence/" + id);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).delete();
 
@@ -384,7 +384,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - remove term type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/termType/" + type
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/termType/" + type
         + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).delete();
@@ -403,7 +403,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - remove term type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/termType/" + type
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/termType/" + type
         + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
@@ -424,7 +424,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - get atn ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/attributeName/"
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/attributeName/"
         + type + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
@@ -445,7 +445,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - get rel type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/relationshipType/"
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/relationshipType/"
         + type + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
@@ -467,7 +467,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - get add rel type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/metadata/additionalRelationshipType/" + type + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
@@ -489,7 +489,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - remove attribute name ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/attributeName/"
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/attributeName/"
         + type + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).delete();
@@ -508,7 +508,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - remove rel type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/relationshipType/"
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/relationshipType/"
         + type + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).delete();
@@ -527,7 +527,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - remove add rel type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/metadata/additionalRelationshipType/" + type + "/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).delete();
@@ -545,7 +545,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - add term type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/termType");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/termType");
     final String termTypeString =
         ConfigUtility.getStringForGraph(termType == null ? new TermTypeJpa() : termType);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -568,7 +568,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - add attributeName ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/attributeName");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/attributeName");
     final String termTypeString = ConfigUtility
         .getStringForGraph(attributeName == null ? new AttributeNameJpa() : attributeName);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -591,7 +591,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - add relationship type ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url") + "/metadata/relationshipType");
+    WebTarget target = client.target(getBaseUrl(config) + "/metadata/relationshipType");
     final String relationshipTypeString = ConfigUtility.getStringForGraph(
         relationshipTypeList == null ? new RelationshipTypeListJpa() : relationshipTypeList);
     Response response = target.request(MediaType.APPLICATION_XML).header("Authorization", authToken)
@@ -617,7 +617,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/metadata/additionalRelationshipType");
+        client.target(getBaseUrl(config) + "/metadata/additionalRelationshipType");
     final String additionalRelationshipTypeString =
         ConfigUtility.getStringForGraph(additionalRelationshipTypeList == null
             ? new AdditionalRelationshipTypeListJpa() : additionalRelationshipTypeList);
@@ -648,7 +648,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target = client
-        .target(config.getProperty("base.url") + "/metadata/sty/" + terminology + "/" + version);
+        .target(getBaseUrl(config) + "/metadata/sty/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -669,7 +669,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
 
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(
-        config.getProperty("base.url") + "/metadata/termType/" + terminology + "/" + version);
+        getBaseUrl(config) + "/metadata/termType/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();
 
@@ -691,7 +691,7 @@ public class MetadataClientRest extends RootClientRest implements MetadataServic
     Logger.getLogger(getClass()).debug("Metadata Client - get add rel types ");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/metadata/additionalRelationshipType/" + terminology + "/" + version);
     Response response =
         target.request(MediaType.APPLICATION_XML).header("Authorization", authToken).get();

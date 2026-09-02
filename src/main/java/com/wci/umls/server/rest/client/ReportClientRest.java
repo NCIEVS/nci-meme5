@@ -49,7 +49,7 @@ public class ReportClientRest extends RootClientRest
 
     validateNotEmpty(conceptId, "conceptId");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/report/concept/" + conceptId + "?projectId=" + projectId);
     Response response = target.request(MediaType.TEXT_PLAIN)
         .header("Authorization", authToken).get();
@@ -77,7 +77,7 @@ public class ReportClientRest extends RootClientRest
 
     validateNotEmpty(descriptorId, "descriptorId");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/report/descriptor/" + descriptorId + "?projectId=" + projectId);
     Response response = target.request(MediaType.TEXT_PLAIN)
         .header("Authorization", authToken).get();
@@ -105,7 +105,7 @@ public class ReportClientRest extends RootClientRest
 
     validateNotEmpty(codeId, "codeId");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/report/code/" + codeId + "?projectId=" + projectId);
     Response response = target.request(MediaType.TEXT_PLAIN)
         .header("Authorization", authToken).get();
@@ -132,7 +132,7 @@ public class ReportClientRest extends RootClientRest
 
     validateNotEmpty(projectId, "projectId");
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/report/definitions?projectId=" + projectId);
     Response response = target.request(MediaType.TEXT_PLAIN)
         .header("Authorization", authToken).get();
@@ -161,7 +161,7 @@ public class ReportClientRest extends RootClientRest
     PfsParameterJpa pfs, String authToken) throws Exception {
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/report/find"
+        client.target(getBaseUrl(config) + "/report/find"
             + "?query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
     String pfsString = ConfigUtility
@@ -189,7 +189,7 @@ public class ReportClientRest extends RootClientRest
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/report/" + id);
+        client.target(getBaseUrl(config) + "/report/" + id);
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
 
@@ -214,7 +214,7 @@ public class ReportClientRest extends RootClientRest
     validateNotEmpty(projectId, "projectId");
 
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/report/generate/" + projectId + "?name=" + name + "&query=" + query
         + "&queryType=" + queryType + "&resultType=" + resultType);
     Response response = target.request(MediaType.APPLICATION_XML)
@@ -240,7 +240,7 @@ public class ReportClientRest extends RootClientRest
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/report/" + id);
+        client.target(getBaseUrl(config) + "/report/" + id);
 
     if (id == null)
       return;
