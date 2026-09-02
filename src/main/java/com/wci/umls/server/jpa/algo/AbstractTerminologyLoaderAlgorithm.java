@@ -59,7 +59,7 @@ public abstract class AbstractTerminologyLoaderAlgorithm
    */
   protected File getInputPathDirectory() throws Exception {
 
-    return ConfigUtility.validateExistingDirectory(new File(getInputPath()),
+    return ConfigUtility.validateExistingDirectoryPath(getInputPath(),
         "input directory");
   }
 

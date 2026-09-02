@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -477,6 +478,44 @@ public class ConfigUtilityUnitTest {
 
       assertIllegalArgument(() -> ConfigUtility.validateConfiguredExistingFile(
           properties, "missingFile"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
+   * Verifies absolute path helper operations validate before file-system use.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testAbsolutePathHelpersValidateAndOpen() throws Exception {
+    final File root = Files.createTempDirectory("nm-path-absolute-root").toFile();
+    try {
+      final File file = new File(root, "names.txt");
+      Files.write(file.toPath(), Arrays.asList("alpha"),
+          StandardCharsets.UTF_8);
+
+      assertEquals(root.getCanonicalFile(),
+          ConfigUtility.validateExistingDirectoryPath(root.getPath(),
+              "root directory"));
+      assertEquals(file.getCanonicalFile(),
+          ConfigUtility.validateExistingFilePath(file.getPath(), "names file"));
+      assertTrue(ConfigUtility.isExistingDirectory(root, "root directory"));
+      assertTrue(ConfigUtility.isExistingFile(file, "names file"));
+      assertTrue(Arrays.asList(ConfigUtility.list(root, "root directory"))
+          .contains("names.txt"));
+      assertEquals(1,
+          ConfigUtility.listFiles(root, "root directory").length);
+      try (BufferedReader reader =
+          ConfigUtility.newBufferedReader(file, "names file")) {
+        assertEquals("alpha", reader.readLine());
+      }
+
+      assertIllegalArgument(() -> ConfigUtility.validateExistingFilePath(
+          file.getPath() + "\0suffix", "names file"));
+      assertIllegalArgument(() -> ConfigUtility.validateExistingDirectoryPath(
+          file.getPath(), "root directory"));
     } finally {
       ConfigUtility.deleteDirectory(root);
     }

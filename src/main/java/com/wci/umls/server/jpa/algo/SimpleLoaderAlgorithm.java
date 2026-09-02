@@ -3,9 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo;
 
-import java.io.File;
-import java.io.FileReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -115,15 +112,14 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     setMolecularActionFlag(false);
 
     // Check the input directory
-    File inputDirFile = new File(getInputPath());
-    if (!inputDirFile.exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
-    if (!new File(getInputPath(), "concepts.txt").exists()) {
+    getInputPathDirectory();
+    if (!ConfigUtility.isExistingFile(getInputPathFile("concepts.txt"),
+        "concepts.txt")) {
       throw new Exception(
           "The concepts.txt file of the input directory does not exist");
     }
-    if (!new File(getInputPath(), "parChd.txt").exists()) {
+    if (!ConfigUtility.isExistingFile(getInputPathFile("parChd.txt"),
+        "parChd.txt")) {
       throw new Exception(
           "The parChd.txt file of the input directory does not exist");
     }
@@ -209,8 +205,8 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     String line = null;
     int objectCt = 0;
     PushBackReader reader = new PushBackReader(
-        new FileReader(new File(getInputPath(), "concepts.txt"),
-            StandardCharsets.UTF_8));
+        ConfigUtility.newBufferedReader(getInputPathFile("concepts.txt"),
+            "concepts.txt"));
     final String[] fields = new String[10];
 
     Set<String> types = new HashSet<>();
@@ -388,8 +384,8 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     int objectCt = 0;
     final PushBackReader reader = new PushBackReader(
-        new FileReader(new File(getInputPath(), "concepts.txt"),
-            StandardCharsets.UTF_8));
+        ConfigUtility.newBufferedReader(getInputPathFile("concepts.txt"),
+            "concepts.txt"));
 
     while ((line = reader.readLine()) != null) {
 
@@ -487,8 +483,8 @@ public class SimpleLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     int objectCt = 0;
     final PushBackReader reader = new PushBackReader(
-        new FileReader(new File(getInputPath(), "parChd.txt"),
-            StandardCharsets.UTF_8));
+        ConfigUtility.newBufferedReader(getInputPathFile("parChd.txt"),
+            "parChd.txt"));
     final String[] fields = new String[2];
     while ((line = reader.readLine()) != null) {
 

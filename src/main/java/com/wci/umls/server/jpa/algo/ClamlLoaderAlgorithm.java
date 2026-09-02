@@ -6,8 +6,6 @@ package com.wci.umls.server.jpa.algo;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -123,22 +121,24 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
   /* see superclass */
   @Override
   public String getFileVersion() throws Exception {
-    BufferedReader br = new BufferedReader(
-        new FileReader(getInputPath(), StandardCharsets.UTF_8));
-    String line = null;
     String releaseVersion = null;
-    while ((line = br.readLine()) != null) {
-      if (line.contains("<Title")) {
-        int versionIndex = line.indexOf("version=");
-        if (line.contains("></Title>"))
-          releaseVersion =
-              line.substring(versionIndex + 9, line.indexOf("></Title>") - 1);
-        else
-          releaseVersion = line.substring(versionIndex + 9, versionIndex + 13);
-        break;
+    final File inputFile =
+        ConfigUtility.validateExistingFilePath(getInputPath(), "input file");
+    try (BufferedReader br =
+        ConfigUtility.newBufferedReader(inputFile, "input file")) {
+      String line = null;
+      while ((line = br.readLine()) != null) {
+        if (line.contains("<Title")) {
+          int versionIndex = line.indexOf("version=");
+          if (line.contains("></Title>"))
+            releaseVersion = line.substring(versionIndex + 9,
+                line.indexOf("></Title>") - 1);
+          else
+            releaseVersion = line.substring(versionIndex + 9, versionIndex + 13);
+          break;
+        }
       }
     }
-    br.close();
     return releaseVersion;
   }
 
@@ -152,7 +152,7 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
     long startTimeOrig = System.nanoTime();
 
-    FileInputStream fis = null;
+    InputStream fis = null;
     InputStream inputStream = null;
     Reader reader = null;
     try {
@@ -168,9 +168,8 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 
       beginTransaction();
 
-      if (!new File(getInputPath()).exists()) {
-        throw new Exception("Specified input file does not exist");
-      }
+      final File inputFile =
+          ConfigUtility.validateExistingFilePath(getInputPath(), "input file");
 
       // open input file and get effective time and version and language
       releaseVersion = getFileVersion();
@@ -185,8 +184,7 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
       DefaultHandler handler = new LocalHandler();
 
       // Open XML and begin parsing
-      File file = new File(getInputPath());
-      fis = new FileInputStream(file);
+      fis = ConfigUtility.newInputStream(inputFile, "input file");
       inputStream = checkForUtf8BOM(fis);
       reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
       InputSource is = new InputSource(reader);
@@ -1763,19 +1761,21 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
    * @throws Exception the exception
    */
   public void findLanguage() throws Exception {
-    BufferedReader br = new BufferedReader(
-        new FileReader(getInputPath(), StandardCharsets.UTF_8));
-    String line = null;
-    while ((line = br.readLine()) != null) {
-      // <Meta name="lang" value="en"/>
-      if (line.contains("<Meta") && line.contains("lang")) {
-        int versionIndex = line.indexOf("value=");
-        terminologyLanguage =
-            line.substring(versionIndex + 7, line.indexOf("/>") - 1);
-        break;
+    final File inputFile =
+        ConfigUtility.validateExistingFilePath(getInputPath(), "input file");
+    try (BufferedReader br =
+        ConfigUtility.newBufferedReader(inputFile, "input file")) {
+      String line = null;
+      while ((line = br.readLine()) != null) {
+        // <Meta name="lang" value="en"/>
+        if (line.contains("<Meta") && line.contains("lang")) {
+          int versionIndex = line.indexOf("value=");
+          terminologyLanguage =
+              line.substring(versionIndex + 7, line.indexOf("/>") - 1);
+          break;
+        }
       }
     }
-    br.close();
     Logger.getLogger(getClass())
         .info("terminologyLanguage: " + terminologyLanguage);
   }

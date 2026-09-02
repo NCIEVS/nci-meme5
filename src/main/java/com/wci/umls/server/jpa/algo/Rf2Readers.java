@@ -5,12 +5,11 @@ package com.wci.umls.server.jpa.algo;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.services.helpers.PushBackReader;
 
 /**
@@ -80,7 +79,8 @@ public class Rf2Readers {
    * @throws Exception if anything goes wrong
    */
   public Rf2Readers(File inputDir) throws Exception {
-    this.inputDir = inputDir;
+    this.inputDir = ConfigUtility.validateExistingDirectory(inputDir,
+        "RF2 reader input directory");
   }
 
   /**
@@ -137,10 +137,11 @@ public class Rf2Readers {
    * @throws Exception the exception
    */
   private PushBackReader getReader(String filename) throws Exception {
-    File file = new File(inputDir, filename);
-    if (file != null && file.exists()) {
-      return new PushBackReader(new BufferedReader(
-          new InputStreamReader(new FileInputStream(file), "UTF-8")));
+    File file = ConfigUtility.resolveFileUnderDirectory(inputDir, filename,
+        "RF2 reader file");
+    if (ConfigUtility.isExistingFile(file, "RF2 reader file")) {
+      return new PushBackReader(
+          ConfigUtility.newBufferedReader(file, "RF2 reader file"));
     } else {
       // if no file, return an empty stream
       return new PushBackReader(new StringReader(""));

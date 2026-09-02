@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.services.handlers;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -13,6 +12,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.RrfLoaderAlgorithm;
@@ -103,7 +103,10 @@ public class RrfSourceDataHandler extends AbstractSourceDataHandler {
           + sourceData.getName());
     }
 
-    if (!new File(inputDir).isDirectory()) {
+    try {
+      ConfigUtility.validateExistingDirectoryPath(inputDir,
+          "source data directory");
+    } catch (Exception e) {
       throw new LocalException(
           "Source data directory is not a directory: " + inputDir);
     }

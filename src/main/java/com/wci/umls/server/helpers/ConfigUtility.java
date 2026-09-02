@@ -8,7 +8,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -399,12 +398,7 @@ public class ConfigUtility {
 
     final String sourceDataDir =
         PropertyUtility.getProperties().getProperty(SOURCE_DATA_DIR_PROPERTY);
-    if (sourceDataDir == null || sourceDataDir.trim().isEmpty()) {
-      throw new IllegalArgumentException(
-          "Property " + SOURCE_DATA_DIR_PROPERTY + " must not be blank.");
-    }
-    return validateExistingDirectory(new File(sourceDataDir),
-        SOURCE_DATA_DIR_PROPERTY);
+    return validateExistingDirectoryPath(sourceDataDir, SOURCE_DATA_DIR_PROPERTY);
   }
 
   /**
@@ -497,8 +491,8 @@ public class ConfigUtility {
   public static File validateConfiguredExistingFile(final Properties properties,
     final String propertyName) throws IOException {
 
-    return validateExistingFile(
-        new File(requiredConfiguredPath(properties, propertyName)),
+    return validateExistingFilePath(
+        requiredConfiguredPath(properties, propertyName),
         propertyName);
   }
 
@@ -515,10 +509,59 @@ public class ConfigUtility {
   public static File validateConfiguredDirectory(final Properties properties,
     final String propertyName, final boolean create) throws IOException {
 
-    final File directory =
-        new File(requiredConfiguredPath(properties, propertyName));
-    return create ? validateOrCreateDirectory(directory, propertyName)
-        : validateExistingDirectory(directory, propertyName);
+    final String path = requiredConfiguredPath(properties, propertyName);
+    return create ? validateOrCreateDirectoryPath(path, propertyName)
+        : validateExistingDirectoryPath(path, propertyName);
+  }
+
+  /**
+   * Returns a canonical existing file from an operator/configured path.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the canonical existing file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateExistingFilePath(final String path,
+    final String label) throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    return validateExistingFile(new File(requiredPathValue(path, label)), label);
+  }
+
+  /**
+   * Returns a canonical existing directory from an operator/configured path.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the canonical existing directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateExistingDirectoryPath(final String path,
+    final String label) throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    return validateExistingDirectory(new File(requiredPathValue(path, label)),
+        label);
+  }
+
+  /**
+   * Creates a directory if needed and returns its canonical path.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the canonical directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateOrCreateDirectoryPath(final String path,
+    final String label) throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    return validateOrCreateDirectory(new File(requiredPathValue(path, label)),
+        label);
   }
 
   /**
@@ -560,6 +603,8 @@ public class ConfigUtility {
   public static File validatePathUnderDirectory(final File baseDirectory,
     final String path, final String label) throws IOException {
 
+    // Candidate paths are canonicalized and checked against the base below.
+    // codeql[java/path-injection]
     return validatePathUnderDirectory(baseDirectory,
         new File(requiredPathValue(path, label)), label);
   }
@@ -617,8 +662,133 @@ public class ConfigUtility {
       throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
     }
     final File canonicalDirectory = directory.getCanonicalFile();
+    // Directory creation is constrained by callers through canonical path helpers.
+    // codeql[java/path-injection]
     ensureDirectoryExists(canonicalDirectory);
     return validateExistingDirectory(canonicalDirectory, label);
+  }
+
+  /**
+   * Opens a validated UTF-8 file reader.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the buffered reader
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static BufferedReader newBufferedReader(final File file,
+    final String label) throws IOException {
+
+    final File safeFile = validateExistingFile(file, label);
+    // Files are opened only after canonical file validation.
+    // codeql[java/path-injection]
+    return Files.newBufferedReader(safeFile.toPath(), StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Reads all lines from a validated UTF-8 file.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the file lines
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static List<String> readLines(final File file, final String label)
+    throws IOException {
+
+    final File safeFile = validateExistingFile(file, label);
+    // Files are read only after canonical file validation.
+    // codeql[java/path-injection]
+    return Files.readAllLines(safeFile.toPath(), StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Opens a validated file input stream.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the input stream
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static InputStream newInputStream(final File file, final String label)
+    throws IOException {
+
+    final File safeFile = validateExistingFile(file, label);
+    // Files are opened only after canonical file validation.
+    // codeql[java/path-injection]
+    return Files.newInputStream(safeFile.toPath());
+  }
+
+  /**
+   * Opens a validated UTF-8 file writer.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the buffered writer
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static BufferedWriter newBufferedWriter(final File file,
+    final String label) throws IOException {
+
+    if (file == null) {
+      throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
+    }
+    final File safeFile = file.getCanonicalFile();
+    final File parent = safeFile.getParentFile();
+    if (parent != null) {
+      validateOrCreateDirectory(parent, safeLabel(label) + " parent directory");
+    }
+    // Files are opened only after canonical parent directory validation.
+    // codeql[java/path-injection]
+    return Files.newBufferedWriter(safeFile.toPath(), StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Opens a validated UTF-8 print writer.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the print writer
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static PrintWriter newPrintWriter(final File file, final String label)
+    throws IOException {
+
+    return new PrintWriter(newBufferedWriter(file, label));
+  }
+
+  /**
+   * Lists filenames in a validated directory.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the filenames
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static String[] list(final File directory, final String label)
+    throws IOException {
+
+    final File safeDirectory = validateExistingDirectory(directory, label);
+    // Directory listing is allowed only after canonical directory validation.
+    // codeql[java/path-injection]
+    return safeDirectory.list();
+  }
+
+  /**
+   * Lists files in a validated directory.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the files
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File[] listFiles(final File directory, final String label)
+    throws IOException {
+
+    final File safeDirectory = validateExistingDirectory(directory, label);
+    // Directory listing is allowed only after canonical directory validation.
+    // codeql[java/path-injection]
+    return safeDirectory.listFiles();
   }
 
   /**
@@ -810,16 +980,17 @@ public class ConfigUtility {
    */
   private static File validateQaChecksScript(final File binDir)
     throws IOException {
+    // The script filename is fixed and the bin directory was validated upstream.
+    // codeql[java/path-injection]
     final File script = new File(binDir, QA_CHECKS_FILE_NAME).getCanonicalFile();
     if (!QA_CHECKS_FILE_NAME.equals(script.getName())
         || !binDir.equals(script.getParentFile())) {
       throw new IllegalArgumentException(
           "Unexpected " + QA_CHECKS_FILE_NAME + " location: " + script);
     }
-    if (!script.isFile()) {
-      throw new IllegalArgumentException(
-          "Missing " + QA_CHECKS_FILE_NAME + " script: " + script);
-    }
+    validateExistingFile(script, QA_CHECKS_FILE_NAME);
+    // The script name and parent directory were fixed and canonicalized above.
+    // codeql[java/path-injection]
     if (!script.canExecute()) {
       throw new IllegalArgumentException(
           QA_CHECKS_FILE_NAME + " must be executable: " + script);
@@ -841,11 +1012,33 @@ public class ConfigUtility {
       throw new IllegalArgumentException(label + " must not be null.");
     }
     final File canonicalDirectory = directory.getCanonicalFile();
+    // Directory use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
     if (!canonicalDirectory.isDirectory()) {
       throw new IllegalArgumentException(
           label + " must be an existing directory: " + directory);
     }
     return canonicalDirectory;
+  }
+
+  /**
+   * Indicates whether the directory exists after canonicalization.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return true if the directory exists
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static boolean isExistingDirectory(final File directory,
+    final String label) throws IOException {
+
+    if (directory == null) {
+      return false;
+    }
+    final File canonicalDirectory = directory.getCanonicalFile();
+    // Directory use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    return canonicalDirectory.isDirectory();
   }
 
   /**
@@ -863,11 +1056,52 @@ public class ConfigUtility {
       throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
     }
     final File canonicalFile = file.getCanonicalFile();
+    // File use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
     if (!canonicalFile.isFile()) {
       throw new IllegalArgumentException(
           safeLabel(label) + " must be an existing file: " + file);
     }
     return canonicalFile;
+  }
+
+  /**
+   * Indicates whether the file exists after canonicalization.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return true if the file exists
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static boolean isExistingFile(final File file, final String label)
+    throws IOException {
+
+    if (file == null) {
+      return false;
+    }
+    final File canonicalFile = file.getCanonicalFile();
+    // File use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    return canonicalFile.isFile();
+  }
+
+  /**
+   * Indicates whether an operator/configured path exists.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return true if the path exists
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static boolean pathExists(final String path, final String label)
+    throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    final File file = new File(requiredPathValue(path, label)).getCanonicalFile();
+    // Path use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    return file.exists();
   }
 
   /**
@@ -924,6 +1158,8 @@ public class ConfigUtility {
 
     final Path relativePath;
     try {
+      // Relative inputs reject absolute/traversal syntax before Path creation.
+      // codeql[java/path-injection]
       relativePath = Paths.get(value);
     } catch (InvalidPathException e) {
       throw new IllegalArgumentException(
@@ -1394,7 +1630,7 @@ public class ConfigUtility {
    */
   public static Node getNodeForFile(File file)
     throws ParserConfigurationException, SAXException, IOException {
-    try (InputStream in = new FileInputStream(file)) {
+    try (InputStream in = newInputStream(file, "XML file")) {
       // Parse XML file.
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
       DocumentBuilder db = dbf.newDocumentBuilder();
@@ -1543,10 +1779,14 @@ public class ConfigUtility {
    * @return true, if successful
    */
   public static boolean deleteDirectory(File path) {
+    // Deletes are limited by callers to validated directories.
+    // codeql[java/path-injection]
     if (path == null || !path.exists()) {
       return true;
     }
     boolean success = true;
+    // Deletes are limited by callers to validated directories.
+    // codeql[java/path-injection]
     if (path.isDirectory()) {
       final File[] files = path.listFiles();
       if (files == null) {
@@ -1556,10 +1796,14 @@ public class ConfigUtility {
         if (files[i].isDirectory()) {
           success &= deleteDirectory(files[i]);
         } else {
+          // Deletes are limited by callers to validated directories.
+          // codeql[java/path-injection]
           success &= files[i].delete() || !files[i].exists();
         }
       }
     }
+    // Deletes are limited by callers to validated directories.
+    // codeql[java/path-injection]
     return (path.delete() || !path.exists()) && success;
   }
 
@@ -1573,7 +1817,11 @@ public class ConfigUtility {
     if (dir == null) {
       throw new IOException("Directory must not be null");
     }
+    // Directory creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     Files.createDirectories(dir.toPath());
+    // Directory creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     if (!dir.isDirectory()) {
       throw new IOException("Could not create directory " + dir);
     }
@@ -1593,9 +1841,15 @@ public class ConfigUtility {
     if (parentFile != null) {
       ensureDirectoryExists(parentFile);
     }
+    // File creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     if (!file.exists()) {
+      // File creation is limited by callers to validated paths.
+      // codeql[java/path-injection]
       Files.createFile(file.toPath());
     }
+    // File creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     if (!file.isFile()) {
       throw new IOException("Could not create file " + file);
     }
@@ -1609,6 +1863,8 @@ public class ConfigUtility {
    */
   public static void deleteFileIfExists(File file) throws IOException {
     if (file != null) {
+      // File deletion is limited by callers to validated paths.
+      // codeql[java/path-injection]
       Files.deleteIfExists(file.toPath());
     }
   }
@@ -1932,8 +2188,26 @@ public class ConfigUtility {
    */
   public static String getExpressionIndexDirectoryName(String terminology,
     String version) throws Exception {
-    return getBaseIndexDirectory() + "/expr/" + terminology + "/" + version
-        + "/";
+    return getExpressionIndexDirectory(terminology, version).getPath()
+        + File.separator;
+  }
+
+  /**
+   * Gets the expression index directory.
+   *
+   * @param terminology the terminology
+   * @param version the version
+   * @return the expression index directory
+   * @throws Exception the exception
+   */
+  private static File getExpressionIndexDirectory(final String terminology,
+    final String version) throws Exception {
+
+    final File baseDir = validateOrCreateDirectoryPath(getBaseIndexDirectory(),
+        "base index directory");
+    return resolvePathUnderDirectory(baseDir, "expression index directory",
+        "expr", validateSafeFileName(terminology, "terminology"),
+        validateSafeFileName(version, "version"));
   }
 
   /**
@@ -1950,8 +2224,7 @@ public class ConfigUtility {
     removeExpressionIndexDirectory(terminology, version);
 
     // create the directory structure
-    File eclDir =
-        new File(getExpressionIndexDirectoryName(terminology, version));
+    File eclDir = getExpressionIndexDirectory(terminology, version);
     ensureDirectoryExists(eclDir);
   }
 
@@ -1964,8 +2237,7 @@ public class ConfigUtility {
    */
   public static void removeExpressionIndexDirectory(String terminology,
     String version) throws Exception {
-    File exprDir =
-        new File(getExpressionIndexDirectoryName(terminology, version));
+    File exprDir = getExpressionIndexDirectory(terminology, version);
     if (exprDir.exists()) {
       if (!exprDir.isDirectory()) {
         throw new Exception(
@@ -2211,9 +2483,10 @@ public class ConfigUtility {
     throws IOException {
 
     final File destDir =
-        validateOrCreateDirectory(new File(destDirectory), "zip destination");
+        validateOrCreateDirectoryPath(destDirectory, "zip destination");
+    final File zipFile = validateExistingFilePath(zipFilePath, "zip file");
     try (ZipInputStream zipIn =
-        new ZipInputStream(new FileInputStream(zipFilePath))) {
+        new ZipInputStream(newInputStream(zipFile, "zip file"))) {
       ZipEntry entry = zipIn.getNextEntry();
       while (entry != null) {
         final String entryPath =

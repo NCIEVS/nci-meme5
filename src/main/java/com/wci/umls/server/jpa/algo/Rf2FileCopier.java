@@ -5,10 +5,7 @@ package com.wci.umls.server.jpa.algo;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -49,39 +46,43 @@ public class Rf2FileCopier {
     Set<String> descriptions) throws Exception {
     Logger.getLogger(getClass()).info("Start copying files");
 
+    final File inputDirFile = ConfigUtility.validateExistingDirectory(inputDir,
+        "RF2 copier input directory");
+    final File outputDirFile = ConfigUtility.validateOrCreateDirectory(outputDir,
+        "RF2 copier output directory");
+
     // Remove and remake output dir
     Logger.getLogger(getClass()).info("  Remove and remake output dir");
-    ConfigUtility.deleteDirectory(outputDir);
-    if (!outputDir.mkdirs()) {
-      throw new Exception("Problem making output dir: " + outputDir);
-    }
-    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Terminology"));
-    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset"));
-    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Content"));
-    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Language"));
-    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Map"));
-    ConfigUtility.ensureDirectoryExists(new File(outputDir, "Refset/Metadata"));
-
-    // Check preconditions
-    if (!inputDir.exists()) {
-      throw new Exception("Input dir does not exist: " + inputDir);
-    }
+    ConfigUtility.deleteDirectory(outputDirFile);
+    ConfigUtility.ensureDirectoryExists(outputDirFile);
+    ConfigUtility.ensureDirectoryExists(ConfigUtility.resolvePathUnderDirectory(
+        outputDirFile, "RF2 copier output directory", "Terminology"));
+    ConfigUtility.ensureDirectoryExists(ConfigUtility.resolvePathUnderDirectory(
+        outputDirFile, "RF2 copier output directory", "Refset"));
+    ConfigUtility.ensureDirectoryExists(ConfigUtility.resolvePathUnderDirectory(
+        outputDirFile, "RF2 copier output directory", "Refset/Content"));
+    ConfigUtility.ensureDirectoryExists(ConfigUtility.resolvePathUnderDirectory(
+        outputDirFile, "RF2 copier output directory", "Refset/Language"));
+    ConfigUtility.ensureDirectoryExists(ConfigUtility.resolvePathUnderDirectory(
+        outputDirFile, "RF2 copier output directory", "Refset/Map"));
+    ConfigUtility.ensureDirectoryExists(ConfigUtility.resolvePathUnderDirectory(
+        outputDirFile, "RF2 copier output directory", "Refset/Metadata"));
 
     Map<String, String> dirMap = new HashMap<>();
-    dirMap.put("sct2_Concept_", "/Terminology");
-    dirMap.put("sct2_Relationship_", "/Terminology");
-    dirMap.put("sct2_StatedRelationship_", "/Terminology");
-    dirMap.put("sct2_Description_", "/Terminology");
-    dirMap.put("sct2_TextDefinition_", "/Terminology");
-    dirMap.put("Refset_Simple", "/Refset/Content");
-    dirMap.put("AttributeValue", "/Refset/Content");
-    dirMap.put("AssociationReference", "/Refset/Content");
-    dirMap.put("ExtendedMap", "/Refset/Map");
-    dirMap.put("SimpleMap", "/Refset/Map");
-    dirMap.put("Language", "/Refset/Language");
-    dirMap.put("RefsetDescriptor", "/Refset/Metadata");
-    dirMap.put("ModuleDependency", "/Refset/Metadata");
-    dirMap.put("DescriptionType", "/Refset/Metadata");
+    dirMap.put("sct2_Concept_", "Terminology");
+    dirMap.put("sct2_Relationship_", "Terminology");
+    dirMap.put("sct2_StatedRelationship_", "Terminology");
+    dirMap.put("sct2_Description_", "Terminology");
+    dirMap.put("sct2_TextDefinition_", "Terminology");
+    dirMap.put("Refset_Simple", "Refset/Content");
+    dirMap.put("AttributeValue", "Refset/Content");
+    dirMap.put("AssociationReference", "Refset/Content");
+    dirMap.put("ExtendedMap", "Refset/Map");
+    dirMap.put("SimpleMap", "Refset/Map");
+    dirMap.put("Language", "Refset/Language");
+    dirMap.put("RefsetDescriptor", "Refset/Metadata");
+    dirMap.put("ModuleDependency", "Refset/Metadata");
+    dirMap.put("DescriptionType", "Refset/Metadata");
 
     Map<String, Integer> keyMap = new HashMap<>();
     keyMap.put("sct2_Concept_", 0);
@@ -102,50 +103,54 @@ public class Rf2FileCopier {
     // Sort files
     for (final String key : dirMap.keySet()) {
       Logger.getLogger(getClass()).info("  Copying for " + key);
-      final File file = findFile(new File(inputDir + dirMap.get(key)), key);
+      final File file = findFile(ConfigUtility.resolvePathUnderDirectory(
+          inputDirFile, "RF2 copier input directory", dirMap.get(key)), key);
       Logger.getLogger(getClass()).info("    input file = " + file);
 
-      final File outputFile =
-          new File(new File(outputDir + dirMap.get(key)), file.getName());
+      final File outputSubdir = ConfigUtility.validateOrCreateDirectory(
+          ConfigUtility.resolvePathUnderDirectory(outputDirFile,
+              "RF2 copier output directory", dirMap.get(key)),
+          "RF2 copier output directory");
+      final File outputFile = ConfigUtility.resolveFileUnderDirectory(
+          outputSubdir, file.getName(), "RF2 copier output file");
       Logger.getLogger(getClass()).info("    output file = " + outputFile);
 
       // Now, iterate through input file and copy lines with headers
       // or where the "keyMap" field is in concepts/descriptions
 
-      BufferedReader in =
-          new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));
-      PrintWriter out =
-          new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
-      String line;
-      int index = keyMap.get(key);
-      while ((line = in.readLine()) != null) {
-        final String[] fields = FieldedStringTokenizer.split(line, "\t");
+      try (BufferedReader in =
+          ConfigUtility.newBufferedReader(file, "RF2 copier input file");
+          PrintWriter out = ConfigUtility.newPrintWriter(outputFile,
+              "RF2 copier output file")) {
+        String line;
+        int index = keyMap.get(key);
+        while ((line = in.readLine()) != null) {
+          final String[] fields = FieldedStringTokenizer.split(line, "\t");
 
-        // If active only, skip inactive entries
-        if (activeOnly && fields[1].equals("0")) {
-          continue;
-        }
-        // write headers
-        if (line.startsWith("id\t")) {
-          out.println(line);
-        }
+          // If active only, skip inactive entries
+          if (activeOnly && fields[1].equals("0")) {
+            continue;
+          }
+          // write headers
+          if (line.startsWith("id\t")) {
+            out.println(line);
+          }
 
-        // Relationship requires both ends to be connected
-        if (key.contains("Relationship")) {
-          if (concepts.contains(fields[index])
-              && concepts.contains(fields[5])) {
+          // Relationship requires both ends to be connected
+          if (key.contains("Relationship")) {
+            if (concepts.contains(fields[index])
+                && concepts.contains(fields[5])) {
+              out.println(line);
+            }
+          }
+
+          // otherwise, just check the indexed field
+          else if (concepts.contains(fields[index])
+              || descriptions.contains(fields[index])) {
             out.println(line);
           }
         }
-
-        // otherwise, just check the indexed field
-        else if (concepts.contains(fields[index])
-            || descriptions.contains(fields[index])) {
-          out.println(line);
-        }
       }
-      in.close();
-      out.close();
 
     }
 
@@ -162,7 +167,12 @@ public class Rf2FileCopier {
   public File findFile(File dir, String prefix) throws Exception {
     File file = null;
     // file
-    final File[] files = dir.listFiles();
+    final File[] files;
+    if (ConfigUtility.isExistingDirectory(dir, "RF2 copier search directory")) {
+      files = ConfigUtility.listFiles(dir, "RF2 copier search directory");
+    } else {
+      files = null;
+    }
     if (files == null) {
       return null;
     }
@@ -174,8 +184,11 @@ public class Rf2FileCopier {
       }
     }
 
-    Logger.getLogger(getClass()).info(
-        "      " + prefix + " = " + file.toString() + " " + file.exists());
+    if (file != null) {
+      Logger.getLogger(getClass()).info(
+          "      " + prefix + " = " + file.toString() + " "
+              + ConfigUtility.isExistingFile(file, "RF2 copier input file"));
+    }
     return file;
   }
 

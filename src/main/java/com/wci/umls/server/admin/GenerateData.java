@@ -4,7 +4,6 @@
 package com.wci.umls.server.admin;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
@@ -133,6 +132,24 @@ public class GenerateData extends AbstractLoader {
     private UserJpa reviewer2;
     private UserJpa author1;
     private UserJpa author2;
+
+    /**
+     * Returns a validated workflow configuration file.
+     *
+     * @param fileName the file name
+     * @return the workflow file
+     * @throws Exception the exception
+     */
+    private File getWorkflowFile(final String fileName) throws Exception {
+        final File inputDirectory =
+            ConfigUtility.validateExistingDirectoryPath(inputDir, "input directory");
+        final File workflowDirectory = ConfigUtility.validateExistingDirectory(
+            ConfigUtility.resolvePathUnderDirectory(inputDirectory,
+                "workflow directory", "workflow"),
+            "workflow directory");
+        return ConfigUtility.resolveFileUnderDirectory(workflowDirectory, fileName,
+            "workflow file");
+    }
 
     /**
      * Main entry point.
@@ -777,10 +794,10 @@ public class GenerateData extends AbstractLoader {
         LOGGER.info("  Import a ME workflow config");
 
         workflowService = new WorkflowServiceRestImpl();
-        String workflowFilePath = inputDir + "/workflow/workflow.ME.txt";
-        File workflowFile = new File(workflowFilePath);
+        File workflowFile = getWorkflowFile("workflow.ME.txt");
 
-        try (InputStream in = new FileInputStream(workflowFile)) {
+        try (InputStream in =
+            ConfigUtility.newInputStream(workflowFile, "workflow file")) {
           FormDataContentDisposition contentDispositionHeader =
               new FormDataContentDisposition(
                   "form-data; filename=\"workflow.ME.txt\"; name=\"file\"");
@@ -938,11 +955,10 @@ public class GenerateData extends AbstractLoader {
         // load QA workflowConfig and bins from workflow.QA.txt file
         workflowService = new WorkflowServiceRestImpl();
 
-        workflowFilePath = inputDir + "/workflow/workflow.QA.txt";
+        workflowFile = getWorkflowFile("workflow.QA.txt");
 
-        workflowFile = new File(workflowFilePath);
-
-        try (InputStream in = new FileInputStream(workflowFile)) {
+        try (InputStream in =
+            ConfigUtility.newInputStream(workflowFile, "workflow file")) {
           FormDataContentDisposition contentDispositionHeader =
               new FormDataContentDisposition(
                   "form-data; filename=\"workflow.QA.txt\"; name=\"file\"");
@@ -965,12 +981,11 @@ public class GenerateData extends AbstractLoader {
         // Add MID VALIDATOIN
         //
         LOGGER.info("  Create a MID VALIDATION config");
-        workflowFilePath = inputDir + "/workflow/workflow.MV.txt";
-
-        workflowFile = new File(workflowFilePath);
+        workflowFile = getWorkflowFile("workflow.MV.txt");
 
         workflowService = new WorkflowServiceRestImpl();
-        try (InputStream in = new FileInputStream(workflowFile)) {
+        try (InputStream in =
+            ConfigUtility.newInputStream(workflowFile, "workflow file")) {
           FormDataContentDisposition contentDispositionHeader =
               new FormDataContentDisposition(
                   "form-data; filename=\"workflow.MV.txt\"; name=\"file\"");
@@ -987,12 +1002,11 @@ public class GenerateData extends AbstractLoader {
         // Add MID VALIDATION (NO concepts)
         //
         LOGGER.info("  Create a MID VALIDATION_NOCONCEPT config");
-        workflowFilePath = inputDir + "/workflow/workflow.MVO.txt";
-
-        workflowFile = new File(workflowFilePath);
+        workflowFile = getWorkflowFile("workflow.MVO.txt");
 
         workflowService = new WorkflowServiceRestImpl();
-        try (InputStream in = new FileInputStream(workflowFile)) {
+        try (InputStream in =
+            ConfigUtility.newInputStream(workflowFile, "workflow file")) {
           FormDataContentDisposition contentDispositionHeader =
               new FormDataContentDisposition(
                   "form-data; filename=\"workflow.MVO.txt\"; name=\"file\"");
@@ -1009,12 +1023,11 @@ public class GenerateData extends AbstractLoader {
         // Add REPORT_DEFINITIONS
         //
         LOGGER.info("  Create a REPORT DEFINITIONS config");
-        workflowFilePath = inputDir + "/workflow/workflow.RD.txt";
-
-        workflowFile = new File(workflowFilePath);
+        workflowFile = getWorkflowFile("workflow.RD.txt");
 
         workflowService = new WorkflowServiceRestImpl();
-        try (InputStream in = new FileInputStream(workflowFile)) {
+        try (InputStream in =
+            ConfigUtility.newInputStream(workflowFile, "workflow file")) {
           FormDataContentDisposition contentDispositionHeader =
               new FormDataContentDisposition(
                   "form-data; filename=\"workflow.RD.txt\"; name=\"file\"");

@@ -205,10 +205,11 @@ public final class IntegrationTestPreflight {
         continue;
       }
 
-      final File dir = new File(value);
-      if (!dir.isDirectory()) {
+      try {
+        ConfigUtility.validateExistingDirectoryPath(value, key);
+      } catch (Exception e) {
         failures.add("required directory does not exist: " + key + "="
-            + dir.getAbsolutePath());
+            + value);
       }
     }
   }
@@ -223,11 +224,11 @@ public final class IntegrationTestPreflight {
   private static void checkIndexIsolation(final String profile,
     final Properties properties, final List<String> failures) {
 
-    final File dataDir = new File(property(properties, "data.dir"));
-    final File indexDir = new File(property(properties, "index.dir"));
     try {
-      final File canonicalData = dataDir.getCanonicalFile();
-      final File canonicalIndex = indexDir.getCanonicalFile();
+      final File canonicalData = ConfigUtility.validateExistingDirectoryPath(
+          property(properties, "data.dir"), "data.dir");
+      final File canonicalIndex = ConfigUtility.validateExistingDirectoryPath(
+          property(properties, "index.dir"), "index.dir");
       if (canonicalData.equals(canonicalIndex)) {
         failures.add("profile " + profile
             + " must not use data.dir itself as index.dir: "
@@ -361,18 +362,34 @@ public final class IntegrationTestPreflight {
   private static void checkInsertionFixtureData(final Properties properties,
     final List<String> failures) {
 
-    final File sourceDir =
-        new File(property(properties, "source.data.dir"),
-            "terminologies/NCI_INSERT/src");
-    if (!sourceDir.isDirectory()) {
+    final File sourceDir;
+    try {
+      sourceDir = ConfigUtility.resolvePathUnderDirectory(
+          ConfigUtility.validateExistingDirectoryPath(
+              property(properties, "source.data.dir"), "source.data.dir"),
+          "insertion source-data directory", "terminologies", "NCI_INSERT",
+          "src");
+    } catch (Exception e) {
       failures.add("insertion source-data directory is missing: "
-          + sourceDir.getAbsolutePath());
-    } else {
-      for (final String name : Arrays.asList("sources.src", "termgroups.src",
-          "classes_atoms.src", "relationships.src", "contexts.src",
-          "attributes.src", "mergefacts.src", "MRDOC.RRF")) {
-        checkFileExists(sourceDir, name, failures);
+          + e.getMessage());
+      return;
+    }
+    try {
+      if (!ConfigUtility.isExistingDirectory(sourceDir,
+          "insertion source-data directory")) {
+        failures.add("insertion source-data directory is missing: "
+            + sourceDir.getAbsolutePath());
+        return;
       }
+    } catch (Exception e) {
+      failures.add("insertion source-data directory is missing: "
+          + e.getMessage());
+      return;
+    }
+    for (final String name : Arrays.asList("sources.src", "termgroups.src",
+        "classes_atoms.src", "relationships.src", "contexts.src",
+        "attributes.src", "mergefacts.src", "MRDOC.RRF")) {
+      checkFileExists(sourceDir, name, failures);
     }
 
     try (Connection connection = connect(properties);
@@ -407,10 +424,15 @@ public final class IntegrationTestPreflight {
   private static void checkFileExists(final File dir, final String name,
     final List<String> failures) {
 
-    final File file = new File(dir, name);
-    if (!file.isFile()) {
-      failures.add("required insertion source file is missing: "
-          + file.getAbsolutePath());
+    try {
+      final File file = ConfigUtility.resolveFileUnderDirectory(dir, name,
+          "insertion source file");
+      if (!ConfigUtility.isExistingFile(file, "insertion source file")) {
+        failures.add("required insertion source file is missing: "
+            + file.getAbsolutePath());
+      }
+    } catch (Exception e) {
+      failures.add("required insertion source file is missing: " + name);
     }
   }
 
@@ -493,7 +515,15 @@ public final class IntegrationTestPreflight {
   private static void checkAdminLoaderSourceData(final Properties properties,
     final List<String> failures) {
 
-    final File dataRoot = new File("config/src/main/resources/data");
+    final File dataRoot;
+    try {
+      dataRoot = ConfigUtility.validateExistingDirectoryPath(
+          "config/src/main/resources/data", "admin-loader source-data root");
+    } catch (Exception e) {
+      failures.add("admin-loader source-data root is missing: "
+          + e.getMessage());
+      return;
+    }
     for (final String path : Arrays.asList(
         "SAMPLE_UMLS/MRCONSO.RRF",
         "SAMPLE_UMLS/MRHIER.RRF",
@@ -502,19 +532,38 @@ public final class IntegrationTestPreflight {
             + "sct2_Concept_Full_INT_20140731.txt",
         "icd10cm-2016.xml",
         "snomed.owl")) {
-      final File file = new File(dataRoot, path);
-      if (!file.isFile()) {
-        failures.add("required admin-loader source file is missing: "
-            + file.getAbsolutePath());
+      try {
+        final File file = ConfigUtility.resolvePathUnderDirectory(dataRoot,
+            "admin-loader source file", path);
+        if (!ConfigUtility.isExistingFile(file, "admin-loader source file")) {
+          failures.add("required admin-loader source file is missing: "
+              + file.getAbsolutePath());
+        }
+      } catch (Exception e) {
+        failures.add("required admin-loader source file is missing: " + path);
       }
     }
 
-    final File dataDir = new File(property(properties, "data.dir"));
+    final File dataDir;
+    try {
+      dataDir = ConfigUtility.validateExistingDirectoryPath(
+          property(properties, "data.dir"), "data.dir");
+    } catch (Exception e) {
+      failures.add("required admin-loader data directory is missing: "
+          + e.getMessage());
+      return;
+    }
     for (final String name : Arrays.asList("acronyms.txt", "spelling.txt")) {
-      final File file = new File(dataDir, name);
-      if (!file.isFile()) {
-        failures.add("required admin-loader data file is missing: "
-            + file.getAbsolutePath()
+      try {
+        final File file = ConfigUtility.resolveFileUnderDirectory(dataDir, name,
+            "admin-loader data file");
+        if (!ConfigUtility.isExistingFile(file, "admin-loader data file")) {
+          failures.add("required admin-loader data file is missing: "
+              + file.getAbsolutePath()
+              + "; run make prepare-admin before make integration-admin");
+        }
+      } catch (Exception e) {
+        failures.add("required admin-loader data file is missing: " + name
             + "; run make prepare-admin before make integration-admin");
       }
     }

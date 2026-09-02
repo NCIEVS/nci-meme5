@@ -5,8 +5,6 @@ package com.wci.umls.server.jpa.services.handlers;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,8 +61,8 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
     if (p.containsKey("acronymsFile")) {
       final File acronymsFile = ConfigUtility.validateConfiguredExistingFile(p,
           "acronymsFile");
-      try (BufferedReader in = new BufferedReader(new FileReader(
-          acronymsFile, StandardCharsets.UTF_8))) {
+      try (BufferedReader in =
+          ConfigUtility.newBufferedReader(acronymsFile, "acronymsFile")) {
         String line;
         while ((line = in.readLine()) != null) {
           final String[] tokens = FieldedStringTokenizer.split(line, "\t");

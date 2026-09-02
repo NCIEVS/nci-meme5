@@ -5,8 +5,6 @@ package com.wci.umls.server.rest.impl;
 
 import java.io.File;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -162,7 +160,8 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
     try {
       String configFileName = PropertyUtility.getLocalConfigFile();
       boolean configured =
-          PropertyUtility.getProperties() != null || (new File(configFileName).exists());
+          PropertyUtility.getProperties() != null
+              || ConfigUtility.pathExists(configFileName, "configuration file");
       return configured;
 
     } catch (Exception e) {
@@ -190,7 +189,7 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
       // construct name and check that the file does not already exist
       String configFileName = PropertyUtility.getLocalConfigFile();
 
-      if (new File(configFileName).exists()) {
+      if (ConfigUtility.pathExists(configFileName, "configuration file")) {
         throw new LocalException("System is already configured from file: " + configFileName);
       }
 
@@ -240,32 +239,28 @@ public class ConfigureServiceRestImpl extends RootServiceRestImpl implements Con
        * ); }
        */
       // create the local application folder
-      File localFolder = new File(PropertyUtility.getLocalConfigFolder());
-      if (!localFolder.exists()) {
-        ConfigUtility.ensureDirectoryExists(localFolder);
-      } else if (!localFolder.isDirectory()) {
-        throw new LocalException(
-            "Could not create local directory " + PropertyUtility.getLocalConfigFolder());
-      }
+      File localFolder = ConfigUtility.validateOrCreateDirectoryPath(
+          PropertyUtility.getLocalConfigFolder(), "local configuration directory");
 
       // prerequisite: application directory exists
-      File f = new File(parameters.get("app.dir").toString());
-      if (!f.exists()) {
+      try {
+        ConfigUtility.validateExistingDirectoryPath(
+            parameters.get("app.dir").toString(), "Application directory");
+      } catch (IllegalArgumentException e) {
         throw new LocalException(
             "Application directory does not exist: " + parameters.get("app.dir"));
       }
 
       Logger.getLogger(getClass()).info("Writing configuration file: " + configFileName);
 
-      File configFile = new File(configFileName);
+      File configFile = ConfigUtility.resolveFileUnderDirectory(localFolder,
+          "config.properties", "configuration file");
 
       // Make directories
-      if (!configFile.getParentFile().exists()) {
-        ConfigUtility.ensureDirectoryExists(configFile.getParentFile());
-      }
+      ConfigUtility.ensureDirectoryExists(configFile.getParentFile());
       
-      try (final Writer writer = Files.newBufferedWriter(configFile.toPath(),
-          StandardCharsets.UTF_8)) {
+      try (final Writer writer =
+          ConfigUtility.newBufferedWriter(configFile, "configuration file")) {
         properties.store(writer, "User-configured settings");
       }
 

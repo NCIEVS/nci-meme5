@@ -48,21 +48,21 @@ public class Rf2FileSorter {
   public Rf2FileSorter() throws Exception {
     dirMap = new HashMap<>();
 
-    dirMap.put("sct2_Concept_", "/Terminology");
-    dirMap.put("sct2_Relationship_", "/Terminology");
-    dirMap.put("sct2_StatedRelationship_", "/Terminology");
-    dirMap.put("sct2_Description_", "/Terminology");
-    dirMap.put("sct2_TextDefinition_", "/Terminology");
-    dirMap.put("Refset_Simple", "/Refset/Content");
-    dirMap.put("AttributeValue", "/Refset/Content");
-    dirMap.put("AssociationReference", "/Refset/Content");
+    dirMap.put("sct2_Concept_", "Terminology");
+    dirMap.put("sct2_Relationship_", "Terminology");
+    dirMap.put("sct2_StatedRelationship_", "Terminology");
+    dirMap.put("sct2_Description_", "Terminology");
+    dirMap.put("sct2_TextDefinition_", "Terminology");
+    dirMap.put("Refset_Simple", "Refset/Content");
+    dirMap.put("AttributeValue", "Refset/Content");
+    dirMap.put("AssociationReference", "Refset/Content");
     // dirMap.put("ComplexMap", "/Refset/Map");
-    dirMap.put("ExtendedMap", "/Refset/Map");
-    dirMap.put("SimpleMap", "/Refset/Map");
-    dirMap.put("Language", "/Refset/Language");
-    dirMap.put("RefsetDescriptor", "/Refset/Metadata");
-    dirMap.put("ModuleDependency", "/Refset/Metadata");
-    dirMap.put("DescriptionType", "/Refset/Metadata");
+    dirMap.put("ExtendedMap", "Refset/Map");
+    dirMap.put("SimpleMap", "Refset/Map");
+    dirMap.put("Language", "Refset/Language");
+    dirMap.put("RefsetDescriptor", "Refset/Metadata");
+    dirMap.put("ModuleDependency", "Refset/Metadata");
+    dirMap.put("DescriptionType", "Refset/Metadata");
   }
 
   /**
@@ -81,6 +81,60 @@ public class Rf2FileSorter {
    */
   public void setOutputDir(String outputDir) {
     this.outputDir = outputDir;
+  }
+
+  /**
+   * Returns the validated RF2 input directory.
+   *
+   * @return the input directory
+   * @throws Exception the exception
+   */
+  private File getInputDirectory() throws Exception {
+
+    return ConfigUtility.validateExistingDirectoryPath(inputDir,
+        "RF2 input directory");
+  }
+
+  /**
+   * Returns the validated RF2 output directory.
+   *
+   * @return the output directory
+   * @throws Exception the exception
+   */
+  private File getOutputDirectory() throws Exception {
+
+    return ConfigUtility.validateOrCreateDirectoryPath(outputDir,
+        "RF2 output directory");
+  }
+
+  /**
+   * Resolves a release-package directory below the RF2 input directory.
+   *
+   * @param inputDirFile the input directory
+   * @param dirName the directory name
+   * @return the resolved directory
+   * @throws Exception the exception
+   */
+  private File resolveInputDirectory(final File inputDirFile,
+    final String dirName) throws Exception {
+
+    return ConfigUtility.resolvePathUnderDirectory(inputDirFile,
+        "RF2 source directory", dirName);
+  }
+
+  /**
+   * Resolves an output file below the RF2 output directory.
+   *
+   * @param outputDirFile the output directory
+   * @param fileName the file name
+   * @return the resolved file
+   * @throws Exception the exception
+   */
+  private File resolveOutputFile(final File outputDirFile,
+    final String fileName) throws Exception {
+
+    return ConfigUtility.resolveFileUnderDirectory(outputDirFile, fileName,
+        "RF2 output file");
   }
 
   /**
@@ -110,11 +164,13 @@ public class Rf2FileSorter {
   public String getFileVersion() throws Exception {
 
     String fileVersion = null;
+    final File inputDirFile = getInputDirectory();
 
     for (final String dirName : dirMap.values()) {
-      final File file = new File(inputDir + dirName);
-      if (file != null && file.exists()) {
-        final String[] fileNames = file.list();
+      final File file = resolveInputDirectory(inputDirFile, dirName);
+      if (ConfigUtility.isExistingDirectory(file, "RF2 source directory")) {
+        final String[] fileNames =
+            ConfigUtility.list(file, "RF2 source directory");
         if (fileNames == null) {
           continue;
         }
@@ -149,11 +205,13 @@ public class Rf2FileSorter {
    */
   public String getFileExtensionInfo() throws Exception {
     String fileExtension = null;
+    final File inputDirFile = getInputDirectory();
 
     for (final String dirName : dirMap.values()) {
-      final File file = new File(inputDir + dirName);
-      if (file != null && file.exists()) {
-        final String[] fileNames = file.list();
+      final File file = resolveInputDirectory(inputDirFile, dirName);
+      if (ConfigUtility.isExistingDirectory(file, "RF2 source directory")) {
+        final String[] fileNames =
+            ConfigUtility.list(file, "RF2 source directory");
         if (fileNames == null) {
           continue;
         }
@@ -189,20 +247,13 @@ public class Rf2FileSorter {
   public void compute() throws Exception {
     Logger.getLogger(getClass()).info("Start sorting files");
 
-    File inputDirFile = new File(inputDir);
-    File outputDirFile = new File(outputDir);
+    File inputDirFile = getInputDirectory();
+    File outputDirFile = getOutputDirectory();
 
     // Remove and remake output dir
     Logger.getLogger(getClass()).info("  Remove and remake output dir");
     ConfigUtility.deleteDirectory(outputDirFile);
-    if (!outputDirFile.mkdirs()) {
-      throw new Exception("Problem making output dir: " + outputDir);
-    }
-
-    // Check preconditions
-    if (!inputDirFile.exists()) {
-      throw new Exception("Input dir does not exist: " + inputDir);
-    }
+    ConfigUtility.ensureDirectoryExists(outputDirFile);
 
     Map<String, Integer> sortByMap = new HashMap<>();
     sortByMap.put("sct2_Concept_", 0);
@@ -251,7 +302,8 @@ public class Rf2FileSorter {
       }
 
       Logger.getLogger(getClass()).info("  Sorting for " + key);
-      final File file = findFile(new File(inputDir + dirMap.get(key)), key);
+      final File file = findFile(
+          resolveInputDirectory(inputDirFile, dirMap.get(key)), key);
 
       Logger.getLogger(getClass()).info("    file = " + file);
 
@@ -266,21 +318,22 @@ public class Rf2FileSorter {
         };
       }
       // Sort the file
+      final File outputFile =
+          resolveOutputFile(outputDirFile, fileMap.get(key));
       if (file != null) {
-        sortRf2File(file, new File(outputDir + "/" + fileMap.get(key)), fields);
+        sortRf2File(file, outputFile, fields);
       } else {
         // otherwise just create an empty "sort" file
-        ConfigUtility.ensureFileExists(
-            new File(outputDir + "/" + fileMap.get(key)));
+        ConfigUtility.ensureFileExists(outputFile);
       }
     }
 
     // Merge relationship files
     Logger.getLogger(getClass()).info("  Merging relationship files...");
     File relationshipsFile =
-        new File(outputDir + "/" + fileMap.get("sct2_Relationship_"));
-    File statedRelationshipsFile =
-        new File(outputDir + "/" + fileMap.get("sct2_StatedRelationship_"));
+        resolveOutputFile(outputDirFile, fileMap.get("sct2_Relationship_"));
+    File statedRelationshipsFile = resolveOutputFile(outputDirFile,
+        fileMap.get("sct2_StatedRelationship_"));
     // Determine fields to sort by
     if (sortByEffectiveTime) {
       fields = new int[] {
@@ -296,8 +349,8 @@ public class Rf2FileSorter {
         statedRelationshipsFile, getComparator(fields), outputDirFile, "");
 
     // rename the temporary file
-    Files.move(mergedRel,
-        new File(outputDir + "/" + "relationshipsAllBySourceConcept.sort"));
+    Files.move(mergedRel, resolveOutputFile(outputDirFile,
+        "relationshipsAllBySourceConcept.sort"));
 
     Thread.sleep(1000);
     Logger.getLogger(getClass()).info("Done...");
@@ -315,7 +368,12 @@ public class Rf2FileSorter {
   public File findFile(File dir, String prefix) throws Exception {
     File file = null;
     // file
-    final File[] files = dir.listFiles();
+    final File[] files;
+    if (ConfigUtility.isExistingDirectory(dir, "RF2 file search directory")) {
+      files = ConfigUtility.listFiles(dir, "RF2 file search directory");
+    } else {
+      files = null;
+    }
     if (files == null) {
       return null;
     }
@@ -334,7 +392,8 @@ public class Rf2FileSorter {
       }
     }
     Logger.getLogger(getClass()).info(
-        "      " + prefix + " = " + file.toString() + " " + file.exists());
+        "      " + prefix + " = " + file.toString() + " "
+            + ConfigUtility.isExistingFile(file, "RF2 file"));
     return file;
   }
 

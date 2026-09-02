@@ -3,8 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo;
 
-import java.io.File;
-import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -22,7 +20,6 @@ import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.hibernate.query.NativeQuery;
 
-import com.google.common.io.Files;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
@@ -121,9 +118,8 @@ public class RrfUnpublishedLoaderAlgorithm
     setLastModifiedBy("admin");
     setMolecularActionFlag(false);
 
-    final List<String> lines =
-        Files.readLines(new File(getInputPath(), "deletedCuiNames.txt"),
-            Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("deletedCuiNames.txt"), "deleted CUI names file");
 
     int ct = 0;
     for (final String line : lines) {
@@ -177,8 +173,8 @@ public class RrfUnpublishedLoaderAlgorithm
     setLastModifiedBy("admin");
     setMolecularActionFlag(false);
 
-    final List<String> lines = Files.readLines(
-        new File(getInputPath(), "conceptNotes.txt"), Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("conceptNotes.txt"), "concept notes file");
 
     int ct = 0;
     // dates to parese - 29-NOV-12
@@ -237,8 +233,8 @@ public class RrfUnpublishedLoaderAlgorithm
     setLastModifiedBy("admin");
     setMolecularActionFlag(false);
 
-    final List<String> lines = Files.readLines(
-        new File(getInputPath(), "atomNotes.txt"), Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("atomNotes.txt"), "atom notes file");
 
     final Session session = manager.unwrap(Session.class);
     final NativeQuery<Object[]> hQuery =
@@ -341,8 +337,8 @@ public class RrfUnpublishedLoaderAlgorithm
     setLastModifiedBy("admin");
     setMolecularActionFlag(false);
 
-    final List<String> lines = Files.readLines(
-        new File(getInputPath(), "srcAtomIds.txt"), Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("srcAtomIds.txt"), "source atom IDs file");
 
     final Session session = manager.unwrap(Session.class);
     final NativeQuery<Object[]> hQuery =
@@ -413,9 +409,8 @@ public class RrfUnpublishedLoaderAlgorithm
     setMolecularActionFlag(false);
     setLastModifiedFlag(false);
 
-    final List<String> lines =
-        Files.readLines(new File(getInputPath(), "xrRelationships.txt"),
-            Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("xrRelationships.txt"), "XR relationships file");
 
     int ct = 0;
     for (final String line : lines) {
@@ -518,8 +513,8 @@ public class RrfUnpublishedLoaderAlgorithm
     setMolecularActionFlag(false);
     setLastModifiedFlag(false);
 
-    final List<String> lines = Files.readLines(
-        new File(getInputPath(), "ruiDaFlags.txt"), Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("ruiDaFlags.txt"), "RUI DA flags file");
 
     final SearchHandler handler = getSearchHandler(ConfigUtility.DEFAULT);
     int ct = 0;
@@ -664,8 +659,8 @@ public class RrfUnpublishedLoaderAlgorithm
 
     final String mth = "MTH" + getLatestVersion("MTH");
     logInfo("  Process umlscui.txt =  " + mth);
-    final List<String> lines = Files.readLines(
-        new File(getInputPath(), "umlscui.txt"), Charset.forName("UTF-8"));
+    final List<String> lines = ConfigUtility.readLines(
+        getInputPathFile("umlscui.txt"), "UMLS CUI file");
     ct = 0;
     for (final String line : lines) {
       final String[] tokens = FieldedStringTokenizer.split(line, "|");
@@ -700,12 +695,7 @@ public class RrfUnpublishedLoaderAlgorithm
   public ValidationResult checkPreconditions() throws Exception {
 
     // Check the input directory
-    File inputDirFile = new File(getInputPath());
-    if (!inputDirFile.exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
-
-    File file = null;
+    getInputPathDirectory();
 
     final String[] files = new String[] {
         "deletedCuiNames.txt", "conceptNotes.txt", "atomNotes.txt",
@@ -714,8 +704,7 @@ public class RrfUnpublishedLoaderAlgorithm
     };
     for (final String f : files) {
       // Check file
-      file = new File(getInputPath(), f);
-      if (!file.exists()) {
+      if (!ConfigUtility.isExistingFile(getInputPathFile(f), f)) {
         throw new Exception("Specified " + f + " does not exist");
       }
     }
