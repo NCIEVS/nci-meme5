@@ -6,7 +6,9 @@ package com.wci.umls.server.helpers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.File;
 import java.io.Writer;
@@ -74,6 +76,8 @@ public class ConfigUtilityUnitTest {
         properties.getProperty("base.url"));
     assertNotNull(properties.getProperty("database.allowed.hosts"));
     assertNotNull(properties.getProperty("rest.client.allowed.hosts"));
+    assertFalse(properties.getProperty("algorithm.handler").contains("RUNMMSYS"));
+    assertFalse(properties.containsKey("algorithm.handler.RUNMMSYS.class"));
     assertEquals("meme-team@westcoastinformatics.com",
         properties.getProperty("insertion.notification.recipients"));
     assertFalse(properties.containsKey("spring.profiles.active"));
@@ -255,6 +259,83 @@ public class ConfigUtilityUnitTest {
     assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
         "jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
         "jakarta.persistence.jdbc.url", properties));
+  }
+
+  /**
+   * Verifies release QA target validation rejects command-like values.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRunQaChecksRejectsUnexpectedTarget() throws Exception {
+    assertIllegalArgument(() -> ConfigUtility.runQaChecks(null, null, null,
+        "MRCONSO;rm -rf /", null, null));
+  }
+
+  /**
+   * Verifies release QA paths must stay under source.data.dir.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRunQaChecksRejectsMetaOutsideSourceDataDir()
+    throws Exception {
+
+    final File dir = Files.createTempDirectory("nm-command-validation").toFile();
+    try {
+      final File sourceDataDir = new File(dir, "data");
+      final File binDir = new File(dir, "bin");
+      final File outsideMetaDir = new File(dir, "outside/META");
+      final File previousMetaDir = new File(sourceDataDir, "mr/2025/META");
+      Files.createDirectories(sourceDataDir.toPath());
+      Files.createDirectories(binDir.toPath());
+      Files.createDirectories(outsideMetaDir.toPath());
+      Files.createDirectories(previousMetaDir.toPath());
+
+      assertIllegalArgument(() -> ConfigUtility.runQaChecks(sourceDataDir,
+          binDir, outsideMetaDir, "MRCONSO", previousMetaDir, null));
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
+  }
+
+  /**
+   * Verifies release QA execution uses the fixed script and validated arguments.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRunQaChecksExecutesValidatedScript() throws Exception {
+    assumeFalse(System.getProperty("os.name").toLowerCase().contains("win"));
+
+    final File dir = Files.createTempDirectory("nm-command-execution").toFile();
+    try {
+      final File sourceDataDir = new File(dir, "data");
+      final File binDir = new File(dir, "bin");
+      final File metaDir = new File(sourceDataDir, "release/2026/META");
+      final File previousMetaDir = new File(sourceDataDir, "mr/2025/META");
+      Files.createDirectories(binDir.toPath());
+      Files.createDirectories(metaDir.toPath());
+      Files.createDirectories(previousMetaDir.toPath());
+
+      final File script = new File(binDir, "qa_checks.csh");
+      Files.write(script.toPath(),
+          Arrays.asList("#!/bin/sh", "printf 'cwd=%s\\n' \"$(pwd)\"",
+              "printf 'dir=%s\\n' \"$1\"",
+              "printf 'target=%s\\n' \"$2\"",
+              "printf 'prev=%s\\n' \"$3\"", "test \"$2\" = MRCONSO"),
+          StandardCharsets.UTF_8);
+      assertTrue(script.setExecutable(true));
+
+      final String output = ConfigUtility.runQaChecks(sourceDataDir, binDir,
+          metaDir, "MRCONSO", previousMetaDir, null);
+
+      assertEquals("cwd=" + binDir.getCanonicalPath() + "\n" + "dir="
+          + metaDir.getCanonicalPath() + "\n" + "target=MRCONSO\n" + "prev="
+          + previousMetaDir.getCanonicalPath() + "\n", output);
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
   }
 
   /**

@@ -125,7 +125,6 @@ Notes:
 | `com.wci.umls.server.test.helpers.SearchHandlerIT` | NCI-META | no | likely | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.CloseReopenFactoryIT` | NCI-META | no | no | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.ComputePreferredNameHandlerIT` | NCI-META | no | likely | passed 2026-05-28 |
-| `com.wci.umls.server.test.jpa.ConfigUtilityIT` | NCI-META | no | no | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.ContentServiceGeneralQueryTimeoutIT` | NCI-META | no | no | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.ContentServiceTreePositionFromTreeIT` | NCI-META | no | no | passed 2026-05-28 |
 | `com.wci.umls.server.test.jpa.DefaultValidationCheckIT` | NCI-META | no | likely | passed 2026-05-28 |

@@ -577,7 +577,6 @@ registerIntegrationTestProfile('nciMetaJpaIntegrationTest',
         'nciMetaJpaIntegrationPreflight', [
         'com.wci.umls.server.test.jpa.CloseReopenFactoryIT',
         'com.wci.umls.server.test.jpa.ComputePreferredNameHandlerIT',
-        'com.wci.umls.server.test.jpa.ConfigUtilityIT',
         'com.wci.umls.server.test.jpa.ContentServiceGeneralQueryTimeoutIT',
         'com.wci.umls.server.test.jpa.ContentServiceTreePositionFromTreeIT',
         'com.wci.umls.server.test.jpa.DefaultValidationCheckIT',

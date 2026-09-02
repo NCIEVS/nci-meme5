@@ -24,6 +24,7 @@ import java.net.URLEncoder;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.util.Collection;
@@ -77,7 +78,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -164,6 +164,18 @@ public class ConfigUtility {
   private static final String MYSQL_JDBC_URL_PATTERN =
       "(?i)jdbc:mysql://[^\\s/?#@]+(?::[0-9]{1,5})?(?:/[^?\\s]*)?"
           + "(?:\\?[^\\s#]*)?";
+
+  /** Release QA script filename. */
+  private static final String QA_CHECKS_FILE_NAME = "qa_checks.csh";
+
+  /** Fixed release QA command relative to the validated bin directory. */
+  private static final String QA_CHECKS_COMMAND = "./qa_checks.csh";
+
+  /** Allowed release QA targets. */
+  private static final List<String> QA_CHECK_TARGETS =
+      Collections.unmodifiableList(List.of("MRAUI", "AMBIG", "MRHIST",
+          "MRMAP", "MRCONSO", "MRCUI", "MRHIER", "MRDEF", "MRFILESCOLS",
+          "MRRANK", "MRREL", "MRSAB", "MRSAT", "MRSTY", "MRDOC", "MRX"));
 
   /** The Constant PUNCTUATION. */
   public static final String PUNCTUATION =
@@ -330,6 +342,46 @@ public class ConfigUtility {
   }
 
   /**
+   * Runs the checked-in release QA script with validated paths and target.
+   *
+   * @param sourceDataDir the configured source data directory
+   * @param binDir the configured bin directory
+   * @param metaDir the release META directory
+   * @param target the fixed QA target
+   * @param previousMetaDir the previous release META directory
+   * @param s the optional output writer
+   * @return the process output
+   * @throws Exception the exception
+   */
+  public static String runQaChecks(final File sourceDataDir, final File binDir,
+    final File metaDir, final String target, final File previousMetaDir,
+    final PrintWriter s) throws Exception {
+
+    final String safeTarget = validateQaCheckTarget(target);
+    final File safeSourceDataDir =
+        validateExistingDirectory(sourceDataDir, "source.data.dir");
+    final File safeBinDir = validateExistingDirectory(binDir, "bin directory");
+    final File safeMetaDir = validateChildDirectory(safeSourceDataDir, metaDir,
+        "release META directory");
+    final File safePreviousMetaDir = validateChildDirectory(safeSourceDataDir,
+        previousMetaDir, "previous release META directory");
+    validateQaChecksScript(safeBinDir);
+
+    if (System.getProperty("os.name").toLowerCase(Locale.ROOT)
+        .contains("win")) {
+      throw new UnsupportedOperationException(
+          QA_CHECKS_FILE_NAME + " execution is supported on Unix-like hosts.");
+    }
+
+    final ProcessBuilder processBuilder = new ProcessBuilder(QA_CHECKS_COMMAND,
+        safeMetaDir.getPath(), safeTarget, safePreviousMetaDir.getPath());
+    processBuilder.directory(safeBinDir);
+    processBuilder.environment().clear();
+    processBuilder.redirectErrorStream(true);
+    return runProcess(processBuilder, s);
+  }
+
+  /**
    * Validates a MySQL JDBC URL against protocol and host allowlist rules.
    *
    * @param jdbcUrl the JDBC URL
@@ -441,6 +493,127 @@ public class ConfigUtility {
           "Property " + propertyName + " must not be blank.");
     }
     return value.trim();
+  }
+
+  /**
+   * Validates a release QA target against the fixed qa_checks.csh target list.
+   *
+   * @param target the target
+   * @return the validated target
+   */
+  private static String validateQaCheckTarget(final String target) {
+    final String value = target == null ? "" : target.trim();
+    if (!QA_CHECK_TARGETS.contains(value)) {
+      throw new IllegalArgumentException(
+          "Invalid " + QA_CHECKS_FILE_NAME + " target: " + target);
+    }
+    return value;
+  }
+
+  /**
+   * Validates the release QA script below the trusted bin directory.
+   *
+   * @param binDir the canonical bin directory
+   * @return the validated script file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private static File validateQaChecksScript(final File binDir)
+    throws IOException {
+    final File script = new File(binDir, QA_CHECKS_FILE_NAME).getCanonicalFile();
+    if (!QA_CHECKS_FILE_NAME.equals(script.getName())
+        || !binDir.equals(script.getParentFile())) {
+      throw new IllegalArgumentException(
+          "Unexpected " + QA_CHECKS_FILE_NAME + " location: " + script);
+    }
+    if (!script.isFile()) {
+      throw new IllegalArgumentException(
+          "Missing " + QA_CHECKS_FILE_NAME + " script: " + script);
+    }
+    if (!script.canExecute()) {
+      throw new IllegalArgumentException(
+          QA_CHECKS_FILE_NAME + " must be executable: " + script);
+    }
+    return script;
+  }
+
+  /**
+   * Validates an existing directory and returns its canonical path.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the canonical directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private static File validateExistingDirectory(final File directory,
+    final String label) throws IOException {
+    if (directory == null) {
+      throw new IllegalArgumentException(label + " must not be null.");
+    }
+    final File canonicalDirectory = directory.getCanonicalFile();
+    if (!canonicalDirectory.isDirectory()) {
+      throw new IllegalArgumentException(
+          label + " must be an existing directory: " + directory);
+    }
+    return canonicalDirectory;
+  }
+
+  /**
+   * Validates that a directory exists below an allowed parent directory.
+   *
+   * @param parent the canonical parent directory
+   * @param directory the candidate directory
+   * @param label the label for error messages
+   * @return the canonical child directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private static File validateChildDirectory(final File parent,
+    final File directory, final String label) throws IOException {
+    final File child = validateExistingDirectory(directory, label);
+    final Path parentPath = parent.toPath();
+    final Path childPath = child.toPath();
+    if (!childPath.startsWith(parentPath)) {
+      throw new IllegalArgumentException(
+          label + " must be under source.data.dir: " + directory);
+    }
+    return child;
+  }
+
+  /**
+   * Runs a validated process and captures its output.
+   *
+   * @param processBuilder the process builder
+   * @param s the optional output writer
+   * @return the process output
+   * @throws Exception the exception
+   */
+  private static String runProcess(final ProcessBuilder processBuilder,
+    final PrintWriter s) throws Exception {
+
+    Logger.getLogger(ConfigUtility.class)
+        .info("execute = " + String.join(" ", processBuilder.command()));
+    Logger.getLogger(ConfigUtility.class)
+        .info("  working dir = " + processBuilder.directory());
+
+    final Process proc = processBuilder.start();
+    final StringBuilder output = new StringBuilder(1000);
+    String line;
+    try (BufferedReader in = new BufferedReader(
+        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+      while ((line = in.readLine()) != null) {
+        if (s != null) {
+          s.println(line);
+          s.flush();
+        }
+        output.append(line).append("\n");
+      }
+    }
+
+    proc.waitFor();
+    if (proc.exitValue() != 0) {
+      throw new Exception("Command failed = " + proc.exitValue() + ", "
+          + String.join(" ", processBuilder.command()));
+    }
+    return output.toString();
   }
 
   /**
@@ -1647,119 +1820,4 @@ public class ConfigUtility {
     bos.close();
   }
 
-  /**
-   * Executes an operating system command with more options. This is the most
-   * flexible (and confusing) of the <code>exec</code> methods.
-   * <p>
-   * It allows you to specify a command with parameters and a set of environment
-   * variable definitions. You may determine whether or not the process should
-   * write to the application log, and if it does whether it reads the processes
-   * STDOUT or STDERR. Finally, you can choose to run the process in the
-   * background.
-   *
-   * @param cmdarrayIn the cmdarray in
-   * @param env a {@link String}<code>[]</code> containing "NAME=VALUE" pairs of
-   *          environment variable definitions
-   * @param background a flag indicating whether or not to run the process in
-   *          the background.
-   * @param dirIn the dir in
-   * @param s <code>PrintWriter</code> to use for output
-   * @param fixFlag the fix flag
-   * @return a {@link String} containing the process log
-   * @throws Exception the exception
-   */
-  public static String exec(String[] cmdarrayIn, String[] env,
-    boolean background, String dirIn, PrintWriter s, boolean fixFlag) throws Exception {
-    // Check if on windows and invoke "cygwin" - assume it's defined in config
-    // properties
-    // This requires cygwin (e.g. c:/cygwin64/bin) and requires "tcsh" shell
-    // installed
-    String dir = dirIn;
-    String[] cmdarray = cmdarrayIn;
-    if (fixFlag && System.getProperty("os.name").toLowerCase().contains("win")) {
-      // Change the command to be based around cygwin
-      if (PropertyUtility.getProperties()
-          .getProperty("cygwin.bin") == null) {
-        throw new Exception("Exec on windows requires cygwin to be installed '"
-            + "and specified by cygwin.bin in config.properties");
-      }
-      final String tcsh =
-          PropertyUtility.getProperties().getProperty("cygwin.bin")
-              + "/tcsh.exe";
-
-      // Fix anything that looks like a directory to use forward slashes
-      // and /cygwin oriented directories
-      for (int i = 0; i < cmdarrayIn.length; i++) {
-        if (cmdarrayIn[i].contains("\\")) {
-          cmdarrayIn[i] = FilenameUtils.separatorsToUnix(cmdarrayIn[i])
-              .replaceAll("^([a-zA-Z]):", "/cygdrive/$1");
-        }
-      }
-      cmdarray = new String[] {
-          tcsh, "-c", FieldedStringTokenizer.join(cmdarrayIn, " ")
-      };
-      dir = FilenameUtils.separatorsToUnix(dirIn);
-    }
-
-    Runtime run = null;
-
-    Process proc = null;
-
-    StringBuffer output = new StringBuffer(1000);
-
-    String line;
-    run = Runtime.getRuntime();
-    Logger.getLogger(ConfigUtility.class)
-        .info("execute = " + FieldedStringTokenizer.join(cmdarray, " "));
-    Logger.getLogger(ConfigUtility.class)
-        .info("  env = " + FieldedStringTokenizer.join(env, " "));
-    Logger.getLogger(ConfigUtility.class)
-        .info("  working dir = " + new File(dir));
-    proc = run.exec(cmdarray, env, new File(dir));
-
-    // Connect a reader to the process
-    try (BufferedReader in = new BufferedReader(
-        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-      while ((line = in.readLine()) != null) {
-        if (s != null) {
-          s.println(line);
-          s.flush();
-        }
-        output.append(line).append("\n");
-      }
-    }
-
-    // If we are not running in the background
-    // then wait for the process to finish and track its exit value
-    if (!background) {
-      proc.waitFor();
-      if (proc.exitValue() != 0) {
-        // If there was an error, read from the error stream
-        StringBuffer sb = new StringBuffer(1000);
-        sb.append("\n--------------------------------------------\n");
-        sb.append("Error:");
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(
-            proc.getErrorStream(), StandardCharsets.UTF_8))) {
-          while ((line = in.readLine()) != null) {
-            sb.append("\t" + line);
-            sb.append("\n");
-          }
-        }
-        sb.append("--------------------------------------------\n");
-        StringBuilder cmdBuffer = new StringBuilder();
-        for (String cmdarg : cmdarray) {
-          cmdBuffer.append(cmdarg).append(" ");
-        }
-        StringBuilder envBuffer = new StringBuilder();
-        for (String envarg : env) {
-          envBuffer.append(envarg).append(" ");
-        }
-        Exception ee = new Exception("Command failed = " + proc.exitValue()
-            + ", " + cmdBuffer + ", " + envBuffer + ", " + sb.toString());
-        throw ee;
-      }
-    }
-
-    return output.toString();
-  }
 }

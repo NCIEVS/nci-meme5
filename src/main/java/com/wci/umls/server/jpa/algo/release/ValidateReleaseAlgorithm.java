@@ -86,17 +86,17 @@ public class ValidateReleaseAlgorithm
 
     // Run "qa_checks.csh"
     logInfo("  Validate target files");
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
+    final File sourceDataDir = new File(config.getProperty("source.data.dir"));
+    final File path = new File(sourceDataDir, getProcess().getInputPath());
     final File pathRelease = new File(path, getProcess().getVersion());
 
     final ReleaseInfo previousRelease =
         getPreviousReleaseInfo(getProcess().getTerminology());
     final String binDir = PropertyUtility.getHomeDirs().get("bin");
-    final String cmd = binDir + "/qa_checks.csh";
-    final String meta = pathRelease.getPath() + "/META";
-    final String prevMeta = config.getProperty("source.data.dir") + "/mr/"
-        + previousRelease.getVersion() + "/META";
+    final File meta = new File(pathRelease, "META");
+    final File prevMeta = new File(
+        new File(new File(sourceDataDir, "mr"), previousRelease.getVersion()),
+        "META");
     final String[] targets = {
         "MRAUI", "AMBIG", "MRHIST", "MRMAP", "MRCONSO", "MRCUI", "MRHIER",
         "MRDEF", "MRFILESCOLS", "MRRANK", "MRREL", "MRSAB", "MRSAT", "MRSTY",
@@ -104,9 +104,8 @@ public class ValidateReleaseAlgorithm
     };
     for (final String target : targets) {
       logInfo("  VALIDATE " + target);
-      ConfigUtility.exec(new String[] {
-          cmd, meta, target, prevMeta
-      }, new String[] {}, false, binDir, logBridge, true);
+      ConfigUtility.runQaChecks(sourceDataDir, new File(binDir), meta, target,
+          prevMeta, logBridge);
     }
     if (errorFlag) {
       throw new Exception("Unexpected qa error.");

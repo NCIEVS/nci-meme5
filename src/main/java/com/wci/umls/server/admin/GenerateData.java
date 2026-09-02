@@ -4465,21 +4465,6 @@ public class GenerateData extends AbstractLoader {
         process = new ProcessServiceRestImpl();
         processConfig.getSteps().add(algoConfig);
 
-        // RunMetamorphoSysAlgorithm
-        algoConfig = new AlgorithmConfigJpa();
-        algoConfig.setAlgorithmKey("RUNMMSYS");
-        algoConfig.setDescription("RUNMMSYS Algorithm");
-        algoConfig.setEnabled(true);
-        algoConfig.setName("RUNMMSYS algorithm");
-        algoConfig.setProcess(processConfig);
-        algoConfig.setProject(project1);
-        algoConfig.setTimestamp(new Date());
-        // Add algorithm and insert as step into process
-        algoConfig = process.addAlgorithmConfig(projectId, processConfig.getId(),
-                (AlgorithmConfigJpa) algoConfig, authToken);
-        process = new ProcessServiceRestImpl();
-        processConfig.getSteps().add(algoConfig);
-
         // Package release
         algoConfig = new AlgorithmConfigJpa();
         algoConfig.setAlgorithmKey("PACKAGERRFRELEASE");

@@ -631,9 +631,6 @@ Current proof points:
 - `./gradlew adminReindex -Pindexed.objects=ProjectJpa -Pserver=false` was
   successfully run with Tomcat down on April 30, 2026, using
   `config/local/setenv.sh` and no legacy `-Drun.config.*` override.
-- `./gradlew integrationTest --tests com.wci.umls.server.test.jpa.ConfigUtilityIT`
-  was successfully run under the same new env-based configuration path on
-  April 27, 2026, without a legacy config file override.
 - `./gradlew integrationTest --tests com.wci.umls.server.test.jpa.GraphResolutionHandlerIT`
   was also successfully run under the same new env-based configuration path on
   April 27, 2026.
