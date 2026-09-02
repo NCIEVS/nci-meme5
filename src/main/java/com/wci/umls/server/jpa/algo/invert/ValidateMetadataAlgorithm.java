@@ -7,8 +7,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,7 +18,6 @@ import java.util.UUID;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
@@ -74,21 +71,11 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
 
     // Go through all the files needed by insertion and check for presence
     // Check the input directories
-    srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
-            + getProcess().getInputPath();
+    srcFullPath = setSrcDirFileFromProcessInputPath().getPath();
 
-    final Path realPath = Paths.get(srcFullPath).toRealPath();
-    setSrcDirFile(new File(realPath.toString()));
-
-    if (!getSrcDirFile().exists()) {
-      throw new LocalException(
-          "Specified input directory does not exist - " + srcFullPath);
-    }
-
-    checkFileExist(srcFullPath, "MRDOC.RRF");
-    checkFileExist(srcFullPath, "termgroups.src");
-    checkFileExist(srcFullPath, "mergefacts.src");
+    checkFileExist("MRDOC.RRF");
+    checkFileExist("termgroups.src");
+    checkFileExist("mergefacts.src");
     
     // Makes sure automations are turned off before continuing
     if(getProject().isAutomationsEnabled()){
@@ -101,15 +88,13 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
   /**
    * Check file exist.
    *
-   * @param srcFullPath the src full path
    * @param fileName the file name
    * @throws Exception the exception
    */
-  @SuppressWarnings("static-method")
-  private void checkFileExist(String srcFullPath, String fileName)
+  private void checkFileExist(String fileName)
     throws Exception {
 
-    File sourceFile = new File(srcFullPath + File.separator + fileName);
+    File sourceFile = getSrcFile(fileName);
     if (!sourceFile.exists()) {
       throw new Exception(fileName
           + " file doesn't exist at specified input directory: " + srcFullPath);
@@ -134,8 +119,7 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
     
     // read in file attributes.src
     BufferedReader in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "MRDOC.RRF"),
-        StandardCharsets.UTF_8));
+        getSrcFile("MRDOC.RRF"), StandardCharsets.UTF_8));
     String fileLine = "";
 
     Set<String> uniqueFields = new HashSet<>();
@@ -247,8 +231,7 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
     in.close();
 
     // read in file termgroups.src
-    in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "termgroups.src"),
+    in = new BufferedReader(new FileReader(getSrcFile("termgroups.src"),
         StandardCharsets.UTF_8));
     fileLine = "";
 
@@ -280,8 +263,7 @@ public class ValidateMetadataAlgorithm extends AbstractInsertMaintReleaseAlgorit
     in.close();
 
     // read in file mergefacts.src
-    in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "mergefacts.src"),
+    in = new BufferedReader(new FileReader(getSrcFile("mergefacts.src"),
         StandardCharsets.UTF_8));
     fileLine = "";
 

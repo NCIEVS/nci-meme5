@@ -11,12 +11,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +28,8 @@ import java.util.stream.Stream;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
@@ -62,6 +60,19 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
   private File outputPath = null;
 
   /**
+   * Returns a file below the validated release output directory.
+   *
+   * @param fileName the file name
+   * @return the output file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private File getOutputFile(final String fileName) throws IOException {
+
+    return ConfigUtility.resolveFileUnderDirectory(outputPath, fileName,
+        "release output file");
+  }
+
+  /**
    * Instantiates an empty {@link MetamorphoSysReplacementAlgorithm}.
    *
    * @throws Exception the exception
@@ -74,16 +85,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
   @Override
   public ValidationResult checkPreconditions() throws Exception {
 
-    // Check the process input path
-    final String path =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    final File pathAsFile = new File(path);
-    if (!pathAsFile.exists()) {
-      throw new LocalException(
-          "Input path specified in process does not exist");
-    }
+    getExistingProcessInputDirectory();
 
     return new ValidationResultJpa();
   }
@@ -95,11 +97,10 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
 
 
-    outputPath = new File(config.getProperty("source.data.dir") + "/"
-          + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-          + "META");
+    outputPath = getProcessReleaseMetaDirectory();
     logInfo("  outputPath: " + outputPath.getAbsolutePath());
-    logInfo("  templatePath: " + getInputTemplatePath("MRCOLS.RRF").getParent());
+    logInfo("  templatePath: "
+        + getInputTemplatePath("MRCOLS.RRF").getParent());
     updateMrsab();
     updateMrcols();
     updateMrfiles();
@@ -107,9 +108,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
     // Write release.dat
     logInfo("  Write release.dat file");
 
-    final File releaseDat = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion()
-        + "/release.dat");
+    final File releaseDat = getProcessReleaseFile("release.dat");
 
     final StringBuilder data = new StringBuilder();
     data.append("umls.release.name=" + getProcess().getVersion()).append("\n");
@@ -164,7 +163,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
                   }
 
                   try {
-                      final Path filePath = outputPath.toPath().resolve(filename);
+                      final Path filePath = getOutputFile(filename).toPath();
                       // Get file size in bytes
                       long fileSize = Files.size(filePath);
 
@@ -186,15 +185,15 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               mrfilesLines.add(getMrfilesLine(mrfilesRow.split("\\|"),
                   mrfilesLines.size() + 1, 0));
               mrfilesLines.sort(String::compareTo);
-              Files.write(outputPath.toPath().resolve(outputFile), mrfilesLines,
+              Files.write(getOutputFile(outputFile).toPath(), mrfilesLines,
                   StandardCharsets.UTF_8);
 
-              adjustMrfilesByteCount(outputPath + File.separator + outputFile);
+              adjustMrfilesByteCount(getOutputFile(outputFile));
 
               // make a backup of the original MRFILES, and rename the modified one MRFILES.RRF
-              File backup = new File(outputPath + File.separator + backupFile);
-              File modified = new File(outputPath + File.separator + outputFile);
-              File original = new File(outputPath + File.separator + inputFile);
+              File backup = getOutputFile(backupFile);
+              File modified = getOutputFile(outputFile);
+              File original = getOutputFile(inputFile);
 
               // Delete existing backup if it exists
               Files.deleteIfExists(backup.toPath());
@@ -222,8 +221,8 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
       }
 
 
-          public void adjustMrfilesByteCount(String filename) throws IOException {
-              final Path path = Paths.get(filename);
+          public void adjustMrfilesByteCount(File file) throws IOException {
+              final Path path = file.toPath();
               final long actualByteCount = Files.size(path);
               final List<String> lines =
                   Files.readAllLines(path, StandardCharsets.UTF_8);
@@ -236,7 +235,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               }
               if (mrfilesIndex == -1) {
                   throw new IOException("MRFILES.RRF row not found in "
-                      + filename);
+                      + file);
               }
 
               final String[] fields = lines.get(mrfilesIndex).split("\\|");
@@ -252,7 +251,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               Files.write(path, lines, StandardCharsets.UTF_8);
 
               // Recursive call to account for byte-count digit length changes.
-              adjustMrfilesByteCount(filename);
+              adjustMrfilesByteCount(file);
           }
 
       /**
@@ -294,7 +293,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           // parse template MRCOLS.RRF and create new one with updated column averages
           try (BufferedReader reader = newTemplateReader(mrcolsFile);
                BufferedWriter writer = new BufferedWriter(new FileWriter(
-                   outputPath + File.separator + mrcolsFile, StandardCharsets.UTF_8))) {
+                   getOutputFile(mrcolsFile), StandardCharsets.UTF_8))) {
 
               String line;
               int lineNumber = 0;
@@ -312,7 +311,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
                   // Get the filename from the sixth field
                   String filename = fields[6];
-                  if (!Files.isRegularFile(outputPath.toPath().resolve(filename))) {
+                  if (!Files.isRegularFile(getOutputFile(filename).toPath())) {
                       System.out.println("Warning: File " + filename
                           + " not found. Skipping metadata row.");
                       continue;
@@ -367,9 +366,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           String backupFile = "MRSAB.bak";
 
           try (BufferedReader reader = new BufferedReader(new FileReader(
-              outputPath + File.separator + inputFile, StandardCharsets.UTF_8));
+              getOutputFile(inputFile), StandardCharsets.UTF_8));
                BufferedWriter writer = new BufferedWriter(new FileWriter(
-                   outputPath + File.separator + outputFile, StandardCharsets.UTF_8))) {
+                   getOutputFile(outputFile), StandardCharsets.UTF_8))) {
 
               String line;
               while ((line = reader.readLine()) != null) {
@@ -411,9 +410,9 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
               writer.close();
 
               // make a backup of the original MRSAB, and rename the modified one MRSAB.RRF
-              File backup = new File(outputPath + File.separator + backupFile);
-              File modified = new File(outputPath + File.separator + outputFile);
-              File original = new File(outputPath + File.separator + inputFile);
+              File backup = getOutputFile(backupFile);
+              File modified = getOutputFile(outputFile);
+              File original = getOutputFile(inputFile);
 
               // Delete existing backup if it exists
               Files.deleteIfExists(backup.toPath());
@@ -504,9 +503,11 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
        * @param fileName the file name
        * @return the input path
        */
-      private Path getInputTemplatePath(String fileName) {
-          return Paths.get(config.getProperty("source.data.dir"),
-              getProcess().getInputPath(), "META", fileName);
+      private Path getInputTemplatePath(String fileName) throws Exception {
+          return ConfigUtility.resolvePathUnderDirectory(
+              getExistingProcessInputDirectory(), "release metadata template",
+              "META", ConfigUtility.validateSafeFileName(fileName,
+                  "release metadata template")).toPath();
       }
       public double calculateAverageFieldLength(String filename, int fieldNumber) throws IOException {
           if (fieldNumber < 0) {
@@ -516,7 +517,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           int count = 0;
 
           try (BufferedReader reader = Files.newBufferedReader(
-              outputPath.toPath().resolve(filename), StandardCharsets.UTF_8)) {
+              getOutputFile(filename).toPath(), StandardCharsets.UTF_8)) {
                       String line;
                       int start, end, currentField;
 
@@ -559,7 +560,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           int fieldIndex = 11; // 12th field (0-based index)
 
           try (BufferedReader reader = new BufferedReader(new FileReader(
-              outputPath + File.separator + "MRCONSO.RRF", StandardCharsets.UTF_8), 32768)) {
+              getOutputFile("MRCONSO.RRF"), StandardCharsets.UTF_8), 32768)) {
               String line;
               int currentField, pos;
 
@@ -611,7 +612,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
           Set<String> uniqueFirstFields = new HashSet<>();
 
           try (BufferedReader reader = new BufferedReader(new FileReader(
-              outputPath + File.separator + "MRCONSO.RRF", StandardCharsets.UTF_8), 32768)) {
+              getOutputFile("MRCONSO.RRF"), StandardCharsets.UTF_8), 32768)) {
               String line;
 
               while ((line = reader.readLine()) != null) {
@@ -663,16 +664,6 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
 
           return uniqueFirstFields.size();
       }
-
-  public void replaceAllInFile(String folder, String file, String previousRelease, String currentRelease) throws Exception {
-    Path path = Paths.get(folder, file);
-      Charset charset = StandardCharsets.UTF_8;
-
-      String content = new String(Files.readAllBytes(path), charset);
-      content = content.replaceAll(previousRelease, currentRelease);
-      Files.write(path, content.getBytes(charset));
-  }
-
 
   public static File getLastModified(File directoryFile)
   {
@@ -739,7 +730,7 @@ public class MetamorphoSysReplacementAlgorithm extends AbstractAlgorithm {
    */
   private void appendIncludedReleaseProperties(StringBuilder data)
     throws Exception {
-    final File mrsabFile = new File(outputPath, "MRSAB.RRF");
+    final File mrsabFile = getOutputFile("MRSAB.RRF");
     appendRequiredReleaseProperty(data, "umls.release.ncit",
         formatNcitReleaseVersion(getMrsabVersion(mrsabFile, "NCIT", "NCI")),
         mrsabFile);

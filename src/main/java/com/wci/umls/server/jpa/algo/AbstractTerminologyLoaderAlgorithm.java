@@ -3,6 +3,7 @@
  */
 package com.wci.umls.server.jpa.algo;
 
+import java.io.File;
 import java.util.Properties;
 
 import com.wci.umls.server.algo.TerminologyLoaderAlgorithm;
@@ -48,6 +49,31 @@ public abstract class AbstractTerminologyLoaderAlgorithm
   @Override
   public void setInputPath(String inputPath) {
     this.inputPath = inputPath;
+  }
+
+  /**
+   * Returns the configured input directory as a canonical existing directory.
+   *
+   * @return the input directory
+   * @throws Exception the exception
+   */
+  protected File getInputPathDirectory() throws Exception {
+
+    return ConfigUtility.validateExistingDirectory(new File(getInputPath()),
+        "input directory");
+  }
+
+  /**
+   * Returns a file below the configured input directory.
+   *
+   * @param fileName the file name
+   * @return the input file
+   * @throws Exception the exception
+   */
+  protected File getInputPathFile(final String fileName) throws Exception {
+
+    return ConfigUtility.resolveFileUnderDirectory(getInputPathDirectory(),
+        fileName, "input file");
   }
 
   /**

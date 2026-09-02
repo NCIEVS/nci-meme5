@@ -208,10 +208,9 @@ public class Rf2SnapshotLoaderAlgorithm
       throw new Exception("Input directory must be specified");
     }
     // Check the input directory
-    File inputFile = new File(getInputPath());
-    if (!inputFile.exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    File inputFile = getInputPathDirectory();
+    File sortedTempDir = ConfigUtility.resolvePathUnderDirectory(inputFile,
+        "RF2 sorted temp directory", "RF2-sorted-temp");
 
     try {
 
@@ -252,7 +251,7 @@ public class Rf2SnapshotLoaderAlgorithm
         // prepare the sorting algorithm
         Rf2FileSorter sorter = new Rf2FileSorter();
         sorter.setInputDir(getInputPath());
-        sorter.setOutputDir(getInputPath() + "/RF2-sorted-temp/");
+        sorter.setOutputDir(sortedTempDir.getPath());
         sorter.setSortByEffectiveTime(false);
         sorter.setRequireAllFiles(false);
         Logger.getLogger(getClass()).info("  Sort RF2 Files");
@@ -260,7 +259,7 @@ public class Rf2SnapshotLoaderAlgorithm
         Logger.getLogger(getClass()).info("    require all files     : false");
         sorter.compute();
 
-      } else if (!new File(getInputPath() + "/RF2-sorted-temp/").exists()) {
+      } else if (!sortedTempDir.exists()) {
         throw new Exception(
             "No sort specified, but previously sorted files do not exist.");
       }
@@ -268,8 +267,7 @@ public class Rf2SnapshotLoaderAlgorithm
       // Open readers if not opened externally
       boolean leaveReadersOpen = readers != null;
       if (!leaveReadersOpen) {
-        readers =
-            new Rf2Readers(new File(getInputPath() + "/RF2-sorted-temp/"));
+        readers = new Rf2Readers(sortedTempDir);
         readers.openReaders();
       }
 
@@ -392,7 +390,7 @@ public class Rf2SnapshotLoaderAlgorithm
       // Remove sort directory if sorting was done locally
       if (isSortFiles()) {
         ConfigUtility
-            .deleteDirectory(new File(getInputPath(), "/RF2-sorted-temp/"));
+            .deleteDirectory(sortedTempDir);
       }
 
       // Final logging messages

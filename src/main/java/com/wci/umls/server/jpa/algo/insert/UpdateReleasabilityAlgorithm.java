@@ -6,7 +6,6 @@ package com.wci.umls.server.jpa.algo.insert;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.UUID;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -90,16 +88,8 @@ public class UpdateReleasabilityAlgorithm
       throw new Exception("Metadata Loading requires a project to be set");
     }
 
-    // Check the input directories
-
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }

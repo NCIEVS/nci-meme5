@@ -5,9 +5,9 @@ package com.wci.umls.server.jpa.services.helper;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -37,28 +37,32 @@ public class SourceDataFileUtility {
    * @throws Exception the exception
    */
   public static File writeSourceDataFile(InputStream fileInputStream,
-    String destinationFolder, String fileName) throws Exception {
+    File destinationFolder, String fileName) throws Exception {
+
+    final File destinationDir = ConfigUtility.validateOrCreateDirectory(
+        destinationFolder, "source data destination directory");
+    final File outputFile = ConfigUtility.resolveFileUnderDirectory(
+        destinationDir, fileName, "source data file");
 
     Logger.getLogger(SourceDataFileUtility.class).info(
-        "Writing file " + destinationFolder + File.separator + fileName);
+        "Writing file " + outputFile);
 
-    if (fileExists(destinationFolder, fileName)) {
+    if (outputFile.exists()) {
       throw new LocalException("File " + fileName
           + " already exists. Write aborted.");
 
     }
 
-    BufferedOutputStream bos =
-        new BufferedOutputStream(new FileOutputStream(destinationFolder
-            + File.separator + fileName));
-    byte[] bytesIn = new byte[BUFFER_SIZE];
-    int read = 0;
-    while ((read = fileInputStream.read(bytesIn)) != -1) {
-      bos.write(bytesIn, 0, read);
+    try (BufferedOutputStream bos =
+        new BufferedOutputStream(Files.newOutputStream(outputFile.toPath()))) {
+      byte[] bytesIn = new byte[BUFFER_SIZE];
+      int read = 0;
+      while ((read = fileInputStream.read(bytesIn)) != -1) {
+        bos.write(bytesIn, 0, read);
+      }
     }
-    bos.close();
 
-    return new File(destinationFolder + File.separator + fileName);
+    return outputFile;
   }
 
   /**
@@ -71,29 +75,14 @@ public class SourceDataFileUtility {
    * @throws Exception the exception thrown
    */
   public static List<File> extractCompressedSourceDataFile(
-    InputStream fileInputStream, String destinationFolder, String fileName)
+    InputStream fileInputStream, File destinationFolder, String fileName)
     throws Exception {
 
+    final File destinationDir = ConfigUtility.validateOrCreateDirectory(
+        destinationFolder, "source data destination directory");
+
     Logger.getLogger(SourceDataFileUtility.class).info(
-        "Extracting zip file to " + destinationFolder);
-
-    // normalize destination folder path separators
-    String dest = destinationFolder.replace("\\", "/");
-
-    String cumPath = "";
-    for (final String destPart : dest.split("/")) {
-      cumPath += destPart + "/";
-      File f = new File(cumPath);
-      if (f.exists() && !f.isDirectory()) {
-        throw new Exception("Folder path segment " + destPart
-            + " exists and is not a directory");
-      } else if (!f.exists()) {
-        Logger.getLogger(SourceDataFileUtility.class).info(
-            "Creating folder " + cumPath);
-        ConfigUtility.ensureDirectoryExists(f);
-      }
-
-    }
+        "Extracting zip file to " + destinationDir);
 
     List<File> files = new ArrayList<>();
 
@@ -114,19 +103,15 @@ public class SourceDataFileUtility {
       // iterates over entries in the zip file
       while (entry != null) {
 
-        // construct a name without the zip file's name in it
-        // NOTE Clunky system detected because can't rely on server-side
-        // file separator to match system separator.
-        int index = -1;
-        if (entry.getName().indexOf(File.separator) != -1) {
-          index = entry.getName().indexOf(File.separator);
-        } else if (entry.getName().indexOf("\\") != -1) {
-          index = entry.getName().indexOf("\\");
-        } else if (entry.getName().indexOf("/") != -1) {
-          index = entry.getName().indexOf("/");
+        final String shortName = ConfigUtility.validateZipEntryPath(
+            entry.getName(), "source data zip entry", true);
+        if (shortName.isEmpty()) {
+          zipIn.closeEntry();
+          entry = zipIn.getNextEntry();
+          continue;
         }
-
-        String shortName = entry.getName().substring(index + 1);
+        final File outputFile = ConfigUtility.resolvePathUnderDirectory(
+            destinationDir, "source data zip entry", shortName);
 
         Logger.getLogger(SourceDataFileUtility.class).info(
             "  Processing " + shortName);
@@ -136,14 +121,13 @@ public class SourceDataFileUtility {
 
           Logger.getLogger(SourceDataFileUtility.class).info(
               "    Directory detected, creating folder");
-          if (fileExists(destinationFolder, shortName)) {
+          if (outputFile.exists()) {
             throw new LocalException("Unzipped folder " + shortName
                 + " already exists. Write aborted");
           }
 
           // create the directory
-          File f = new File(destinationFolder + File.separator + shortName);
-          ConfigUtility.ensureDirectoryExists(f);
+          ConfigUtility.ensureDirectoryExists(outputFile);
         }
 
         // if not a directory, simply extract the file
@@ -152,15 +136,16 @@ public class SourceDataFileUtility {
           Logger.getLogger(SourceDataFileUtility.class).info(
               "    File detected, extracting");
 
-          if (fileExists(destinationFolder, entry.getName())) {
+          if (outputFile.exists()) {
             throw new LocalException("Unzipped file " + shortName
                 + " already exists. Write aborted.");
           }
 
-          // preserve archive name by replacing file separator with underscore
-          File f =
-              extractZipEntry(zipIn, destinationFolder + File.separator
-                  + shortName);
+          final File parent = outputFile.getParentFile();
+          if (parent != null) {
+            ConfigUtility.ensureDirectoryExists(parent);
+          }
+          File f = extractZipEntry(zipIn, outputFile);
 
           files.add(f);
         }
@@ -197,43 +182,23 @@ public class SourceDataFileUtility {
    * @return the file
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  private static File extractZipEntry(ZipInputStream zipIn, String filePath)
+  private static File extractZipEntry(ZipInputStream zipIn, File filePath)
     throws IOException {
 
     Logger.getLogger(SourceDataFileUtility.class).info(
         "Extracting file " + filePath);
 
-    BufferedOutputStream bos =
-        new BufferedOutputStream(new FileOutputStream(filePath));
-    byte[] bytesIn = new byte[BUFFER_SIZE];
-    int read = 0;
-    while ((read = zipIn.read(bytesIn)) != -1) {
-      bos.write(bytesIn, 0, read);
-    }
-    bos.close();
-
-    // return the newly created file
-    return new File(filePath);
-
-  }
-
-  /**
-   * File exists.
-   *
-   * @param folderPath the folder path
-   * @param fileName the file name
-   * @return true, if successful
-   */
-  private static boolean fileExists(String folderPath, String fileName) {
-    final File dir = new File(folderPath);
-    final File[] files = dir.listFiles();
-    if (files != null) {
-      for (final File f : files) {
-        if (f.getName().equals(fileName)) {
-          return true;
-        }
+    try (BufferedOutputStream bos =
+        new BufferedOutputStream(Files.newOutputStream(filePath.toPath()))) {
+      byte[] bytesIn = new byte[BUFFER_SIZE];
+      int read = 0;
+      while ((read = zipIn.read(bytesIn)) != -1) {
+        bos.write(bytesIn, 0, read);
       }
     }
-    return false;
+
+    // return the newly created file
+    return filePath;
+
   }
 }

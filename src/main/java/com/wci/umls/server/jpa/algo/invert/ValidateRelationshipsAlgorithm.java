@@ -7,8 +7,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,7 +20,6 @@ import java.util.UUID;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
@@ -74,20 +71,10 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
 
     // Go through all the files needed by insertion and check for presence
     // Check the input directories
-    srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
-            + getProcess().getInputPath();
+    srcFullPath = setSrcDirFileFromProcessInputPath().getPath();
 
-    final Path realPath = Paths.get(srcFullPath).toRealPath();
-    setSrcDirFile(new File(realPath.toString()));
-
-    if (!getSrcDirFile().exists()) {
-      throw new LocalException(
-          "Specified input directory does not exist - " + srcFullPath);
-    }
-
-    checkFileExist(srcFullPath, "relationships.src");
-    checkFileExist(srcFullPath, "sources.src");
+    checkFileExist("relationships.src");
+    checkFileExist("sources.src");
     
     // Makes sure automations are turned off before continuing
     if(getProject().isAutomationsEnabled()){
@@ -100,15 +87,13 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
   /**
    * Check file exist.
    *
-   * @param srcFullPath the src full path
    * @param fileName the file name
    * @throws Exception the exception
    */
-  @SuppressWarnings("static-method")
-  private void checkFileExist(String srcFullPath, String fileName)
+  private void checkFileExist(String fileName)
     throws Exception {
 
-    File sourceFile = new File(srcFullPath + File.separator + fileName);
+    File sourceFile = getSrcFile(fileName);
     if (!sourceFile.exists()) {
       throw new Exception(fileName
           + " file doesn't exist at specified input directory: " + srcFullPath);
@@ -175,8 +160,7 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
     
     // read in file MRDOC.RRF
     BufferedReader in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "MRDOC.RRF"),
-        StandardCharsets.UTF_8));
+        getSrcFile("MRDOC.RRF"), StandardCharsets.UTF_8));
 
     String fileLine = "";
     Set<String> relas = new HashSet<>();
@@ -191,8 +175,7 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
     in.close();
     
     // read in file sources.src
-    in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "sources.src"),
+    in = new BufferedReader(new FileReader(getSrcFile("sources.src"),
         StandardCharsets.UTF_8));
     Map<String, String> sourcesToLatMap = new HashMap<>();
     
@@ -212,8 +195,7 @@ public class ValidateRelationshipsAlgorithm extends AbstractInsertMaintReleaseAl
 
     
     // read in file contexts.src
-    in = new BufferedReader(new FileReader(
-        new File(srcFullPath + File.separator + "relationships.src"),
+    in = new BufferedReader(new FileReader(getSrcFile("relationships.src"),
         StandardCharsets.UTF_8));
 
 

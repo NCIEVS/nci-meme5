@@ -21,7 +21,6 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.SearchResultList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -57,16 +56,8 @@ public class CreateAtomRelBequeathalAlgorithm extends AbstractInsertMaintRelease
       throw new Exception("Create atom rel bequeath requires a project to be set");
     }
 
-    // Check the input directories
-
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }
@@ -84,14 +75,15 @@ public class CreateAtomRelBequeathalAlgorithm extends AbstractInsertMaintRelease
     try {
 
       Set<Concept> deletedCuis = new HashSet<>();
-      File srcDir = getSrcDirFile();
-      File maintDir = new File(srcDir, "maint");
+      File maintDir = getSrcDirectory("maint");
       if (! maintDir.exists()){
         ConfigUtility.ensureDirectoryExists(maintDir);
       }
       logInfo("maint dir:" + maintDir);
       BufferedWriter out = new BufferedWriter(new FileWriter(
-          new File(maintDir, "bequeathal.atom.relationships.src"),
+          ConfigUtility.resolveFileUnderDirectory(maintDir,
+              "bequeathal.atom.relationships.src",
+              "bequeathal relationships file"),
           StandardCharsets.UTF_8));
       
       Query query = getEntityManager().createNativeQuery(

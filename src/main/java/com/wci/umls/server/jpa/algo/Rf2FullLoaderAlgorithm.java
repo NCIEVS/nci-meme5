@@ -140,9 +140,11 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
       }
     }
 
+    final File outputDir = ConfigUtility.resolvePathUnderDirectory(
+        inputDirFile, "RF2 sorted temp directory", "RF2-sorted-temp");
+
     // Remove any old sorting dir
-    ConfigUtility
-        .deleteDirectory(new File(getInputPath(), "/RF2-sorted-temp/"));
+    ConfigUtility.deleteDirectory(outputDir);
 
     // Sort files
     Logger.getLogger(getClass()).info("  Sort RF2 Files");
@@ -150,11 +152,10 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     sorter.setSortByEffectiveTime(true);
     sorter.setRequireAllFiles(true);
     sorter.setInputDir(getInputPath());
-    sorter.setOutputDir(getInputPath() + "/RF2-sorted-temp/");
+    sorter.setOutputDir(outputDir.getPath());
     sorter.compute();
 
     // Readers will be opened here
-    File outputDir = new File(inputDirFile, "/RF2-sorted-temp/");
     final Rf2Readers readers = new Rf2Readers(outputDir);
     readers.openReaders();
 
@@ -195,8 +196,7 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     }
 
     // Remove sort directory if sorting was done locally
-    ConfigUtility
-        .deleteDirectory(new File(getInputPath(), "/RF2-sorted-temp/"));
+    ConfigUtility.deleteDirectory(outputDir);
 
   }
 

@@ -3,6 +3,7 @@
  */
 package com.wci.umls.server.jpa.algo;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -374,6 +375,121 @@ public abstract class AbstractAlgorithm extends WorkflowServiceJpa
   @Override
   public void setProcess(ProcessExecution process) {
     this.process = process;
+  }
+
+  /**
+   * Returns the process input directory under source.data.dir.
+   *
+   * @return the process input directory
+   * @throws Exception the exception
+   */
+  protected File getProcessInputDirectory() throws Exception {
+
+    return ConfigUtility.resolveSourceDataPath("process input directory",
+        getProcess().getInputPath());
+  }
+
+  /**
+   * Returns the existing process input directory under source.data.dir.
+   *
+   * @return the process input directory
+   * @throws Exception the exception
+   */
+  protected File getExistingProcessInputDirectory() throws Exception {
+
+    return ConfigUtility.resolveExistingSourceDataDirectory(
+        "process input directory", getProcess().getInputPath());
+  }
+
+  /**
+   * Returns the process release directory under source.data.dir.
+   *
+   * @return the process release directory
+   * @throws Exception the exception
+   */
+  protected File getProcessReleaseDirectory() throws Exception {
+
+    return ConfigUtility.resolveSourceDataPath("process release directory",
+        getProcess().getInputPath(), getProcess().getVersion());
+  }
+
+  /**
+   * Returns the process release META directory under source.data.dir.
+   *
+   * @return the process release META directory
+   * @throws Exception the exception
+   */
+  protected File getProcessReleaseMetaDirectory() throws Exception {
+
+    return ConfigUtility.resolveProcessReleaseMetaDirectory(
+        getProcess().getInputPath(), getProcess().getVersion());
+  }
+
+  /**
+   * Returns a path below the process release directory.
+   *
+   * @param path the relative path
+   * @return the release path
+   * @throws Exception the exception
+   */
+  protected File getProcessReleasePath(final String path) throws Exception {
+
+    return ConfigUtility.resolvePathUnderDirectory(
+        getProcessReleaseDirectory(), "process release path", path);
+  }
+
+  /**
+   * Returns a file below the process release directory.
+   *
+   * @param fileName the file name
+   * @return the release file
+   * @throws Exception the exception
+   */
+  protected File getProcessReleaseFile(final String fileName) throws Exception {
+
+    return ConfigUtility.resolveFileUnderDirectory(getProcessReleaseDirectory(),
+        fileName, "process release file");
+  }
+
+  /**
+   * Returns a path below the process release META directory.
+   *
+   * @param path the relative path
+   * @return the release META path
+   * @throws Exception the exception
+   */
+  protected File getProcessReleaseMetaPath(final String path) throws Exception {
+
+    return ConfigUtility.resolvePathUnderDirectory(
+        getProcessReleaseMetaDirectory(), "process release META path", path);
+  }
+
+  /**
+   * Returns a file below the process release META directory.
+   *
+   * @param fileName the file name
+   * @return the release META file
+   * @throws Exception the exception
+   */
+  protected File getProcessReleaseMetaFile(final String fileName)
+    throws Exception {
+
+    return ConfigUtility.resolveFileUnderDirectory(
+        getProcessReleaseMetaDirectory(), fileName,
+        "process release META file");
+  }
+
+  /**
+   * Returns an existing file below the process input directory.
+   *
+   * @param fileName the file name
+   * @return the input file
+   * @throws Exception the exception
+   */
+  protected File getProcessInputFile(final String fileName) throws Exception {
+
+    return ConfigUtility.resolveFileUnderDirectory(
+        getExistingProcessInputDirectory(), fileName, "process input file");
   }
 
   /**

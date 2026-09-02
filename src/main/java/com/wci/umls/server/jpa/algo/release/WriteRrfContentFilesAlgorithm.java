@@ -985,9 +985,7 @@ public class WriteRrfContentFilesAlgorithm
    * @throws Exception the exception
    */
   private void openWriters() throws Exception {
-    final File dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
+    final File dir = getProcessReleaseMetaDirectory();
 
     if (filesToWriteSet.contains("AMBIGSUI.RRF")) {
       writerMap.put("AMBIGSUI.RRF",
@@ -1044,7 +1042,9 @@ public class WriteRrfContentFilesAlgorithm
    * @throws Exception the exception
    */
   private PrintWriter newUtf8Writer(File dir, String fileName) throws Exception {
-    return new PrintWriter(new FileWriter(new File(dir, fileName),
+    return new PrintWriter(new FileWriter(
+        ConfigUtility.resolveFileUnderDirectory(dir, fileName,
+            "release content file"),
         StandardCharsets.UTF_8));
   }
 

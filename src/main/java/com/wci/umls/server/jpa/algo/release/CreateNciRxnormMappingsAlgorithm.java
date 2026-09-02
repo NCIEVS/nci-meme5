@@ -115,10 +115,7 @@ public class CreateNciRxnormMappingsAlgorithm extends AbstractAlgorithm {
   @Override
   public ValidationResult checkPreconditions() throws Exception {
 
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
-
-    pathMeta = new File(path, "/" + getProcess().getVersion() + "/META");
+    pathMeta = getProcessReleaseMetaDirectory();
     logInfo("  pathMeta " + pathMeta);
 
     return new ValidationResultJpa();
@@ -129,13 +126,15 @@ public class CreateNciRxnormMappingsAlgorithm extends AbstractAlgorithm {
   public void compute() throws Exception {
     logInfo("Starting " + getName());
 
-    mappingsDir = new File(pathMeta, "mappings");
+    mappingsDir = ConfigUtility.resolvePathUnderDirectory(pathMeta,
+        "release mappings directory", "mappings");
     if (!mappingsDir.exists()) {
       ConfigUtility.ensureDirectoryExists(mappingsDir);
     }
     logInfo("mappings dir:" + mappingsDir);
 
-    outputFile = new File(mappingsDir, OUTPUT_FILE_NAME);
+    outputFile = ConfigUtility.resolveFileUnderDirectory(mappingsDir,
+        OUTPUT_FILE_NAME, "release mappings file");
 
     SXSSFWorkbook workbook = new SXSSFWorkbook(100);
     workbook.setCompressTempFiles(true);

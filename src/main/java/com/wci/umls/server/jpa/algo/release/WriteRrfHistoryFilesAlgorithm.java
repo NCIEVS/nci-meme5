@@ -144,15 +144,18 @@ public class WriteRrfHistoryFilesAlgorithm
     closeWriters();
 
     // sort files
-    final File changeDir = new File(dir, "CHANGE");
+    final File changeDir = ConfigUtility.resolvePathUnderDirectory(dir,
+        "release CHANGE directory", "CHANGE");
     for (final String writerName : writerMap.keySet()) {
       File fdir = changeDir;
       if (writerName.equals("MRCUI.RRF") || writerName.equals("MRAUI.RRF")
           || writerName.toLowerCase().contains("nci")) {
         fdir = dir;
       }
-      final File inputFile = new File(fdir, writerName);
-      final File outputFile = new File(fdir, writerName + ".sorted");
+      final File inputFile = ConfigUtility.resolveFileUnderDirectory(fdir,
+          writerName, "release history file");
+      final File outputFile = ConfigUtility.resolveFileUnderDirectory(fdir,
+          writerName + ".sorted", "release sorted history file");
       if (outputFile.exists()) {
         ConfigUtility.deleteFileIfExists(outputFile);
       }
@@ -167,8 +170,10 @@ public class WriteRrfHistoryFilesAlgorithm
           || writerName.toLowerCase().contains("nci")) {
         fdir = dir;
       }
-      final File inputFile = new File(fdir, writerName);
-      final File outputFile = new File(fdir, writerName + ".sorted");
+      final File inputFile = ConfigUtility.resolveFileUnderDirectory(fdir,
+          writerName, "release history file");
+      final File outputFile = ConfigUtility.resolveFileUnderDirectory(fdir,
+          writerName + ".sorted", "release sorted history file");
       ConfigUtility.deleteFileIfExists(inputFile);
       Files.move(outputFile.getAbsoluteFile(), inputFile.getAbsoluteFile());
     }
@@ -768,12 +773,11 @@ public class WriteRrfHistoryFilesAlgorithm
    * @throws Exception the exception
    */
   private void openWriters() throws Exception {
-    dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
+    dir = getProcessReleaseMetaDirectory();
 
     // Make "CHANGE" directory
-    final File changeDir = new File(dir, "CHANGE");
+    final File changeDir = ConfigUtility.resolvePathUnderDirectory(dir,
+        "release CHANGE directory", "CHANGE");
     ConfigUtility.ensureDirectoryExists(changeDir);
     writerMap.put("MRAUI.RRF",
         newUtf8Writer(dir, "MRAUI.RRF"));
@@ -808,7 +812,9 @@ public class WriteRrfHistoryFilesAlgorithm
    * @throws Exception the exception
    */
   private PrintWriter newUtf8Writer(File dir, String fileName) throws Exception {
-    return new PrintWriter(new FileWriter(new File(dir, fileName),
+    return new PrintWriter(new FileWriter(
+        ConfigUtility.resolveFileUnderDirectory(dir, fileName,
+            "release history file"),
         StandardCharsets.UTF_8));
   }
 
@@ -826,21 +832,24 @@ public class WriteRrfHistoryFilesAlgorithm
   public void reset() throws Exception {
     logInfo("Starting RESET " + getName());
     // cleanup
-    dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
-    final File changeDir = new File(dir, "CHANGE");
+    dir = getProcessReleaseMetaDirectory();
+    final File changeDir = ConfigUtility.resolvePathUnderDirectory(dir,
+        "release CHANGE directory", "CHANGE");
     FileUtils.deleteDirectory(changeDir);
 
-    FileUtils.forceDelete(new File(dir, "MRCUI.RRF"));
-    FileUtils.forceDelete(new File(dir, "MRAUI.RRF"));
+    FileUtils.forceDelete(ConfigUtility.resolveFileUnderDirectory(dir,
+        "MRCUI.RRF", "release history file"));
+    FileUtils.forceDelete(ConfigUtility.resolveFileUnderDirectory(dir,
+        "MRAUI.RRF", "release history file"));
 
     final String ncifile =
         "nci_code_cui_map_" + getProcess().getVersion() + ".dat";
-    FileUtils.forceDelete(new File(dir, ncifile));
+    FileUtils.forceDelete(ConfigUtility.resolveFileUnderDirectory(dir, ncifile,
+        "release history file"));
     final String ncimemefile =
         "NCIMEME_" + getProcess().getVersion() + "_history.txt";
-    FileUtils.forceDelete(new File(dir, ncimemefile));
+    FileUtils.forceDelete(ConfigUtility.resolveFileUnderDirectory(dir,
+        ncimemefile, "release history file"));
 
     logInfo("Finished RESET " + getName());
   }

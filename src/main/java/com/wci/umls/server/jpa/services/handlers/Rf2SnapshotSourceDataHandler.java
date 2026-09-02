@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.PropertyUtility;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.Rf2SnapshotLoaderAlgorithm;
@@ -87,14 +87,14 @@ public class Rf2SnapshotSourceDataHandler extends AbstractSourceDataHandler {
     }
 
     // find directory path based on upload directory and id
-    String inputDir =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + sourceData.getId().toString();
+    File inputDir = ConfigUtility.validateExistingDirectory(
+        ConfigUtility.resolveSourceDataIdDirectory(sourceData.getId()),
+        "source data directory");
 
     Logger.getLogger(getClass())
         .info("  Source data base directory: " + inputDir);
 
-    if (!new File(inputDir).isDirectory()) {
+    if (!inputDir.isDirectory()) {
       throw new LocalException(
           "Source data directory is not a directory: " + inputDir);
     }
@@ -103,7 +103,7 @@ public class Rf2SnapshotSourceDataHandler extends AbstractSourceDataHandler {
     String revisedInputDir = null;
     boolean terminologyFound = false;
     boolean refsetFound = false;
-    final File[] inputFiles = new File(inputDir).listFiles();
+    final File[] inputFiles = inputDir.listFiles();
     if (inputFiles == null) {
       throw new LocalException(
           "Source data directory is not readable: " + inputDir);
@@ -132,7 +132,7 @@ public class Rf2SnapshotSourceDataHandler extends AbstractSourceDataHandler {
 
     // Check for top level Refset/Terminology
     if (terminologyFound && refsetFound) {
-      revisedInputDir = new File(inputDir).getAbsolutePath();
+      revisedInputDir = inputDir.getAbsolutePath();
     }
 
     if (revisedInputDir == null) {

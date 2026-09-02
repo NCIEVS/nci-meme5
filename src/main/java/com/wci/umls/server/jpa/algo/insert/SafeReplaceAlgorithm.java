@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo.insert;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,7 +19,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
@@ -97,16 +95,8 @@ public class SafeReplaceAlgorithm extends AbstractMergeAlgorithm {
           "No match-criteria are selected (e.g. code Id, concept Id, etc.).");
     }
 
-    // Check the input directories
-
-    String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }

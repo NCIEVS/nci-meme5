@@ -63,16 +63,16 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
     final ValidationResult result = new ValidationResultJpa();
 
     // Verify that there is a "NET" directory at input path
-    final String path = config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath();
-    final File dir = new File(path, "NET");
+    final File inputDir = getExistingProcessInputDirectory();
+    final File dir = ConfigUtility.resolvePathUnderDirectory(inputDir,
+        "release NET directory", "NET");
     if (!dir.exists()) {
       result.addError("Release requires a 'NET' directory at the input path "
           + dir.getPath());
     }
 
-    checkReleaseMetadataTemplate(result, path, "MRFILES.RRF");
-    checkReleaseMetadataTemplate(result, path, "MRCOLS.RRF");
+    checkReleaseMetadataTemplate(result, inputDir, "MRFILES.RRF");
+    checkReleaseMetadataTemplate(result, inputDir, "MRCOLS.RRF");
 
     // Verify that there are no concepts with workflowStatus == NEEDS_REVIEW
     final PfsParameter pfs = new PfsParameterJpa();
@@ -184,8 +184,7 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
     stepCt = 0;
 
     // Create a release directory
-    File releaseDir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion());
+    File releaseDir = getProcessReleaseDirectory();
     if (!releaseDir.exists()) {
       logInfo("  Make release directories = " + releaseDir);
       ConfigUtility.ensureDirectoryExists(releaseDir);
@@ -196,7 +195,8 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
         "META", "METASUBSET", "log", "QA", "FEEDBACK"
     };
     for (final String dir : dirs) {
-      File lDir = new File(releaseDir, dir);
+      File lDir = ConfigUtility.resolvePathUnderDirectory(releaseDir,
+          "release subdirectory", dir);
       if (!lDir.exists()) {
         logInfo("    " + dir);
         ConfigUtility.ensureDirectoryExists(lDir);
@@ -301,8 +301,7 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
     }
 
     // Cleanup all directories
-    File releaseDir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion());
+    File releaseDir = getProcessReleaseDirectory();
     logInfo("  Remove directories = " + releaseDir.getPath());
     FileUtils.deleteDirectory(releaseDir);
 
@@ -362,8 +361,11 @@ public class CreateNewReleaseAlgorithm extends AbstractAlgorithm {
    * @param fileName the template file name
    */
   private void checkReleaseMetadataTemplate(ValidationResult result,
-    String inputPath, String fileName) {
-    final File template = new File(new File(inputPath, "META"), fileName);
+    File inputDir, String fileName) throws Exception {
+    final File template = ConfigUtility.resolvePathUnderDirectory(inputDir,
+        "release metadata template", "META",
+        ConfigUtility.validateSafeFileName(fileName,
+            "release metadata template"));
     if (!template.isFile()
         && getClass().getResource("/META/" + fileName) == null) {
       result.addError("Release requires template " + fileName

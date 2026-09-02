@@ -5,7 +5,6 @@ package com.wci.umls.server.jpa.algo.autofix;
 
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -16,7 +15,6 @@ import jakarta.persistence.Query;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 import com.wci.umls.server.model.content.Atom;
@@ -57,11 +55,7 @@ public class FixCRelMatchingDemotionAlgorithm
       throw new Exception("Autofix algorithms requires a project to be set");
     }
 
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }

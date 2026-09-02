@@ -64,7 +64,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -2868,9 +2867,10 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
       // Construct filename
       final String fileName = worklist.getName() + "_rpt.txt";
-      final String uploadDir = ConfigUtility.getUploadDir();
-      final File reportsDir = new File(uploadDir + "/" + projectId + "/reports");
-      final File file = new File(reportsDir, fileName);
+      final File reportsDir =
+          ConfigUtility.resolveProjectReportsDirectory(projectId);
+      final File file = ConfigUtility.resolveFileUnderDirectory(reportsDir,
+          fileName, "generated concept report file");
       if (file.exists()) {
         throw new Exception("Worklist report file already exists - " + file.getAbsolutePath());
       }
@@ -2966,11 +2966,9 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     try {
       authorizeProject(workflowService, projectId, securityService, authToken,
           "trying to find concept report", UserRole.AUTHOR);
-      final String uploadDir = ConfigUtility.getUploadDir();
-      final String filePath = uploadDir + "/" + projectId + "/reports";
-      final File dir = new File(filePath);
+      final File dir = ConfigUtility.resolveProjectReportsDirectory(projectId);
       if (!dir.exists()) {
-        Logger.getLogger(getClass()).info("  create path = " + filePath);
+        Logger.getLogger(getClass()).info("  create path = " + dir);
         ConfigUtility.ensureDirectoryExists(dir);
       }
       int i = 0;
@@ -3029,16 +3027,17 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     try {
       authorizeProject(workflowService, projectId, securityService, authToken,
           "trying to get generated concept report", UserRole.AUTHOR);
-      final String uploadDir = ConfigUtility.getUploadDir();
-      final String filePath = uploadDir + "/" + projectId + "/reports/" + fileName;
-      final File file = new File(filePath);
-      if (!file.exists()) {
-        throw new LocalException("No report exists for path " + filePath);
+      final File reportsDir =
+          ConfigUtility.resolveProjectReportsDirectory(projectId);
+      final File file = ConfigUtility.resolveFileUnderDirectory(reportsDir,
+          fileName, "generated concept report file");
+      if (!file.isFile()) {
+        throw new LocalException("No report exists for file " + fileName);
       }
       // Return file contents
 
       // websocket - n/a
-      return FileUtils.readFileToString(file, "UTF-8");
+      return Files.readString(file.toPath(), StandardCharsets.UTF_8);
 
     } catch (Exception e) {
       handleException(e, e.getMessage() + ". Trying to find generated concept report.");
@@ -3069,9 +3068,14 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     try {
       final String userName = authorizeProject(workflowService, projectId, securityService,
           authToken, "trying to remove generated concept report", UserRole.AUTHOR);
-      final String uploadDir = ConfigUtility.getUploadDir();
-      final String filePath = uploadDir + "/" + projectId + "/reports/" + fileName;
-      FileUtils.forceDelete(new File(filePath));
+      final File reportsDir =
+          ConfigUtility.resolveProjectReportsDirectory(projectId);
+      final File file = ConfigUtility.resolveFileUnderDirectory(reportsDir,
+          fileName, "generated concept report file");
+      if (!file.isFile()) {
+        throw new LocalException("No report exists for file " + fileName);
+      }
+      ConfigUtility.deleteFileIfExists(file);
       workflowService.addLogEntry(userName, projectId, null, null, null,
           "REMOVE REPORT - " + fileName);
 

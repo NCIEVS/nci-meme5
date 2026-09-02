@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo.insert;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -16,7 +15,6 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -78,16 +76,8 @@ public class AtomLoaderAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       throw new Exception("Atom Loading requires a project to be set");
     }
 
-    // Check the input directories
-
-    String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     // Get valid terminologies first
     final String query =

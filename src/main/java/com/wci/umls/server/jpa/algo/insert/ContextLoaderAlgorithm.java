@@ -3,7 +3,6 @@
  */
 package com.wci.umls.server.jpa.algo.insert;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,7 +19,6 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.meta.TerminologyList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -84,16 +82,8 @@ public class ContextLoaderAlgorithm
       throw new Exception("Context Loading requires a project to be set");
     }
 
-    // Check the input directories
-
-    String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }

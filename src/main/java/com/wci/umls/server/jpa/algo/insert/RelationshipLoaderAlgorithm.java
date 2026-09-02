@@ -18,7 +18,6 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -113,16 +112,8 @@ public class RelationshipLoaderAlgorithm
       throw new Exception("Relationship Loading requires a project to be set");
     }
 
-    // Check the input directories
-
-    String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }
@@ -182,9 +173,9 @@ public class RelationshipLoaderAlgorithm
       //
       // if relationships.src file isn't in srcDirFile, check in
       // srcDirFile/maint
-      File f = new File(getSrcDirFile(), fileName);
+      File f = getSrcFile(fileName);
       if (!f.exists()) {
-        setSrcDirFile(new File(getSrcDirFile(), "maint"));
+        setSrcDirFile(getSrcDirectory("maint"));
       }
       final List<String> lines =
           loadFileIntoStringList(getSrcDirFile(), fileName, null, null, 14L);

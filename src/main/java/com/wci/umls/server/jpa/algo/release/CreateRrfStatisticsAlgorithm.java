@@ -99,11 +99,7 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
   @Override
   public ValidationResult checkPreconditions() throws Exception {
 
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
-    
-    pathMeta =
-        new File(path, "/" + getProcess().getVersion() + "/META");
+    pathMeta = getProcessReleaseMetaDirectory();
     logInfo("  pathMeta " + pathMeta);
 
 
@@ -116,20 +112,25 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     logInfo("Starting " + getName());
     
     // open output writers
-    statsDir = new File(pathMeta, "stats");
+    statsDir = ConfigUtility.resolvePathUnderDirectory(pathMeta,
+        "release stats directory", "stats");
     if (!statsDir.exists()){
       ConfigUtility.ensureDirectoryExists(statsDir);
     }
     logInfo("stats dir:" + statsDir);
     
     relStatsWriter = new BufferedWriter(new FileWriter(
-        new File(statsDir, "relStats.txt"), StandardCharsets.UTF_8));
+        ConfigUtility.resolveFileUnderDirectory(statsDir, "relStats.txt",
+            "release stats file"), StandardCharsets.UTF_8));
     ttyStatsWriter = new BufferedWriter(new FileWriter(
-        new File(statsDir, "ttyStats.txt"), StandardCharsets.UTF_8));
+        ConfigUtility.resolveFileUnderDirectory(statsDir, "ttyStats.txt",
+            "release stats file"), StandardCharsets.UTF_8));
     styStatsWriter = new BufferedWriter(new FileWriter(
-        new File(statsDir, "styStats.txt"), StandardCharsets.UTF_8));
+        ConfigUtility.resolveFileUnderDirectory(statsDir, "styStats.txt",
+            "release stats file"), StandardCharsets.UTF_8));
     attributeStatsWriter = new BufferedWriter(new FileWriter(
-        new File(statsDir, "attributeStats.txt"), StandardCharsets.UTF_8));
+        ConfigUtility.resolveFileUnderDirectory(statsDir, "attributeStats.txt",
+            "release stats file"), StandardCharsets.UTF_8));
    
     // create source overlap statistics
     createMRCONSOSourceOverlapStatistics();
@@ -152,16 +153,19 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     attributeStatsWriter.close();
     
     // make reports subdirectory
-    reportDir = new File(statsDir, "reports");
+    reportDir = ConfigUtility.resolvePathUnderDirectory(statsDir,
+        "release stats report directory", "reports");
     if (!reportDir.exists()){
       ConfigUtility.ensureDirectoryExists(reportDir);
     }
     logInfo("report dir:" + reportDir);
     
     countsWriter = new BufferedWriter(new FileWriter(
-        new File(reportDir, "counts.txt"), StandardCharsets.UTF_8));
+        ConfigUtility.resolveFileUnderDirectory(reportDir, "counts.txt",
+            "release stats report file"), StandardCharsets.UTF_8));
     sourceCountsWriter = new BufferedWriter(new FileWriter(
-        new File(reportDir, "sourceCounts.txt"), StandardCharsets.UTF_8));
+        ConfigUtility.resolveFileUnderDirectory(reportDir, "sourceCounts.txt",
+            "release stats report file"), StandardCharsets.UTF_8));
     
     // create counts reports
     createCountReports();
@@ -195,7 +199,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
    * @throws Exception the exception
    */
   private void createAttributeStatistics() throws Exception {
-    final String attributesFile = pathMeta + File.separator + "MRSAT.RRF";
+    final File attributesFile = ConfigUtility.resolveFileUnderDirectory(
+        pathMeta, "MRSAT.RRF", "release input file");
     BufferedReader attributes = null;
     try {
       attributes = new BufferedReader(
@@ -241,7 +246,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
   }
   
   private void createSourceCounts() throws Exception {
-	    final String sourcesFile = pathMeta + File.separator + "MRSAB.RRF";
+	    final File sourcesFile = ConfigUtility.resolveFileUnderDirectory(
+	        pathMeta, "MRSAB.RRF", "release input file");
 	    BufferedReader sources = null;
 	    try {
 	      sources = new BufferedReader(
@@ -291,7 +297,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
    * @throws Exception the exception
    */
   private void createRelStatistics() throws Exception {
-    final String relationshipsFile = pathMeta + File.separator + "MRREL.RRF";
+    final File relationshipsFile = ConfigUtility.resolveFileUnderDirectory(
+        pathMeta, "MRREL.RRF", "release input file");
     BufferedReader relationships = null;
     try {
       relationships = new BufferedReader(
@@ -342,7 +349,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
    * @throws Exception the exception
    */
   private void createMRCONSOSourceOverlapStatistics() throws Exception {
-    final String atomsFile = pathMeta + File.separator + "MRCONSO.RRF";
+    final File atomsFile = ConfigUtility.resolveFileUnderDirectory(pathMeta,
+        "MRCONSO.RRF", "release input file");
     BufferedReader atoms = null;
     try {
       atoms = new BufferedReader(
@@ -441,7 +449,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
     // write out txt files
     for (Entry<String, Set<Pair<String, Integer>>> entry : sourceSourceOverlapMap.entrySet()) {
       
-      File srcDir = new File(statsDir, entry.getKey());
+      File srcDir = ConfigUtility.resolvePathUnderDirectory(statsDir,
+          "release source stats directory", entry.getKey());
       if (!srcDir.exists()){
         ConfigUtility.ensureDirectoryExists(srcDir);
       }
@@ -449,7 +458,9 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
       
       BufferedWriter overlapStatsWriter =
           new BufferedWriter(new FileWriter(
-              new File(srcDir, entry.getKey() + ".txt"), StandardCharsets.UTF_8));
+              ConfigUtility.resolveFileUnderDirectory(srcDir,
+                  entry.getKey() + ".txt", "release source stats file"),
+              StandardCharsets.UTF_8));
 
       List<Pair<String, Integer>> sortedResults = entry.getValue().stream()
           .sorted(reverseOrder(Map.Entry.comparingByValue()))
@@ -501,7 +512,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
    * @throws Exception the exception
    */
   private void createMRCONSORelatedStatistics() throws Exception {
-    final String atomsFile = pathMeta + File.separator + "MRCONSO.RRF";
+    final File atomsFile = ConfigUtility.resolveFileUnderDirectory(pathMeta,
+        "MRCONSO.RRF", "release input file");
     BufferedReader atoms = null;
     try {
       atoms = new BufferedReader(
@@ -585,7 +597,8 @@ public class CreateRrfStatisticsAlgorithm extends AbstractAlgorithm {
    */
   private void cacheConceptStys() throws Exception {
 
-    final String stysFile = pathMeta + File.separator + "MRSTY.RRF";
+    final File stysFile = ConfigUtility.resolveFileUnderDirectory(pathMeta,
+        "MRSTY.RRF", "release input file");
     BufferedReader stys = null;
     try {
       stys = new BufferedReader(

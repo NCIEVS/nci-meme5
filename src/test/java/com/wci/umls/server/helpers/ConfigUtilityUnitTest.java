@@ -339,6 +339,150 @@ public class ConfigUtilityUnitTest {
   }
 
   /**
+   * Verifies source data path resolution rejects traversal and absolute paths.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testResolveSourceDataPathRejectsUnsafePaths()
+    throws Exception {
+
+    final File root = Files.createTempDirectory("nm-path-source-root").toFile();
+    try {
+      final Properties properties = new Properties();
+      properties.setProperty(ConfigUtility.SOURCE_DATA_DIR_PROPERTY,
+          root.getPath());
+      PropertyUtility.setProperties(properties);
+
+      assertEquals(new File(root, "process/META").getCanonicalFile(),
+          ConfigUtility.resolveSourceDataPath("process input path", "process",
+              "META"));
+
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "../outside"));
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "/tmp/outside"));
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "C:\\tmp"));
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "process\\META"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
+   * Verifies filename resolution rejects path-shaped values.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testResolveFileUnderDirectoryRejectsPathNames()
+    throws Exception {
+
+    final File dir = Files.createTempDirectory("nm-path-file-root").toFile();
+    try {
+      assertEquals(new File(dir, "report.txt").getCanonicalFile(),
+          ConfigUtility.resolveFileUnderDirectory(dir, "report.txt",
+              "report file"));
+
+      assertIllegalArgument(() -> ConfigUtility.resolveFileUnderDirectory(dir,
+          "../report.txt", "report file"));
+      assertIllegalArgument(() -> ConfigUtility.resolveFileUnderDirectory(dir,
+          "nested/report.txt", "report file"));
+      assertIllegalArgument(() -> ConfigUtility.resolveFileUnderDirectory(dir,
+          "C:\\report.txt", "report file"));
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
+  }
+
+  /**
+   * Verifies zip entry validation rejects zip-slip style paths.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testValidateZipEntryPathRejectsUnsafeEntries()
+    throws Exception {
+
+    assertEquals("META/MRCONSO.RRF", ConfigUtility.validateZipEntryPath(
+        "archive/META/MRCONSO.RRF", "zip entry", true));
+    assertEquals("MRCONSO.RRF", ConfigUtility.validateZipEntryPath(
+        "MRCONSO.RRF", "zip entry", false));
+    assertEquals("", ConfigUtility.validateZipEntryPath("archive/",
+        "zip entry", true));
+
+    assertIllegalArgument(() -> ConfigUtility.validateZipEntryPath(
+        "archive/../evil.txt", "zip entry", true));
+    assertIllegalArgument(() -> ConfigUtility.validateZipEntryPath(
+        "/tmp/evil.txt", "zip entry", false));
+    assertIllegalArgument(() -> ConfigUtility.validateZipEntryPath(
+        "C:/tmp/evil.txt", "zip entry", false));
+  }
+
+  /**
+   * Verifies stored paths must remain inside their owning base directory.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testValidatePathUnderDirectoryRejectsOutsidePath()
+    throws Exception {
+
+    final File root = Files.createTempDirectory("nm-path-owned-root").toFile();
+    try {
+      final File ownerDir = new File(root, "42");
+      final File outsideDir = new File(root, "outside");
+      Files.createDirectories(ownerDir.toPath());
+      Files.createDirectories(outsideDir.toPath());
+      final File ownedFile = new File(ownerDir, "source.zip");
+      final File outsideFile = new File(outsideDir, "source.zip");
+
+      assertEquals(ownedFile.getCanonicalFile(),
+          ConfigUtility.validatePathUnderDirectory(ownerDir,
+              ownedFile.getPath(), "source data file"));
+      assertIllegalArgument(() -> ConfigUtility.validatePathUnderDirectory(
+          ownerDir, outsideFile.getPath(), "source data file"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
+   * Verifies configured file and directory paths are canonicalized.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testValidateConfiguredPaths() throws Exception {
+    final File root = Files.createTempDirectory("nm-path-config-root").toFile();
+    try {
+      final File file = new File(root, "acronyms.txt");
+      final File indexDir = new File(root, "index");
+      Files.write(file.toPath(), Arrays.asList("NCI\tCancer Institute"),
+          StandardCharsets.UTF_8);
+
+      final Properties properties = new Properties();
+      properties.setProperty("acronymsFile", file.getPath());
+      properties.setProperty("spellingIndex", indexDir.getPath());
+
+      assertEquals(file.getCanonicalFile(),
+          ConfigUtility.validateConfiguredExistingFile(properties,
+              "acronymsFile"));
+      assertEquals(indexDir.getCanonicalFile(),
+          ConfigUtility.validateConfiguredDirectory(properties,
+              "spellingIndex", true));
+      assertTrue(indexDir.isDirectory());
+
+      assertIllegalArgument(() -> ConfigUtility.validateConfiguredExistingFile(
+          properties, "missingFile"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
    * Asserts a class is absent from the test runtime classpath.
    *
    * @param className the class name

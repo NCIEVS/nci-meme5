@@ -74,38 +74,27 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       throw new LocalException("Pre Insertion requires a project to be set");
     }
 
-    // Go through all the files needed by insertion and check for presence
-    // Check the input directories
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir") + "/"
-            + getProcess().getInputPath();
+    // Go through all the files needed by insertion and check for presence.
+    setSrcDirFileFromProcessInputPath();
 
-    final Path realPath = Paths.get(srcFullPath).toRealPath();
-    setSrcDirFile(new File(realPath.toString()));
-
-    if (!getSrcDirFile().exists()) {
-      throw new LocalException(
-          "Specified input directory does not exist - " + srcFullPath);
-    }
-
-    checkFileExist(srcFullPath, "attributes.src");
-    checkFileExist(srcFullPath, "classes_atoms.src");
-    checkFileExist(srcFullPath, "contexts.src");
-    checkFileExist(srcFullPath, "mergefacts.src");
-    checkFileExist(srcFullPath, "MRDOC.RRF");
-    checkFileExist(srcFullPath, "relationships.src");
-    checkFileExist(srcFullPath, "sources.src");
-    checkFileExist(srcFullPath, "termgroups.src");
+    checkFileExist("attributes.src");
+    checkFileExist("classes_atoms.src");
+    checkFileExist("contexts.src");
+    checkFileExist("mergefacts.src");
+    checkFileExist("MRDOC.RRF");
+    checkFileExist("relationships.src");
+    checkFileExist("sources.src");
+    checkFileExist("termgroups.src");
 
     // Checking for UMLS-specific files.
     if (getProcess().getTerminology().equals("MTH")) {
-      checkFileExist(srcFullPath, "umlscui.txt");
-      checkFileExist(srcFullPath, "bequeathal.relationships.src");
+      checkFileExist("umlscui.txt");
+      checkFileExist("bequeathal.relationships.src");
     }
 
     // Ensure permissions are sufficient to write files
     try {
-      final File outputFile = new File(srcFullPath, "testFile.txt");
+      final File outputFile = getSrcFile("testFile.txt");
 
       final PrintWriter out =
           new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
@@ -115,7 +104,7 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       // Remove test file
       ConfigUtility.deleteFileIfExists(outputFile);
     } catch (Exception e) {
-      throw new LocalException("Unable to write files to " + srcFullPath
+      throw new LocalException("Unable to write files to " + getSrcDirFile()
           + " - update permissions before continuing insertion.");
     }
 
@@ -191,18 +180,16 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
   /**
    * Check file exist.
    *
-   * @param srcFullPath the src full path
    * @param fileName the file name
    * @throws Exception the exception
    */
-  @SuppressWarnings("static-method")
-  private void checkFileExist(String srcFullPath, String fileName)
-    throws Exception {
+  private void checkFileExist(String fileName) throws Exception {
 
-    File sourceFile = new File(srcFullPath + File.separator + fileName);
+    File sourceFile = getSrcFile(fileName);
     if (!sourceFile.exists()) {
       throw new Exception(fileName
-          + " file doesn't exist at specified input directory: " + srcFullPath);
+          + " file doesn't exist at specified input directory: "
+          + getSrcDirFile());
     }
 
   }

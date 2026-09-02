@@ -23,7 +23,6 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -79,16 +78,8 @@ public class AttributeLoaderAlgorithm
       throw new Exception("Attribute Loading requires a project to be set");
     }
 
-    // Check the input directories
-
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }
@@ -159,7 +150,7 @@ public class AttributeLoaderAlgorithm
         // Load the attributes.src file, skipping SEMANTIC_TYPE, CONTEXT,
         // SUBSET_MEMBER, XMAP, XMAPTO, XMAPFROM, UMLSCUI
         //
-        final String sourcesFile = getSrcDirFile() + File.separator + "attributes.src";
+        final File sourcesFile = getSrcFile("attributes.src");
         BufferedReader sources = null;
         try {
           sources = new BufferedReader(new FileReader(sourcesFile,
@@ -263,7 +254,7 @@ public class AttributeLoaderAlgorithm
       //
 
       // Each line of attributes.src corresponds to one attribute.
-      final String sourcesFile = getSrcDirFile() + File.separator + "attributes.src";
+      final File sourcesFile = getSrcFile("attributes.src");
       BufferedReader sources = null;
       try {
         sources = new BufferedReader(new FileReader(sourcesFile,
