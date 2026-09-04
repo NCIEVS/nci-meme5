@@ -771,11 +771,11 @@
             (click)="approveSelectedConcept()"
             title="Approve selected concept">Approve</button>
           <button type="button" class="btn-primary btn-xs"
-            [disabled]="!selectedWorklist() || !selectedRecord()"
+            [disabled]="!selectedWorklist() || !selectedRecord() || loadingRecords()"
             (click)="nextRecord()"
             title="Go to next record">Next</button>
           <button type="button" class="btn-primary btn-xs"
-            [disabled]="!conceptList().length || !selectedWorklist() || !selectedRecord() || approvingConcept()"
+            [disabled]="!conceptList().length || !selectedWorklist() || !selectedRecord() || approvingConcept() || loadingRecords()"
             (click)="approveAndNext()"
             title="Approve all and go to next record">Approve/Next</button>
           <button type="button" class="btn-primary btn-xs"

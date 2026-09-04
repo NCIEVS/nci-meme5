@@ -24,6 +24,7 @@ import {
   buildWorkflowListFilterQuery,
   contentTypePath
 } from './content-edit-api.helpers';
+import { nextWorkflowRecordNavigation } from './content-edit-workflow-navigation.helpers';
 import { ContentEditApiService } from './content-edit-api.service';
 import { WorkflowApiService } from './workflow-api.service';
 import {
@@ -5970,11 +5971,27 @@ export class ContentComponent implements OnInit {
     const worklist = this.selectedWorklist();
     const record = this.selectedRecord();
     const records = this.records();
-    if (!worklist || !record || !records.length) return;
-    const idx = records.findIndex((r) => r.id === record.id);
-    if (idx >= 0 && idx < records.length - 1) {
-      this.selectRecord(records[idx + 1]);
+    if (!worklist || !record || !records.length || this.loadingRecords()) return;
+
+    const navigation = nextWorkflowRecordNavigation(
+      record.id,
+      records,
+      this.recordsPage(),
+      this.recordsPageSize(),
+      this.recordsTotalCount()
+    );
+
+    if (!navigation) {
+      return;
     }
+
+    if (navigation.kind === 'record') {
+      this.selectRecord(records[navigation.recordIndex]);
+      return;
+    }
+
+    this.recordsPage.set(navigation.page);
+    this.loadRecords(true);
   }
 
   protected approveAndNext(): void {
@@ -6602,7 +6619,7 @@ export class ContentComponent implements OnInit {
     this.loadRecords();
   }
 
-  protected loadRecords(): void {
+  protected loadRecords(selectFirstRecord = false): void {
     const ctx = this.worklistUser();
     const worklist = this.selectedWorklist();
     if (!ctx || !worklist?.id) return;
@@ -6619,6 +6636,13 @@ export class ContentComponent implements OnInit {
         const records = resp.records ?? resp.objects ?? [];
         this.records.set(records);
         this.recordsTotalCount.set(resp.totalCount ?? 0);
+        if (selectFirstRecord) {
+          const firstRecord = records[0];
+          if (firstRecord) {
+            this.selectRecord(firstRecord);
+          }
+          return;
+        }
         this.restoreSelectedRecord(records);
       },
       error: () => {}
