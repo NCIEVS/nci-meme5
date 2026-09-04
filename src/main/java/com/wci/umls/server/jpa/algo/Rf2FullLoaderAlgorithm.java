@@ -5,8 +5,6 @@ package com.wci.umls.server.jpa.algo;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -67,34 +65,35 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     }
 
     // Check the input directory
-    File inputDirFile = new File(getInputPath());
-    if (!inputDirFile.exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    File inputDirFile = getInputPathDirectory();
 
     //
     // Look through files to obtain ALL release versions
     //
     Logger.getLogger(getClass()).info("  Get release getVersion()s");
     Rf2FileSorter sorter = new Rf2FileSorter();
-    final File conceptsFile = sorter
-        .findFile(new File(getInputPath(), "Terminology"), "sct2_Concept");
+    final File terminologyDir = ConfigUtility.validateExistingDirectory(
+        ConfigUtility.resolvePathUnderDirectory(inputDirFile,
+            "RF2 terminology directory", "Terminology"),
+        "RF2 terminology directory");
+    final File conceptsFile = sorter.findFile(terminologyDir, "sct2_Concept");
     final Set<String> releaseSet = new HashSet<>();
-    BufferedReader reader = new BufferedReader(
-        new FileReader(conceptsFile, StandardCharsets.UTF_8));
     String line;
-    while ((line = reader.readLine()) != null) {
-      final String fields[] = FieldedStringTokenizer.split(line, "\t");
-      if (!fields[1].equals("effectiveTime")) {
-        try {
-          ConfigUtility.DATE_FORMAT.parse(fields[1]);
-        } catch (Exception e) {
-          throw new Exception("Improperly formatted date found: " + fields[1]);
+    try (BufferedReader reader =
+        ConfigUtility.newBufferedReader(conceptsFile, "RF2 concepts file")) {
+      while ((line = reader.readLine()) != null) {
+        final String fields[] = FieldedStringTokenizer.split(line, "\t");
+        if (!fields[1].equals("effectiveTime")) {
+          try {
+            ConfigUtility.DATE_FORMAT.parse(fields[1]);
+          } catch (Exception e) {
+            throw new Exception(
+                "Improperly formatted date found: " + fields[1]);
+          }
+          releaseSet.add(fields[1]);
         }
-        releaseSet.add(fields[1]);
       }
     }
-    reader.close();
 //    final File complexMapFile =
 //        sorter.findFile(new File(getInputPath(), "Refset/Map"),
 //            "der2_iissscRefset_ComplexMap");
@@ -110,23 +109,27 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
 //        releaseSet.add(fields[1]);
 //      }
 //    }
+    final File mapDir = ConfigUtility.validateExistingDirectory(
+        ConfigUtility.resolvePathUnderDirectory(inputDirFile, "RF2 map directory",
+            "Refset", "Map"),
+        "RF2 map directory");
     File extendedMapFile =
-        sorter.findFile(new File(getInputPath(), "Refset/Map"),
-            "der2_iisssccRefset_ExtendedMap");
-    reader = new BufferedReader(
-        new FileReader(extendedMapFile, StandardCharsets.UTF_8));
-    while ((line = reader.readLine()) != null) {
-      final String fields[] = FieldedStringTokenizer.split(line, "\t");
-      if (!fields[1].equals("effectiveTime")) {
-        try {
-          ConfigUtility.DATE_FORMAT.parse(fields[1]);
-        } catch (Exception e) {
-          throw new Exception("Improperly formatted date found: " + fields[1]);
+        sorter.findFile(mapDir, "der2_iisssccRefset_ExtendedMap");
+    try (BufferedReader reader = ConfigUtility.newBufferedReader(extendedMapFile,
+        "RF2 extended map file")) {
+      while ((line = reader.readLine()) != null) {
+        final String fields[] = FieldedStringTokenizer.split(line, "\t");
+        if (!fields[1].equals("effectiveTime")) {
+          try {
+            ConfigUtility.DATE_FORMAT.parse(fields[1]);
+          } catch (Exception e) {
+            throw new Exception(
+                "Improperly formatted date found: " + fields[1]);
+          }
+          releaseSet.add(fields[1]);
         }
-        releaseSet.add(fields[1]);
       }
     }
-    reader.close();
     final List<String> releases = new ArrayList<>(releaseSet);
     Collections.sort(releases);
 
@@ -140,9 +143,11 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
       }
     }
 
+    final File outputDir = ConfigUtility.resolvePathUnderDirectory(
+        inputDirFile, "RF2 sorted temp directory", "RF2-sorted-temp");
+
     // Remove any old sorting dir
-    ConfigUtility
-        .deleteDirectory(new File(getInputPath(), "/RF2-sorted-temp/"));
+    ConfigUtility.deleteDirectory(outputDir);
 
     // Sort files
     Logger.getLogger(getClass()).info("  Sort RF2 Files");
@@ -150,11 +155,10 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     sorter.setSortByEffectiveTime(true);
     sorter.setRequireAllFiles(true);
     sorter.setInputDir(getInputPath());
-    sorter.setOutputDir(getInputPath() + "/RF2-sorted-temp/");
+    sorter.setOutputDir(outputDir.getPath());
     sorter.compute();
 
     // Readers will be opened here
-    File outputDir = new File(inputDirFile, "/RF2-sorted-temp/");
     final Rf2Readers readers = new Rf2Readers(outputDir);
     readers.openReaders();
 
@@ -195,8 +199,7 @@ public class Rf2FullLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     }
 
     // Remove sort directory if sorting was done locally
-    ConfigUtility
-        .deleteDirectory(new File(getInputPath(), "/RF2-sorted-temp/"));
+    ConfigUtility.deleteDirectory(outputDir);
 
   }
 

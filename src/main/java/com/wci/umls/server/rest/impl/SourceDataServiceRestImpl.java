@@ -26,7 +26,6 @@ import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.SourceDataFile;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.LogEntry;
@@ -155,9 +154,8 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
       }
 
       // get the base destination folder (by source data id)
-      String destinationFolder =
-          PropertyUtility.getProperties().getProperty("source.data.dir")
-              + File.separator + sourceDataId.toString();
+      File destinationFolder =
+          ConfigUtility.resolveSourceDataIdDirectory(sourceDataId);
 
       final List<File> files = new ArrayList<>();
       // if unzipping requested and file is valid, extract compressed file to
@@ -301,11 +299,14 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
           UserRole.USER);
 
       final SourceDataFile sourceDataFile = service.getSourceDataFile(id);
+      SourceData sourceData = sourceDataFile.getSourceData();
 
       try {
 
         // physically remove the file
-        final File file = new File(sourceDataFile.getPath());
+        final File file = ConfigUtility.validatePathUnderDirectory(
+            ConfigUtility.resolveSourceDataIdDirectory(sourceData.getId()),
+            sourceDataFile.getPath(), "source data file");
         ConfigUtility.deleteFileIfExists(file);
 
       } catch (Exception e) {
@@ -314,7 +315,6 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
       }
 
       // remove this entry from its source data
-      SourceData sourceData = sourceDataFile.getSourceData();
       sourceData.getSourceDataFiles().remove(sourceDataFile);
       service.updateSourceData(sourceData);
 
@@ -474,11 +474,8 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
           "delete source data with id " + id, UserRole.USER);
 
       // delete the source data files
-      String sdDir =
-          PropertyUtility.getProperties().getProperty("source.data.dir")
-              + File.separator + id.toString();
-
-      ConfigUtility.deleteDirectory(new File(sdDir));
+      ConfigUtility.deleteDirectory(
+          ConfigUtility.resolveSourceDataIdDirectory(id));
 
       // remove the source data
       service.removeSourceData(id);

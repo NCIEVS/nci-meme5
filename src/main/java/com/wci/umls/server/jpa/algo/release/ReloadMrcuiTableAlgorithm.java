@@ -14,6 +14,7 @@ import org.hibernate.Session;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -69,9 +70,8 @@ public class ReloadMrcuiTableAlgorithm
     //
     // Load the MRCUI.RRF file
     //
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion()
-        + "/META");
+    final File path = ConfigUtility.validateExistingDirectory(
+        getProcessReleaseMetaDirectory(), "process release META directory");
     
     try {
       final List<String> lines =
@@ -146,14 +146,10 @@ public class ReloadMrcuiTableAlgorithm
     }
 
     // Check the mr directory
-    String mrPath = config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion()
-        + "/META";
-
-    mrDirFile = new File(mrPath);
+    mrDirFile = getProcessReleaseMetaDirectory();
     if (!mrDirFile.exists()) {
       throw new Exception(
-          "Specified input directory does not exist = " + mrPath);
+          "Specified input directory does not exist = " + mrDirFile);
     }
 
     // Makes sure editing is turned off before continuing

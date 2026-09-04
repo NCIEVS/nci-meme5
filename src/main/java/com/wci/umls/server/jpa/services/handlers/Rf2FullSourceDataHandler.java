@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
-import com.wci.umls.server.helpers.PropertyUtility;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.Rf2FullLoaderAlgorithm;
@@ -83,11 +83,11 @@ public class Rf2FullSourceDataHandler extends AbstractSourceDataHandler {
     }
 
     // find directory path based on upload directory and id
-    String inputDir =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + sourceData.getId().toString();
+    File inputDir = ConfigUtility.validateExistingDirectory(
+        ConfigUtility.resolveSourceDataIdDirectory(sourceData.getId()),
+        "source data directory");
 
-    if (!new File(inputDir).isDirectory()) {
+    if (!inputDir.isDirectory()) {
       throw new LocalException(
           "Source data directory is not a directory: " + inputDir);
     }
@@ -97,7 +97,7 @@ public class Rf2FullSourceDataHandler extends AbstractSourceDataHandler {
     String revisedInputDir = null;
 
     // find the FULL file
-    final File[] files = new File(inputDir).listFiles();
+    final File[] files = inputDir.listFiles();
     if (files == null) {
       throw new LocalException(
           "Source data directory is not readable: " + inputDir);

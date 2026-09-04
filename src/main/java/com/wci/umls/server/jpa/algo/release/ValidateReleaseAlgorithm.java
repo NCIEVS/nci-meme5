@@ -61,17 +61,16 @@ public class ValidateReleaseAlgorithm
   public ValidationResult checkPreconditions() throws Exception {
     final ValidationResult result = new ValidationResultJpa();
 
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
-    final File pathRelease = new File(path, getProcess().getVersion());
+    final File pathRelease = getProcessReleaseDirectory();
 
     // Expect that "path/$release/META exists"
-    if (!new File(pathRelease, "META").exists()) {
+    if (!getProcessReleaseMetaDirectory().exists()) {
       throw new Exception("Unexpected missing file = " + pathRelease + "/META");
     }
 
     // Expect that "path/$release/METASUBSET exists"
-    if (!new File(pathRelease, "METASUBSET").exists()) {
+    if (!ConfigUtility.resolvePathUnderDirectory(pathRelease,
+        "release METASUBSET directory", "METASUBSET").exists()) {
       throw new Exception(
           "Unexpected missing file = " + pathRelease + "/METASUBSET");
     }
@@ -86,17 +85,15 @@ public class ValidateReleaseAlgorithm
 
     // Run "qa_checks.csh"
     logInfo("  Validate target files");
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
-    final File pathRelease = new File(path, getProcess().getVersion());
+    final File sourceDataDir = ConfigUtility.getSourceDataDirectory();
 
     final ReleaseInfo previousRelease =
         getPreviousReleaseInfo(getProcess().getTerminology());
     final String binDir = PropertyUtility.getHomeDirs().get("bin");
-    final String cmd = binDir + "/qa_checks.csh";
-    final String meta = pathRelease.getPath() + "/META";
-    final String prevMeta = config.getProperty("source.data.dir") + "/mr/"
-        + previousRelease.getVersion() + "/META";
+    final File meta = getProcessReleaseMetaDirectory();
+    final File prevMeta = ConfigUtility.resolveSourceDataPath(
+        "previous release META directory", "mr", previousRelease.getVersion(),
+        "META");
     final String[] targets = {
         "MRAUI", "AMBIG", "MRHIST", "MRMAP", "MRCONSO", "MRCUI", "MRHIER",
         "MRDEF", "MRFILESCOLS", "MRRANK", "MRREL", "MRSAB", "MRSAT", "MRSTY",
@@ -104,9 +101,8 @@ public class ValidateReleaseAlgorithm
     };
     for (final String target : targets) {
       logInfo("  VALIDATE " + target);
-      ConfigUtility.exec(new String[] {
-          cmd, meta, target, prevMeta
-      }, new String[] {}, false, binDir, logBridge, true);
+      ConfigUtility.runQaChecks(sourceDataDir, new File(binDir), meta, target,
+          prevMeta, logBridge);
     }
     if (errorFlag) {
       throw new Exception("Unexpected qa error.");

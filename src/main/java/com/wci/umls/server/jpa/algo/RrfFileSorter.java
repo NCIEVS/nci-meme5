@@ -4,7 +4,7 @@
 package com.wci.umls.server.jpa.algo;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,12 +62,15 @@ public class RrfFileSorter {
    */
   public String getFileVersion(File inputDir) throws Exception {
 
+    final File inputDirFile = ConfigUtility.validateExistingDirectory(inputDir,
+        "RRF input directory");
     // Determine file version from filename
     String fileVersion = null;
     Properties p = new Properties();
     try {
-      final File releasedat = findFile(inputDir, "release.dat");
-      try (FileInputStream in = new FileInputStream(releasedat)) {
+      final File releasedat = findFile(inputDirFile, "release.dat");
+      try (InputStream in = ConfigUtility.newInputStream(releasedat,
+          "RRF release.dat")) {
         p.load(in);
       }
     } catch (Exception e) {
@@ -100,17 +103,15 @@ public class RrfFileSorter {
     throws Exception {
     Logger.getLogger(getClass()).info("Start sorting files");
 
+    final File inputDirFile = ConfigUtility.validateExistingDirectory(inputDir,
+        "RRF input directory");
+    final File outputDirFile = ConfigUtility.validateOrCreateDirectory(outputDir,
+        "RRF output directory");
+
     // Remove and remake output dir
     Logger.getLogger(getClass()).info("  Remove and remake output dir");
-    ConfigUtility.deleteDirectory(outputDir);
-    if (!outputDir.mkdirs()) {
-      throw new Exception("Problem making output dir: " + outputDir);
-    }
-
-    // Check preconditions
-    if (!inputDir.exists()) {
-      throw new Exception("Input dir does not exist: " + inputDir);
-    }
+    ConfigUtility.deleteDirectory(outputDirFile);
+    ConfigUtility.ensureDirectoryExists(outputDirFile);
 
     Map<String, String> dirMap = new HashMap<>();
     dirMap.put(prefix + "CONSO.RRF", "/");
@@ -152,16 +153,19 @@ public class RrfFileSorter {
     int[] fields = null;
     for (final String key : dirMap.keySet()) {
       Logger.getLogger(getClass()).info("  Sorting for " + key);
-      final File file = findFile(new File(inputDir + dirMap.get(key)), key);
+      final File file =
+          findFile(resolveInputDirectory(inputDirFile, dirMap.get(key)), key);
       Logger.getLogger(getClass()).info("    file = " + file);
 
       // Determine file version from filename
       if (fileVersion == null) {
         Properties p = new Properties();
         try {
-          final File releasedat =
-              findFile(new File(inputDir + dirMap.get(key)), "release.dat");
-          try (FileInputStream in = new FileInputStream(releasedat)) {
+          final File releasedat = findFile(
+              resolveInputDirectory(inputDirFile, dirMap.get(key)),
+              "release.dat");
+          try (InputStream in = ConfigUtility.newInputStream(releasedat,
+              "RRF release.dat")) {
             p.load(in);
           }
         } catch (Exception e) {
@@ -180,12 +184,14 @@ public class RrfFileSorter {
       };
 
       // Sort the file
+      final File outputFile =
+          ConfigUtility.resolveFileUnderDirectory(outputDirFile,
+              fileMap.get(key), "RRF sort file");
       if (file != null) {
-        sortRrfFile(file, new File(outputDir + "/" + fileMap.get(key)), fields);
+        sortRrfFile(file, outputFile, fields);
       } else {
         // otherwise just create an empty "sort" file
-        ConfigUtility.ensureFileExists(
-            new File(inputDir + dirMap.get(key) + "/" + fileMap.get(key)));
+        ConfigUtility.ensureFileExists(outputFile);
       }
     }
 
@@ -205,7 +211,12 @@ public class RrfFileSorter {
   public File findFile(File dir, String prefix) throws Exception {
     File file = null;
     // file
-    final File[] files = dir.listFiles();
+    final File[] files;
+    if (ConfigUtility.isExistingDirectory(dir, "RRF file search directory")) {
+      files = ConfigUtility.listFiles(dir, "RRF file search directory");
+    } else {
+      files = null;
+    }
     if (files == null) {
       return null;
     }
@@ -224,8 +235,29 @@ public class RrfFileSorter {
       }
     }
     Logger.getLogger(getClass()).info(
-        "      " + prefix + " = " + file.toString() + " " + file.exists());
+        "      " + prefix + " = " + file.toString() + " "
+            + ConfigUtility.isExistingFile(file, "RRF file"));
     return file;
+  }
+
+  /**
+   * Resolves a release-package directory below the RRF input directory.
+   *
+   * @param inputDirFile the input directory
+   * @param dirName the directory name
+   * @return the resolved directory
+   * @throws Exception the exception
+   */
+  private File resolveInputDirectory(final File inputDirFile,
+    final String dirName) throws Exception {
+
+    if (dirName == null || dirName.trim().isEmpty() || "/".equals(dirName)) {
+      return inputDirFile;
+    }
+    final String relativeDirName =
+        dirName.startsWith("/") ? dirName.substring(1) : dirName;
+    return ConfigUtility.resolvePathUnderDirectory(inputDirFile,
+        "RRF source directory", relativeDirName);
   }
 
   /**

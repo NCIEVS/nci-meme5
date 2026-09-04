@@ -5,6 +5,7 @@ package com.wci.umls.server.test.helpers;
 
 import java.util.Properties;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.rest.client.SecurityClientRest;
 
@@ -22,6 +23,7 @@ public class RestIntegrationSupport extends IntegrationUnitSupport {
   protected static Properties loadRestProperties() throws Exception {
     final Properties properties = PropertyUtility.getProperties();
     requireProperty(properties, "base.url");
+    ConfigUtility.getRestBaseUrl(properties);
     return properties;
   }
 

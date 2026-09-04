@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.model.algo.SourceData;
 import com.wci.umls.server.model.algo.SourceDataFile;
 import com.wci.umls.server.jpa.model.SourceDataFileJpa;
@@ -59,17 +60,14 @@ public class RrfSourceDataLoader extends AbstractLoader {
       if (inputDirProp == null) {
         throw new IllegalArgumentException("Input directory not specified");
       }
-      final File dir = new File(inputDirProp);
-      if (!dir.exists()) {
-        throw new IllegalArgumentException(
-            "Input directory does not exist: " + inputDirProp);
-      }
+      final File dir = ConfigUtility.validateExistingDirectoryPath(inputDirProp,
+          "input directory");
 
       final SourceDataFile sdFile = new SourceDataFileJpa();
       sdFile.setDirectory(true);
       sdFile.setLastModifiedBy("loader");
       sdFile.setName(dir.getName());
-      sdFile.setPath(inputDirProp);
+      sdFile.setPath(dir.getPath());
       sdFile.setSize(1000000L);
       sdFile.setTimestamp(new Date());
       service.addSourceDataFile(sdFile);

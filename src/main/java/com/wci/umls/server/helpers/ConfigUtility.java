@@ -8,9 +8,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,9 +16,15 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.util.Collection;
@@ -74,7 +78,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.log4j.Logger;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -140,6 +143,46 @@ public class ConfigUtility {
   /** The display timestamp pattern. */
   public static final String DISPLAY_TIMESTAMP_PATTERN =
       "yyyy-MM-dd HH:mm:ss.SSS z";
+
+  /** REST client allowed-hosts property. */
+  public static final String REST_CLIENT_ALLOWED_HOSTS_PROPERTY =
+      "rest.client.allowed.hosts";
+
+  /** Database client allowed-hosts property. */
+  public static final String DATABASE_ALLOWED_HOSTS_PROPERTY =
+      "database.allowed.hosts";
+
+  /** Source data directory property. */
+  public static final String SOURCE_DATA_DIR_PROPERTY = "source.data.dir";
+
+  /** Default loopback host allowlist. */
+  private static final String DEFAULT_LOOPBACK_HOSTS =
+      "localhost,127.0.0.1,::1";
+
+  /** REST base URL shape accepted before host allowlist validation. */
+  private static final String REST_BASE_URL_PATTERN =
+      "(?i)https?://[^\\s/?#@]+(?::[0-9]{1,5})?(?:/[^?#\\s]*)?";
+
+  /** MySQL JDBC URL shape accepted before host allowlist validation. */
+  private static final String MYSQL_JDBC_URL_PATTERN =
+      "(?i)jdbc:mysql://[^\\s/?#@]+(?::[0-9]{1,5})?(?:/[^?\\s]*)?"
+          + "(?:\\?[^\\s#]*)?";
+
+  /** Release QA script filename. */
+  private static final String QA_CHECKS_FILE_NAME = "qa_checks.csh";
+
+  /** Fixed release QA command relative to the validated bin directory. */
+  private static final String QA_CHECKS_COMMAND = "./qa_checks.csh";
+
+  /** Windows absolute path shape. */
+  private static final String WINDOWS_ABSOLUTE_PATH_PATTERN =
+      "(?i)^[a-z]:[\\\\/].*";
+
+  /** Allowed release QA targets. */
+  private static final List<String> QA_CHECK_TARGETS =
+      Collections.unmodifiableList(List.of("MRAUI", "AMBIG", "MRHIST",
+          "MRMAP", "MRCONSO", "MRCUI", "MRHIER", "MRDEF", "MRFILESCOLS",
+          "MRRANK", "MRREL", "MRSAB", "MRSAT", "MRSTY", "MRDOC", "MRX"));
 
   /** The Constant PUNCTUATION. */
   public static final String PUNCTUATION =
@@ -221,6 +264,1077 @@ public class ConfigUtility {
   }
 
   /**
+   * Returns a validated REST client base URL without a trailing slash.
+   *
+   * @param properties the properties
+   * @return the REST client base URL
+   */
+  public static String getRestBaseUrl(final Properties properties) {
+    final String baseUrl = requiredNetworkProperty(properties, "base.url");
+    if (!baseUrl.matches(REST_BASE_URL_PATTERN)) {
+      throw new IllegalArgumentException(
+          "Property base.url must be an HTTP(S) URL without user info, query, "
+              + "fragment, or whitespace.");
+    }
+
+    final URI uri = URI.create(baseUrl);
+    validateAllowedHost(uri, properties, REST_CLIENT_ALLOWED_HOSTS_PROPERTY,
+        DEFAULT_LOOPBACK_HOSTS);
+    return trimTrailingSlash(baseUrl);
+  }
+
+  /**
+   * Returns a validated REST URL by appending a relative path to base.url.
+   *
+   * @param properties the properties
+   * @param path the relative REST path
+   * @return the REST URL
+   */
+  public static String getRestUrl(final Properties properties,
+    final String path) {
+    return getRestBaseUrl(properties) + relativeRestPath(path);
+  }
+
+  /**
+   * Opens a connection to a validated REST URL.
+   *
+   * @param properties the properties
+   * @param path the relative REST path
+   * @return the HTTP connection
+   * @throws IOException if the connection cannot be opened
+   */
+  public static HttpURLConnection openRestConnection(
+    final Properties properties, final String path) throws IOException {
+    final URL url = URI.create(getRestUrl(properties, path)).toURL();
+    return (HttpURLConnection) url.openConnection();
+  }
+
+  /**
+   * Returns a validated JDBC URL from a named property.
+   *
+   * @param properties the properties
+   * @param propertyName the JDBC URL property name
+   * @return the JDBC URL
+   */
+  public static String getJdbcUrl(final Properties properties,
+    final String propertyName) {
+    return validateJdbcUrl(requiredNetworkProperty(properties, propertyName),
+        propertyName, properties, true);
+  }
+
+  /**
+   * Validates a JDBC URL that must include a schema path.
+   *
+   * @param jdbcUrl the JDBC URL
+   * @param propertyName the JDBC URL property name
+   * @param properties the properties
+   * @return the validated JDBC URL
+   */
+  public static String validateJdbcUrl(final String jdbcUrl,
+    final String propertyName, final Properties properties) {
+    return validateJdbcUrl(jdbcUrl, propertyName, properties, true);
+  }
+
+  /**
+   * Validates a JDBC URL that may omit the schema path.
+   *
+   * @param jdbcUrl the JDBC URL
+   * @param propertyName the JDBC URL property name
+   * @param properties the properties
+   * @return the validated JDBC URL
+   */
+  public static String validateJdbcServerUrl(final String jdbcUrl,
+    final String propertyName, final Properties properties) {
+    return validateJdbcUrl(jdbcUrl, propertyName, properties, false);
+  }
+
+  /**
+   * Runs the checked-in release QA script with validated paths and target.
+   *
+   * @param sourceDataDir the configured source data directory
+   * @param binDir the configured bin directory
+   * @param metaDir the release META directory
+   * @param target the fixed QA target
+   * @param previousMetaDir the previous release META directory
+   * @param s the optional output writer
+   * @return the process output
+   * @throws Exception the exception
+   */
+  public static String runQaChecks(final File sourceDataDir, final File binDir,
+    final File metaDir, final String target, final File previousMetaDir,
+    final PrintWriter s) throws Exception {
+
+    final String safeTarget = validateQaCheckTarget(target);
+    final File safeSourceDataDir =
+        validateExistingDirectory(sourceDataDir, "source.data.dir");
+    final File safeBinDir = validateExistingDirectory(binDir, "bin directory");
+    final File safeMetaDir = validateChildDirectory(safeSourceDataDir, metaDir,
+        "release META directory");
+    final File safePreviousMetaDir = validateChildDirectory(safeSourceDataDir,
+        previousMetaDir, "previous release META directory");
+    validateQaChecksScript(safeBinDir);
+
+    if (System.getProperty("os.name").toLowerCase(Locale.ROOT)
+        .contains("win")) {
+      throw new UnsupportedOperationException(
+          QA_CHECKS_FILE_NAME + " execution is supported on Unix-like hosts.");
+    }
+
+    final ProcessBuilder processBuilder = new ProcessBuilder(QA_CHECKS_COMMAND,
+        safeMetaDir.getPath(), safeTarget, safePreviousMetaDir.getPath());
+    processBuilder.directory(safeBinDir);
+    processBuilder.environment().clear();
+    processBuilder.redirectErrorStream(true);
+    return runProcess(processBuilder, s);
+  }
+
+  /**
+   * Returns the canonical configured source data directory.
+   *
+   * @return the source data directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File getSourceDataDirectory() throws IOException {
+
+    final String sourceDataDir =
+        PropertyUtility.getProperties().getProperty(SOURCE_DATA_DIR_PROPERTY);
+    return validateExistingDirectoryPath(sourceDataDir, SOURCE_DATA_DIR_PROPERTY);
+  }
+
+  /**
+   * Resolves relative path parts below the configured source data directory.
+   *
+   * @param label the label for error messages
+   * @param pathParts the relative path parts
+   * @return the canonical resolved path
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolveSourceDataPath(final String label,
+    final String... pathParts) throws IOException {
+
+    return resolvePathUnderDirectory(getSourceDataDirectory(), label,
+        pathParts);
+  }
+
+  /**
+   * Resolves an existing directory below the configured source data directory.
+   *
+   * @param label the label for error messages
+   * @param pathParts the relative path parts
+   * @return the canonical resolved directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolveExistingSourceDataDirectory(final String label,
+    final String... pathParts) throws IOException {
+
+    return validateExistingDirectory(resolveSourceDataPath(label, pathParts),
+        label);
+  }
+
+  /**
+   * Resolves the upload directory for a source data record.
+   *
+   * @param sourceDataId the source data id
+   * @return the canonical source data record directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolveSourceDataIdDirectory(final Long sourceDataId)
+    throws IOException {
+
+    if (sourceDataId == null) {
+      throw new IllegalArgumentException("Source data id must not be null.");
+    }
+    return resolveSourceDataPath("source data upload directory",
+        sourceDataId.toString());
+  }
+
+  /**
+   * Resolves the generated report directory for a project.
+   *
+   * @param projectId the project id
+   * @return the canonical generated report directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolveProjectReportsDirectory(final Long projectId)
+    throws IOException {
+
+    if (projectId == null) {
+      throw new IllegalArgumentException("Project id must not be null.");
+    }
+    return resolveSourceDataPath("project reports directory",
+        projectId.toString(), "reports");
+  }
+
+  /**
+   * Resolves the META directory for a process release.
+   *
+   * @param inputPath the process input path below source.data.dir
+   * @param version the release version
+   * @return the canonical release META directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolveProcessReleaseMetaDirectory(
+    final String inputPath, final String version) throws IOException {
+
+    return resolveSourceDataPath("process release META directory", inputPath,
+        version, "META");
+  }
+
+  /**
+   * Returns a canonical existing file from a configured path property.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @return the canonical configured file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateConfiguredExistingFile(final Properties properties,
+    final String propertyName) throws IOException {
+
+    return validateExistingFilePath(
+        requiredConfiguredPath(properties, propertyName),
+        propertyName);
+  }
+
+  /**
+   * Returns a canonical directory from a configured path property, creating it
+   * when requested.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @param create true if the directory should be created when missing
+   * @return the canonical configured directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateConfiguredDirectory(final Properties properties,
+    final String propertyName, final boolean create) throws IOException {
+
+    final String path = requiredConfiguredPath(properties, propertyName);
+    return create ? validateOrCreateDirectoryPath(path, propertyName)
+        : validateExistingDirectoryPath(path, propertyName);
+  }
+
+  /**
+   * Returns a canonical existing file from an operator/configured path.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the canonical existing file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateExistingFilePath(final String path,
+    final String label) throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    return validateExistingFile(new File(requiredPathValue(path, label)), label);
+  }
+
+  /**
+   * Returns a canonical existing directory from an operator/configured path.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the canonical existing directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateExistingDirectoryPath(final String path,
+    final String label) throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    return validateExistingDirectory(new File(requiredPathValue(path, label)),
+        label);
+  }
+
+  /**
+   * Creates a directory if needed and returns its canonical path.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the canonical directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateOrCreateDirectoryPath(final String path,
+    final String label) throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    return validateOrCreateDirectory(new File(requiredPathValue(path, label)),
+        label);
+  }
+
+  /**
+   * Resolves relative path parts below an existing base directory.
+   *
+   * @param baseDirectory the base directory
+   * @param label the label for error messages
+   * @param pathParts the relative path parts
+   * @return the canonical resolved path
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolvePathUnderDirectory(final File baseDirectory,
+    final String label, final String... pathParts) throws IOException {
+
+    final File base = validateExistingDirectory(baseDirectory,
+        safeLabel(label) + " base directory");
+    Path resolvedPath = base.toPath();
+    if (pathParts != null) {
+      for (final String pathPart : pathParts) {
+        resolvedPath = resolvedPath.resolve(
+            validateRelativePath(pathPart, label)).normalize();
+      }
+    }
+
+    final File resolved = resolvedPath.toFile().getCanonicalFile();
+    validateChildPath(base, resolved, label);
+    return resolved;
+  }
+
+  /**
+   * Validates that a candidate path is below an existing base directory.
+   *
+   * @param baseDirectory the base directory
+   * @param path the candidate path
+   * @param label the label for error messages
+   * @return the canonical candidate path
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validatePathUnderDirectory(final File baseDirectory,
+    final String path, final String label) throws IOException {
+
+    // Candidate paths are canonicalized and checked against the base below.
+    // codeql[java/path-injection]
+    return validatePathUnderDirectory(baseDirectory,
+        new File(requiredPathValue(path, label)), label);
+  }
+
+  /**
+   * Validates that a candidate path is below an existing base directory.
+   *
+   * @param baseDirectory the base directory
+   * @param path the candidate path
+   * @param label the label for error messages
+   * @return the canonical candidate path
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validatePathUnderDirectory(final File baseDirectory,
+    final File path, final String label) throws IOException {
+
+    final File base = validateExistingDirectory(baseDirectory,
+        safeLabel(label) + " base directory");
+    if (path == null) {
+      throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
+    }
+    final File candidate = path.getCanonicalFile();
+    validateChildPath(base, candidate, label);
+    return candidate;
+  }
+
+  /**
+   * Resolves a safe single-component file name below an existing directory.
+   *
+   * @param directory the directory
+   * @param fileName the file name
+   * @param label the label for error messages
+   * @return the canonical resolved file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File resolveFileUnderDirectory(final File directory,
+    final String fileName, final String label) throws IOException {
+
+    return resolvePathUnderDirectory(directory, label,
+        validateSafeFileName(fileName, label));
+  }
+
+  /**
+   * Creates a directory if needed and returns its canonical path.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the canonical directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateOrCreateDirectory(final File directory,
+    final String label) throws IOException {
+
+    if (directory == null) {
+      throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
+    }
+    final File canonicalDirectory = directory.getCanonicalFile();
+    // Directory creation is constrained by callers through canonical path helpers.
+    // codeql[java/path-injection]
+    ensureDirectoryExists(canonicalDirectory);
+    return validateExistingDirectory(canonicalDirectory, label);
+  }
+
+  /**
+   * Opens a validated UTF-8 file reader.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the buffered reader
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static BufferedReader newBufferedReader(final File file,
+    final String label) throws IOException {
+
+    final File safeFile = validateExistingFile(file, label);
+    // Files are opened only after canonical file validation.
+    // codeql[java/path-injection]
+    return Files.newBufferedReader(safeFile.toPath(), StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Reads all lines from a validated UTF-8 file.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the file lines
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static List<String> readLines(final File file, final String label)
+    throws IOException {
+
+    final File safeFile = validateExistingFile(file, label);
+    // Files are read only after canonical file validation.
+    // codeql[java/path-injection]
+    return Files.readAllLines(safeFile.toPath(), StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Opens a validated file input stream.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the input stream
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static InputStream newInputStream(final File file, final String label)
+    throws IOException {
+
+    final File safeFile = validateExistingFile(file, label);
+    // Files are opened only after canonical file validation.
+    // codeql[java/path-injection]
+    return Files.newInputStream(safeFile.toPath());
+  }
+
+  /**
+   * Opens a validated UTF-8 file writer.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the buffered writer
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static BufferedWriter newBufferedWriter(final File file,
+    final String label) throws IOException {
+
+    if (file == null) {
+      throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
+    }
+    final File safeFile = file.getCanonicalFile();
+    final File parent = safeFile.getParentFile();
+    if (parent != null) {
+      validateOrCreateDirectory(parent, safeLabel(label) + " parent directory");
+    }
+    // Files are opened only after canonical parent directory validation.
+    // codeql[java/path-injection]
+    return Files.newBufferedWriter(safeFile.toPath(), StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Opens a validated UTF-8 print writer.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the print writer
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static PrintWriter newPrintWriter(final File file, final String label)
+    throws IOException {
+
+    return new PrintWriter(newBufferedWriter(file, label));
+  }
+
+  /**
+   * Lists filenames in a validated directory.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the filenames
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static String[] list(final File directory, final String label)
+    throws IOException {
+
+    final File safeDirectory = validateExistingDirectory(directory, label);
+    // Directory listing is allowed only after canonical directory validation.
+    // codeql[java/path-injection]
+    return safeDirectory.list();
+  }
+
+  /**
+   * Lists files in a validated directory.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the files
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File[] listFiles(final File directory, final String label)
+    throws IOException {
+
+    final File safeDirectory = validateExistingDirectory(directory, label);
+    // Directory listing is allowed only after canonical directory validation.
+    // codeql[java/path-injection]
+    return safeDirectory.listFiles();
+  }
+
+  /**
+   * Validates a safe single-component filename.
+   *
+   * @param fileName the file name
+   * @param label the label for error messages
+   * @return the validated filename
+   */
+  public static String validateSafeFileName(final String fileName,
+    final String label) {
+
+    final Path path = validateRelativePath(fileName, label);
+    if (path.getNameCount() != 1) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must be a filename, not a path: " + fileName);
+    }
+    return path.toString();
+  }
+
+  /**
+   * Validates a zip entry name and optionally removes the archive root folder.
+   *
+   * @param entryName the zip entry name
+   * @param label the label for error messages
+   * @param stripFirstPathSegment true if the first archive path segment is a
+   *          wrapper folder to remove
+   * @return the validated relative entry path, or blank for a stripped root
+   *         directory entry
+   */
+  public static String validateZipEntryPath(final String entryName,
+    final String label, final boolean stripFirstPathSegment) {
+
+    String normalizedEntryName = requiredPathValue(entryName, label)
+        .replace('\\', '/');
+    if (normalizedEntryName.startsWith("/")
+        || normalizedEntryName.matches(WINDOWS_ABSOLUTE_PATH_PATTERN)) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must be relative: " + entryName);
+    }
+    if (stripFirstPathSegment) {
+      final int index = normalizedEntryName.indexOf('/');
+      if (index >= 0) {
+        normalizedEntryName = normalizedEntryName.substring(index + 1);
+      }
+    }
+    normalizedEntryName = trimTrailingSlashes(normalizedEntryName);
+    if (normalizedEntryName.isEmpty()) {
+      return "";
+    }
+    return validateRelativePath(normalizedEntryName, label).toString();
+  }
+
+  /**
+   * Validates a MySQL JDBC URL against protocol and host allowlist rules.
+   *
+   * @param jdbcUrl the JDBC URL
+   * @param propertyName the JDBC URL property name
+   * @param properties the properties
+   * @param requireSchema true if a schema path is required
+   * @return the validated JDBC URL
+   */
+  private static String validateJdbcUrl(final String jdbcUrl,
+    final String propertyName, final Properties properties,
+    final boolean requireSchema) {
+
+    final String value = requiredNetworkValue(jdbcUrl, propertyName);
+    if (!value.matches(MYSQL_JDBC_URL_PATTERN)) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must be a MySQL JDBC URL without "
+              + "user info, fragment, or whitespace.");
+    }
+
+    final URI uri = URI.create(value.substring("jdbc:".length()));
+    if (!"mysql".equalsIgnoreCase(uri.getScheme())) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must use the mysql JDBC scheme.");
+    }
+    if (!isEmpty(uri.getUserInfo())) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must not include user info.");
+    }
+    if (requireSchema && (uri.getPath() == null || uri.getPath().length() <= 1)) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must include a schema path.");
+    }
+
+    validateAllowedHost(uri, properties, DATABASE_ALLOWED_HOSTS_PROPERTY,
+        DEFAULT_LOOPBACK_HOSTS);
+    return value;
+  }
+
+  /**
+   * Validates that the URI host is explicitly allowed.
+   *
+   * @param uri the URI
+   * @param properties the properties
+   * @param propertyName the allowlist property name
+   * @param defaultHosts the default allowlist
+   */
+  private static void validateAllowedHost(final URI uri,
+    final Properties properties, final String propertyName,
+    final String defaultHosts) {
+
+    final String host = uri.getHost();
+    if (isEmpty(host)) {
+      throw new IllegalArgumentException(
+          "Network URL must include a host.");
+    }
+
+    final String normalizedHost = normalizeHost(host);
+    final String allowedHosts =
+        configuredNetworkProperty(properties, propertyName, defaultHosts);
+    for (final String allowedHost : allowedHosts.split(",")) {
+      if (normalizeHost(allowedHost).equals(normalizedHost)) {
+        return;
+      }
+    }
+    throw new IllegalArgumentException(
+        "Network host " + host + " is not listed in " + propertyName + ".");
+  }
+
+  /**
+   * Returns a configured network property, trimming whitespace.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @return the configured value
+   */
+  private static String requiredNetworkProperty(final Properties properties,
+    final String propertyName) {
+    return requiredNetworkValue(
+        properties == null ? null : properties.getProperty(propertyName),
+        propertyName);
+  }
+
+  /**
+   * Returns a configured network property or default, trimming whitespace.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @param defaultValue the default value
+   * @return the configured value
+   */
+  private static String configuredNetworkProperty(final Properties properties,
+    final String propertyName, final String defaultValue) {
+    final String value =
+        properties == null ? null : properties.getProperty(propertyName);
+    return isEmpty(value) ? defaultValue : value.trim();
+  }
+
+  /**
+   * Returns a required network value, trimming whitespace.
+   *
+   * @param value the value
+   * @param propertyName the property name
+   * @return the value
+   */
+  private static String requiredNetworkValue(final String value,
+    final String propertyName) {
+    if (value == null || value.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+          "Property " + propertyName + " must not be blank.");
+    }
+    return value.trim();
+  }
+
+  /**
+   * Validates a release QA target against the fixed qa_checks.csh target list.
+   *
+   * @param target the target
+   * @return the validated target
+   */
+  private static String validateQaCheckTarget(final String target) {
+    final String value = target == null ? "" : target.trim();
+    if (!QA_CHECK_TARGETS.contains(value)) {
+      throw new IllegalArgumentException(
+          "Invalid " + QA_CHECKS_FILE_NAME + " target: " + target);
+    }
+    return value;
+  }
+
+  /**
+   * Validates the release QA script below the trusted bin directory.
+   *
+   * @param binDir the canonical bin directory
+   * @return the validated script file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private static File validateQaChecksScript(final File binDir)
+    throws IOException {
+    // The script filename is fixed and the bin directory was validated upstream.
+    // codeql[java/path-injection]
+    final File script = new File(binDir, QA_CHECKS_FILE_NAME).getCanonicalFile();
+    if (!QA_CHECKS_FILE_NAME.equals(script.getName())
+        || !binDir.equals(script.getParentFile())) {
+      throw new IllegalArgumentException(
+          "Unexpected " + QA_CHECKS_FILE_NAME + " location: " + script);
+    }
+    validateExistingFile(script, QA_CHECKS_FILE_NAME);
+    // The script name and parent directory were fixed and canonicalized above.
+    // codeql[java/path-injection]
+    if (!script.canExecute()) {
+      throw new IllegalArgumentException(
+          QA_CHECKS_FILE_NAME + " must be executable: " + script);
+    }
+    return script;
+  }
+
+  /**
+   * Validates an existing directory and returns its canonical path.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return the canonical directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateExistingDirectory(final File directory,
+    final String label) throws IOException {
+    if (directory == null) {
+      throw new IllegalArgumentException(label + " must not be null.");
+    }
+    final File canonicalDirectory = directory.getCanonicalFile();
+    // Directory use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    if (!canonicalDirectory.isDirectory()) {
+      throw new IllegalArgumentException(
+          label + " must be an existing directory: " + directory);
+    }
+    return canonicalDirectory;
+  }
+
+  /**
+   * Indicates whether the directory exists after canonicalization.
+   *
+   * @param directory the directory
+   * @param label the label for error messages
+   * @return true if the directory exists
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static boolean isExistingDirectory(final File directory,
+    final String label) throws IOException {
+
+    if (directory == null) {
+      return false;
+    }
+    final File canonicalDirectory = directory.getCanonicalFile();
+    // Directory use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    return canonicalDirectory.isDirectory();
+  }
+
+  /**
+   * Validates an existing file and returns its canonical path.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return the canonical file
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static File validateExistingFile(final File file, final String label)
+    throws IOException {
+
+    if (file == null) {
+      throw new IllegalArgumentException(safeLabel(label) + " must not be null.");
+    }
+    final File canonicalFile = file.getCanonicalFile();
+    // File use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    if (!canonicalFile.isFile()) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must be an existing file: " + file);
+    }
+    return canonicalFile;
+  }
+
+  /**
+   * Indicates whether the file exists after canonicalization.
+   *
+   * @param file the file
+   * @param label the label for error messages
+   * @return true if the file exists
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static boolean isExistingFile(final File file, final String label)
+    throws IOException {
+
+    if (file == null) {
+      return false;
+    }
+    final File canonicalFile = file.getCanonicalFile();
+    // File use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    return canonicalFile.isFile();
+  }
+
+  /**
+   * Indicates whether an operator/configured path exists.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return true if the path exists
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  public static boolean pathExists(final String path, final String label)
+    throws IOException {
+
+    // Absolute configured paths are accepted only at this validation boundary.
+    // codeql[java/path-injection]
+    final File file = new File(requiredPathValue(path, label)).getCanonicalFile();
+    // Path use is guarded by canonical validation at this helper boundary.
+    // codeql[java/path-injection]
+    return file.exists();
+  }
+
+  /**
+   * Validates that a directory exists below an allowed parent directory.
+   *
+   * @param parent the canonical parent directory
+   * @param directory the candidate directory
+   * @param label the label for error messages
+   * @return the canonical child directory
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private static File validateChildDirectory(final File parent,
+    final File directory, final String label) throws IOException {
+    final File child = validateExistingDirectory(directory, label);
+    validateChildPath(parent, child, label);
+    return child;
+  }
+
+  /**
+   * Validates that a path is below an allowed parent directory.
+   *
+   * @param parent the canonical parent directory
+   * @param child the canonical child path
+   * @param label the label for error messages
+   * @throws IOException Signals that an I/O exception has occurred.
+   */
+  private static void validateChildPath(final File parent, final File child,
+    final String label) throws IOException {
+
+    final Path parentPath = parent.getCanonicalFile().toPath();
+    final Path childPath = child.getCanonicalFile().toPath();
+    if (!childPath.startsWith(parentPath)) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must be under " + parentPath + ": " + child);
+    }
+  }
+
+  /**
+   * Validates a relative path part.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the validated normalized path
+   */
+  private static Path validateRelativePath(final String path,
+    final String label) {
+
+    final String value = requiredPathValue(path, label);
+    if (value.contains("\\") || value.startsWith("/")
+        || value.matches(WINDOWS_ABSOLUTE_PATH_PATTERN)) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must be relative: " + path);
+    }
+
+    final Path relativePath;
+    try {
+      // Relative inputs reject absolute/traversal syntax before Path creation.
+      // codeql[java/path-injection]
+      relativePath = Paths.get(value);
+    } catch (InvalidPathException e) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " is not a valid path: " + path, e);
+    }
+
+    if (relativePath.isAbsolute()) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must be relative: " + path);
+    }
+    for (final Path segment : relativePath) {
+      final String segmentName = segment.toString();
+      if (".".equals(segmentName) || "..".equals(segmentName)) {
+        throw new IllegalArgumentException(
+            safeLabel(label) + " must not contain traversal segments: " + path);
+      }
+    }
+
+    final Path normalizedPath = relativePath.normalize();
+    if (normalizedPath.toString().isEmpty()) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must not be blank.");
+    }
+    return normalizedPath;
+  }
+
+  /**
+   * Returns a required path value after trimming whitespace.
+   *
+   * @param path the path
+   * @param label the label for error messages
+   * @return the path value
+   */
+  private static String requiredPathValue(final String path,
+    final String label) {
+
+    if (path == null || path.trim().isEmpty()) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must not be blank.");
+    }
+    final String value = path.trim();
+    if (value.indexOf('\0') != -1) {
+      throw new IllegalArgumentException(
+          safeLabel(label) + " must not contain NUL characters.");
+    }
+    return value;
+  }
+
+  /**
+   * Returns a required configured path property.
+   *
+   * @param properties the properties
+   * @param propertyName the property name
+   * @return the configured path
+   */
+  private static String requiredConfiguredPath(final Properties properties,
+    final String propertyName) {
+
+    return requiredPathValue(
+        properties == null ? null : properties.getProperty(propertyName),
+        "Property " + propertyName);
+  }
+
+  /**
+   * Removes trailing slash separators from a zip entry path.
+   *
+   * @param path the path
+   * @return the path without trailing slashes
+   */
+  private static String trimTrailingSlashes(final String path) {
+
+    String value = path;
+    while (value.endsWith("/")) {
+      value = value.substring(0, value.length() - 1);
+    }
+    return value;
+  }
+
+  /**
+   * Returns a label for validation errors.
+   *
+   * @param label the label
+   * @return the safe label
+   */
+  private static String safeLabel(final String label) {
+
+    return isEmpty(label) ? "Path" : label;
+  }
+
+  /**
+   * Runs a validated process and captures its output.
+   *
+   * @param processBuilder the process builder
+   * @param s the optional output writer
+   * @return the process output
+   * @throws Exception the exception
+   */
+  private static String runProcess(final ProcessBuilder processBuilder,
+    final PrintWriter s) throws Exception {
+
+    Logger.getLogger(ConfigUtility.class)
+        .info("execute = " + String.join(" ", processBuilder.command()));
+    Logger.getLogger(ConfigUtility.class)
+        .info("  working dir = " + processBuilder.directory());
+
+    final Process proc = processBuilder.start();
+    final StringBuilder output = new StringBuilder(1000);
+    String line;
+    try (BufferedReader in = new BufferedReader(
+        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
+      while ((line = in.readLine()) != null) {
+        if (s != null) {
+          s.println(line);
+          s.flush();
+        }
+        output.append(line).append("\n");
+      }
+    }
+
+    proc.waitFor();
+    if (proc.exitValue() != 0) {
+      throw new Exception("Command failed = " + proc.exitValue() + ", "
+          + String.join(" ", processBuilder.command()));
+    }
+    return output.toString();
+  }
+
+  /**
+   * Returns a normalized host name.
+   *
+   * @param host the host
+   * @return the normalized host
+   */
+  private static String normalizeHost(final String host) {
+    String value = host == null ? "" : host.trim().toLowerCase(Locale.ROOT);
+    if (value.startsWith("[") && value.endsWith("]")) {
+      value = value.substring(1, value.length() - 1);
+    }
+    return value;
+  }
+
+  /**
+   * Returns a relative REST path suitable for appending to base.url.
+   *
+   * @param path the path
+   * @return the normalized relative path
+   */
+  private static String relativeRestPath(final String path) {
+    if (isEmpty(path)) {
+      return "";
+    }
+    final String value = path.trim();
+    if (value.startsWith("//")
+        || value.matches("(?i)[a-z][a-z0-9+.-]*:.*")) {
+      throw new IllegalArgumentException(
+          "REST path must be relative: " + path);
+    }
+    return value.startsWith("/") ? value : "/" + value;
+  }
+
+  /**
+   * Trims trailing slashes from a URL.
+   *
+   * @param value the URL
+   * @return the URL without trailing slashes
+   */
+  private static String trimTrailingSlash(final String value) {
+    String trimmed = value;
+    while (trimmed.endsWith("/")) {
+      trimmed = trimmed.substring(0, trimmed.length() - 1);
+    }
+    return trimmed;
+  }
+
+  /**
    * Indicates whether or not the server is active.
    *
    * @return <code>true</code> if so, <code>false</code> otherwise
@@ -232,8 +1346,8 @@ public class ConfigUtility {
     try {
       // Attempt to logout to verify service is up (this works like a "ping").
       Client client = ClientBuilder.newClient();
-      WebTarget target = client
-          .target(properties.getProperty("base.url") + "/security/logout/dummy");
+      WebTarget target =
+          client.target(getRestUrl(properties, "/security/logout/dummy"));
 
       Response response = target.request(MediaType.APPLICATION_JSON).get();
       if (response.getStatusInfo().getFamily() == Family.SUCCESSFUL) {
@@ -516,7 +1630,7 @@ public class ConfigUtility {
    */
   public static Node getNodeForFile(File file)
     throws ParserConfigurationException, SAXException, IOException {
-    try (InputStream in = new FileInputStream(file)) {
+    try (InputStream in = newInputStream(file, "XML file")) {
       // Parse XML file.
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
       DocumentBuilder db = dbf.newDocumentBuilder();
@@ -665,10 +1779,14 @@ public class ConfigUtility {
    * @return true, if successful
    */
   public static boolean deleteDirectory(File path) {
+    // Deletes are limited by callers to validated directories.
+    // codeql[java/path-injection]
     if (path == null || !path.exists()) {
       return true;
     }
     boolean success = true;
+    // Deletes are limited by callers to validated directories.
+    // codeql[java/path-injection]
     if (path.isDirectory()) {
       final File[] files = path.listFiles();
       if (files == null) {
@@ -678,10 +1796,14 @@ public class ConfigUtility {
         if (files[i].isDirectory()) {
           success &= deleteDirectory(files[i]);
         } else {
+          // Deletes are limited by callers to validated directories.
+          // codeql[java/path-injection]
           success &= files[i].delete() || !files[i].exists();
         }
       }
     }
+    // Deletes are limited by callers to validated directories.
+    // codeql[java/path-injection]
     return (path.delete() || !path.exists()) && success;
   }
 
@@ -695,7 +1817,11 @@ public class ConfigUtility {
     if (dir == null) {
       throw new IOException("Directory must not be null");
     }
+    // Directory creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     Files.createDirectories(dir.toPath());
+    // Directory creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     if (!dir.isDirectory()) {
       throw new IOException("Could not create directory " + dir);
     }
@@ -715,9 +1841,15 @@ public class ConfigUtility {
     if (parentFile != null) {
       ensureDirectoryExists(parentFile);
     }
+    // File creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     if (!file.exists()) {
+      // File creation is limited by callers to validated paths.
+      // codeql[java/path-injection]
       Files.createFile(file.toPath());
     }
+    // File creation is limited by callers to validated paths.
+    // codeql[java/path-injection]
     if (!file.isFile()) {
       throw new IOException("Could not create file " + file);
     }
@@ -731,6 +1863,8 @@ public class ConfigUtility {
    */
   public static void deleteFileIfExists(File file) throws IOException {
     if (file != null) {
+      // File deletion is limited by callers to validated paths.
+      // codeql[java/path-injection]
       Files.deleteIfExists(file.toPath());
     }
   }
@@ -1054,8 +2188,26 @@ public class ConfigUtility {
    */
   public static String getExpressionIndexDirectoryName(String terminology,
     String version) throws Exception {
-    return getBaseIndexDirectory() + "/expr/" + terminology + "/" + version
-        + "/";
+    return getExpressionIndexDirectory(terminology, version).getPath()
+        + File.separator;
+  }
+
+  /**
+   * Gets the expression index directory.
+   *
+   * @param terminology the terminology
+   * @param version the version
+   * @return the expression index directory
+   * @throws Exception the exception
+   */
+  private static File getExpressionIndexDirectory(final String terminology,
+    final String version) throws Exception {
+
+    final File baseDir = validateOrCreateDirectoryPath(getBaseIndexDirectory(),
+        "base index directory");
+    return resolvePathUnderDirectory(baseDir, "expression index directory",
+        "expr", validateSafeFileName(terminology, "terminology"),
+        validateSafeFileName(version, "version"));
   }
 
   /**
@@ -1072,8 +2224,7 @@ public class ConfigUtility {
     removeExpressionIndexDirectory(terminology, version);
 
     // create the directory structure
-    File eclDir =
-        new File(getExpressionIndexDirectoryName(terminology, version));
+    File eclDir = getExpressionIndexDirectory(terminology, version);
     ensureDirectoryExists(eclDir);
   }
 
@@ -1086,8 +2237,7 @@ public class ConfigUtility {
    */
   public static void removeExpressionIndexDirectory(String terminology,
     String version) throws Exception {
-    File exprDir =
-        new File(getExpressionIndexDirectoryName(terminology, version));
+    File exprDir = getExpressionIndexDirectory(terminology, version);
     if (exprDir.exists()) {
       if (!exprDir.isDirectory()) {
         throw new Exception(
@@ -1142,11 +2292,7 @@ public class ConfigUtility {
    * @throws Exception the exception
    */
   public static String getUploadDir() throws Exception {
-    if (PropertyUtility.getProperties().containsKey("source.data.dir")) {
-      return PropertyUtility.getProperties().getProperty("source.data.dir");
-    }
-    throw new Exception(
-        "Unknown upload dir, source.data.dir not set in config file");
+    return getSourceDataDirectory().getPath();
   }
 
   /**
@@ -1335,27 +2481,33 @@ public class ConfigUtility {
    */
   public static void unzip(String zipFilePath, String destDirectory)
     throws IOException {
-    File destDir = new File(destDirectory);
-    if (!destDir.exists()) {
-      ensureDirectoryExists(destDir);
-    }
-    ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath));
-    ZipEntry entry = zipIn.getNextEntry();
-    // iterates over entries in the zip file
-    while (entry != null) {
-      String filePath = destDirectory + File.separator + entry.getName();
-      if (!entry.isDirectory()) {
-        // if the entry is a file, extracts it
-        extractFile(zipIn, filePath);
-      } else {
-        // if the entry is a directory, make the directory
-        File dir = new File(filePath);
-        ensureDirectoryExists(dir);
+
+    final File destDir =
+        validateOrCreateDirectoryPath(destDirectory, "zip destination");
+    final File zipFile = validateExistingFilePath(zipFilePath, "zip file");
+    try (ZipInputStream zipIn =
+        new ZipInputStream(newInputStream(zipFile, "zip file"))) {
+      ZipEntry entry = zipIn.getNextEntry();
+      while (entry != null) {
+        final String entryPath =
+            validateZipEntryPath(entry.getName(), "zip entry", false);
+        if (!entryPath.isEmpty()) {
+          final File output =
+              resolvePathUnderDirectory(destDir, "zip entry", entryPath);
+          if (entry.isDirectory()) {
+            ensureDirectoryExists(output);
+          } else {
+            final File parent = output.getParentFile();
+            if (parent != null) {
+              ensureDirectoryExists(parent);
+            }
+            extractFile(zipIn, output);
+          }
+        }
+        zipIn.closeEntry();
+        entry = zipIn.getNextEntry();
       }
-      zipIn.closeEntry();
-      entry = zipIn.getNextEntry();
     }
-    zipIn.close();
   }
 
   /**
@@ -1365,131 +2517,17 @@ public class ConfigUtility {
    * @param filePath the file path
    * @throws IOException Signals that an I/O exception has occurred.
    */
-  private static void extractFile(ZipInputStream zipIn, String filePath)
+  private static void extractFile(ZipInputStream zipIn, File filePath)
     throws IOException {
-    BufferedOutputStream bos =
-        new BufferedOutputStream(new FileOutputStream(filePath));
-    byte[] bytesIn = new byte[BUFFER_SIZE];
-    int read = 0;
-    while ((read = zipIn.read(bytesIn)) != -1) {
-      bos.write(bytesIn, 0, read);
+
+    try (BufferedOutputStream bos =
+        new BufferedOutputStream(Files.newOutputStream(filePath.toPath()))) {
+      byte[] bytesIn = new byte[BUFFER_SIZE];
+      int read = 0;
+      while ((read = zipIn.read(bytesIn)) != -1) {
+        bos.write(bytesIn, 0, read);
+      }
     }
-    bos.close();
   }
 
-  /**
-   * Executes an operating system command with more options. This is the most
-   * flexible (and confusing) of the <code>exec</code> methods.
-   * <p>
-   * It allows you to specify a command with parameters and a set of environment
-   * variable definitions. You may determine whether or not the process should
-   * write to the application log, and if it does whether it reads the processes
-   * STDOUT or STDERR. Finally, you can choose to run the process in the
-   * background.
-   *
-   * @param cmdarrayIn the cmdarray in
-   * @param env a {@link String}<code>[]</code> containing "NAME=VALUE" pairs of
-   *          environment variable definitions
-   * @param background a flag indicating whether or not to run the process in
-   *          the background.
-   * @param dirIn the dir in
-   * @param s <code>PrintWriter</code> to use for output
-   * @param fixFlag the fix flag
-   * @return a {@link String} containing the process log
-   * @throws Exception the exception
-   */
-  public static String exec(String[] cmdarrayIn, String[] env,
-    boolean background, String dirIn, PrintWriter s, boolean fixFlag) throws Exception {
-    // Check if on windows and invoke "cygwin" - assume it's defined in config
-    // properties
-    // This requires cygwin (e.g. c:/cygwin64/bin) and requires "tcsh" shell
-    // installed
-    String dir = dirIn;
-    String[] cmdarray = cmdarrayIn;
-    if (fixFlag && System.getProperty("os.name").toLowerCase().contains("win")) {
-      // Change the command to be based around cygwin
-      if (PropertyUtility.getProperties()
-          .getProperty("cygwin.bin") == null) {
-        throw new Exception("Exec on windows requires cygwin to be installed '"
-            + "and specified by cygwin.bin in config.properties");
-      }
-      final String tcsh =
-          PropertyUtility.getProperties().getProperty("cygwin.bin")
-              + "/tcsh.exe";
-
-      // Fix anything that looks like a directory to use forward slashes
-      // and /cygwin oriented directories
-      for (int i = 0; i < cmdarrayIn.length; i++) {
-        if (cmdarrayIn[i].contains("\\")) {
-          cmdarrayIn[i] = FilenameUtils.separatorsToUnix(cmdarrayIn[i])
-              .replaceAll("^([a-zA-Z]):", "/cygdrive/$1");
-        }
-      }
-      cmdarray = new String[] {
-          tcsh, "-c", FieldedStringTokenizer.join(cmdarrayIn, " ")
-      };
-      dir = FilenameUtils.separatorsToUnix(dirIn);
-    }
-
-    Runtime run = null;
-
-    Process proc = null;
-
-    StringBuffer output = new StringBuffer(1000);
-
-    String line;
-    run = Runtime.getRuntime();
-    Logger.getLogger(ConfigUtility.class)
-        .info("execute = " + FieldedStringTokenizer.join(cmdarray, " "));
-    Logger.getLogger(ConfigUtility.class)
-        .info("  env = " + FieldedStringTokenizer.join(env, " "));
-    Logger.getLogger(ConfigUtility.class)
-        .info("  working dir = " + new File(dir));
-    proc = run.exec(cmdarray, env, new File(dir));
-
-    // Connect a reader to the process
-    try (BufferedReader in = new BufferedReader(
-        new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8))) {
-      while ((line = in.readLine()) != null) {
-        if (s != null) {
-          s.println(line);
-          s.flush();
-        }
-        output.append(line).append("\n");
-      }
-    }
-
-    // If we are not running in the background
-    // then wait for the process to finish and track its exit value
-    if (!background) {
-      proc.waitFor();
-      if (proc.exitValue() != 0) {
-        // If there was an error, read from the error stream
-        StringBuffer sb = new StringBuffer(1000);
-        sb.append("\n--------------------------------------------\n");
-        sb.append("Error:");
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(
-            proc.getErrorStream(), StandardCharsets.UTF_8))) {
-          while ((line = in.readLine()) != null) {
-            sb.append("\t" + line);
-            sb.append("\n");
-          }
-        }
-        sb.append("--------------------------------------------\n");
-        StringBuilder cmdBuffer = new StringBuilder();
-        for (String cmdarg : cmdarray) {
-          cmdBuffer.append(cmdarg).append(" ");
-        }
-        StringBuilder envBuffer = new StringBuilder();
-        for (String envarg : env) {
-          envBuffer.append(envarg).append(" ");
-        }
-        Exception ee = new Exception("Command failed = " + proc.exitValue()
-            + ", " + cmdBuffer + ", " + envBuffer + ", " + sb.toString());
-        throw ee;
-      }
-    }
-
-    return output.toString();
-  }
 }

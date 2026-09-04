@@ -3,6 +3,10 @@
  */
 package com.wci.umls.server.rest.client;
 
+import java.util.Properties;
+
+import com.wci.umls.server.helpers.ConfigUtility;
+
 /**
  * A root rest client.
  */
@@ -38,6 +42,17 @@ public class RootClientRest {
       throw new IllegalArgumentException("Parameter " + parameterName
           + " must not be null.");
     }
+  }
+
+  /**
+   * Returns the validated REST base URL.
+   *
+   * @param config the client config
+   * @return the base URL
+   */
+  @SuppressWarnings("static-method")
+  protected String getBaseUrl(final Properties config) {
+    return ConfigUtility.getRestBaseUrl(config);
   }
 
 }

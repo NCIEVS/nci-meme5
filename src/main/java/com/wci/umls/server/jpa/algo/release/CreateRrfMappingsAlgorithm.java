@@ -58,11 +58,7 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
   @Override
   public ValidationResult checkPreconditions() throws Exception {
 
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
-    
-    pathMeta =
-        new File(path, "/" + getProcess().getVersion() + "/META");
+    pathMeta = getProcessReleaseMetaDirectory();
     logInfo("  pathMeta " + pathMeta);
 
 
@@ -75,7 +71,8 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
     logInfo("Starting " + getName());
     
     // open output writers
-    mappingsDir = new File(pathMeta, "mappings");
+    mappingsDir = ConfigUtility.resolvePathUnderDirectory(pathMeta,
+        "release mappings directory", "mappings");
     if (!mappingsDir.exists()){
       ConfigUtility.ensureDirectoryExists(mappingsDir);
     }
@@ -84,11 +81,14 @@ public class CreateRrfMappingsAlgorithm extends AbstractAlgorithm {
 
 
     
-    mappingsWriter = new BufferedWriter(new FileWriter(new File(mappingsDir,
-        "NCIt_Metathesaurus_Mapping_" + getProcess().getVersion() + ".txt"),
+    mappingsWriter = new BufferedWriter(new FileWriter(
+        ConfigUtility.resolveFileUnderDirectory(mappingsDir,
+            "NCIt_Metathesaurus_Mapping_" + getProcess().getVersion() + ".txt",
+            "release mappings file"),
         StandardCharsets.UTF_8));
     readmeWriter = new BufferedWriter(new FileWriter(
-        new File(mappingsDir, "NCIt_Metathesaurus_Mapping.README.txt"),
+        ConfigUtility.resolveFileUnderDirectory(mappingsDir,
+            "NCIt_Metathesaurus_Mapping.README.txt", "release mappings file"),
         StandardCharsets.UTF_8));
     
     

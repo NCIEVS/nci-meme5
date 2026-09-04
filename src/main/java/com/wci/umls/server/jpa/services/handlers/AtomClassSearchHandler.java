@@ -5,8 +5,6 @@ package com.wci.umls.server.jpa.services.handlers;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,8 +59,10 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
 
     // Initialize acronyms map
     if (p.containsKey("acronymsFile")) {
-      try (BufferedReader in = new BufferedReader(new FileReader(
-          new File(p.getProperty("acronymsFile")), StandardCharsets.UTF_8))) {
+      final File acronymsFile = ConfigUtility.validateConfiguredExistingFile(p,
+          "acronymsFile");
+      try (BufferedReader in =
+          ConfigUtility.newBufferedReader(acronymsFile, "acronymsFile")) {
         String line;
         while ((line = in.readLine()) != null) {
           final String[] tokens = FieldedStringTokenizer.split(line, "\t");
@@ -79,12 +79,15 @@ public class AtomClassSearchHandler extends AbstractConfigurable implements Sear
     // Initialize spell checker
     if (p.containsKey("spellingFile") && p.containsKey("spellingIndex")) {
       // expect properties to have "spellingFile" and "spellingIndex"
-      final File dir = new File(p.getProperty("spellingIndex"));
+      final File dir = ConfigUtility.validateConfiguredDirectory(p,
+          "spellingIndex", true);
+      final File spellingFile = ConfigUtility.validateConfiguredExistingFile(p,
+          "spellingFile");
       final Directory directory = FSDirectory.open(dir.toPath());
       spellChecker = new SpellChecker(directory, new LuceneLevenshteinDistance());
       final IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new WhitespaceAnalyzer());
       spellChecker.indexDictionary(
-          new PlainTextDictionary(new File(p.getProperty("spellingFile")).toPath()),
+          new PlainTextDictionary(spellingFile.toPath()),
           indexWriterConfig, false);
 
     } else {

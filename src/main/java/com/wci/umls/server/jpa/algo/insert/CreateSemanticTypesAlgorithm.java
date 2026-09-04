@@ -26,7 +26,7 @@ import org.apache.commons.io.FileUtils;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
@@ -64,21 +64,18 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			throw new Exception("Create semantic types requires a project to be set");
 		}
 
-		// Check the input directories
+			// Check the input directory
+			setSrcDirFileFromProcessInputPath();
 
-		final String srcFullPath = PropertyUtility.getProperties().getProperty("source.data.dir") + File.separator
-				+ getProcess().getInputPath();
+			// check the inversion src folder
+			File inversionSrcFolder = ConfigUtility.resolvePathUnderDirectory(
+					getSrcDirFile().getParentFile(), "inversion source directory", "src");
+			if (!inversionSrcFolder.exists()) {
+				throw new Exception("Inversion src folder must exist.");
+			}
 
-		setSrcDirFile(new File(srcFullPath));
-
-		// check the inversion src folder
-		String inversionSrcFolderName = getSrcDirFile().getParentFile() + File.separator + "src";
-		File inversionSrcFolder = new File(inversionSrcFolderName);
-		if (!inversionSrcFolder.exists()) {
-			throw new Exception("Inversion src folder must exist.");
-		}
-
-		File file = new File(inversionSrcFolder, "attributes.src");
+			File file = ConfigUtility.resolveFileUnderDirectory(inversionSrcFolder,
+					"attributes.src", "inversion source file");
 		if (!file.exists()) {
 			throw new Exception("Inversion src folder must contain attributes.src .");
 		}
@@ -172,12 +169,12 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 		Map<String, Integer> smqSaids = new HashMap<>();
 		Map<String, String> ttySdui2Said = new HashMap<>();
 
-		// first, get current max id from attributes.src file
-		final String attributesFile = getSrcDirFile() + File.separator + "attributes.src";
+			// first, get current max id from attributes.src file
+			final File attributesFile = getSrcFile("attributes.src");
 
 		try {
 			BufferedReader in = new BufferedReader(
-					new FileReader(attributesFile, StandardCharsets.UTF_8));
+						new FileReader(attributesFile, StandardCharsets.UTF_8));
 			String line;
 			while ((line = in.readLine()) != null) {
 				String[] parts = line.split("\\|");
@@ -189,14 +186,14 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			in.close();
 			logInfo("max attribute id: " + aid);
 		} catch (Exception e) {
-			logError("Could not open attributes.src file to discover max attributeId.");
-			return;
-		}
+				logError("Could not open attributes.src file to discover max attributeId.");
+				return;
+			}
 
-		// first prepare said2stys from the generated file sty_term_ids.
-		// this file is generated during test insertion.
-		try {
-			final String styTermIdsFile = getSrcDirFile() + File.separator + "sty_term_ids";
+			// first prepare said2stys from the generated file sty_term_ids.
+			// this file is generated during test insertion.
+			try {
+				final File styTermIdsFile = getSrcFile("sty_term_ids");
 
 			BufferedReader in = new BufferedReader(
 					new FileReader(styTermIdsFile, StandardCharsets.UTF_8));
@@ -216,9 +213,9 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			return;
 		}
 
-		// now read atoms file
-		// remember saids whose stys are not yet populated
-		final String classesAtomsFile = getSrcDirFile() + File.separator + "classes_atoms.src";
+			// now read atoms file
+			// remember saids whose stys are not yet populated
+			final File classesAtomsFile = getSrcFile("classes_atoms.src");
 
 		try {
 			BufferedReader in = new BufferedReader(
@@ -256,16 +253,16 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			return;
 		}
 
-		try {
-			/// for these walk through the context trees and assign stys.
-			final String contextsFile = getSrcDirFile() + File.separator + "contexts.src";
+			try {
+				/// for these walk through the context trees and assign stys.
+				final File contextsFile = getSrcFile("contexts.src");
 
-			try (FileWriter out = new FileWriter(getSrcDirFile() + File.separator + "new_sty_defaults",
-					StandardCharsets.UTF_8);
-					PrintWriter pw = new PrintWriter(new BufferedWriter(
-							new FileWriter(getSrcDirFile() + File.separator + "attributes.src",
-									StandardCharsets.UTF_8, true)));
-					BufferedReader in = new BufferedReader(
+				try (FileWriter out = new FileWriter(getSrcFile("new_sty_defaults"),
+						StandardCharsets.UTF_8);
+						PrintWriter pw = new PrintWriter(new BufferedWriter(
+								new FileWriter(getSrcFile("attributes.src"),
+										StandardCharsets.UTF_8, true)));
+						BufferedReader in = new BufferedReader(
 							new FileReader(contextsFile, StandardCharsets.UTF_8))) {
 				String line;
 				int count = 0;
@@ -384,20 +381,22 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			// attributes.src was modified in the getSrcDir folder (inversion test
 			// directory)
 			// now it needs to be copied to the inversion src folder
-			// but first backup the attributes.src file in the inversion src folder
+				// but first backup the attributes.src file in the inversion src folder
 
-			// get inversion src folder
-			String inversionSrcFolderName = getSrcDirFile().getParentFile() + File.separator + "src";
-			File inversionSrcFolder = new File(inversionSrcFolderName);
-			if (!inversionSrcFolder.exists()) {
-				throw new Exception("attributes.src modified in " + getSrcDirFile()
-						+ " but unable to access the inversion src folder.");
-			}
-			// File with old name
-			File file = new File(inversionSrcFolder, "attributes.src");
+				// get inversion src folder
+				File inversionSrcFolder = ConfigUtility.resolvePathUnderDirectory(
+						getSrcDirFile().getParentFile(), "inversion source directory", "src");
+				if (!inversionSrcFolder.exists()) {
+					throw new Exception("attributes.src modified in " + getSrcDirFile()
+							+ " but unable to access the inversion src folder.");
+				}
+				// File with old name
+				File file = ConfigUtility.resolveFileUnderDirectory(inversionSrcFolder,
+						"attributes.src", "inversion source file");
 
-			// File with new name
-			File file2 = new File(inversionSrcFolder, "attributes.orig");
+				// File with new name
+				File file2 = ConfigUtility.resolveFileUnderDirectory(inversionSrcFolder,
+						"attributes.orig", "inversion source backup file");
 
 			if (file2.exists())
 				throw new java.io.IOException(file2.getAbsolutePath() + " already exists");
@@ -406,14 +405,14 @@ public class CreateSemanticTypesAlgorithm extends AbstractInsertMaintReleaseAlgo
 			boolean success = file.renameTo(file2);
 
 			if (!success) {
-				// attributes.src was not successfully renamed
-				throw new Exception(
-						"unable to make backup copy of " + inversionSrcFolder + File.separator + "attributes.src");
-			}
+					// attributes.src was not successfully renamed
+					throw new Exception(
+							"unable to make backup copy of " + file);
+				}
 
-			// copy modified test/attributes.src to the inversionSrcFolder
-			logInfo("copying modified file: " + attributesFile + " to inversion src folder: " + file);
-			FileUtils.copyFile(new File(attributesFile), file);
+				// copy modified test/attributes.src to the inversionSrcFolder
+				logInfo("copying modified file: " + attributesFile + " to inversion src folder: " + file);
+				FileUtils.copyFile(attributesFile, file);
 
 		} catch (Exception e) {
 			logError("Error appending to attributes.src file. " + e.getMessage());

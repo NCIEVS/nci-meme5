@@ -8,7 +8,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Properties;
@@ -19,7 +18,6 @@ import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
-import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
@@ -48,16 +46,7 @@ public class PrepareMetamorphoSysAlgorithm extends AbstractAlgorithm {
   @Override
   public ValidationResult checkPreconditions() throws Exception {
 
-    // Check the process input path
-    final String path =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    final File pathAsFile = new File(path);
-    if (!pathAsFile.exists()) {
-      throw new LocalException(
-          "Input path specified in process does not exist");
-    }
+    getExistingProcessInputDirectory();
 
     return new ValidationResultJpa();
   }
@@ -70,10 +59,13 @@ public class PrepareMetamorphoSysAlgorithm extends AbstractAlgorithm {
     //
     //Prepare mmsys.zip with updated release version
     //
-    final File inputPath = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
-    final File pathMeta = new File(inputPath, "/META");
-    final File pathTemp = new File(pathMeta, "/x");
+    final File inputPath = getExistingProcessInputDirectory();
+    final File pathMeta =
+        ConfigUtility.resolvePathUnderDirectory(inputPath,
+            "MetamorphoSys META directory", "META");
+    final File pathTemp =
+        ConfigUtility.resolvePathUnderDirectory(pathMeta,
+            "MetamorphoSys temp directory", "x");
     logInfo("  pathTemp absolute: " + pathTemp.getAbsolutePath());
     logInfo("  pathTemp canonical: " + pathTemp.getCanonicalPath());
     
@@ -84,24 +76,32 @@ public class PrepareMetamorphoSysAlgorithm extends AbstractAlgorithm {
     }
     
     // Make backup of mmsys.zip, if it doesn't already exist e.g. mmsys.202106.zip
-	if (!new File(pathMeta.getPath() + "/mmsys." + getProcess().getVersion() + ".zip").exists()) {
-		Path copied = Paths.get(pathMeta.getPath() + "/mmsys." + getProcess().getVersion() + ".zip");
-		Path originalPath = new File(pathMeta.getPath() + "/mmsys.zip").toPath();
-		Files.copy(originalPath, copied, StandardCopyOption.REPLACE_EXISTING);
-	}
+    final File originalZip =
+        ConfigUtility.resolveFileUnderDirectory(pathMeta, "mmsys.zip",
+            "MetamorphoSys zip file");
+    final File backupZip = ConfigUtility.resolveFileUnderDirectory(pathMeta,
+        "mmsys." + getProcess().getVersion() + ".zip",
+        "MetamorphoSys backup zip file");
+    if (!backupZip.exists()) {
+      Path copied = backupZip.toPath();
+      Path originalPath = originalZip.toPath();
+      Files.copy(originalPath, copied, StandardCopyOption.REPLACE_EXISTING);
+    }
     
     // Unzip "path/META/mmsys.zip" into "path/x"
-    logInfo("  Unzip " + pathMeta.getPath() + "/mmsys.zip");
+    logInfo("  Unzip " + originalZip);
     commitClearBegin();
-    ConfigUtility.unzip(pathMeta.getPath() + "/mmsys.zip",
-        pathTemp.getPath());
+    ConfigUtility.unzip(originalZip.getPath(), pathTemp.getPath());
 
     //"config" (path/META/x/config)
-    final File pathConfig = new File(pathTemp, "/config");
+    final File pathConfig =
+        ConfigUtility.resolvePathUnderDirectory(pathTemp,
+            "MetamorphoSys config directory", "config");
     // get most recent release folder in the config directory
     final File previousReleaseFolder = getLastModified(pathConfig);
     final String previousRelease = previousReleaseFolder.getName();
-    final File currentReleaseFolder = new File (pathConfig, "/" + getProcess().getVersion());
+    final File currentReleaseFolder = ConfigUtility.resolveFileUnderDirectory(
+        pathConfig, getProcess().getVersion(), "MetamorphoSys release folder");
     
     //Rename the previous release directory to current release (e.g. % mv 201203 201209)
     ConfigUtility.renameFile(previousReleaseFolder, currentReleaseFolder);
@@ -112,28 +112,36 @@ public class PrepareMetamorphoSysAlgorithm extends AbstractAlgorithm {
     //    release.dat
     //    user.*.prop
     //    Don't worry about the other contents, the build process will rewrite with corrected config files, the placeholders just need to exist.
-    replaceAllInFile(pathConfig.getAbsolutePath(), "mmsys.prop", previousRelease, currentReleaseFolder.getName());
-    replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "umls.prop", previousRelease, currentReleaseFolder.getName());
-    replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "user.a.prop", previousRelease, currentReleaseFolder.getName());
-    replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "user.b.prop", previousRelease, currentReleaseFolder.getName());
-    replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "user.c.prop", previousRelease, currentReleaseFolder.getName());
-    replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "user.d.prop", previousRelease, currentReleaseFolder.getName());
-    replaceAllInFile(currentReleaseFolder.getAbsolutePath(), "release.dat", previousRelease, currentReleaseFolder.getName());    
+    replaceAllInFile(pathConfig, "mmsys.prop", previousRelease,
+        currentReleaseFolder.getName());
+    replaceAllInFile(currentReleaseFolder, "umls.prop", previousRelease,
+        currentReleaseFolder.getName());
+    replaceAllInFile(currentReleaseFolder, "user.a.prop", previousRelease,
+        currentReleaseFolder.getName());
+    replaceAllInFile(currentReleaseFolder, "user.b.prop", previousRelease,
+        currentReleaseFolder.getName());
+    replaceAllInFile(currentReleaseFolder, "user.c.prop", previousRelease,
+        currentReleaseFolder.getName());
+    replaceAllInFile(currentReleaseFolder, "user.d.prop", previousRelease,
+        currentReleaseFolder.getName());
+    replaceAllInFile(currentReleaseFolder, "release.dat", previousRelease,
+        currentReleaseFolder.getName());
     
     //Delete original /local/content/MEME/MEME5/mr/META/mmsys.zip
-    ConfigUtility.deleteFileIfExists(new File(pathMeta.getPath() + "/mmsys.zip"));
+    ConfigUtility.deleteFileIfExists(originalZip);
     
     //Zip the contents of path/x into revised path/META/mmsys.zip 
 
     ZipParameters params = new ZipParameters();
     params.setIncludeRootFolder(false);
-    new ZipFile(pathMeta + "/mmsys.zip").addFolder(new File(pathTemp.getAbsolutePath()), params);
+    new ZipFile(originalZip.getPath()).addFolder(pathTemp, params);
     
     logInfo("Finished " + getName());
   }
   
-  public void replaceAllInFile(String folder, String file, String previousRelease, String currentRelease) throws Exception {
-	  Path path = Paths.get(folder, file);
+  public void replaceAllInFile(File folder, String file, String previousRelease, String currentRelease) throws Exception {
+	  Path path = ConfigUtility.resolveFileUnderDirectory(folder, file,
+        "MetamorphoSys config file").toPath();
 	    Charset charset = StandardCharsets.UTF_8;
 
 	    String content = new String(Files.readAllBytes(path), charset);

@@ -288,7 +288,7 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
   /* see superclass */
   @Override
   public String getFileVersion() throws Exception {
-    return new RrfFileSorter().getFileVersion(new File(getInputPath()));
+    return new RrfFileSorter().getFileVersion(getInputPathDirectory());
   }
 
   /**
@@ -319,10 +319,7 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     setMolecularActionFlag(false);
 
     // Check the input directory
-    File inputDirFile = new File(getInputPath());
-    if (!inputDirFile.exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    File inputDirFile = getInputPathDirectory();
 
     // Sort files - not really needed because files are already sorted
     Logger.getLogger(getClass()).info("  Sort RRF Files");
@@ -455,7 +452,8 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     clear();
 
     // Clean-up
-    ConfigUtility.deleteDirectory(new File(inputDirFile, "/RRF-sorted-temp/"));
+    ConfigUtility.deleteDirectory(ConfigUtility.resolvePathUnderDirectory(
+        inputDirFile, "RRF sorted temp directory", "RRF-sorted-temp"));
 
     // Identity Loader
     if (style.toString().startsWith("META")) {
@@ -2446,7 +2444,7 @@ public class RrfLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
   private void loadMrhier() throws Exception {
     logInfo("  Load MRHIER data");
 
-    File file = new File(getInputPath(), prefix + "HIER.RRF");
+    File file = getInputPathFile(prefix + "HIER.RRF");
     final List<String> lines = Files.readLines(file, Charset.forName("UTF-8"));
 
     // Sort lines by length of PTR

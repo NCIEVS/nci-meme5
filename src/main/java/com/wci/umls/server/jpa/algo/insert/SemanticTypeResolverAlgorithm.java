@@ -19,7 +19,6 @@ import org.apache.log4j.Logger;
 
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -74,15 +73,8 @@ public class SemanticTypeResolverAlgorithm
           + " is invalid: must be either 'win' or 'lose'");
     }
 
-    // Check the input directories
-    String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }
@@ -204,7 +196,7 @@ public class SemanticTypeResolverAlgorithm
       final List<Object[]> list = jpaQuery.getResultList();
 
       // Create the sty_terms_ids file, and write each result to it
-      File outputFile = new File(getSrcDirFile(), "sty_term_ids");
+      File outputFile = getSrcFile("sty_term_ids");
       final PrintWriter out =
           new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
 

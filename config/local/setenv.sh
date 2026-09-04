@@ -8,7 +8,8 @@
 #   APP_DIR, DATA_DIR, DB_HOST, DB_PORT, DB_NAME, DB_USER
 #
 # Optional overrides:
-#   DB_PASSWORD, INDEX_DIR, LVG_DIR, BASE_URL, MAIL_*, DEPLOY_*, SECURITY_*
+#   DB_PASSWORD, INDEX_DIR, LVG_DIR, BASE_URL, DB_ALLOWED_HOSTS,
+#   REST_CLIENT_ALLOWED_HOSTS, MAIL_*, DEPLOY_*, SECURITY_*
 #
 # These variables map directly into src/main/resources/application.properties.
 
@@ -43,6 +44,7 @@ export DB_USER="${DB_USER:-root}"
 export DB_PASSWORD="${DB_PASSWORD:-}"
 export DB_DRIVER="${DB_DRIVER:-com.mysql.cj.jdbc.Driver}"
 export DB_SERVER_TIMEZONE="${DB_SERVER_TIMEZONE:-UTC}"
+export DB_ALLOWED_HOSTS="${DB_ALLOWED_HOSTS:-$DB_HOST}"
 export DB_MAX_POOL_SIZE="${DB_MAX_POOL_SIZE:-64}"
 export DB_MIN_POOL_SIZE="${DB_MIN_POOL_SIZE:-5}"
 export DB_IDLE_TIMEOUT_MS="${DB_IDLE_TIMEOUT_MS:-3600000}"
@@ -57,6 +59,7 @@ export SERVER_PORT="${SERVER_PORT:-8080}"
 export SERVER_CONTEXT_PATH="${SERVER_CONTEXT_PATH:-/umls-server-rest}"
 export SERVER_SERVLET_CONTEXT_PATH="${SERVER_SERVLET_CONTEXT_PATH:-$SERVER_CONTEXT_PATH}"
 export BASE_URL="${BASE_URL:-http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}}"
+export REST_CLIENT_ALLOWED_HOSTS="${REST_CLIENT_ALLOWED_HOSTS:-localhost,127.0.0.1,::1}"
 export APP_DISPLAY_TIMEZONE="${APP_DISPLAY_TIMEZONE:-America/New_York}"
 export RUN_CONFIG_LABEL="${RUN_CONFIG_LABEL:-umls}"
 export DEPLOY_LINK="${DEPLOY_LINK:-http://www.westcoastinformatics.com}"

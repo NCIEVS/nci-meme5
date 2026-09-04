@@ -5,9 +5,9 @@ package com.wci.umls.server.jpa.algo;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -337,57 +337,57 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
   public List<String> loadFileIntoStringList(File srcDirFile, String fileName,
     String keepRegexFilter, String skipRegexFilter, Long sortField)
     throws Exception {
-    final String sourcesFile = srcDirFile + File.separator + fileName;
-    BufferedReader sources = null;
+    final File sourcesFile = ConfigUtility.resolveFileUnderDirectory(srcDirFile,
+        fileName, "source file");
     try {
-      sources = new BufferedReader(new FileReader(sourcesFile,
-          StandardCharsets.UTF_8));
+      try (BufferedReader sources =
+          Files.newBufferedReader(sourcesFile.toPath(),
+              StandardCharsets.UTF_8)) {
+
+        final List<String> lines = new ArrayList<>();
+        String linePre = null;
+        while ((linePre = sources.readLine()) != null) {
+          linePre = linePre.replace("\r", "");
+          // Filter rows if defined
+          if (ConfigUtility.isEmpty(keepRegexFilter)
+              && ConfigUtility.isEmpty(skipRegexFilter)) {
+            lines.add(linePre);
+          } else if (!ConfigUtility.isEmpty(keepRegexFilter)
+              && ConfigUtility.isEmpty(skipRegexFilter)) {
+            if (linePre.matches(keepRegexFilter)) {
+              lines.add(linePre);
+            }
+          } else if (ConfigUtility.isEmpty(keepRegexFilter)
+              && !ConfigUtility.isEmpty(skipRegexFilter)) {
+            if (!linePre.matches(skipRegexFilter)) {
+              lines.add(linePre);
+            }
+          } else if (!ConfigUtility.isEmpty(keepRegexFilter)
+              && !ConfigUtility.isEmpty(skipRegexFilter)) {
+            if (linePre.matches(keepRegexFilter)
+                && !linePre.matches(skipRegexFilter)) {
+              lines.add(linePre);
+            }
+          }
+        }
+
+        // If sortField specified, sort.
+        if (sortField != null) {
+          int sortFieldInt = sortField.intValue();
+          Collections.sort(lines, new Comparator<String>() {
+            @Override
+            public int compare(String s1, String s2) {
+              return s1.split("\\|")[sortFieldInt]
+                  .compareTo(s2.split("\\|")[sortFieldInt]);
+            }
+          });
+        }
+
+        return lines;
+      }
     } catch (Exception e) {
       throw new Exception("File not found: " + sourcesFile);
     }
-
-    final List<String> lines = new ArrayList<>();
-    String linePre = null;
-    while ((linePre = sources.readLine()) != null) {
-      linePre = linePre.replace("\r", "");
-      // Filter rows if defined
-      if (ConfigUtility.isEmpty(keepRegexFilter)
-          && ConfigUtility.isEmpty(skipRegexFilter)) {
-        lines.add(linePre);
-      } else if (!ConfigUtility.isEmpty(keepRegexFilter)
-          && ConfigUtility.isEmpty(skipRegexFilter)) {
-        if (linePre.matches(keepRegexFilter)) {
-          lines.add(linePre);
-        }
-      } else if (ConfigUtility.isEmpty(keepRegexFilter)
-          && !ConfigUtility.isEmpty(skipRegexFilter)) {
-        if (!linePre.matches(skipRegexFilter)) {
-          lines.add(linePre);
-        }
-      } else if (!ConfigUtility.isEmpty(keepRegexFilter)
-          && !ConfigUtility.isEmpty(skipRegexFilter)) {
-        if (linePre.matches(keepRegexFilter)
-            && !linePre.matches(skipRegexFilter)) {
-          lines.add(linePre);
-        }
-      }
-    }
-
-    sources.close();
-
-    // If sortField specified, sort.
-    if (sortField != null) {
-      int sortFieldInt = sortField.intValue();
-      Collections.sort(lines, new Comparator<String>() {
-        @Override
-        public int compare(String s1, String s2) {
-          return s1.split("\\|")[sortFieldInt]
-              .compareTo(s2.split("\\|")[sortFieldInt]);
-        }
-      });
-    }
-
-    return lines;
   }
 
   /**
@@ -403,45 +403,45 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
    */
   public int filterFileForCount(File srcDirFile, String fileName,
     String keepRegexFilter, String skipRegexFilter) throws Exception {
-    final String sourcesFile = srcDirFile + File.separator + fileName;
-    BufferedReader sources = null;
+    final File sourcesFile = ConfigUtility.resolveFileUnderDirectory(srcDirFile,
+        fileName, "source file");
     try {
-      sources = new BufferedReader(new FileReader(sourcesFile,
-          StandardCharsets.UTF_8));
+      try (BufferedReader sources =
+          Files.newBufferedReader(sourcesFile.toPath(),
+              StandardCharsets.UTF_8)) {
+
+        int ct = 0;
+        String linePre = null;
+        while ((linePre = sources.readLine()) != null) {
+          linePre = linePre.replace("\r", "");
+          // Filter rows if defined
+          if (ConfigUtility.isEmpty(keepRegexFilter)
+              && ConfigUtility.isEmpty(skipRegexFilter)) {
+            ct++;
+          } else if (!ConfigUtility.isEmpty(keepRegexFilter)
+              && ConfigUtility.isEmpty(skipRegexFilter)) {
+            if (linePre.matches(keepRegexFilter)) {
+              ct++;
+            }
+          } else if (ConfigUtility.isEmpty(keepRegexFilter)
+              && !ConfigUtility.isEmpty(skipRegexFilter)) {
+            if (!linePre.matches(skipRegexFilter)) {
+              ct++;
+            }
+          } else if (!ConfigUtility.isEmpty(keepRegexFilter)
+              && !ConfigUtility.isEmpty(skipRegexFilter)) {
+            if (linePre.matches(keepRegexFilter)
+                && !linePre.matches(skipRegexFilter)) {
+              ct++;
+            }
+          }
+        }
+
+        return ct;
+      }
     } catch (Exception e) {
       throw new Exception("File not found: " + sourcesFile);
     }
-
-    int ct = 0;
-    String linePre = null;
-    while ((linePre = sources.readLine()) != null) {
-      linePre = linePre.replace("\r", "");
-      // Filter rows if defined
-      if (ConfigUtility.isEmpty(keepRegexFilter)
-          && ConfigUtility.isEmpty(skipRegexFilter)) {
-        ct++;
-      } else if (!ConfigUtility.isEmpty(keepRegexFilter)
-          && ConfigUtility.isEmpty(skipRegexFilter)) {
-        if (linePre.matches(keepRegexFilter)) {
-          ct++;
-        }
-      } else if (ConfigUtility.isEmpty(keepRegexFilter)
-          && !ConfigUtility.isEmpty(skipRegexFilter)) {
-        if (!linePre.matches(skipRegexFilter)) {
-          ct++;
-        }
-      } else if (!ConfigUtility.isEmpty(keepRegexFilter)
-          && !ConfigUtility.isEmpty(skipRegexFilter)) {
-        if (linePre.matches(keepRegexFilter)
-            && !linePre.matches(skipRegexFilter)) {
-          ct++;
-        }
-      }
-    }
-
-    sources.close();
-
-    return ct;
   }
 
   /**
@@ -1206,6 +1206,45 @@ public abstract class AbstractInsertMaintReleaseAlgorithm
    */
   public void setSrcDirFile(File srcDirFile) {
     this.srcDirFile = srcDirFile;
+  }
+
+  /**
+   * Sets the source directory from the process input path.
+   *
+   * @return the resolved source directory
+   * @throws Exception the exception
+   */
+  protected File setSrcDirFileFromProcessInputPath() throws Exception {
+
+    final File directory = getExistingProcessInputDirectory();
+    setSrcDirFile(directory);
+    return directory;
+  }
+
+  /**
+   * Returns a file below the current source directory.
+   *
+   * @param fileName the file name
+   * @return the file
+   * @throws Exception the exception
+   */
+  protected File getSrcFile(final String fileName) throws Exception {
+
+    return ConfigUtility.resolveFileUnderDirectory(getSrcDirFile(), fileName,
+        "source file");
+  }
+
+  /**
+   * Returns a directory below the current source directory.
+   *
+   * @param path the relative path
+   * @return the directory
+   * @throws Exception the exception
+   */
+  protected File getSrcDirectory(final String path) throws Exception {
+
+    return ConfigUtility.resolvePathUnderDirectory(getSrcDirFile(),
+        "source directory", path);
   }
 
   /**

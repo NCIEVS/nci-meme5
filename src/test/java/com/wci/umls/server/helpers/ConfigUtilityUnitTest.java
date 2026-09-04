@@ -6,8 +6,11 @@ package com.wci.umls.server.helpers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -72,6 +75,10 @@ public class ConfigUtilityUnitTest {
         properties.getProperty("source.data.dir"));
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
+    assertNotNull(properties.getProperty("database.allowed.hosts"));
+    assertNotNull(properties.getProperty("rest.client.allowed.hosts"));
+    assertFalse(properties.getProperty("algorithm.handler").contains("RUNMMSYS"));
+    assertFalse(properties.containsKey("algorithm.handler.RUNMMSYS.class"));
     assertEquals("meme-team@westcoastinformatics.com",
         properties.getProperty("insertion.notification.recipients"));
     assertFalse(properties.containsKey("spring.profiles.active"));
@@ -145,17 +152,373 @@ public class ConfigUtilityUnitTest {
   @Test
   public void testSpringEnvironmentProperties() throws Exception {
     final StandardEnvironment environment = new StandardEnvironment();
+    environment.getPropertySources().remove(
+        StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
+    environment.getPropertySources().remove(
+        StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
     final Properties sourceProperties = new Properties();
+    sourceProperties.setProperty("app.dir", "/tmp/nm302-env-test");
     sourceProperties.setProperty("nm302.test.value", "${app.dir}/data");
     environment.getPropertySources().addFirst(
         new PropertiesPropertySource("nm302Test", sourceProperties));
-    System.setProperty("app.dir", "/tmp/nm302-env-test");
 
     final Properties properties =
         PropertyUtility.loadEnvironmentProperties(environment);
 
     assertEquals("/tmp/nm302-env-test/data",
         properties.getProperty("nm302.test.value"));
+  }
+
+  /**
+   * Verifies REST base URLs are normalized after host allowlist validation.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRestBaseUrlValidationAllowsConfiguredHost()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty("base.url",
+        "https://terminology.example.org/ncim-server-rest/");
+    properties.setProperty(ConfigUtility.REST_CLIENT_ALLOWED_HOSTS_PROPERTY,
+        "terminology.example.org");
+
+    assertEquals("https://terminology.example.org/ncim-server-rest",
+        ConfigUtility.getRestBaseUrl(properties));
+    assertEquals(
+        "https://terminology.example.org/ncim-server-rest/security/logout/dummy",
+        ConfigUtility.getRestUrl(properties, "security/logout/dummy"));
+  }
+
+  /**
+   * Verifies REST base URL validation rejects unexpected targets.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRestBaseUrlValidationRejectsUnexpectedTargets()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty("base.url",
+        "http://169.254.169.254/umls-server-rest");
+
+    assertIllegalArgument(() -> ConfigUtility.getRestBaseUrl(properties));
+
+    properties.setProperty("base.url",
+        "http://user@localhost:8080/umls-server-rest");
+    assertIllegalArgument(() -> ConfigUtility.getRestBaseUrl(properties));
+
+    properties.setProperty("base.url",
+        "http://localhost:8080/umls-server-rest");
+    assertIllegalArgument(
+        () -> ConfigUtility.getRestUrl(properties, "http://example.org/path"));
+  }
+
+  /**
+   * Verifies MySQL JDBC URLs are allowed after host allowlist validation.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testJdbcUrlValidationAllowsConfiguredHost()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty(ConfigUtility.DATABASE_ALLOWED_HOSTS_PROPERTY,
+        "db.example.org");
+    final String jdbcUrl =
+        "jdbc:mysql://db.example.org:3306/ncimdb?serverTimezone=UTC";
+
+    assertEquals(jdbcUrl, ConfigUtility.validateJdbcUrl(jdbcUrl,
+        "jakarta.persistence.jdbc.url", properties));
+    assertEquals("jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
+        ConfigUtility.validateJdbcServerUrl(
+            "jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
+            "jakarta.persistence.jdbc.url", properties));
+  }
+
+  /**
+   * Verifies JDBC URL validation rejects unexpected targets.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testJdbcUrlValidationRejectsUnexpectedTargets()
+    throws Exception {
+
+    final Properties properties = new Properties();
+    properties.setProperty(ConfigUtility.DATABASE_ALLOWED_HOSTS_PROPERTY,
+        "db.example.org");
+
+    assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
+        "jdbc:mysql://169.254.169.254:3306/ncimdb",
+        "jakarta.persistence.jdbc.url", properties));
+    assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
+        "jdbc:h2:mem:test", "jakarta.persistence.jdbc.url", properties));
+    assertIllegalArgument(() -> ConfigUtility.validateJdbcUrl(
+        "jdbc:mysql://db.example.org:3306/?serverTimezone=UTC",
+        "jakarta.persistence.jdbc.url", properties));
+  }
+
+  /**
+   * Verifies release QA target validation rejects command-like values.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRunQaChecksRejectsUnexpectedTarget() throws Exception {
+    assertIllegalArgument(() -> ConfigUtility.runQaChecks(null, null, null,
+        "MRCONSO;rm -rf /", null, null));
+  }
+
+  /**
+   * Verifies release QA paths must stay under source.data.dir.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRunQaChecksRejectsMetaOutsideSourceDataDir()
+    throws Exception {
+
+    final File dir = Files.createTempDirectory("nm-command-validation").toFile();
+    try {
+      final File sourceDataDir = new File(dir, "data");
+      final File binDir = new File(dir, "bin");
+      final File outsideMetaDir = new File(dir, "outside/META");
+      final File previousMetaDir = new File(sourceDataDir, "mr/2025/META");
+      Files.createDirectories(sourceDataDir.toPath());
+      Files.createDirectories(binDir.toPath());
+      Files.createDirectories(outsideMetaDir.toPath());
+      Files.createDirectories(previousMetaDir.toPath());
+
+      assertIllegalArgument(() -> ConfigUtility.runQaChecks(sourceDataDir,
+          binDir, outsideMetaDir, "MRCONSO", previousMetaDir, null));
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
+  }
+
+  /**
+   * Verifies release QA execution uses the fixed script and validated arguments.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRunQaChecksExecutesValidatedScript() throws Exception {
+    assumeFalse(System.getProperty("os.name").toLowerCase().contains("win"));
+
+    final File dir = Files.createTempDirectory("nm-command-execution").toFile();
+    try {
+      final File sourceDataDir = new File(dir, "data");
+      final File binDir = new File(dir, "bin");
+      final File metaDir = new File(sourceDataDir, "release/2026/META");
+      final File previousMetaDir = new File(sourceDataDir, "mr/2025/META");
+      Files.createDirectories(binDir.toPath());
+      Files.createDirectories(metaDir.toPath());
+      Files.createDirectories(previousMetaDir.toPath());
+
+      final File script = new File(binDir, "qa_checks.csh");
+      Files.write(script.toPath(),
+          Arrays.asList("#!/bin/sh", "printf 'cwd=%s\\n' \"$(pwd)\"",
+              "printf 'dir=%s\\n' \"$1\"",
+              "printf 'target=%s\\n' \"$2\"",
+              "printf 'prev=%s\\n' \"$3\"", "test \"$2\" = MRCONSO"),
+          StandardCharsets.UTF_8);
+      assertTrue(script.setExecutable(true));
+
+      final String output = ConfigUtility.runQaChecks(sourceDataDir, binDir,
+          metaDir, "MRCONSO", previousMetaDir, null);
+
+      assertEquals("cwd=" + binDir.getCanonicalPath() + "\n" + "dir="
+          + metaDir.getCanonicalPath() + "\n" + "target=MRCONSO\n" + "prev="
+          + previousMetaDir.getCanonicalPath() + "\n", output);
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
+  }
+
+  /**
+   * Verifies source data path resolution rejects traversal and absolute paths.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testResolveSourceDataPathRejectsUnsafePaths()
+    throws Exception {
+
+    final File root = Files.createTempDirectory("nm-path-source-root").toFile();
+    try {
+      final Properties properties = new Properties();
+      properties.setProperty(ConfigUtility.SOURCE_DATA_DIR_PROPERTY,
+          root.getPath());
+      PropertyUtility.setProperties(properties);
+
+      assertEquals(new File(root, "process/META").getCanonicalFile(),
+          ConfigUtility.resolveSourceDataPath("process input path", "process",
+              "META"));
+
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "../outside"));
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "/tmp/outside"));
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "C:\\tmp"));
+      assertIllegalArgument(() -> ConfigUtility.resolveSourceDataPath(
+          "process input path", "process\\META"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
+   * Verifies filename resolution rejects path-shaped values.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testResolveFileUnderDirectoryRejectsPathNames()
+    throws Exception {
+
+    final File dir = Files.createTempDirectory("nm-path-file-root").toFile();
+    try {
+      assertEquals(new File(dir, "report.txt").getCanonicalFile(),
+          ConfigUtility.resolveFileUnderDirectory(dir, "report.txt",
+              "report file"));
+
+      assertIllegalArgument(() -> ConfigUtility.resolveFileUnderDirectory(dir,
+          "../report.txt", "report file"));
+      assertIllegalArgument(() -> ConfigUtility.resolveFileUnderDirectory(dir,
+          "nested/report.txt", "report file"));
+      assertIllegalArgument(() -> ConfigUtility.resolveFileUnderDirectory(dir,
+          "C:\\report.txt", "report file"));
+    } finally {
+      ConfigUtility.deleteDirectory(dir);
+    }
+  }
+
+  /**
+   * Verifies zip entry validation rejects zip-slip style paths.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testValidateZipEntryPathRejectsUnsafeEntries()
+    throws Exception {
+
+    assertEquals("META/MRCONSO.RRF", ConfigUtility.validateZipEntryPath(
+        "archive/META/MRCONSO.RRF", "zip entry", true));
+    assertEquals("MRCONSO.RRF", ConfigUtility.validateZipEntryPath(
+        "MRCONSO.RRF", "zip entry", false));
+    assertEquals("", ConfigUtility.validateZipEntryPath("archive/",
+        "zip entry", true));
+
+    assertIllegalArgument(() -> ConfigUtility.validateZipEntryPath(
+        "archive/../evil.txt", "zip entry", true));
+    assertIllegalArgument(() -> ConfigUtility.validateZipEntryPath(
+        "/tmp/evil.txt", "zip entry", false));
+    assertIllegalArgument(() -> ConfigUtility.validateZipEntryPath(
+        "C:/tmp/evil.txt", "zip entry", false));
+  }
+
+  /**
+   * Verifies stored paths must remain inside their owning base directory.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testValidatePathUnderDirectoryRejectsOutsidePath()
+    throws Exception {
+
+    final File root = Files.createTempDirectory("nm-path-owned-root").toFile();
+    try {
+      final File ownerDir = new File(root, "42");
+      final File outsideDir = new File(root, "outside");
+      Files.createDirectories(ownerDir.toPath());
+      Files.createDirectories(outsideDir.toPath());
+      final File ownedFile = new File(ownerDir, "source.zip");
+      final File outsideFile = new File(outsideDir, "source.zip");
+
+      assertEquals(ownedFile.getCanonicalFile(),
+          ConfigUtility.validatePathUnderDirectory(ownerDir,
+              ownedFile.getPath(), "source data file"));
+      assertIllegalArgument(() -> ConfigUtility.validatePathUnderDirectory(
+          ownerDir, outsideFile.getPath(), "source data file"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
+   * Verifies configured file and directory paths are canonicalized.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testValidateConfiguredPaths() throws Exception {
+    final File root = Files.createTempDirectory("nm-path-config-root").toFile();
+    try {
+      final File file = new File(root, "acronyms.txt");
+      final File indexDir = new File(root, "index");
+      Files.write(file.toPath(), Arrays.asList("NCI\tCancer Institute"),
+          StandardCharsets.UTF_8);
+
+      final Properties properties = new Properties();
+      properties.setProperty("acronymsFile", file.getPath());
+      properties.setProperty("spellingIndex", indexDir.getPath());
+
+      assertEquals(file.getCanonicalFile(),
+          ConfigUtility.validateConfiguredExistingFile(properties,
+              "acronymsFile"));
+      assertEquals(indexDir.getCanonicalFile(),
+          ConfigUtility.validateConfiguredDirectory(properties,
+              "spellingIndex", true));
+      assertTrue(indexDir.isDirectory());
+
+      assertIllegalArgument(() -> ConfigUtility.validateConfiguredExistingFile(
+          properties, "missingFile"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
+  }
+
+  /**
+   * Verifies absolute path helper operations validate before file-system use.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testAbsolutePathHelpersValidateAndOpen() throws Exception {
+    final File root = Files.createTempDirectory("nm-path-absolute-root").toFile();
+    try {
+      final File file = new File(root, "names.txt");
+      Files.write(file.toPath(), Arrays.asList("alpha"),
+          StandardCharsets.UTF_8);
+
+      assertEquals(root.getCanonicalFile(),
+          ConfigUtility.validateExistingDirectoryPath(root.getPath(),
+              "root directory"));
+      assertEquals(file.getCanonicalFile(),
+          ConfigUtility.validateExistingFilePath(file.getPath(), "names file"));
+      assertTrue(ConfigUtility.isExistingDirectory(root, "root directory"));
+      assertTrue(ConfigUtility.isExistingFile(file, "names file"));
+      assertTrue(Arrays.asList(ConfigUtility.list(root, "root directory"))
+          .contains("names.txt"));
+      assertEquals(1,
+          ConfigUtility.listFiles(root, "root directory").length);
+      try (BufferedReader reader =
+          ConfigUtility.newBufferedReader(file, "names file")) {
+        assertEquals("alpha", reader.readLine());
+      }
+
+      assertIllegalArgument(() -> ConfigUtility.validateExistingFilePath(
+          file.getPath() + "\0suffix", "names file"));
+      assertIllegalArgument(() -> ConfigUtility.validateExistingDirectoryPath(
+          file.getPath(), "root directory"));
+    } finally {
+      ConfigUtility.deleteDirectory(root);
+    }
   }
 
   /**
@@ -170,6 +533,35 @@ public class ConfigUtilityUnitTest {
     } catch (ClassNotFoundException e) {
       // expected
     }
+  }
+
+  /**
+   * Asserts that a runnable throws IllegalArgumentException.
+   *
+   * @param runnable the runnable
+   * @throws Exception for unexpected exceptions
+   */
+  private static void assertIllegalArgument(final ThrowingRunnable runnable)
+    throws Exception {
+    try {
+      runnable.run();
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // expected
+    }
+  }
+
+  /**
+   * Runnable that can throw checked exceptions.
+   */
+  private interface ThrowingRunnable {
+
+    /**
+     * Runs the operation.
+     *
+     * @throws Exception the exception
+     */
+    void run() throws Exception;
   }
 
   /**

@@ -26,13 +26,13 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.algo.Algorithm;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.KeyValuePair;
 import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.LogEntry;
 import com.wci.umls.server.helpers.PfsParameter;
 import com.wci.umls.server.helpers.ProcessConfigList;
 import com.wci.umls.server.helpers.ProcessExecutionList;
+import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.jpa.model.AlgorithmConfigJpa;
 import com.wci.umls.server.jpa.model.AlgorithmExecutionJpa;
 import com.wci.umls.server.jpa.model.ProcessConfigJpa;
@@ -769,31 +769,27 @@ public class ProcessServiceJpa extends WorkflowServiceJpa
   public void saveLogToFile(Long projectId, ProcessExecution processExecution)
     throws Exception {
 
-    // Check the input directories
-    String logFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + processExecution.getLogPath();
+    final String logPath = processExecution.getLogPath();
 
-    // If input directory is completely empty, don't throw an error (some
-    // processes are fine to run without input directory specified)
-    if (ConfigUtility.isEmpty(logFullPath)) {
+    // If log path is empty, don't throw an error (some processes are fine to run
+    // without input directory specified).
+    if (ConfigUtility.isEmpty(logPath)) {
       return;
     }
 
-    final File saveLocation = new File(logFullPath);
-    if (!saveLocation.exists()) {
-      // bail if location doesn't exist
+    final File saveLocation = ConfigUtility.resolveSourceDataPath(
+        "process log directory", logPath);
+    if (!saveLocation.isDirectory()) {
       return;
-      // throw new LocalException(
-      // "Specified input directory does not exist - could not save Process Log
-      // to disk");
     }
 
     // Create and populate the log
     final String runDate =
         new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-    final File outputFile = new File(logFullPath, "process."
-        + processExecution.getProcessConfigId() + "." + runDate + ".log");
+    final File outputFile = ConfigUtility.resolveFileUnderDirectory(
+        saveLocation, "process."
+            + processExecution.getProcessConfigId() + "." + runDate + ".log",
+        "process log file");
 
     try (PrintWriter out =
         new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8))) {

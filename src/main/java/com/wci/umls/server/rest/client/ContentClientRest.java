@@ -96,7 +96,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/terminology/load/simple?terminology="
+        getBaseUrl(config) + "/terminology/load/simple?terminology="
             + terminology + "&version=" + version);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -124,7 +124,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/terminology/load/rrf?terminology="
+        getBaseUrl(config) + "/terminology/load/rrf?terminology="
             + terminology + "&version=" + version + "&prefix=" + prefix
             + "&style=" + (style == null ? false : style));
 
@@ -151,7 +151,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/terminology/closure/compute/"
+        getBaseUrl(config) + "/content/terminology/closure/compute/"
             + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(""));
@@ -176,7 +176,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/terminology/treepos/compute/"
+        getBaseUrl(config) + "/content/terminology/treepos/compute/"
             + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(""));
@@ -198,7 +198,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/reindex");
+        client.target(getBaseUrl(config) + "/content/reindex");
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(indexedObjects));
 
@@ -221,7 +221,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/terminology/" + terminology + "/" + version);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -247,7 +247,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(terminology, "terminology");
     validateNotEmpty(version, "version");
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/concept/" + terminology + "/" + version + "/"
         + terminologyId + (projectId == null ? "" : "?projectId=" + projectId));
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -273,7 +273,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/concept/"
+        client.target(getBaseUrl(config) + "/content/concept/"
             + conceptId + (projectId == null ? "" : "?projectId=" + projectId));
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -298,7 +298,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(atomId, "atomId");
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/atom/" + atomId
+        client.target(getBaseUrl(config) + "/content/atom/" + atomId
             + (projectId == null ? "" : "?projectId=" + projectId));
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -325,7 +325,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
 
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/concept/" + terminology + "/" + version + "?query="
         + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -355,7 +355,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/concept" + "?query="
+        .target(getBaseUrl(config) + "/content/concept" + "?query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20")
             + "&JPQL=" + URLEncoder.encode(JPQL == null ? "" : JPQL, "UTF-8")
@@ -389,7 +389,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/concept/"
+        client.target(getBaseUrl(config) + "/content/concept/"
             + terminology + "/" + version + "/autocomplete/" + searchTerm);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -416,7 +416,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/descriptor/" + terminology + "/" + version + "/"
         + terminologyId + (projectId == null ? "" : "?projectId=" + projectId));
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -445,7 +445,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/inverseRelationshipType/" + terminology + "/" + version + "/"
         + relationshipType);
     final Response response = target.request(MediaType.TEXT_PLAIN)
@@ -472,7 +472,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/descriptor/" + terminology + "/" + version + "?query="
         + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -502,7 +502,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/descriptor/" + "?query="
+        getBaseUrl(config) + "/content/descriptor/" + "?query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20")
             + "&JPQL=" + URLEncoder.encode(JPQL == null ? "" : JPQL, "UTF-8")
@@ -537,7 +537,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/descriptor/"
+        client.target(getBaseUrl(config) + "/content/descriptor/"
             + terminology + "/" + version + "/autocomplete/" + searchTerm);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -565,7 +565,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/code/" + terminology + "/" + version + "/" + terminologyId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -591,7 +591,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/code/" + terminology + "/" + version + "?query="
         + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -621,7 +621,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/code" + "?query="
+        .target(getBaseUrl(config) + "/content/code" + "?query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20")
             + "&JPQL=" + URLEncoder.encode(JPQL == null ? "" : JPQL, "UTF-8")
@@ -655,7 +655,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/code/"
+        client.target(getBaseUrl(config) + "/content/code/"
             + terminology + "/" + version + "/autocomplete/" + searchTerm);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -684,7 +684,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/lui/" + terminology + "/" + version + "/" + terminologyId
         + (projectId == null ? "" : "?projectId=" + projectId));
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -714,7 +714,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/sui/" + terminology + "/" + version + "/" + terminologyId
         + (projectId == null ? "" : "?projectId=" + projectId));
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -745,7 +745,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/concept/" + terminology + "/"
+        getBaseUrl(config) + "/content/concept/" + terminology + "/"
             + version + "/" + terminologyId + "/ancestors/" + parentsOnly);
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -778,7 +778,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/concept/" + terminology + "/"
+        getBaseUrl(config) + "/content/concept/" + terminology + "/"
             + version + "/" + terminologyId + "/descendants/" + childrenOnly);
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -810,7 +810,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/descriptor/" + terminology + "/" + version + "/"
         + terminologyId + "/ancestors/" + parentsOnly);
     final String pfsString = ConfigUtility
@@ -844,7 +844,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/descriptor/" + terminology + "/" + version + "/"
         + terminologyId + "/descendants/" + childrenOnly);
     final String pfsString = ConfigUtility
@@ -878,7 +878,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/code/" + terminology + "/"
+        getBaseUrl(config) + "/content/code/" + terminology + "/"
             + version + "/" + terminologyId + "/ancestors/" + parentsOnly);
 
     final String pfsString = ConfigUtility
@@ -911,7 +911,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/code/" + terminology + "/"
+        getBaseUrl(config) + "/content/code/" + terminology + "/"
             + version + "/" + terminologyId + "/descendants/" + childrenOnly);
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -942,7 +942,7 @@ public class ContentClientRest extends RootClientRest
     final Client client = ClientBuilder.newClient();
 
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/concept/"
+        client.target(getBaseUrl(config) + "/content/concept/"
             + terminology + "/" + version + "/" + terminologyId + "/members");
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -972,7 +972,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/aui/"
+        client.target(getBaseUrl(config) + "/content/aui/"
             + terminology + "/" + version + "/" + terminologyId + "/members");
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -1000,7 +1000,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/terminology/load/rf2/snapshot/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).put(Entity.text(inputDir));
@@ -1024,7 +1024,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/terminology/load/rf2/full/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).put(Entity.text(inputDir));
@@ -1047,7 +1047,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(terminology, "terminology");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/terminology/load/rf2/delta/" + terminology);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).put(Entity.text(inputDir));
@@ -1072,7 +1072,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(inputFile, "inputFile");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/terminology/load/claml/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).put(Entity.text(inputFile));
@@ -1095,7 +1095,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(inputFile, "inputFile");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/terminology/load/owl/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).put(Entity.text(inputFile));
@@ -1117,7 +1117,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/aui/subset/all/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -1143,7 +1143,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/concept/subset/all/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -1173,7 +1173,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/aui/subset/"
+        client.target(getBaseUrl(config) + "/content/aui/subset/"
             + subsetId + "/" + terminology + "/" + version + "/members"
             + "?query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
@@ -1207,7 +1207,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/concept/subset/"
+        .target(getBaseUrl(config) + "/content/concept/subset/"
             + subsetId + "/" + terminology + "/" + version + "/members"
             + "?query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
@@ -1259,7 +1259,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/concept/" + terminology + "/"
+        getBaseUrl(config) + "/content/concept/" + terminology + "/"
             + version + "/" + terminologyId + "/relationships/deep");
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -1311,7 +1311,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/component/" + type + "/" + terminology + "/" + version + "/"
         + terminologyId + "/relationships" + "?query="
         + URLEncoder.encode(query == null ? "" : query, "UTF-8")
@@ -1383,7 +1383,7 @@ public class ContentClientRest extends RootClientRest
     PfsParameterJpa pfs, String authToken) throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/" + type + "/" + terminology
+        getBaseUrl(config) + "/content/" + type + "/" + terminology
             + "/" + version + "/" + terminologyId + "/relationships" + "?query="
             + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
@@ -1480,7 +1480,7 @@ public class ContentClientRest extends RootClientRest
     String authToken) throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/" + type + "/"
+        client.target(getBaseUrl(config) + "/content/" + type + "/"
             + terminologyId + "/" + terminology + "/" + version + "/mappings"
             + "?query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
@@ -1510,7 +1510,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(atomId, "atomId");
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/ATOM/" + atomId + "/trees");
+        getBaseUrl(config) + "/content/ATOM/" + atomId + "/trees");
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -1588,7 +1588,7 @@ public class ContentClientRest extends RootClientRest
     final Client client = ClientBuilder.newClient();
     final String treesPath = "descriptor".equals(type) ? "/trees/" : "/trees";
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/" + type + "/"
+        client.target(getBaseUrl(config) + "/content/" + type + "/"
             + terminology + "/" + version + "/" + terminologyId + treesPath);
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -1662,7 +1662,7 @@ public class ContentClientRest extends RootClientRest
     String version, String query, PfsParameterJpa pfs, String authToken)
     throws Exception {
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/" + type + "/" + terminology + "/" + version + "/trees"
         + "?query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
             .replaceAll("\\+", "%20"));
@@ -1687,7 +1687,7 @@ public class ContentClientRest extends RootClientRest
   public TreeList findAtomTreeChildren(Long atomId, PfsParameterJpa pfs,
     String authToken) throws Exception {
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/" + "/atom" + "/" + atomId + "/trees/children");
 
     final String pfsString = ConfigUtility
@@ -1714,7 +1714,7 @@ public class ContentClientRest extends RootClientRest
     throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/" + "/concept"
+        client.target(getBaseUrl(config) + "/content/" + "/concept"
             + "/" + terminology + "/" + version + "/trees/children");
 
     final String pfsString = ConfigUtility
@@ -1741,7 +1741,7 @@ public class ContentClientRest extends RootClientRest
     throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/" + "/descriptor"
+        .target(getBaseUrl(config) + "/content/" + "/descriptor"
             + "/" + terminology + "/" + version + "/trees/children");
 
     final String pfsString = ConfigUtility
@@ -1767,7 +1767,7 @@ public class ContentClientRest extends RootClientRest
     throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/" + "/code"
+        client.target(getBaseUrl(config) + "/content/" + "/code"
             + "/" + terminology + "/" + version + "/trees/children");
 
     final String pfsString = ConfigUtility
@@ -1792,7 +1792,7 @@ public class ContentClientRest extends RootClientRest
     PfsParameterJpa pfs, String authToken) throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/" + "/concept"
+        client.target(getBaseUrl(config) + "/content/" + "/concept"
             + "/" + terminology + "/" + version + "/trees/roots");
 
     final String pfsString = ConfigUtility
@@ -1817,7 +1817,7 @@ public class ContentClientRest extends RootClientRest
     PfsParameterJpa pfs, String authToken) throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/" + "/code"
+        client.target(getBaseUrl(config) + "/content/" + "/code"
             + "/" + terminology + "/" + version + "/trees/roots");
 
     final String pfsString = ConfigUtility
@@ -1842,7 +1842,7 @@ public class ContentClientRest extends RootClientRest
     PfsParameterJpa pfs, String authToken) throws Exception {
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/" + "/descriptor"
+        .target(getBaseUrl(config) + "/content/" + "/descriptor"
             + "/" + terminology + "/" + version + "/trees/roots");
 
     final String pfsString = ConfigUtility
@@ -1872,7 +1872,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/mapset/"
+        client.target(getBaseUrl(config) + "/content/mapset/"
             + terminology + "/" + version + "/" + terminologyId);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -1898,7 +1898,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/mapset/all/" + terminology + "/" + version);
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -1928,7 +1928,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/mapset/"
+        client.target(getBaseUrl(config) + "/content/mapset/"
             + mapSetId + "/" + terminology + "/" + version + "/mappings"
             + "?query=" + URLEncoder.encode(query == null ? "" : query, "UTF-8")
                 .replaceAll("\\+", "%20"));
@@ -1959,7 +1959,7 @@ public class ContentClientRest extends RootClientRest
     validateNotEmpty(version, "version");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/expression/index/" + terminology + "/" + version);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -1986,7 +1986,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/ecl/isExpression/"
+        .target(getBaseUrl(config) + "/content/ecl/isExpression/"
             + terminology + "/" + version + "/" + query);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -2013,7 +2013,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/content/expression/query/"
+        .target(getBaseUrl(config) + "/content/expression/query/"
             + terminology + "/" + version + "/" + query);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -2038,7 +2038,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/content/favorites");
+        client.target(getBaseUrl(config) + "/content/favorites");
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -2066,7 +2066,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/concept/" + id + "/note");
+        getBaseUrl(config) + "/content/concept/" + id + "/note");
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(noteText));
@@ -2088,7 +2088,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/atom/" + id + "/note");
+        getBaseUrl(config) + "/content/atom/" + id + "/note");
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(noteText));
@@ -2111,7 +2111,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/concept/note/" + noteId);
+        getBaseUrl(config) + "/content/concept/note/" + noteId);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).delete();
@@ -2133,7 +2133,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/atom/note/" + noteId);
+        getBaseUrl(config) + "/content/atom/note/" + noteId);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).delete();
@@ -2156,7 +2156,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/descriptor/" + id + "/note");
+        getBaseUrl(config) + "/content/descriptor/" + id + "/note");
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(noteText));
@@ -2179,7 +2179,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/descriptor/note/" + noteId);
+        getBaseUrl(config) + "/content/descriptor/note/" + noteId);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).delete();
@@ -2201,7 +2201,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/code/" + id + "/note");
+        getBaseUrl(config) + "/content/code/" + id + "/note");
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).post(Entity.text(noteText));
@@ -2223,7 +2223,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/code/note/" + noteId);
+        getBaseUrl(config) + "/content/code/note/" + noteId);
 
     final Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).delete();
@@ -2243,7 +2243,7 @@ public class ContentClientRest extends RootClientRest
         .debug("Content Client - get components with notes for query");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/component/notes?query=" + query);
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -2271,7 +2271,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/validate/concept?projectId="
+        getBaseUrl(config) + "/content/validate/concept?projectId="
             + projectId + (check == null ? "" : "&check=" + check));
 
     final String conceptString =
@@ -2300,7 +2300,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/validate/concepts?projectId="
+        getBaseUrl(config) + "/content/validate/concepts?projectId="
             + projectId + (check == null ? "" : "&check=" + check));
 
     final Response response = target.request(MediaType.APPLICATION_XML)
@@ -2326,7 +2326,7 @@ public class ContentClientRest extends RootClientRest
         .debug("Content Client - validate atom " + atom);
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/validate/atom?projectId=" + projectId);
 
     final String atomString =
@@ -2354,7 +2354,7 @@ public class ContentClientRest extends RootClientRest
         .debug("Content Client - validate descriptor " + descriptor);
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/validate/descriptor?projectId=" + projectId);
 
     final String descriptorString = (descriptor != null
@@ -2382,7 +2382,7 @@ public class ContentClientRest extends RootClientRest
         .debug("Content Client - validate code " + code);
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/content/validate/code?projectId=" + projectId);
 
     final String codeString =
@@ -2417,7 +2417,7 @@ public class ContentClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/content/concept/" + terminology + "/"
+        getBaseUrl(config) + "/content/concept/" + terminology + "/"
             + version + "/" + terminologyId + "/treePositions/deep");
     final String pfsString = ConfigUtility
         .getStringForGraph(pfs == null ? new PfsParameterJpa() : pfs);
@@ -2450,7 +2450,7 @@ public class ContentClientRest extends RootClientRest
 
     Client client = ClientBuilder.newClient();
 
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/terminology/export/simple?terminology=" + terminology + "&version="
         + version);
 

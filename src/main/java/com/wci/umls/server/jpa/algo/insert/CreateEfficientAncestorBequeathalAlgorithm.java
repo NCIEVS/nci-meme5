@@ -21,7 +21,6 @@ import jakarta.persistence.Query;
 import com.wci.umls.server.model.algo.AlgorithmParameter;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.jpa.model.AlgorithmParameterJpa;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
@@ -59,13 +58,8 @@ public class CreateEfficientAncestorBequeathalAlgorithm extends AbstractInsertMa
       throw new Exception("Create ancestor bequeath requires a project to be set");
     }
 
-    // Check the input directories
-
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
     /**if (!getSrcDirFile().exists()) {
       throw new Exception("Specified input directory does not exist");
     } */
@@ -86,15 +80,15 @@ public class CreateEfficientAncestorBequeathalAlgorithm extends AbstractInsertMa
     try {
 
       Set<Concept> deletedCuis = new HashSet<>();
-      File srcDir = getSrcDirFile();
-      File maintDir = new File(srcDir, "maint");
+      File maintDir = getSrcDirectory("maint");
       if (! maintDir.exists()){
         ConfigUtility.ensureDirectoryExists(maintDir);
       }
       logInfo("maint dir:" + maintDir);
       BufferedWriter out = new BufferedWriter(new FileWriter(
-          new File(maintDir, "bequeathal.ancestor.relationships.src."
-              + terminologyParam),
+          ConfigUtility.resolveFileUnderDirectory(maintDir,
+              "bequeathal.ancestor.relationships.src." + terminologyParam,
+              "bequeathal relationships file"),
           StandardCharsets.UTF_8));
       
       Query query = getEntityManager().createNativeQuery(

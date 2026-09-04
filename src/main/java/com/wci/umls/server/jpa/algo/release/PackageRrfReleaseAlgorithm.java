@@ -40,13 +40,14 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
   @Override
   public ValidationResult checkPreconditions() throws Exception {
 
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
+    final File path = ConfigUtility.validateExistingDirectory(
+        getProcessReleaseDirectory(), "process release directory");
     logInfo("  path " + path);
 
     final String filename = getProcess().getVersion() + ".zip";
-    final File zipFile =
-        new File(path, getProcess().getVersion() + "/" + filename);
+    final File zipFile = ConfigUtility.resolveSourceDataPath(
+        "release package file", getProcess().getInputPath(),
+        getProcess().getVersion(), filename);
     logInfo("  zipFileName " + zipFile);
 
     if (zipFile.exists()) {
@@ -60,14 +61,14 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
   @Override
   public void compute() throws Exception {
     logInfo("Starting " + getName());
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
+    final File path = ConfigUtility.validateExistingDirectory(
+        getProcessReleaseDirectory(), "process release directory");
     final String filename = getProcess().getVersion() + ".zip";
-    final File zipFile =
-        new File(path, getProcess().getVersion() + "/" + filename);
+    final File zipFile = ConfigUtility.resolveFileUnderDirectory(path,
+        filename, "release package file");
 
-    final File pathMeta =
-        new File(path, "/" + getProcess().getVersion() + "/META");
+    final File pathMeta = ConfigUtility.validateExistingDirectory(
+        getProcessReleaseMetaDirectory(), "process release META directory");
     logInfo("  pathMeta " + pathMeta);
 
 // Removed for NM-263
@@ -83,8 +84,8 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
 //    zipDirectory(mmsysPath, out, mmsysPath.getPath().length() + 1);
 
     // Add release.dat if it exists in the version folder
-    final File releaseDat =
-        new File(path, "/" + getProcess().getVersion() + "/release.dat");
+    final File releaseDat = ConfigUtility.resolveFileUnderDirectory(path,
+        "release.dat", "release data file");
     if (releaseDat.exists()) {
       logInfo("  Process release.dat");
       final ZipEntry zipEntry = new ZipEntry("release.dat");
@@ -116,7 +117,7 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
     }
     for (final File file : files) {
       if (file.isFile()) {
-        logInfo("    " + new File(folder, file.getName()).getName());
+        logInfo("    " + file.getName());
         final ZipEntry zipEntry =
             new ZipEntry(file.getPath().substring(prefixLength));
         zipOutputStream.putNextEntry(zipEntry);
@@ -138,13 +139,12 @@ public class PackageRrfReleaseAlgorithm extends AbstractAlgorithm {
     logInfo("Starting RESET " + getName());
 
     // Remove the output zip file
-    final File path = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath());
+    final File path = getProcessReleaseDirectory();
     logInfo("  path " + path);
 
     final String filename = getProcess().getVersion() + ".zip";
-    final File zipFile =
-        new File(path, getProcess().getVersion() + "/" + filename);
+    final File zipFile = ConfigUtility.resolveFileUnderDirectory(path,
+        filename, "release package file");
     if (zipFile.exists()) {
       FileUtils.fileDelete(zipFile.getAbsolutePath());
     }

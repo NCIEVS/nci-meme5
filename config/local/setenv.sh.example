@@ -21,11 +21,13 @@ export DB_PORT=3306
 export DB_NAME=ncimdb
 export DB_USER=root
 export DB_PASSWORD=
+export DB_ALLOWED_HOSTS=127.0.0.1
 
 # Web
 export SERVER_PORT=8080
 export SERVER_CONTEXT_PATH=/umls-server-rest
 export BASE_URL="http://localhost:${SERVER_PORT}${SERVER_CONTEXT_PATH}"
+export REST_CLIENT_ALLOWED_HOSTS=localhost,127.0.0.1,::1
 export DEPLOY_SIMPLEEDIT_ENABLED=false
 export DEPLOY_TRACKING_CODE="<!-- sample tracking code -->"
 export DEPLOY_COOKIE_CODE=

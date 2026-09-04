@@ -57,16 +57,8 @@ public class ReportChecklistAlgorithm
           "Report Checklist Algorithm requires a project to be set");
     }
 
-    // Check the input directories
-
-    final String srcFullPath =
-        PropertyUtility.getProperties().getProperty("source.data.dir")
-            + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
-    if (!getSrcDirFile().exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    // Check the input directory
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }
@@ -89,8 +81,7 @@ public class ReportChecklistAlgorithm
       logInfo("  Creating the report table checklists");
       commitClearBegin();
 
-      final File outputFile =
-          new File(getSrcDirFile(), "reportChecklistResults.txt");
+      final File outputFile = getSrcFile("reportChecklistResults.txt");
       String server = InetAddress.getLocalHost().getHostName();
       
       final PrintWriter out =

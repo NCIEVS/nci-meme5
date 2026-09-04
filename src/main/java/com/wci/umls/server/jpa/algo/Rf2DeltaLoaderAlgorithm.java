@@ -180,10 +180,7 @@ public class Rf2DeltaLoaderAlgorithm
 
     // File preparation
     // Check the input directory
-    File inputPathFile = new File(getInputPath());
-    if (!inputPathFile.exists()) {
-      throw new Exception("Specified input directory does not exist");
-    }
+    File inputPathFile = getInputPathDirectory();
 
     // control transaction scope
     setTransactionPerOperation(false);
@@ -198,7 +195,8 @@ public class Rf2DeltaLoaderAlgorithm
     beginTransaction();
 
     // Read RF2 from the "sorted" directory
-    File outputDir = new File(inputPathFile, "/RF2-sorted-temp/");
+    File outputDir = ConfigUtility.resolvePathUnderDirectory(inputPathFile,
+        "RF2 sorted temp directory", "RF2-sorted-temp");
 
     // Sort files if indicated (otherwise sorted externally, e.g. by "full"
     // loader)
@@ -228,7 +226,7 @@ public class Rf2DeltaLoaderAlgorithm
     // Open readers if not opened externally
     boolean leaveReadersOpen = readers != null;
     if (!leaveReadersOpen) {
-      readers = new Rf2Readers(new File(getInputPath() + "/RF2-sorted-temp/"));
+      readers = new Rf2Readers(outputDir);
       readers.openReaders();
     }
 
@@ -389,8 +387,7 @@ public class Rf2DeltaLoaderAlgorithm
 
     // Remove sort directory if sorting was done locally
     if (isSortFiles()) {
-      ConfigUtility
-          .deleteDirectory(new File(getInputPath(), "/RF2-sorted-temp/"));
+      ConfigUtility.deleteDirectory(outputDir);
     }
 
     // Final logging messages

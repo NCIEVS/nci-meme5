@@ -25,7 +25,8 @@ import com.wci.umls.server.jpa.services.rest.HistoryServiceRest;
 /**
  * A client for connecting to a history REST service.
  */
-public class HistoryClientRest implements HistoryServiceRest {
+public class HistoryClientRest extends RootClientRest
+    implements HistoryServiceRest {
 
   /** The config. */
   private Properties config = null;
@@ -45,7 +46,7 @@ public class HistoryClientRest implements HistoryServiceRest {
     throws Exception {
     Client client = ClientBuilder.newClient();
     WebTarget target = client.target(
-        config.getProperty("base.url") + "/history/releases/" + terminology);
+        getBaseUrl(config) + "/history/releases/" + terminology);
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
     if (response.getStatus() == 204) {
@@ -74,7 +75,7 @@ public class HistoryClientRest implements HistoryServiceRest {
   public ReleaseInfo getCurrentReleaseInfo(String terminology, String authToken)
     throws Exception {
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/history/release/" + terminology + "/current");
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -104,7 +105,7 @@ public class HistoryClientRest implements HistoryServiceRest {
   public ReleaseInfo getPreviousReleaseInfo(String terminology,
     String authToken) throws Exception {
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/history/release/" + terminology + "/previous");
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -134,7 +135,7 @@ public class HistoryClientRest implements HistoryServiceRest {
   public ReleaseInfo getPlannedReleaseInfo(String terminology, String authToken)
     throws Exception {
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/history/release/" + terminology + "/planned");
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -164,7 +165,7 @@ public class HistoryClientRest implements HistoryServiceRest {
   public ReleaseInfo getReleaseInfo(String terminology, String name,
     String authToken) throws Exception {
     Client client = ClientBuilder.newClient();
-    WebTarget target = client.target(config.getProperty("base.url")
+    WebTarget target = client.target(getBaseUrl(config)
         + "/history/release/" + terminology + "/" + name);
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).get();
@@ -191,7 +192,7 @@ public class HistoryClientRest implements HistoryServiceRest {
     String authToken) throws Exception {
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/history/release");
+        client.target(getBaseUrl(config) + "/history/release");
     String riString = ConfigUtility.getStringForGraph(
         releaseInfo == null ? new ReleaseInfoJpa() : releaseInfo);
     Logger.getLogger(this.getClass()).debug(riString);
@@ -219,7 +220,7 @@ public class HistoryClientRest implements HistoryServiceRest {
     throws Exception {
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/history/release");
+        client.target(getBaseUrl(config) + "/history/release");
     String riString = ConfigUtility.getStringForGraph(
         releaseInfo == null ? new ReleaseInfoJpa() : releaseInfo);
     Logger.getLogger(this.getClass()).debug(riString);
@@ -239,7 +240,7 @@ public class HistoryClientRest implements HistoryServiceRest {
   public void removeReleaseInfo(Long id, String authToken) throws Exception {
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/history/release" + id);
+        client.target(getBaseUrl(config) + "/history/release" + id);
 
     Response response = target.request(MediaType.APPLICATION_XML)
         .header("Authorization", authToken).delete();

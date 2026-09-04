@@ -208,9 +208,7 @@ public class WriteRrfIndexFilesAlgorithm
    * @throws Exception the exception
    */
   private void openWriters() throws Exception {
-    dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
+    dir = getProcessReleaseMetaDirectory();
 
     writerMap.put("MRXNS_ENG.RRF",
         newUtf8Writer(dir, "MRXNS_ENG.RRF"));
@@ -233,7 +231,9 @@ public class WriteRrfIndexFilesAlgorithm
    * @throws Exception the exception
    */
   private PrintWriter newUtf8Writer(File dir, String fileName) throws Exception {
-    return new PrintWriter(new FileWriter(new File(dir, fileName),
+    return new PrintWriter(new FileWriter(
+        ConfigUtility.resolveFileUnderDirectory(dir, fileName,
+            "release index file"),
         StandardCharsets.UTF_8));
   }
 
@@ -250,8 +250,10 @@ public class WriteRrfIndexFilesAlgorithm
 
     // sort files
     for (String writerName : writerMap.keySet()) {
-      File inputFile = new File(dir, writerName);
-      File outputFile = new File(dir, writerName + ".sorted");
+      File inputFile = ConfigUtility.resolveFileUnderDirectory(dir, writerName,
+          "release index file");
+      File outputFile = ConfigUtility.resolveFileUnderDirectory(dir,
+          writerName + ".sorted", "release sorted index file");
       FileSorter.sortFile(inputFile.getAbsolutePath(),
           outputFile.getAbsolutePath(), ConfigUtility.getByteComparator());
     }
@@ -259,8 +261,10 @@ public class WriteRrfIndexFilesAlgorithm
     // move sorted files into orig files
     for (String writerName : writerMap.keySet()) {
 
-      File inputFile = new File(dir, writerName);
-      File outputFile = new File(dir, writerName + ".sorted");
+      File inputFile = ConfigUtility.resolveFileUnderDirectory(dir, writerName,
+          "release index file");
+      File outputFile = ConfigUtility.resolveFileUnderDirectory(dir,
+          writerName + ".sorted", "release sorted index file");
       ConfigUtility.deleteFileIfExists(inputFile);
       Files.move(outputFile.getAbsoluteFile(), inputFile.getAbsoluteFile());
     }

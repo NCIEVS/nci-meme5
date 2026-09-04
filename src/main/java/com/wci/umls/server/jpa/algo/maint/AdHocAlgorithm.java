@@ -38,7 +38,6 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.ChecklistList;
 import com.wci.umls.server.helpers.ConfigUtility;
-import com.wci.umls.server.helpers.PropertyUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.LocalException;
 import com.wci.umls.server.helpers.PfsParameter;
@@ -168,10 +167,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       throw new Exception("Ad Hoc algorithms requires a project to be set");
     }
 
-    final String srcFullPath = PropertyUtility.getProperties().getProperty("source.data.dir")
-        + File.separator + getProcess().getInputPath();
-
-    setSrcDirFile(new File(srcFullPath));
+    setSrcDirFileFromProcessInputPath();
 
     return validationResult;
   }
@@ -3668,12 +3664,10 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       Map<String, String> auiCuiMap = new HashMap<>();
 
       // Check the mr directory
-      String mrPath = config.getProperty("source.data.dir") + "/" + getProcess().getInputPath()
-          + "/" + getProcess().getVersion() + "/META";
-
-      final File mrDirFile = new File(mrPath);
+      final File mrDirFile = getProcessReleaseMetaDirectory();
       if (!mrDirFile.exists()) {
-        throw new Exception("Specified input directory does not exist = " + mrPath);
+        throw new Exception(
+            "Specified input directory does not exist = " + mrDirFile);
       }
 
       final List<String> lines = loadFileIntoStringList(mrDirFile, "MRCONSO.RRF", null, null, null);
@@ -3901,12 +3895,10 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       InversionService service = new InversionServiceJpa();
 
       // Check the mr directory
-      String mrPath = config.getProperty("source.data.dir") + "/" + getProcess().getInputPath()
-          + "/" + getProcess().getVersion() + "/META";
-
-      final File mrDirFile = new File(mrPath);
+      final File mrDirFile = getProcessReleaseMetaDirectory();
       if (!mrDirFile.exists()) {
-        throw new Exception("Specified input directory does not exist = " + mrPath);
+        throw new Exception(
+            "Specified input directory does not exist = " + mrDirFile);
       }
 
       final List<String> lines =
@@ -5047,7 +5039,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
              loadedRootTerminologies.put(root.getTerminology(), root);
            }
            
-           File inputDirFile = new File(config.getProperty("source.data.dir") + "/" + getProcess().getInputPath());
+           File inputDirFile = getExistingProcessInputDirectory();
            if (!inputDirFile.exists()) {
              throw new Exception("Specified input directory does not exist");
            }
@@ -5121,15 +5113,15 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
            // 2022/11/10 reload corrupted workflow bin definition queries
            Map<String, String> loadedNameToQuery = new HashMap<>();
 
-           File inputDirFile =
-               new File(config.getProperty("source.data.dir") + "/" + getProcess().getInputPath());
+           File inputDirFile = getExistingProcessInputDirectory();
            if (!inputDirFile.exists()) {
              throw new Exception("Specified input directory does not exist");
            }
 
 	           final String workflow_type = stringParameter;
 
-	           final String sourcesFile = inputDirFile + File.separator + "test.txt";
+	           final File sourcesFile = ConfigUtility.resolveFileUnderDirectory(
+	               inputDirFile, "test.txt", "workflow bin definition file");
 
 	           String line = null;
 

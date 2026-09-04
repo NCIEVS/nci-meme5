@@ -54,7 +54,7 @@ public class SecurityClientRest extends RootClientRest implements
     validateNotEmpty(password, "password");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url")
+        client.target(getBaseUrl(config)
             + "/security/authenticate/" + username);
 
     Response response =
@@ -76,7 +76,7 @@ public class SecurityClientRest extends RootClientRest implements
     Logger.getLogger(getClass()).debug("Security Client - logout");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/logout/"
+        client.target(getBaseUrl(config) + "/security/logout/"
             + authToken);
     Response response = target.request(MediaType.APPLICATION_XML).get();
 
@@ -95,7 +95,7 @@ public class SecurityClientRest extends RootClientRest implements
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user/" + id);
+        client.target(getBaseUrl(config) + "/security/user/" + id);
     Response response =
         target.request(MediaType.APPLICATION_XML)
             .header("Authorization", authToken).get();
@@ -123,7 +123,7 @@ public class SecurityClientRest extends RootClientRest implements
     validateNotEmpty(username, "username");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user/name/"
+        client.target(getBaseUrl(config) + "/security/user/name/"
             + username);
     Response response =
         target.request(MediaType.APPLICATION_XML)
@@ -150,7 +150,7 @@ public class SecurityClientRest extends RootClientRest implements
     Logger.getLogger(getClass()).debug("Security Client - get users");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user/users");
+        client.target(getBaseUrl(config) + "/security/user/users");
     Response response =
         target.request(MediaType.APPLICATION_XML)
             .header("Authorization", authToken).get();
@@ -174,7 +174,7 @@ public class SecurityClientRest extends RootClientRest implements
     Logger.getLogger(getClass()).debug("Security Client - add user " + user);
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user/add");
+        client.target(getBaseUrl(config) + "/security/user/add");
 
     String userString =
         (user != null ? ConfigUtility.getStringForGraph(user) : "");
@@ -203,7 +203,7 @@ public class SecurityClientRest extends RootClientRest implements
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user/remove/"
+        client.target(getBaseUrl(config) + "/security/user/remove/"
             + id);
     Response response =
         target.request(MediaType.APPLICATION_XML)
@@ -222,7 +222,7 @@ public class SecurityClientRest extends RootClientRest implements
     Logger.getLogger(getClass()).debug("Security Client - update user " + user);
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user/update");
+        client.target(getBaseUrl(config) + "/security/user/update");
 
     String userString =
         (user != null ? ConfigUtility.getStringForGraph(user) : "");
@@ -245,7 +245,7 @@ public class SecurityClientRest extends RootClientRest implements
     validateNotEmpty(authToken, "authToken");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/user");
+        client.target(getBaseUrl(config) + "/security/user");
     Response response =
         target.request(MediaType.APPLICATION_XML)
             .header("Authorization", authToken).get();
@@ -273,7 +273,7 @@ public class SecurityClientRest extends RootClientRest implements
         "Security Client - add user preferences " + userPreferences);
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url")
+        client.target(getBaseUrl(config)
             + "/security/user/preferences/add");
 
     String userPreferencesString =
@@ -306,7 +306,7 @@ public class SecurityClientRest extends RootClientRest implements
     validateNotEmpty(id, "id");
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url")
+        client.target(getBaseUrl(config)
             + "/security/user/preferences/remove/" + id);
     Response response =
         target.request(MediaType.APPLICATION_XML)
@@ -327,7 +327,7 @@ public class SecurityClientRest extends RootClientRest implements
         "Security Client - update user preferences " + userPreferences);
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url")
+        client.target(getBaseUrl(config)
             + "/security/user/preferences/update");
 
     String userPreferencesString =
@@ -357,7 +357,7 @@ public class SecurityClientRest extends RootClientRest implements
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url") + "/security/roles");
+        client.target(getBaseUrl(config) + "/security/roles");
     Response response =
         target.request(MediaType.APPLICATION_XML)
             .header("Authorization", authToken).get();
@@ -384,7 +384,7 @@ public class SecurityClientRest extends RootClientRest implements
 
     Client client = ClientBuilder.newClient();
     WebTarget target =
-        client.target(config.getProperty("base.url")
+        client.target(getBaseUrl(config)
             + "/security/user/find"
             + (query != null ? "?query="
                 + URLEncoder.encode(query, "UTF-8")

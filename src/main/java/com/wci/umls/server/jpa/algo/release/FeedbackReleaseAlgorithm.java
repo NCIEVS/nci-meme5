@@ -53,14 +53,10 @@ public class FeedbackReleaseAlgorithm
     }
 
     // Check the mr directory
-    String mrPath = config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion()
-        + "/META";
-
-    mrDirFile = new File(mrPath);
+    mrDirFile = getProcessReleaseMetaDirectory();
     if (!mrDirFile.exists()) {
       throw new Exception(
-          "Specified input directory does not exist = " + mrPath);
+          "Specified input directory does not exist = " + mrDirFile);
     }
 
     return result;

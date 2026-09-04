@@ -65,12 +65,13 @@ public class UmlsIdentityLoaderAlgorithm
       // Handle AttributeIdentity
       // id|terminologyId|terminology|componentId|componentType|componentTerminology|name|hashcode
       //
-      if (new File(getInputPath(), "attributeIdentity.txt").exists()) {
+      final File attributeIdentityFile =
+          getInputPathFile("attributeIdentity.txt");
+      if (attributeIdentityFile.exists()) {
         logInfo("  Load attribute identity");
 
         final BufferedReader in = new BufferedReader(
-            new FileReader(new File(getInputPath(), "attributeIdentity.txt"),
-                StandardCharsets.UTF_8));
+            new FileReader(attributeIdentityFile, StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -102,13 +103,13 @@ public class UmlsIdentityLoaderAlgorithm
       // Handle SemanticTypeIdentity
       // id|conceptTerminologyId|terminology|semanticType
       //
-      if (new File(getInputPath(), "semanticTypeComponentIdentity.txt")
-          .exists()) {
+      final File semanticTypeIdentityFile =
+          getInputPathFile("semanticTypeComponentIdentity.txt");
+      if (semanticTypeIdentityFile.exists()) {
         logInfo("  Load semanticType identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "semanticTypeComponentIdentity.txt"),
-            StandardCharsets.UTF_8));
+            semanticTypeIdentityFile, StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -137,12 +138,12 @@ public class UmlsIdentityLoaderAlgorithm
       // Handle AtomIdentity
       // id|stringClassId|terminology|terminologyId|termType|codeId|conceptId|descriptorId
       //
-      if (new File(getInputPath(), "atomIdentity.txt").exists()) {
+      final File atomIdentityFile = getInputPathFile("atomIdentity.txt");
+      if (atomIdentityFile.exists()) {
         logInfo("  Load atom identity");
 
         final BufferedReader in = new BufferedReader(
-            new FileReader(new File(getInputPath(), "atomIdentity.txt"),
-                StandardCharsets.UTF_8));
+            new FileReader(atomIdentityFile, StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -174,12 +175,13 @@ public class UmlsIdentityLoaderAlgorithm
       // Handle StringClassIdentity
       // id|language|name
       //
-      if (new File(getInputPath(), "stringClassIdentity.txt").exists()) {
+      final File stringClassIdentityFile =
+          getInputPathFile("stringClassIdentity.txt");
+      if (stringClassIdentityFile.exists()) {
         logInfo("  Load string identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "stringClassIdentity.txt"),
-            StandardCharsets.UTF_8));
+            stringClassIdentityFile, StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -206,12 +208,13 @@ public class UmlsIdentityLoaderAlgorithm
       // Handle LexicalClassIdentity
       // id|normalizedName
       //
-      if (new File(getInputPath(), "lexicalClassIdentity.txt").exists()) {
+      final File lexicalClassIdentityFile =
+          getInputPathFile("lexicalClassIdentity.txt");
+      if (lexicalClassIdentityFile.exists()) {
         logInfo("  Load lexicalClass identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "lexicalClassIdentity.txt"),
-            StandardCharsets.UTF_8));
+            lexicalClassIdentityFile, StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -238,12 +241,13 @@ public class UmlsIdentityLoaderAlgorithm
       // Handle RelationshipIdentity
       // id|terminology|terminologyId|type|additionalType|fromId|fromType|fromTerminology|toId|toType|toTerminology|inverseId
       //
-      if (new File(getInputPath(), "relationshipIdentity.txt").exists()) {
+      final File relationshipIdentityFile =
+          getInputPathFile("relationshipIdentity.txt");
+      if (relationshipIdentityFile.exists()) {
         logInfo("  Load relationship identity");
 
         final BufferedReader in = new BufferedReader(new FileReader(
-            new File(getInputPath(), "relationshipIdentity.txt"),
-            StandardCharsets.UTF_8));
+            relationshipIdentityFile, StandardCharsets.UTF_8));
         String line;
         int ct = 0;
         while ((line = in.readLine()) != null) {
@@ -295,7 +299,7 @@ public class UmlsIdentityLoaderAlgorithm
   /* see superclass */
   @Override
   public String getFileVersion() throws Exception {
-    return new RrfFileSorter().getFileVersion(new File(getInputPath()));
+    return new RrfFileSorter().getFileVersion(getInputPathDirectory());
   }
 
   /* see superclass */

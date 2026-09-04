@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.PropertyUtility;
 
 /**
@@ -204,10 +205,11 @@ public final class IntegrationTestPreflight {
         continue;
       }
 
-      final File dir = new File(value);
-      if (!dir.isDirectory()) {
+      try {
+        ConfigUtility.validateExistingDirectoryPath(value, key);
+      } catch (Exception e) {
         failures.add("required directory does not exist: " + key + "="
-            + dir.getAbsolutePath());
+            + value);
       }
     }
   }
@@ -222,11 +224,11 @@ public final class IntegrationTestPreflight {
   private static void checkIndexIsolation(final String profile,
     final Properties properties, final List<String> failures) {
 
-    final File dataDir = new File(property(properties, "data.dir"));
-    final File indexDir = new File(property(properties, "index.dir"));
     try {
-      final File canonicalData = dataDir.getCanonicalFile();
-      final File canonicalIndex = indexDir.getCanonicalFile();
+      final File canonicalData = ConfigUtility.validateExistingDirectoryPath(
+          property(properties, "data.dir"), "data.dir");
+      final File canonicalIndex = ConfigUtility.validateExistingDirectoryPath(
+          property(properties, "index.dir"), "index.dir");
       if (canonicalData.equals(canonicalIndex)) {
         failures.add("profile " + profile
             + " must not use data.dir itself as index.dir: "
@@ -360,18 +362,34 @@ public final class IntegrationTestPreflight {
   private static void checkInsertionFixtureData(final Properties properties,
     final List<String> failures) {
 
-    final File sourceDir =
-        new File(property(properties, "source.data.dir"),
-            "terminologies/NCI_INSERT/src");
-    if (!sourceDir.isDirectory()) {
+    final File sourceDir;
+    try {
+      sourceDir = ConfigUtility.resolvePathUnderDirectory(
+          ConfigUtility.validateExistingDirectoryPath(
+              property(properties, "source.data.dir"), "source.data.dir"),
+          "insertion source-data directory", "terminologies", "NCI_INSERT",
+          "src");
+    } catch (Exception e) {
       failures.add("insertion source-data directory is missing: "
-          + sourceDir.getAbsolutePath());
-    } else {
-      for (final String name : Arrays.asList("sources.src", "termgroups.src",
-          "classes_atoms.src", "relationships.src", "contexts.src",
-          "attributes.src", "mergefacts.src", "MRDOC.RRF")) {
-        checkFileExists(sourceDir, name, failures);
+          + e.getMessage());
+      return;
+    }
+    try {
+      if (!ConfigUtility.isExistingDirectory(sourceDir,
+          "insertion source-data directory")) {
+        failures.add("insertion source-data directory is missing: "
+            + sourceDir.getAbsolutePath());
+        return;
       }
+    } catch (Exception e) {
+      failures.add("insertion source-data directory is missing: "
+          + e.getMessage());
+      return;
+    }
+    for (final String name : Arrays.asList("sources.src", "termgroups.src",
+        "classes_atoms.src", "relationships.src", "contexts.src",
+        "attributes.src", "mergefacts.src", "MRDOC.RRF")) {
+      checkFileExists(sourceDir, name, failures);
     }
 
     try (Connection connection = connect(properties);
@@ -406,10 +424,15 @@ public final class IntegrationTestPreflight {
   private static void checkFileExists(final File dir, final String name,
     final List<String> failures) {
 
-    final File file = new File(dir, name);
-    if (!file.isFile()) {
-      failures.add("required insertion source file is missing: "
-          + file.getAbsolutePath());
+    try {
+      final File file = ConfigUtility.resolveFileUnderDirectory(dir, name,
+          "insertion source file");
+      if (!ConfigUtility.isExistingFile(file, "insertion source file")) {
+        failures.add("required insertion source file is missing: "
+            + file.getAbsolutePath());
+      }
+    } catch (Exception e) {
+      failures.add("required insertion source file is missing: " + name);
     }
   }
 
@@ -492,7 +515,15 @@ public final class IntegrationTestPreflight {
   private static void checkAdminLoaderSourceData(final Properties properties,
     final List<String> failures) {
 
-    final File dataRoot = new File("config/src/main/resources/data");
+    final File dataRoot;
+    try {
+      dataRoot = ConfigUtility.validateExistingDirectoryPath(
+          "config/src/main/resources/data", "admin-loader source-data root");
+    } catch (Exception e) {
+      failures.add("admin-loader source-data root is missing: "
+          + e.getMessage());
+      return;
+    }
     for (final String path : Arrays.asList(
         "SAMPLE_UMLS/MRCONSO.RRF",
         "SAMPLE_UMLS/MRHIER.RRF",
@@ -501,19 +532,38 @@ public final class IntegrationTestPreflight {
             + "sct2_Concept_Full_INT_20140731.txt",
         "icd10cm-2016.xml",
         "snomed.owl")) {
-      final File file = new File(dataRoot, path);
-      if (!file.isFile()) {
-        failures.add("required admin-loader source file is missing: "
-            + file.getAbsolutePath());
+      try {
+        final File file = ConfigUtility.resolvePathUnderDirectory(dataRoot,
+            "admin-loader source file", path);
+        if (!ConfigUtility.isExistingFile(file, "admin-loader source file")) {
+          failures.add("required admin-loader source file is missing: "
+              + file.getAbsolutePath());
+        }
+      } catch (Exception e) {
+        failures.add("required admin-loader source file is missing: " + path);
       }
     }
 
-    final File dataDir = new File(property(properties, "data.dir"));
+    final File dataDir;
+    try {
+      dataDir = ConfigUtility.validateExistingDirectoryPath(
+          property(properties, "data.dir"), "data.dir");
+    } catch (Exception e) {
+      failures.add("required admin-loader data directory is missing: "
+          + e.getMessage());
+      return;
+    }
     for (final String name : Arrays.asList("acronyms.txt", "spelling.txt")) {
-      final File file = new File(dataDir, name);
-      if (!file.isFile()) {
-        failures.add("required admin-loader data file is missing: "
-            + file.getAbsolutePath()
+      try {
+        final File file = ConfigUtility.resolveFileUnderDirectory(dataDir, name,
+            "admin-loader data file");
+        if (!ConfigUtility.isExistingFile(file, "admin-loader data file")) {
+          failures.add("required admin-loader data file is missing: "
+              + file.getAbsolutePath()
+              + "; run make prepare-admin before make integration-admin");
+        }
+      } catch (Exception e) {
+        failures.add("required admin-loader data file is missing: " + name
             + "; run make prepare-admin before make integration-admin");
       }
     }
@@ -528,16 +578,18 @@ public final class IntegrationTestPreflight {
   private static void checkRestEndpoint(final Properties properties,
     final List<String> failures) {
 
-    final String baseUrl = property(properties, "base.url");
-    if (isBlank(baseUrl)) {
-      failures.add("base.url is blank; cannot check REST server");
+    final String path = "/configure/configured";
+    final String url;
+    try {
+      url = ConfigUtility.getRestUrl(properties, path);
+    } catch (IllegalArgumentException e) {
+      failures.add(e.getMessage());
       return;
     }
 
-    final String url = trimTrailingSlash(baseUrl) + "/configure/configured";
     try {
       final HttpURLConnection connection =
-          (HttpURLConnection) URI.create(url).toURL().openConnection();
+          ConfigUtility.openRestConnection(properties, path);
       connection.setRequestMethod("GET");
       connection.setConnectTimeout(5000);
       connection.setReadTimeout(5000);
@@ -578,21 +630,23 @@ public final class IntegrationTestPreflight {
   private static void checkRestSampleFixture(final Properties properties,
     final List<String> failures) {
 
-    final String baseUrl = trimTrailingSlash(property(properties, "base.url"));
-    if (isBlank(baseUrl)) {
+    final String path = "/content/concept/MTH/latest/C0000097";
+    final String url;
+    try {
+      url = ConfigUtility.getRestUrl(properties, path);
+    } catch (IllegalArgumentException e) {
+      failures.add(e.getMessage());
       return;
     }
 
-    final String authToken = authenticateRestAdmin(baseUrl, properties,
-        failures);
+    final String authToken = authenticateRestAdmin(properties, failures);
     if (isBlank(authToken)) {
       return;
     }
 
-    final String url = baseUrl + "/content/concept/MTH/latest/C0000097";
     try {
       final HttpURLConnection connection =
-          (HttpURLConnection) URI.create(url).toURL().openConnection();
+          ConfigUtility.openRestConnection(properties, path);
       connection.setRequestMethod("GET");
       connection.setRequestProperty("Accept", "application/json");
       connection.setRequestProperty("Authorization", authToken);
@@ -621,13 +675,12 @@ public final class IntegrationTestPreflight {
   /**
    * Authenticates the configured REST admin user.
    *
-   * @param baseUrl base URL
    * @param properties the properties
    * @param failures failures
    * @return auth token, or empty string
    */
-  private static String authenticateRestAdmin(final String baseUrl,
-    final Properties properties, final List<String> failures) {
+  private static String authenticateRestAdmin(final Properties properties,
+    final List<String> failures) {
 
     final String adminUser = property(properties, "admin.user");
     final String adminPassword = property(properties, "admin.password");
@@ -635,10 +688,18 @@ public final class IntegrationTestPreflight {
       return "";
     }
 
-    final String url = baseUrl + "/security/authenticate/" + adminUser;
+    final String path = "/security/authenticate/" + adminUser;
+    final String url;
+    try {
+      url = ConfigUtility.getRestUrl(properties, path);
+    } catch (IllegalArgumentException e) {
+      failures.add(e.getMessage());
+      return "";
+    }
+
     try {
       final HttpURLConnection connection =
-          (HttpURLConnection) URI.create(url).toURL().openConnection();
+          ConfigUtility.openRestConnection(properties, path);
       connection.setRequestMethod("POST");
       connection.setRequestProperty("Content-Type", "text/plain");
       connection.setRequestProperty("Accept", "application/json");
@@ -683,8 +744,8 @@ public final class IntegrationTestPreflight {
 
     final Properties properties = PropertyUtility.getProperties();
     checkFlywayTargetSafety(properties, failures);
-    checkFlywaySchema(FLYWAY_JDBC_URL, failures);
-    checkFlywaySchema(FLYWAY_BASELINE_JDBC_URL, failures);
+    checkFlywaySchema(FLYWAY_JDBC_URL, properties, failures);
+    checkFlywaySchema(FLYWAY_BASELINE_JDBC_URL, properties, failures);
   }
 
   /**
@@ -765,7 +826,7 @@ public final class IntegrationTestPreflight {
    * @param failures failures
    */
   private static void checkFlywaySchema(final String urlProperty,
-    final List<String> failures) {
+    final Properties properties, final List<String> failures) {
 
     final String jdbcUrl = System.getProperty(urlProperty);
     if (isBlank(jdbcUrl)) {
@@ -782,7 +843,9 @@ public final class IntegrationTestPreflight {
     try {
       Class.forName("com.mysql.cj.jdbc.Driver");
       try (Connection connection =
-          DriverManager.getConnection(normalizeJdbcUrl(jdbcUrl), user, password);
+          DriverManager.getConnection(ConfigUtility.validateJdbcUrl(
+              normalizeJdbcUrl(jdbcUrl), urlProperty, properties), user,
+              password);
           Statement statement = connection.createStatement();
           ResultSet resultSet = statement.executeQuery("show full tables")) {
         int tableCount = 0;
@@ -816,7 +879,7 @@ public final class IntegrationTestPreflight {
     throws Exception {
 
     return DriverManager.getConnection(
-        property(properties, "jakarta.persistence.jdbc.url"),
+        ConfigUtility.getJdbcUrl(properties, "jakarta.persistence.jdbc.url"),
         property(properties, "jakarta.persistence.jdbc.user"),
         property(properties, "jakarta.persistence.jdbc.password"));
   }
@@ -923,19 +986,6 @@ public final class IntegrationTestPreflight {
       return "";
     }
     return json.substring(valueStart, valueEnd);
-  }
-
-  /**
-   * Trims a trailing slash.
-   *
-   * @param value the value
-   * @return the trimmed value
-   */
-  private static String trimTrailingSlash(final String value) {
-    if (value.endsWith("/")) {
-      return value.substring(0, value.length() - 1);
-    }
-    return value;
   }
 
   /**

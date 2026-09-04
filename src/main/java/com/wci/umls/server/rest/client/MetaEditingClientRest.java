@@ -57,7 +57,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/sty/add?projectId=" + projectId + "&conceptId=" + conceptId
         + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified + "&semanticType=" + semanticType
@@ -92,7 +92,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/sty/remove/" + semanticTypeComponentId + "?projectId="
         + projectId + "&conceptId=" + conceptId
         + (activityId == null ? "" : "&activityId=" + activityId)
@@ -129,7 +129,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/attribute/add?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -169,7 +169,7 @@ public class MetaEditingClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client.target(
-        config.getProperty("base.url") + "/meta/attribute/remove/" + attributeId
+        getBaseUrl(config) + "/meta/attribute/remove/" + attributeId
             + "?projectId=" + projectId + "&conceptId=" + conceptId
             + (activityId == null ? "" : "&activityId=" + activityId)
             + "&lastModified=" + lastModified
@@ -204,7 +204,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/atom/add?projectId=" + projectId + "&conceptId=" + conceptId
         + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -243,7 +243,7 @@ public class MetaEditingClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target =
-        client.target(config.getProperty("base.url") + "/meta/atom/remove/"
+        client.target(getBaseUrl(config) + "/meta/atom/remove/"
             + atomId + "?projectId=" + projectId + "&conceptId=" + conceptId
             + (activityId == null ? "" : "&activityId=" + activityId)
             + "&lastModified=" + lastModified
@@ -278,7 +278,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/atom/update?projectId=" + projectId + "&conceptId=" + conceptId
         + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -316,7 +316,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/relationship/add?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -355,7 +355,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/relationships/add?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -393,7 +393,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/relationship/remove/" + relationshipId + "?projectId="
         + projectId + "&conceptId=" + conceptId
         + (activityId == null ? "" : "&activityId=" + activityId)
@@ -430,7 +430,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId2, "conceptId2");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/demotion/add?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified + "&conceptId2=" + conceptId2
@@ -467,7 +467,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId2, "conceptId2");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/concept/merge?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified + "&conceptId2=" + conceptId2
@@ -506,7 +506,7 @@ public class MetaEditingClientRest extends RootClientRest
     }
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/atom/move?projectId=" + projectId + "&conceptId=" + conceptId
         + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified + "&conceptId2=" + conceptId2
@@ -545,7 +545,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/concept/split?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -585,7 +585,7 @@ public class MetaEditingClientRest extends RootClientRest
     validateNotEmpty(conceptId, "conceptId");
 
     final Client client = ClientBuilder.newClient();
-    final WebTarget target = client.target(config.getProperty("base.url")
+    final WebTarget target = client.target(getBaseUrl(config)
         + "/meta/concept/approve?projectId=" + projectId + "&conceptId="
         + conceptId + (activityId == null ? "" : "&activityId=" + activityId)
         + "&lastModified=" + lastModified
@@ -617,7 +617,7 @@ public class MetaEditingClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/meta/action/undo?projectId="
+        .target(getBaseUrl(config) + "/meta/action/undo?projectId="
             + projectId + "&molecularActionId=" + molecularActionId
             + (activityId == null ? "" : "&activityId=" + activityId)
             + (force ? "&force=true" : ""));
@@ -648,7 +648,7 @@ public class MetaEditingClientRest extends RootClientRest
 
     final Client client = ClientBuilder.newClient();
     final WebTarget target = client
-        .target(config.getProperty("base.url") + "/meta/action/redo?projectId="
+        .target(getBaseUrl(config) + "/meta/action/redo?projectId="
             + projectId + "&molecularActionId=" + molecularActionId
             + (activityId == null ? "" : "&activityId=" + activityId)
             + (force ? "&force=true" : ""));

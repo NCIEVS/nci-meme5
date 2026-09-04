@@ -10,7 +10,6 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -113,10 +112,7 @@ public class WriteRrfMetadataFilesAlgorithm
       sabTty.add("" + result[0] + result[1]);
     }
     logInfo("  valid terminology/tty = " + sabTty.size());
-    final File dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
-    final File outputFile = new File(dir, "MRRANK.RRF");
+    final File outputFile = getProcessReleaseMetaFile("MRRANK.RRF");
     final PrintWriter out =
         new PrintWriter(new FileWriter(outputFile, StandardCharsets.UTF_8));
     try {
@@ -168,7 +164,7 @@ public class WriteRrfMetadataFilesAlgorithm
    * @param fileName the template file name
    */
   private void checkTemplateAvailable(ValidationResult result,
-    String fileName) {
+    String fileName) throws Exception {
     final Path source = getInputTemplatePath(fileName);
     if (!Files.isRegularFile(source) && !hasClasspathTemplate(fileName)) {
       result.addError("Release metadata template not found: " + fileName
@@ -215,9 +211,11 @@ public class WriteRrfMetadataFilesAlgorithm
    * @param fileName the file name
    * @return the input path
    */
-  private Path getInputTemplatePath(String fileName) {
-    return Paths.get(config.getProperty("source.data.dir"),
-        getProcess().getInputPath(), "META", fileName);
+  private Path getInputTemplatePath(String fileName) throws Exception {
+    return ConfigUtility.resolvePathUnderDirectory(
+        getExistingProcessInputDirectory(), "release metadata template",
+        "META", ConfigUtility.validateSafeFileName(fileName,
+            "release metadata template")).toPath();
   }
 
   /**
@@ -226,10 +224,8 @@ public class WriteRrfMetadataFilesAlgorithm
    * @param fileName the file name
    * @return the output path
    */
-  private Path getOutputTemplatePath(String fileName) {
-    return Paths.get(config.getProperty("source.data.dir"),
-        getProcess().getInputPath(), getProcess().getVersion(), "META",
-        fileName);
+  private Path getOutputTemplatePath(String fileName) throws Exception {
+    return getProcessReleaseMetaFile(fileName).toPath();
   }
 
   /**
@@ -249,10 +245,7 @@ public class WriteRrfMetadataFilesAlgorithm
    */
   private void writeMrsab() throws Exception {
     logInfo("  Write MRSAB data");
-    final File dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
-    final File outputFile = new File(dir, "MRSAB.RRF");
+    final File outputFile = getProcessReleaseMetaFile("MRSAB.RRF");
     final List<String> outputLines = new ArrayList<>();
 
     final Set<Terminology> terminologies =
@@ -596,10 +589,7 @@ public class WriteRrfMetadataFilesAlgorithm
     logInfo("  Write MRDOC ");
 
     // Set up the file
-    final File dir = new File(config.getProperty("source.data.dir") + "/"
-        + getProcess().getInputPath() + "/" + getProcess().getVersion() + "/"
-        + "META");
-    final File outputFile = new File(dir, "MRDOC.RRF");
+    final File outputFile = getProcessReleaseMetaFile("MRDOC.RRF");
     final List<String> outputLines = new ArrayList<>();
 
     // Field Description DOCKEY,VALUE,TYPE,EXPL
