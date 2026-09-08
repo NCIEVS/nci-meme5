@@ -18,21 +18,21 @@
     "e2e:open": "env -u ELECTRON_RUN_AS_NODE cypress open"
   },
   "dependencies": {
-    "@angular/animations": "~20.3.0",
-    "@angular/common": "~20.3.0",
-    "@angular/compiler": "~20.3.0",
-    "@angular/core": "~20.3.0",
-    "@angular/forms": "~20.3.0",
-    "@angular/platform-browser": "~20.3.0",
-    "@angular/router": "~20.3.0",
+    "@angular/animations": "~20.3.30",
+    "@angular/common": "~20.3.30",
+    "@angular/compiler": "~20.3.30",
+    "@angular/core": "~20.3.30",
+    "@angular/forms": "~20.3.30",
+    "@angular/platform-browser": "~20.3.30",
+    "@angular/router": "~20.3.30",
     "rxjs": "~7.8.2",
     "tslib": "^2.8.1",
     "zone.js": "~0.15.1"
   },
   "devDependencies": {
-    "@angular/build": "~20.3.0",
-    "@angular/cli": "~20.3.0",
-    "@angular/compiler-cli": "~20.3.0",
+    "@angular/build": "~20.3.36",
+    "@angular/cli": "~20.3.36",
+    "@angular/compiler-cli": "~20.3.30",
     "@types/jest": "^29.5.14",
     "cypress": "^15.0.0",
     "jest": "^29.7.0",
@@ -40,5 +40,8 @@
     "node": "24.16.0",
     "ts-jest": "^29.4.11",
     "typescript": "~5.9.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }
