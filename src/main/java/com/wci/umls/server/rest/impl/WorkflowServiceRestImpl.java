@@ -198,7 +198,6 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
           config.getId(), getProjectInfo(project));
       sendChangeEvent(userName, event);
 
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return config;
 
     } catch (Exception e) {
@@ -224,7 +223,6 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
     @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     try (InputStream in = file.getInputStream()) {
-      // codeql[java/xss] JSON/XML API response; imported config is not HTML-escaped here.
       return importWorkflowConfig(in, projectId, authToken);
     }
   }
@@ -795,7 +793,6 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
           def.getId(), getProjectInfo(config.getProject()));
       sendChangeEvent(userName, event);
 
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return def;
     } catch (Exception e) {
       handleException(e, "trying to add workflow bin definition");
@@ -841,7 +838,6 @@ public class WorkflowServiceRestImpl extends RootServiceRestImpl implements Work
 
       // Websocket notification - n/a
 
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return epoch;
 
     } catch (Exception e) {

@@ -146,7 +146,6 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
       contentService.updateConcept(concept);
 
       contentService.commit();
-      // codeql[java/xss] JSON/XML API response; terminology content is not HTML-escaped here.
       return newAtom;
     } catch (Exception e) {
       handleException(e, "trying to add atom");
@@ -475,7 +474,6 @@ public class SimpleEditServiceRestImpl extends RootServiceRestImpl
       // here and this is just a very simple, unaudited change - e.g. use
       // molecular actions instead.
 
-      // codeql[java/xss] JSON/XML API response; terminology content is not HTML-escaped here.
       return newConcept;
     } catch (Exception e) {
       handleException(e, "trying to add concept");

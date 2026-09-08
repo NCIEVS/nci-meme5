@@ -176,7 +176,6 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
       metadataService.addLogEntry(userName, project.getId(), project.getId(),
           null, null, "ADD project - " + project);
 
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return newProject;
     } catch (Exception e) {
       handleException(e, "trying to add a project");
@@ -1288,7 +1287,6 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
           projectService.addMaintenanceWindow(maintenanceWindow);
       projectService.addLogEntry(userName, null, newWindow.getId(), null, null,
           "ADD maintenance window - " + newWindow);
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return newWindow;
     } catch (Exception e) {
       handleException(e, "trying to add a maintenance window");
@@ -1529,7 +1527,6 @@ public class ProjectServiceRestImpl extends RootServiceRestImpl
       final String username = authorizeApp(securityService, authToken,
           "add type key value", UserRole.VIEWER);
       projectService.setLastModifiedBy(username);
-      // codeql[java/xss] JSON/XML API response; stored config data is not HTML-escaped here.
       return projectService.addTypeKeyValue(typeKeyValue);
     } catch (Exception e) {
       handleException(e, "trying to add type key value ");

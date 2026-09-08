@@ -107,7 +107,6 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
       final Concept newConcept = contentService.addConcept(concept);
       newConcept.setTerminologyId(newConcept.getId().toString());
       contentService.updateConcept(newConcept);
-      // codeql[java/xss] Non-prod JSON/XML test response.
       return newConcept;
     } catch (Exception e) {
       handleException(e, "trying to add a concept");
@@ -470,7 +469,6 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
       // Add relationship
       final ConceptRelationship newRel =
           (ConceptRelationship) contentService.addRelationship(relationship);
-      // codeql[java/xss] Non-prod JSON/XML test response.
       return newRel;
     } catch (Exception e) {
       handleException(e, "trying to add a relationship");
@@ -505,7 +503,6 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
       // Add relationship
       final AtomRelationship newRel =
           (AtomRelationship) contentService.addRelationship(relationship);
-      // codeql[java/xss] Non-prod JSON/XML test response.
       return newRel;
     } catch (Exception e) {
       handleException(e, "trying to add a relationship");
@@ -619,7 +616,6 @@ public class IntegrationTestServiceRestImpl extends RootServiceRestImpl
       contentService.setMolecularActionFlag(false);
 
       // Add TypeKeyValue
-      // codeql[java/xss] Non-prod JSON/XML test response.
       return contentService.addTypeKeyValue(typeKeyValue);
     } catch (Exception e) {
       handleException(e, "trying to add a typeKeyValue");

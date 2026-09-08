@@ -1,0 +1,5 @@
+name: "NCI MEME 5 CodeQL configuration"
+
+query-filters:
+  - exclude:
+      id: java/xss

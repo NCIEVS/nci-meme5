@@ -243,7 +243,6 @@ public class HistoryServiceRestImpl extends RootServiceRestImpl
       releaseInfo
           .setLastModifiedBy(securityService.getUsernameForToken(authToken));
       ReleaseInfo result = historyService.addReleaseInfo(releaseInfo);
-      // codeql[java/xss] JSON/XML API response; release metadata is not HTML-escaped here.
       return result;
 
     } catch (Exception e) {

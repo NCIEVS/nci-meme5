@@ -225,7 +225,6 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
           "add source data file", UserRole.USER);
 
       sourceDataFile.setLastModifiedBy(userName);
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return service.addSourceDataFile(sourceDataFile);
 
     } catch (Exception e) {
@@ -398,7 +397,6 @@ public class SourceDataServiceRestImpl extends RootServiceRestImpl
           "add new source data", UserRole.USER);
 
       sourceData.setLastModifiedBy(userName);
-      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return service.addSourceData(sourceData);
 
     } catch (Exception e) {
