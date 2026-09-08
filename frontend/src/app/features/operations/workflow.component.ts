@@ -36,6 +36,7 @@ import { ContentEditApiService } from '../content-edit/content-edit-api.service'
 import { ContentComponent as ContentComponentDetail } from '../content-edit/content-edit.models';
 import {
   buildOperationalPfs,
+  quoteLuceneValue,
   workflowBinRecordQueryRestriction
 } from './operational-api.helpers';
 import { OperationalApiService } from './operational-api.service';
@@ -2442,7 +2443,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const duplicateQuery = `nameSort:"${name.replace(/"/g, '\\"')}"`;
+    const duplicateQuery = `nameSort:${quoteLuceneValue(name)}`;
     const duplicatePfs = buildOperationalPfs(1, 1, 'name', true, duplicateQuery);
 
     this.importingChecklist.set(true);
@@ -2497,7 +2498,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     }
 
     const name = form.name.trim();
-    const duplicateQuery = `nameSort:"${name.replace(/"/g, '\\"')}"`;
+    const duplicateQuery = `nameSort:${quoteLuceneValue(name)}`;
     const duplicatePfs = buildOperationalPfs(1, 1, 'name', true, duplicateQuery);
     const pfs: PfsParameter = {
       maxResults: form.clusterCount ?? 100,

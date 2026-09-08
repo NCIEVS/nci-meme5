@@ -24,7 +24,7 @@ import { NotificationService } from '../../core/notifications/notification.servi
 import { DialogComponent } from '../../shared/dialog/dialog.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { PagerComponent } from '../../shared/pager/pager.component';
-import { buildOperationalPfs } from './operational-api.helpers';
+import { buildOperationalPfs, escapeLuceneTerm } from './operational-api.helpers';
 import { OperationalApiService } from './operational-api.service';
 import {
   AlgorithmParameter,
@@ -3129,7 +3129,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
   private processQueryRestriction(): string {
     const queryRestriction = [
       this.processFilterQueryRestriction(),
-      `type:${this.escapeLuceneTerm(this.selectedProcessType())}`
+      `type:${escapeLuceneTerm(this.selectedProcessType())}`
     ]
       .filter(Boolean)
       .join(' AND ');
@@ -3156,7 +3156,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
   }
 
   private processFilterTokenQuery(token: string): string {
-    const escapedToken = this.escapeLuceneTerm(token);
+    const escapedToken = escapeLuceneTerm(token);
     const fields = ['name', 'description', 'terminology', 'version'];
 
     return `(${fields
@@ -3168,11 +3168,4 @@ export class ProcessComponent implements OnInit, OnDestroy {
     return /[:"()]/.test(value);
   }
 
-  private escapeLuceneTerm(value: string): string {
-    return value
-      .replace(/&&/g, '\\&&')
-      .replace(/\|\|/g, '\\||')
-      .replace(/([+\-!(){}\[\]^"~?:\\/])/g, '\\$1')
-      .replace(/\*/g, '');
-  }
 }

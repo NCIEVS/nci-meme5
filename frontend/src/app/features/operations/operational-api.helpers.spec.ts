@@ -1,6 +1,8 @@
 import {
   buildOperationalPfs,
+  escapeLuceneTerm,
   normalizeOperationalListResponse,
+  quoteLuceneValue,
   workflowBinRecordQueryRestriction
 } from './operational-api.helpers';
 
@@ -35,5 +37,15 @@ describe('operational API helpers', () => {
     expect(workflowBinRecordQueryRestriction('all')).toBeUndefined();
     expect(workflowBinRecordQueryRestriction('default')).toBe('clusterType:""');
     expect(workflowBinRecordQueryRestriction('ME')).toBe('clusterType:"ME"');
+  });
+
+  it('quotes Lucene values by escaping backslashes before quotes', () => {
+    expect(quoteLuceneValue('a"b\\c')).toBe('"a\\"b\\\\c"');
+  });
+
+  it('escapes Lucene terms without reprocessing replacement text', () => {
+    expect(escapeLuceneTerm('a+b && c||d* e\\f/g')).toBe(
+      'a\\+b \\&\\& c\\|\\|d e\\\\f\\/g'
+    );
   });
 });

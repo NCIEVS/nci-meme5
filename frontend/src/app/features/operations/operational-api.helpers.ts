@@ -52,8 +52,14 @@ export function workflowBinRecordQueryRestriction(
   return `clusterType:${quoteLuceneValue(trimmedClusterType)}`;
 }
 
-function quoteLuceneValue(value: string): string {
+export function quoteLuceneValue(value: string): string {
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+export function escapeLuceneTerm(value: string): string {
+  return value
+    .replace(/\*/g, '')
+    .replace(/([+\-&|!(){}\[\]^"~?:\\/])/g, '\\$1');
 }
 
 export function normalizeOperationalListResponse<T>(
