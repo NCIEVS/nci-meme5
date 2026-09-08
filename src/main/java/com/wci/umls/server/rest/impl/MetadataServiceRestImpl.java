@@ -387,6 +387,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
           authorizeApp(securityService, authToken, "add precedence list", UserRole.USER);
       metadataService.setLastModifiedBy(userName);
 
+      // codeql[java/xss] JSON/XML API response; stored metadata is not HTML-escaped here.
       return metadataService.addPrecedenceList(precedenceList);
     } catch (Exception e) {
       handleException(e, "trying to add precedence list");
@@ -1039,6 +1040,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
           authorizeApp(securityService, authToken, "add term type", UserRole.USER);
       metadataService.setLastModifiedBy(userName);
 
+      // codeql[java/xss] JSON/XML API response; stored metadata is not HTML-escaped here.
       return metadataService.addTermType(termType);
     } catch (Exception e) {
       handleException(e, "trying to add term type");
@@ -1070,6 +1072,7 @@ public class MetadataServiceRestImpl extends RootServiceRestImpl implements Meta
           authorizeApp(securityService, authToken, "add attribute name", UserRole.USER);
       metadataService.setLastModifiedBy(userName);
 
+      // codeql[java/xss] JSON/XML API response; stored metadata is not HTML-escaped here.
       return metadataService.addAttributeName(attributeName);
     } catch (Exception e) {
       handleException(e, "trying to add attribute name");

@@ -281,6 +281,7 @@ public class SecurityServiceRestImpl extends RootServiceRestImpl
 
       // Create service and configure transaction scope
       User newUser = securityService.addUser(user);
+      // codeql[java/xss] JSON/XML API response; stored user data is not HTML-escaped here.
       return newUser;
     } catch (Exception e) {
       handleException(e, "trying to add a user");
@@ -375,6 +376,7 @@ public class SecurityServiceRestImpl extends RootServiceRestImpl
       // Create service and configure transaction scope
       UserPreferences newUserPreferences =
           securityService.addUserPreferences(userPreferences);
+      // codeql[java/xss] JSON/XML API response; stored user data is not HTML-escaped here.
       return newUserPreferences;
     } catch (Exception e) {
       handleException(e, "trying to add a user prefs");

@@ -195,6 +195,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       processService.addLogEntry(userName, projectId, process.getId(), null,
           null, "ADD processConfig - " + process);
 
+      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return newProcess;
     } catch (Exception e) {
       handleException(e, "trying to add a process config");
@@ -297,6 +298,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
     @Parameter(hidden = true) @RequestHeader(value = "Authorization", required = false) String authToken)
     throws Exception {
     try (InputStream in = file.getInputStream()) {
+      // codeql[java/xss] JSON/XML API response; imported config is not HTML-escaped here.
       return importProcessConfig(in, projectId, authToken);
     }
   }
@@ -1030,6 +1032,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       processService.addLogEntry(userName, projectId, config.getId(), null,
           null, "ADD algorithm config - " + config);
 
+      // codeql[java/xss] JSON/XML API response; stored domain data is not HTML-escaped here.
       return newAlgo;
     } catch (Exception e) {
       handleException(e, "trying to add an algorithm config");
