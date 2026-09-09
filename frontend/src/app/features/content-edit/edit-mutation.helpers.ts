@@ -176,11 +176,13 @@ export function isRadlexSyTermgroup(termgroup: string | null | undefined): boole
 export function canOpenRadlexSyAtomEditor(
   termgroup: string | null | undefined,
   atomId: number | null | undefined,
-  projectRole: string | null | undefined
+  projectRole: string | null | undefined,
+  editingEnabled: boolean
 ): boolean {
   return Boolean(atomId)
     && isRadlexSyTermgroup(termgroup)
-    && hasProjectPrivilegesOf(projectRole, 'AUTHOR');
+    && hasProjectPrivilegesOf(projectRole, 'AUTHOR')
+    && editingEnabled;
 }
 
 function hasProjectPrivilegesOf(

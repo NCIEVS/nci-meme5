@@ -174,15 +174,16 @@ describe('edit mutation helpers', () => {
   });
 
   it('shows the RADLEX/SY atom editor for author-level project roles', () => {
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'AUTHOR')).toBe(true);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'REVIEWER')).toBe(true);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'ADMINISTRATOR')).toBe(true);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'VIEWER')).toBe(false);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'AUTHOR', true)).toBe(true);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'REVIEWER', true)).toBe(true);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'ADMINISTRATOR', true)).toBe(true);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'VIEWER', true)).toBe(false);
   });
 
-  it('hides the RADLEX/SY atom editor without an atom id or matching termgroup', () => {
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', null, 'AUTHOR')).toBe(false);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/PN', 1001, 'AUTHOR')).toBe(false);
+  it('hides the RADLEX/SY atom editor without edit prerequisites', () => {
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', null, 'AUTHOR', true)).toBe(false);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/PN', 1001, 'AUTHOR', true)).toBe(false);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'AUTHOR', false)).toBe(false);
   });
 
   it('reports missing semantic type mutation prerequisites', () => {

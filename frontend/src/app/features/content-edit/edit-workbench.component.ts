@@ -1053,14 +1053,11 @@ export class EditWorkbenchComponent implements OnInit {
   }
 
   protected canEditAtom(atom: ContentAtom): boolean {
-    if (atom.id && this.projectEditingEnabled() === true) {
-      return true;
-    }
-
     return canOpenRadlexSyAtomEditor(
       `${atom.terminology ?? ''}/${atom.termType ?? ''}`,
       atom.id,
-      this.projectRole()
+      this.projectRole(),
+      this.projectEditingEnabled() === true
     );
   }
 

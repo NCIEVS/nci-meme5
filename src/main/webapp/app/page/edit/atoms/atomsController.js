@@ -102,8 +102,8 @@ tsApp
         }
 
         $scope.canEditAtom = function(atom) {
-          return ($scope.selected.project && $scope.selected.project.editingEnabled)
-            || ($scope.hasAuthorAtomEditRole() && $scope.isRadlexSyAtom(atom));
+          return $scope.selected.project && $scope.selected.project.editingEnabled
+            && $scope.hasAuthorAtomEditRole() && $scope.isRadlexSyAtom(atom);
         }
 
         // Get paging filter list
