@@ -169,6 +169,20 @@ export function buildConceptMutationReadiness(
   };
 }
 
+export function isRadlexSyTermgroup(termgroup: string | null | undefined): boolean {
+  return (termgroup ?? '').trim().toUpperCase() === 'RADLEX/SY';
+}
+
+export function canOpenRadlexSyAtomEditor(
+  termgroup: string | null | undefined,
+  atomId: number | null | undefined,
+  projectRole: string | null | undefined
+): boolean {
+  return Boolean(atomId)
+    && isRadlexSyTermgroup(termgroup)
+    && hasProjectPrivilegesOf(projectRole, 'AUTHOR');
+}
+
 function hasProjectPrivilegesOf(
   projectRole: string | null | undefined,
   requiredRole: string

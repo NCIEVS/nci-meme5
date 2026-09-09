@@ -4,6 +4,7 @@ import {
   buildAttributeAddReadiness,
   buildAttributeMutationReadiness,
   buildConceptMutationReadiness,
+  canOpenRadlexSyAtomEditor,
   buildMergeConceptReadiness,
   buildMoveAtomsReadiness,
   buildRelationshipAddReadiness,
@@ -14,6 +15,7 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
+  isRadlexSyTermgroup,
   relationshipAddRequestErrorMessage,
   relationshipAddValidationMessage,
   validationBlocksCommit,
@@ -163,6 +165,24 @@ describe('edit mutation helpers', () => {
       canExecute: true,
       reasons: []
     });
+  });
+
+  it('identifies RADLEX/SY termgroups case-insensitively', () => {
+    expect(isRadlexSyTermgroup('RADLEX/SY')).toBe(true);
+    expect(isRadlexSyTermgroup(' radlex/sy ')).toBe(true);
+    expect(isRadlexSyTermgroup('RADLEX/SYN')).toBe(false);
+  });
+
+  it('shows the RADLEX/SY atom editor for author-level project roles', () => {
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'AUTHOR')).toBe(true);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'REVIEWER')).toBe(true);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'ADMINISTRATOR')).toBe(true);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'VIEWER')).toBe(false);
+  });
+
+  it('hides the RADLEX/SY atom editor without an atom id or matching termgroup', () => {
+    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', null, 'AUTHOR')).toBe(false);
+    expect(canOpenRadlexSyAtomEditor('RADLEX/PN', 1001, 'AUTHOR')).toBe(false);
   });
 
   it('reports missing semantic type mutation prerequisites', () => {

@@ -35,6 +35,7 @@ import {
 import {
   buildActionMutationReadiness,
   buildAtomMutationReadiness,
+  canOpenRadlexSyAtomEditor,
   buildMoveAtomsReadiness,
   buildRelationshipAddReadiness,
   buildRelationshipMutationReadiness,
@@ -44,6 +45,7 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
+  isRadlexSyTermgroup,
   relationshipAddRequestErrorMessage,
   relationshipAddValidationMessage,
   validationBlocksCommit,
@@ -525,7 +527,7 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly atomFormShowPublishable = computed(
     () =>
       this.atomFormMode() === 'edit' &&
-      this.isRadlexSyTermgroup(this.atomFormTermgroup())
+      isRadlexSyTermgroup(this.atomFormTermgroup())
   );
   protected readonly atomLanguageOptions = computed<ContentKeyValuePair[]>(() => {
     const languages = this.metadata()?.languages ?? [];
@@ -1051,27 +1053,15 @@ export class EditWorkbenchComponent implements OnInit {
   }
 
   protected canEditAtom(atom: ContentAtom): boolean {
-    if (!this.isRadlexSyAtom(atom)) {
-      return false;
+    if (atom.id && this.projectEditingEnabled() === true) {
+      return true;
     }
 
-    return buildAtomMutationReadiness(
-      this.projectId(),
-      this.loadedConcept()?.id,
+    return canOpenRadlexSyAtomEditor(
+      `${atom.terminology ?? ''}/${atom.termType ?? ''}`,
       atom.id,
-      this.workbenchActivityId(),
-      this.conceptLastModified(),
-      this.projectRole(),
-      this.projectEditingEnabled() !== false
-    ).canExecute;
-  }
-
-  private isRadlexSyAtom(atom: ContentAtom): boolean {
-    return this.isRadlexSyTermgroup(`${atom.terminology ?? ''}/${atom.termType ?? ''}`);
-  }
-
-  private isRadlexSyTermgroup(termgroup: string): boolean {
-    return termgroup.trim().toUpperCase() === 'RADLEX/SY';
+      this.projectRole()
+    );
   }
 
   protected toggleAtomExpand(atomId: number | null | undefined): void {

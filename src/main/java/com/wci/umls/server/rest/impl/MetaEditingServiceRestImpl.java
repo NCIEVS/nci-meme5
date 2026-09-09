@@ -6,6 +6,7 @@ package com.wci.umls.server.rest.impl;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -44,6 +45,7 @@ import com.wci.umls.server.jpa.model.content.SemanticTypeComponentJpa;
 import com.wci.umls.server.jpa.services.SecurityServiceJpa;
 import com.wci.umls.server.jpa.services.rest.MetaEditingServiceRest;
 import com.wci.umls.server.model.actions.ChangeEvent;
+import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.ConceptRelationship;
 import com.wci.umls.server.model.content.SemanticTypeComponent;
@@ -651,7 +653,8 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
 
       // Retrieve the project
       final Project project = action.getProject(projectId);
-      if (!project.isEditingEnabled()) {
+      if (!project.isEditingEnabled()
+          && !isRadlexSyUnpublishableAtomUpdate(action, atom)) {
         throw new LocalException(
             "Editing is disabled on project: " + project.getName());
       }
@@ -701,6 +704,44 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
       securityService.close();
     }
 
+  }
+
+  /**
+   * Indicates if the requested atom update is the RADLEX/SY publishability
+   * exception allowed while normal project editing is disabled.
+   *
+   * @param action the action
+   * @param atom the requested atom update
+   * @return true, if the update only makes a RADLEX/SY atom unpublishable
+   * @throws Exception the exception
+   */
+  private boolean isRadlexSyUnpublishableAtomUpdate(
+    UpdateAtomMolecularAction action, Atom atom) throws Exception {
+
+    if (atom == null || atom.getId() == null) {
+      return false;
+    }
+
+    final Atom origAtom = action.getAtom(atom.getId());
+    if (origAtom == null || !isRadlexSyAtom(origAtom) || !isRadlexSyAtom(atom)) {
+      return false;
+    }
+
+    return origAtom.isPublishable() && !atom.isPublishable()
+        && origAtom.isSuppressible() == atom.isSuppressible()
+        && origAtom.isObsolete() == atom.isObsolete()
+        && Objects.equals(origAtom.getWorkflowStatus(), atom.getWorkflowStatus());
+  }
+
+  /**
+   * Indicates if the atom has RADLEX/SY termgroup.
+   *
+   * @param atom the atom
+   * @return true, if successful
+   */
+  private boolean isRadlexSyAtom(Atom atom) {
+    return atom != null && "RADLEX".equalsIgnoreCase(atom.getTerminology())
+        && "SY".equalsIgnoreCase(atom.getTermType());
   }
 
   /* see superclass */

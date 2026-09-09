@@ -43,6 +43,13 @@ tsApp.controller('AtomModalCtrl', [
         }
       }
     }
+
+    $scope.isRadlexSyAtom = function(atom) {
+      return atom
+        && ((atom.terminology || '') + '/' + (atom.termType || '')).toUpperCase()
+          == 'RADLEX/SY';
+    }
+
     // Perform add or edit/update
     $scope.submitAtom = function(atom) {
       $scope.errors = [];
