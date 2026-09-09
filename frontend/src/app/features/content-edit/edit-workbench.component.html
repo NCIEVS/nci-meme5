@@ -379,11 +379,13 @@
                     <td>{{ atom.descriptorId }}</td>
                     <td>{{ atom.lastModifiedBy }}</td>
                     <td class="atom-col-act-cell">
-                      @if (projectEditingEnabled()) {
+                      @if (canEditAtom(atom)) {
                         <button type="button" class="icon-btn" title="Edit"
                           (click)="openEditAtom(atom); $event.stopPropagation()">
                           <meme-icon name="pencil"></meme-icon>
                         </button>
+                      }
+                      @if (projectEditingEnabled()) {
                         @if (isAtomDeletable(atom)) {
                           <button type="button" class="icon-btn" title="Remove"
                             [disabled]="removingAtomId() === atom.id"
