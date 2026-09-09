@@ -221,12 +221,18 @@
                   <span class="wl-cluster-count">({{ recordsTotalCount() }})</span>
                 }
                 <div class="wl-pager">
-                  <button type="button" class="icon-btn" title="Previous page" [disabled]="recordsPage() === 1" (click)="setRecordsPage(recordsPage() - 1)">
+                  <button type="button" class="icon-btn" title="First page" aria-label="First page" [disabled]="recordsPage() <= 1" (click)="setRecordsPage(1)">
+                    <meme-icon name="chevron-double-left"></meme-icon>
+                  </button>
+                  <button type="button" class="icon-btn" title="Previous page" aria-label="Previous page" [disabled]="recordsPage() <= 1" (click)="setRecordsPage(recordsPage() - 1)">
                     <meme-icon name="chevron-left"></meme-icon>
                   </button>
                   <span>{{ recordsPage() }} / {{ recordsTotalPages() }}</span>
-                  <button type="button" class="icon-btn" title="Next page" [disabled]="recordsPage() === recordsTotalPages()" (click)="setRecordsPage(recordsPage() + 1)">
+                  <button type="button" class="icon-btn" title="Next page" aria-label="Next page" [disabled]="recordsPage() >= recordsTotalPages()" (click)="setRecordsPage(recordsPage() + 1)">
                     <meme-icon name="chevron-right"></meme-icon>
+                  </button>
+                  <button type="button" class="icon-btn" title="Last page" aria-label="Last page" [disabled]="recordsPage() >= recordsTotalPages()" (click)="setRecordsPage(recordsTotalPages())">
+                    <meme-icon name="chevron-double-right"></meme-icon>
                   </button>
                 </div>
               </div>

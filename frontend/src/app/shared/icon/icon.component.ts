@@ -14,6 +14,8 @@ export type MemeIconName =
   | 'check'
   | 'check-circle'
   | 'chevron-down'
+  | 'chevron-double-left'
+  | 'chevron-double-right'
   | 'chevron-left'
   | 'chevron-right'
   | 'dash'
