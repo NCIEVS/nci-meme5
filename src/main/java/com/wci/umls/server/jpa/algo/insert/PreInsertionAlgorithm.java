@@ -44,6 +44,9 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
   private static final String ESTIMATED_COMPLETION_FIELD =
       "estimatedCompletion";
 
+  /** The process user name execution info field. */
+  public static final String PROCESS_USER_NAME_FIELD = "processUserName";
+
   /** The algorithm properties. */
   private Properties properties = new Properties();
 
@@ -374,10 +377,16 @@ public class PreInsertionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
   private String getEmailSignature(final ProcessExecution processExecution)
     throws Exception {
 
+    final String processUserName = processExecution == null ? null
+        : processExecution.getExecutionInfo().get(PROCESS_USER_NAME_FIELD);
+
     final String userName;
-    if (!isBlank(getLastModifiedBy())) {
+    if (!isBlank(processUserName)) {
+      userName = processUserName;
+    } else if (!isBlank(getLastModifiedBy())) {
       userName = getLastModifiedBy();
-    } else if (!isBlank(processExecution.getLastModifiedBy())) {
+    } else if (processExecution != null
+        && !isBlank(processExecution.getLastModifiedBy())) {
       userName = processExecution.getLastModifiedBy();
     } else {
       return "";
