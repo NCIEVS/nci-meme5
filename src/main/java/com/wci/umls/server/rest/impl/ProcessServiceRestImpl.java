@@ -60,6 +60,7 @@ import com.wci.umls.server.helpers.ProcessExecutionList;
 import com.wci.umls.server.helpers.QueryStyle;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.helpers.ServerRestartException;
+import com.wci.umls.server.jpa.algo.insert.PreInsertionAlgorithm;
 import com.wci.umls.server.jpa.algo.maint.ServerRestartAlgorithm;
 import com.wci.umls.server.jpa.services.MetadataServiceJpa;
 import com.wci.umls.server.jpa.services.ProcessServiceJpa;
@@ -1535,11 +1536,13 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       // Create and set up a new process Execution
       process.setStartDate(new Date());
       process.setSteps(new ArrayList<>());
+      recordProcessUserName(process, userName);
       processService.updateProcessExecution(process);
 
       // Create a thread and run the process
       runProcessAsThread(projectId, process.getProcessConfigId(),
-          process.getId(), userName, background, false, null);
+          process.getId(), getProcessSourceStamp(process), background, false,
+          null);
 
       // Always return the execution id
       return processId;
@@ -1655,10 +1658,16 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
       // Verify that passed projectId matches ID of the processConfig's project
       verifyProject(processConfig, projectId);
 
+      if (!ConfigUtility.isEmpty(userName)) {
+        processService.setLastModifiedBy(userName);
+        recordProcessUserName(processExecution, userName);
+        processService.updateProcessExecution(processExecution);
+      }
+
       // Create a thread and run the process
       runProcessAsThread(projectId, processConfig.getId(),
-          processExecution.getId(), resolveProcessUserName(userName,
-              processExecution), background, true, null);
+          processExecution.getId(), getProcessSourceStamp(processExecution),
+          background, true, null);
 
       return id;
     } finally {
@@ -1667,23 +1676,30 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
   }
 
   /**
-   * Resolves the user to associate with an internal process run.
+   * Records the user who started the process execution.
    *
-   * @param userName the supplied user name
    * @param processExecution the process execution
-   * @return the user name
+   * @param userName the user name
    */
-  private String resolveProcessUserName(String userName,
-    ProcessExecution processExecution) {
+  private void recordProcessUserName(final ProcessExecution processExecution,
+    final String userName) {
 
-    if (!ConfigUtility.isEmpty(userName)) {
-      return userName;
+    if (processExecution != null && !ConfigUtility.isEmpty(userName)) {
+      processExecution.getExecutionInfo().put(
+          PreInsertionAlgorithm.PROCESS_USER_NAME_FIELD, userName);
     }
-    if (processExecution != null
-        && !ConfigUtility.isEmpty(processExecution.getLastModifiedBy())) {
-      return processExecution.getLastModifiedBy();
-    }
-    return "SYSTEM";
+  }
+
+  /**
+   * Returns the legacy process source stamp for algorithm writes.
+   *
+   * @param processExecution the process execution
+   * @return the source stamp
+   */
+  private String getProcessSourceStamp(final ProcessExecution processExecution) {
+
+    return processExecution.getTerminology() + "_"
+        + processExecution.getVersion();
   }
 
   /* see superclass */
@@ -1744,8 +1760,9 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       if (processExecution.getStartDate() == null) {
         processExecution.setStartDate(new Date());
-        processService.updateProcessExecution(processExecution);
       }
+      recordProcessUserName(processExecution, userName);
+      processService.updateProcessExecution(processExecution);
       // Load the processExecution's config
       final ProcessConfig processConfig = processService
           .getProcessConfig(processExecution.getProcessConfigId());
@@ -1755,7 +1772,7 @@ public class ProcessServiceRestImpl extends RootServiceRestImpl
 
       // Create a thread and run the process
       runProcessAsThread(projectId, processConfig.getId(),
-          processExecution.getId(), userName,
+          processExecution.getId(), getProcessSourceStamp(processExecution),
           background, processExecution.getSteps().size() > 0, step);
 
       return id;

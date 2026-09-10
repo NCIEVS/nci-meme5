@@ -35,6 +35,7 @@ import {
 import {
   buildActionMutationReadiness,
   buildAtomMutationReadiness,
+  canOpenRadlexSyAtomEditor,
   buildMoveAtomsReadiness,
   buildRelationshipAddReadiness,
   buildRelationshipMutationReadiness,
@@ -44,6 +45,7 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
+  isRadlexSyTermgroup,
   relationshipAddRequestErrorMessage,
   relationshipAddValidationMessage,
   validationBlocksCommit,
@@ -522,15 +524,11 @@ export class EditWorkbenchComponent implements OnInit {
     return this.filteredAtoms().slice(start, start + this.atomPageSize());
   });
   protected readonly selectedAtomCount = computed(() => this.selectedAtomIds().size);
-  protected readonly atomFormTermType = computed(() => {
-    const termgroup = this.atomFormTermgroup();
-    const slashIdx = termgroup.indexOf('/');
-    if (slashIdx >= 0) {
-      return termgroup.substring(slashIdx + 1);
-    }
-    return this.atomFormOriginalAtom()?.termType ?? '';
-  });
-  protected readonly atomFormShowPublishable = computed(() => this.atomFormTermType() === 'PN');
+  protected readonly atomFormShowPublishable = computed(
+    () =>
+      this.atomFormMode() === 'edit' &&
+      isRadlexSyTermgroup(this.atomFormTermgroup())
+  );
   protected readonly atomLanguageOptions = computed<ContentKeyValuePair[]>(() => {
     const languages = this.metadata()?.languages ?? [];
     return languages.length ? languages : [{ key: 'ENG', value: 'English' }];
@@ -1052,6 +1050,15 @@ export class EditWorkbenchComponent implements OnInit {
     const termgroups = this.newAtomTermgroups();
     if (!termgroups.length) return false;
     return termgroups.includes(`${atom.terminology}/${atom.termType}`);
+  }
+
+  protected canEditAtom(atom: ContentAtom): boolean {
+    return canOpenRadlexSyAtomEditor(
+      `${atom.terminology ?? ''}/${atom.termType ?? ''}`,
+      atom.id,
+      this.projectRole(),
+      this.projectEditingEnabled() === true
+    );
   }
 
   protected toggleAtomExpand(atomId: number | null | undefined): void {

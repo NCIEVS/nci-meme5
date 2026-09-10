@@ -71,7 +71,7 @@
         <span notes selected="{component:atom, project:selected.project}"
           empty="atom.notes" type="Atom"></span>
         <i ng-click="openEditAtomModal(atom); $event.stopPropagation()"
-          ng-show="selected.project.editingEnabled" title="Edit"
+          ng-show="canEditAtom(atom)" title="Edit"
           class="noul glyphicon glyphicon-pencil"></i> <i
           ng-show="isAtomDeleteable(atom) && selected.project.editingEnabled"
           confirm="Are you sure you want to remove the atom ({{atom.name}})?"

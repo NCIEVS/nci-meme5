@@ -6773,7 +6773,11 @@ export class ContentComponent implements OnInit {
   }
 
   protected setRecordsPage(page: number): void {
-    this.recordsPage.set(page);
+    const nextPage = Math.min(Math.max(1, page), this.recordsTotalPages());
+    if (nextPage === this.recordsPage()) {
+      return;
+    }
+    this.recordsPage.set(nextPage);
     this.loadRecords();
   }
 
