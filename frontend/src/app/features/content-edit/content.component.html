@@ -773,7 +773,7 @@
         </div>
         <div class="action-group">
           <button type="button" class="btn-primary btn-xs"
-            [disabled]="!selectedComponent() || approvingConcept()"
+            [disabled]="!conceptApprovalReadiness().canExecute || approvingConcept()"
             (click)="approveSelectedConcept()"
             title="Approve selected concept">Approve</button>
           <button type="button" class="btn-primary btn-xs"
@@ -781,7 +781,7 @@
             (click)="nextRecord()"
             title="Go to next record">Next</button>
           <button type="button" class="btn-primary btn-xs"
-            [disabled]="!conceptList().length || !selectedWorklist() || !selectedRecord() || approvingConcept() || loadingRecords()"
+            [disabled]="!conceptList().length || !selectedWorklist() || !selectedRecord() || approvingConcept() || loadingRecords() || refreshingConceptList()"
             (click)="approveAndNext()"
             title="Approve all and go to next record">Approve/Next</button>
           <button type="button" class="btn-primary btn-xs"

@@ -357,6 +357,7 @@ export class ContentComponent implements OnInit {
 
   // Concept list (working set for editing)
   protected readonly conceptList = signal<ContentComponentDetail[]>([]);
+  protected readonly refreshingConceptList = signal(false);
   protected readonly conceptListPlaceholderRows = computed(() =>
     Array.from({ length: Math.max(0, 5 - this.conceptList().length) })
   );
@@ -1426,6 +1427,9 @@ export class ContentComponent implements OnInit {
     }
     if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
       reasons.push('Project editing state is required.');
+    }
+    if (this.loadingComponent() || this.refreshingConceptList()) {
+      reasons.push('Concept detail is loading.');
     }
     if (!this.selectedLastModifiedEpoch()) {
       reasons.push('Concept lastModified timestamp is required.');
@@ -5675,15 +5679,57 @@ export class ContentComponent implements OnInit {
   }
 
   private refreshConceptFromPopup(conceptId: number): void {
-    if (this.selectedComponent()?.id === conceptId) {
-      this.refreshSelectedComponent();
+    if (this.conceptList().some((item) => item.id === conceptId)) {
+      this.refreshCurrentConceptList();
       return;
     }
 
-    const concept = this.conceptList().find((item) => item.id === conceptId);
-    if (concept) {
-      this.reloadConceptInList(concept);
+    if (this.selectedComponent()?.id === conceptId) {
+      this.refreshSelectedComponent();
     }
+  }
+
+  private refreshCurrentConceptList(): void {
+    const projectId = this.projectId();
+    const conceptIds = Array.from(
+      new Set(
+        this.conceptList()
+          .map((concept) => concept.id)
+          .filter((id): id is number => Boolean(id))
+      )
+    );
+    if (!projectId || !conceptIds.length) {
+      return;
+    }
+
+    const selectedId = this.selectedComponent()?.id ?? null;
+    this.refreshingConceptList.set(true);
+    forkJoin(
+      conceptIds.map((conceptId) =>
+        this.api.getComponentById('concept', conceptId, projectId).pipe(
+          catchError(() => of(null))
+        )
+      )
+    )
+      .pipe(finalize(() => this.refreshingConceptList.set(false)))
+      .subscribe({
+        next: (concepts) => {
+          const loadedConcepts = concepts.filter(
+            (concept): concept is ContentComponentDetail => Boolean(concept)
+          );
+          loadedConcepts.forEach((concept) => this.replaceConceptInList(concept));
+
+          const selectedConcept = loadedConcepts.find(
+            (concept) => concept.id === selectedId
+          );
+          if (selectedConcept) {
+            this.selectedComponent.set(selectedConcept);
+            this.applyConceptUpdateDefaults(selectedConcept);
+            this.loadSemanticTypeOptionsForComponent(selectedConcept);
+          }
+        },
+        error: () => {}
+      });
   }
 
   private refreshConceptListAfterMerge(

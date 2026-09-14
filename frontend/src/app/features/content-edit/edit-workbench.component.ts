@@ -1038,6 +1038,7 @@ export class EditWorkbenchComponent implements OnInit {
   }
 
   protected getAtomRowClass(atom: ContentAtom): string {
+    if (atom.workflowStatus === 'DEMOTION') return 'DEMOTION';
     if (atom.workflowStatus === 'NEEDS_REVIEW') return 'atom-row-needs-review';
     if (!atom.publishable) return 'atom-row-unreleasable';
     if (atom.terminology === 'RXNORM') return 'atom-row-rxnorm';
@@ -1677,6 +1678,7 @@ export class EditWorkbenchComponent implements OnInit {
   protected canApproveConcept(): boolean {
     return (
       !!this.projectEditingEnabled() &&
+      !this.loadingConcept() &&
       !!this.loadedConcept()?.id &&
       !!this.conceptLastModified()
     );
@@ -1687,7 +1689,7 @@ export class EditWorkbenchComponent implements OnInit {
     const projectId = this.projectId();
     const activityId = this.workbenchActivityId();
     const lastModified = this.conceptLastModified();
-    if (!concept?.id || !projectId || !lastModified) return;
+    if (!concept?.id || !projectId || !lastModified || this.loadingConcept()) return;
     const request: EditApproveConceptRequest = {
       activityId,
       conceptId: concept.id,
@@ -1754,7 +1756,7 @@ export class EditWorkbenchComponent implements OnInit {
     const concept = this.loadedConcept();
     const projectId = this.projectId();
     const lastModified = this.conceptLastModified();
-    if (!concept?.id || !projectId || !lastModified) return;
+    if (!concept?.id || !projectId || !lastModified || this.loadingConcept()) return;
 
     const request: EditApproveConceptRequest = {
       activityId: this.workbenchActivityId(),
