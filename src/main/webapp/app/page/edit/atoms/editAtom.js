@@ -44,10 +44,14 @@ tsApp.controller('AtomModalCtrl', [
       }
     }
 
-    $scope.isRadlexSyAtom = function(atom) {
-      return atom
-        && ((atom.terminology || '') + '/' + (atom.termType || '')).toUpperCase()
-          == 'RADLEX/SY';
+    $scope.canEditPublishable = function(atom) {
+      if (!atom) {
+        return false;
+      }
+      var termgroup =
+        ((atom.terminology || '') + '/' + (atom.termType || '')).toUpperCase();
+      return termgroup == 'NCIMTH/PN' || termgroup == 'MTH/PN'
+        || termgroup == 'RADLEX/SY';
     }
 
     // Perform add or edit/update

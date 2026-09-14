@@ -89,21 +89,9 @@ tsApp
             && !securityService.hasPermissions('OverrideEditDisabled');
         }
 
-        $scope.isRadlexSyAtom = function(atom) {
-          return atom
-            && ((atom.terminology || '') + '/' + (atom.termType || '')).toUpperCase()
-              == 'RADLEX/SY';
-        }
-
-        $scope.hasAuthorAtomEditRole = function() {
-          var role = ($scope.selected.projectRole || '').toUpperCase();
-          return role == 'AUTHOR' || role == 'REVIEWER' || role == 'USER'
-            || role == 'ADMINISTRATOR';
-        }
-
         $scope.canEditAtom = function(atom) {
-          return $scope.selected.project && $scope.selected.project.editingEnabled
-            && $scope.hasAuthorAtomEditRole() && $scope.isRadlexSyAtom(atom);
+          return atom && $scope.selected.project
+            && $scope.selected.project.editingEnabled;
         }
 
         // Get paging filter list

@@ -4,7 +4,6 @@ import {
   buildAttributeAddReadiness,
   buildAttributeMutationReadiness,
   buildConceptMutationReadiness,
-  canOpenRadlexSyAtomEditor,
   buildMergeConceptReadiness,
   buildMoveAtomsReadiness,
   buildRelationshipAddReadiness,
@@ -15,7 +14,7 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
-  isRadlexSyTermgroup,
+  isPublishableAtomTermgroup,
   relationshipAddRequestErrorMessage,
   relationshipAddValidationMessage,
   validationBlocksCommit,
@@ -167,23 +166,12 @@ describe('edit mutation helpers', () => {
     });
   });
 
-  it('identifies RADLEX/SY termgroups case-insensitively', () => {
-    expect(isRadlexSyTermgroup('RADLEX/SY')).toBe(true);
-    expect(isRadlexSyTermgroup(' radlex/sy ')).toBe(true);
-    expect(isRadlexSyTermgroup('RADLEX/SYN')).toBe(false);
-  });
-
-  it('shows the RADLEX/SY atom editor for author-level project roles', () => {
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'AUTHOR', true)).toBe(true);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'REVIEWER', true)).toBe(true);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'ADMINISTRATOR', true)).toBe(true);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'VIEWER', true)).toBe(false);
-  });
-
-  it('hides the RADLEX/SY atom editor without edit prerequisites', () => {
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', null, 'AUTHOR', true)).toBe(false);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/PN', 1001, 'AUTHOR', true)).toBe(false);
-    expect(canOpenRadlexSyAtomEditor('RADLEX/SY', 1001, 'AUTHOR', false)).toBe(false);
+  it('identifies atom termgroups whose publishable flag can be edited', () => {
+    expect(isPublishableAtomTermgroup('NCIMTH/PN')).toBe(true);
+    expect(isPublishableAtomTermgroup('mth/pn')).toBe(true);
+    expect(isPublishableAtomTermgroup(' radlex/sy ')).toBe(true);
+    expect(isPublishableAtomTermgroup('RADLEX/SYN')).toBe(false);
+    expect(isPublishableAtomTermgroup('RADLEX/PN')).toBe(false);
   });
 
   it('reports missing semantic type mutation prerequisites', () => {

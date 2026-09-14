@@ -35,7 +35,6 @@ import {
 import {
   buildActionMutationReadiness,
   buildAtomMutationReadiness,
-  canOpenRadlexSyAtomEditor,
   buildMoveAtomsReadiness,
   buildRelationshipAddReadiness,
   buildRelationshipMutationReadiness,
@@ -45,7 +44,7 @@ import {
   buildSplitConceptReadiness,
   conceptApprovalRequestErrorMessage,
   conceptApprovalValidationMessage,
-  isRadlexSyTermgroup,
+  isPublishableAtomTermgroup,
   relationshipAddRequestErrorMessage,
   relationshipAddValidationMessage,
   validationBlocksCommit,
@@ -527,7 +526,7 @@ export class EditWorkbenchComponent implements OnInit {
   protected readonly atomFormShowPublishable = computed(
     () =>
       this.atomFormMode() === 'edit' &&
-      isRadlexSyTermgroup(this.atomFormTermgroup())
+      isPublishableAtomTermgroup(this.atomFormTermgroup())
   );
   protected readonly atomLanguageOptions = computed<ContentKeyValuePair[]>(() => {
     const languages = this.metadata()?.languages ?? [];
@@ -1053,12 +1052,7 @@ export class EditWorkbenchComponent implements OnInit {
   }
 
   protected canEditAtom(atom: ContentAtom): boolean {
-    return canOpenRadlexSyAtomEditor(
-      `${atom.terminology ?? ''}/${atom.termType ?? ''}`,
-      atom.id,
-      this.projectRole(),
-      this.projectEditingEnabled() === true
-    );
+    return Boolean(atom.id) && this.projectEditingEnabled() === true;
   }
 
   protected toggleAtomExpand(atomId: number | null | undefined): void {

@@ -70,7 +70,7 @@
             <span ng-show="action != 'Add'">{{atom.descriptorId}}</span>
           </td>
         </tr>
-        <tr ng-show="isRadlexSyAtom(atom)">
+        <tr ng-show="canEditPublishable(atom)">
           <td>
             <b>Publishable</b>
           </td>
