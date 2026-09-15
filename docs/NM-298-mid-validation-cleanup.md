@@ -251,6 +251,10 @@ non-current before making a version-scoped publishability update.
 ## Connected To Unpublishable Object
 
 This check identifies publishable content attached to unpublishable objects.
+It intentionally does not flag mappings under published, non-obsolete PDQ
+mapsets that are no longer publishable, because those mapsets represent
+historical PDQ mapping targets retained for release history while a newer
+publishable mapset is used for current MRMAP/MRSMAP output.
 
 The saved workflow query is minified to stay under the
 `workflow_bin_definitions.query` length limit. It also starts with `select` so
@@ -402,6 +406,11 @@ from (
   where m.mapSet_id = s.id
     and m.publishable
     and s.publishable = 0
+    and not (
+      s.terminology = 'PDQ'
+      and s.published
+      and s.obsolete = 0
+    )
 ) q
 ```
 

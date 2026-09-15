@@ -287,8 +287,10 @@ public class MatrixInitializerAlgorithm extends AbstractAlgorithm {
 
             if (publishable != null) {
               action.setPublishable(publishable);
+              action.setCascadeUnpublishableRelationships(!publishable);
             } else {
               action.setPublishable(concept.isPublishable());
+              action.setCascadeUnpublishableRelationships(false);
             }
 
             if (status != null) {

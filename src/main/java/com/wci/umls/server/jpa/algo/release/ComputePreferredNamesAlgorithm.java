@@ -4,9 +4,11 @@
 package com.wci.umls.server.jpa.algo.release;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 import com.wci.umls.server.model.algo.ValidationResult;
@@ -17,7 +19,9 @@ import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractAlgorithm;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.model.content.Atom;
+import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Concept;
+import com.wci.umls.server.model.content.ConceptRelationship;
 import com.wci.umls.server.services.RootService;
 import com.wci.umls.server.services.handlers.ComputePreferredNameHandler;
 
@@ -93,23 +97,20 @@ public class ComputePreferredNamesAlgorithm extends AbstractAlgorithm {
     // Iterate through each concept
     int objectCt = 0;
     int updatedCt = 0;
+    int relationshipUpdatedCt = 0;
     int prevProgress = 0;
     int totalCt = conceptIds.size();
     int progressCheck = (int) (totalCt / 200.0) + 1;
     for (final Long id : conceptIds) {
       final Concept concept = getConcept(id);
+      final boolean wasPublishable = concept.isPublishable();
 
       // if something changed, update the concept
       if (isChanged(concept, handler, list)) {
         updateConcept(concept);
-        // // Reindex the concept relationships because the name changed
-        // for (final ConceptRelationship rel : concept.getRelationships()) {
-        // updateRelationship(rel);
-        // }
-        // for (final ConceptRelationship rel : concept
-        // .getInverseRelationships()) {
-        // updateRelationship(rel);
-        // }
+        if (wasPublishable && !concept.isPublishable()) {
+          relationshipUpdatedCt += makeConceptRelationshipsUnpublishable(concept);
+        }
         updatedCt++;
       }
 
@@ -133,6 +134,8 @@ public class ComputePreferredNamesAlgorithm extends AbstractAlgorithm {
     fireProgressEvent(100, "Finished - 100%");
     logInfo("  concept count = " + objectCt);
     logInfo("  concepts updated = " + updatedCt);
+    logInfo("  concept relationships made unpublishable = "
+        + relationshipUpdatedCt);
     logInfo("Finished " + getName() + " " + getProject().getTerminology() + getProject().getVersion());
     
     
@@ -160,15 +163,20 @@ public class ComputePreferredNamesAlgorithm extends AbstractAlgorithm {
     // Iterate through each concept
     objectCt = 0;
     updatedCt = 0;
+    relationshipUpdatedCt = 0;
     prevProgress = 0;
     totalCt = conceptIds.size();
     progressCheck = (int) (totalCt / 200.0) + 1;
     for (final Long id : conceptIds) {
       final Concept concept = getConcept(id);
+      final boolean wasPublishable = concept.isPublishable();
 
       // if something changed, update the concept
       if (isChanged(concept, handler, list)) {
         updateConcept(concept);
+        if (wasPublishable && !concept.isPublishable()) {
+          relationshipUpdatedCt += makeConceptRelationshipsUnpublishable(concept);
+        }
         updatedCt++;
       }
 
@@ -192,6 +200,8 @@ public class ComputePreferredNamesAlgorithm extends AbstractAlgorithm {
     fireProgressEvent(100, "Finished - 100%");
     logInfo("  concept count = " + objectCt);
     logInfo("  concepts updated = " + updatedCt);
+    logInfo("  concept relationships made unpublishable = "
+        + relationshipUpdatedCt);
     logInfo("Finished " + getName() + " " + getProcess().getTerminology() + getProcess().getVersion());
 
   }
@@ -203,7 +213,58 @@ public class ComputePreferredNamesAlgorithm extends AbstractAlgorithm {
 	    params.put("version", getProcess().getVersion());
 	    return params;
 	  }
-  
+
+  /**
+   * Makes all concept relationships connected to the concept unpublishable.
+   *
+   * @param concept the concept
+   * @return the count of relationships made unpublishable
+   * @throws Exception the exception
+   */
+  private int makeConceptRelationshipsUnpublishable(Concept concept)
+    throws Exception {
+
+    final Set<Long> processedRelationshipIds = new HashSet<>();
+    int relationshipCt = 0;
+    relationshipCt += makeConceptRelationshipsUnpublishable(
+        concept.getRelationships(), processedRelationshipIds);
+    relationshipCt += makeConceptRelationshipsUnpublishable(
+        concept.getInverseRelationships(), processedRelationshipIds);
+    return relationshipCt;
+  }
+
+  /**
+   * Makes the specified concept relationships unpublishable.
+   *
+   * @param relationships the relationships
+   * @param processedRelationshipIds the processed relationship ids
+   * @return the count of relationships made unpublishable
+   * @throws Exception the exception
+   */
+  private int makeConceptRelationshipsUnpublishable(
+    List<ConceptRelationship> relationships, Set<Long> processedRelationshipIds)
+    throws Exception {
+
+    int relationshipCt = 0;
+    for (final ConceptRelationship relationship : relationships) {
+      if (!processedRelationshipIds.add(relationship.getId())) {
+        continue;
+      }
+      for (final Attribute attribute : relationship.getAttributes()) {
+        if (attribute.isPublishable()) {
+          attribute.setPublishable(false);
+          updateAttribute(attribute, relationship);
+        }
+      }
+      if (relationship.isPublishable()) {
+        relationship.setPublishable(false);
+        updateRelationship(relationship);
+        relationshipCt++;
+      }
+    }
+    return relationshipCt;
+  }
+
   /**
    * Helper.
    *
