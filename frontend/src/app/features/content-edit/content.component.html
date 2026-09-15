@@ -274,6 +274,7 @@
                         <th>Last Modified</th>
                         <th>Concept Id</th>
                         <th>Concept Name</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -301,6 +302,17 @@
                           >
                             <td>{{ concept.id }}</td>
                             <td>{{ concept.name }}</td>
+                            <td class="nobreak">
+                              <span
+                                class="icon-action note-action"
+                                [title]="workflowConceptNotesTitle(concept)"
+                                [style.color]="hasWorkflowConceptNotes(concept) ? '#0b4f8a' : '#aeb7c2'"
+                                [style.opacity]="hasWorkflowConceptNotes(concept) ? 1 : 0.35"
+                                (click)="openWorkflowConceptNotesDialog(concept); $event.stopPropagation()"
+                              >
+                                <meme-icon name="tags"></meme-icon>
+                              </span>
+                            </td>
                           </tr>
                         }
                       }
@@ -730,6 +742,15 @@
                     }
                   </td>
                   <td class="nobreak">
+                    <span
+                      class="icon-action note-action"
+                      [title]="componentNotesTitle(concept)"
+                      [style.color]="hasComponentNotes(concept) ? '#0b4f8a' : '#aeb7c2'"
+                      [style.opacity]="hasComponentNotes(concept) ? 1 : 0.35"
+                      (click)="openComponentNotesDialog(concept); $event.stopPropagation()"
+                    >
+                      <meme-icon name="tags"></meme-icon>
+                    </span>
                     <span class="icon-action" title="Reload concept" (click)="reloadConceptInList(concept); $event.stopPropagation()">
                       <meme-icon name="arrow-clockwise"></meme-icon>
                     </span>
@@ -2182,6 +2203,77 @@
         />
       </div>
 
+    </div>
+  </meme-dialog>
+}
+
+@if (componentNotesDialogOpen() && selectedComponent(); as noteComponent) {
+  <meme-dialog
+    title="Concept Notes"
+    [closeDisabled]="addingComponentNote() || removingComponentNoteId() !== null"
+    (closed)="closeComponentNotesDialog()"
+  >
+    <div class="dialog-form component-notes-dialog">
+      <dl>
+        <dt>Concept</dt>
+        <dd>{{ noteComponent.terminologyId || noteComponent.id }} {{ noteComponent.name }}</dd>
+      </dl>
+
+      @if (limitedNotes(noteComponent).length) {
+        <div class="note-list">
+          @for (note of limitedNotes(noteComponent); track note.id ?? $index) {
+            <article class="note-item">
+              <div class="note-body">{{ noteDisplay(note) }}</div>
+              <div class="note-meta">
+                <span>{{ noteByline(note) || 'Note' }}</span>
+                <button
+                  type="button"
+                  class="icon-action danger"
+                  title="Remove note"
+                  [disabled]="!canRemoveComponentNote(note)"
+                  (click)="removeNoteFromSelectedComponent(note)"
+                >
+                  <meme-icon name="trash"></meme-icon>
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="empty compact-empty">No notes.</p>
+      }
+
+      <label class="form-field" for="content-component-note-text">
+        Add Note
+        <textarea
+          id="content-component-note-text"
+          rows="4"
+          [ngModel]="componentNoteText()"
+          (ngModelChange)="setComponentNoteText($event)"
+          [disabled]="addingComponentNote()"
+        ></textarea>
+      </label>
+
+      @if (componentNoteError(); as noteError) {
+        <p class="form-errors compact-empty">{{ noteError }}</p>
+      }
+
+      <div class="form-actions">
+        <button
+          type="button"
+          (click)="addNoteToSelectedComponent()"
+          [disabled]="!componentNoteAddReadiness().canExecute || addingComponentNote()"
+        >
+          {{ addingComponentNote() ? 'Adding...' : 'Add' }}
+        </button>
+        <button
+          type="button"
+          (click)="closeComponentNotesDialog()"
+          [disabled]="addingComponentNote() || removingComponentNoteId() !== null"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   </meme-dialog>
 }

@@ -28,6 +28,7 @@ import { nextWorkflowRecordNavigation } from './content-edit-workflow-navigation
 import { ContentEditApiService } from './content-edit-api.service';
 import { WorkflowApiService } from './workflow-api.service';
 import {
+  WorkflowConcept,
   WorkflowTrackingRecord,
   WorkflowWorklist,
   WorklistMode
@@ -226,6 +227,7 @@ export class ContentComponent implements OnInit {
   protected readonly currentTerminologies = signal<ContentTerminology[]>([]);
   protected readonly errors = signal<string[]>([]);
   protected readonly addingComponentNote = signal(false);
+  protected readonly componentNotesDialogOpen = signal(false);
   protected readonly componentNoteError = signal<string | null>(null);
   protected readonly componentNoteText = signal('');
   protected readonly loadingComponent = signal(false);
@@ -1379,20 +1381,48 @@ export class ContentComponent implements OnInit {
       reasons: Array.from(new Set(reasons))
     };
   });
-  protected readonly componentNoteAddReadiness = computed<EditMutationReadiness>(() => {
+  protected readonly componentNoteMutationReadiness = computed<EditMutationReadiness>(() => {
     const component = this.selectedComponent();
+    const projectId = this.projectId();
+    const projectEditingEnabled = this.projectEditingEnabled();
+
+    const reasons = buildConceptMutationReadiness(
+      projectId,
+      component?.id,
+      this.projectRole(),
+      projectEditingEnabled !== false
+    ).reasons;
+
+    if (!component || !this.isConceptComponent(component)) {
+      reasons.push('Concept detail is required.');
+    }
+    if (projectId && this.loadingProjectContext()) {
+      reasons.push('Project editing state is loading.');
+    }
+    if (projectId && this.projectContextError()) {
+      reasons.push('Project editing state could not be loaded.');
+    }
+    if (projectId && projectEditingEnabled === null && !this.loadingProjectContext()) {
+      reasons.push('Project editing state is required.');
+    }
+
+    return {
+      canExecute: reasons.length === 0,
+      reasons: Array.from(new Set(reasons))
+    };
+  });
+  protected readonly componentNoteAddReadiness = computed<EditMutationReadiness>(() => {
+    const noteMutationReadiness = this.componentNoteMutationReadiness();
     const reasons = [];
 
-    if (!component?.id) {
-      reasons.push('Persisted component detail is required.');
-    }
+    reasons.push(...noteMutationReadiness.reasons);
     if (!this.componentNoteText().trim()) {
       reasons.push('Note text is required.');
     }
 
     return {
       canExecute: reasons.length === 0,
-      reasons
+      reasons: Array.from(new Set(reasons))
     };
   });
   protected readonly conceptApprovalReadiness = computed<EditMutationReadiness>(() => {
@@ -1855,12 +1885,89 @@ export class ContentComponent implements OnInit {
     this.componentNoteText.set(value);
   }
 
+  protected openComponentNotesDialog(component: ContentComponentDetail): void {
+    this.selectConceptFromList(component);
+    this.componentNoteError.set(null);
+    this.componentNoteText.set('');
+    this.componentNotesDialogOpen.set(true);
+  }
+
+  protected closeComponentNotesDialog(): void {
+    if (this.addingComponentNote() || this.removingComponentNoteId() !== null) {
+      return;
+    }
+    this.componentNotesDialogOpen.set(false);
+    this.componentNoteError.set(null);
+    this.componentNoteText.set('');
+  }
+
+  protected hasComponentNotes(component: ContentComponentDetail): boolean {
+    return (component.notes?.length ?? 0) > 0;
+  }
+
+  protected hasWorkflowConceptNotes(concept: WorkflowConcept): boolean {
+    const loadedConcept = this.conceptList().find((item) => item.id === concept.id);
+    const lightweightNotes = (concept as ContentComponentDetail).notes;
+
+    return ((loadedConcept?.notes ?? lightweightNotes)?.length ?? 0) > 0;
+  }
+
+  protected componentNotesTitle(component: ContentComponentDetail): string {
+    return this.hasComponentNotes(component)
+      ? `View, add, or remove concept notes (${component.notes?.length ?? 0})`
+      : 'Add concept notes';
+  }
+
+  protected workflowConceptNotesTitle(concept: WorkflowConcept): string {
+    const loadedConcept = this.conceptList().find((item) => item.id === concept.id);
+    const count = (loadedConcept?.notes ?? (concept as ContentComponentDetail).notes)
+      ?.length ?? 0;
+
+    return count > 0
+      ? `View, add, or remove concept notes (${count})`
+      : 'Add concept notes';
+  }
+
+  protected openWorkflowConceptNotesDialog(concept: WorkflowConcept): void {
+    if (!concept.id) {
+      return;
+    }
+
+    const loadedConcept = this.conceptList().find((item) => item.id === concept.id);
+    if (loadedConcept) {
+      this.openComponentNotesDialog(loadedConcept);
+      return;
+    }
+
+    const projectId = this.projectId();
+    if (!projectId) {
+      return;
+    }
+
+    this.api.getComponentById('concept', concept.id, projectId).subscribe({
+      next: (component) => {
+        if (!component) {
+          this.notifications.error('Concept could not be loaded.');
+          return;
+        }
+        this.addConceptToList(component);
+        this.openComponentNotesDialog(component);
+      },
+      error: () => this.notifications.error('Concept could not be loaded.')
+    });
+  }
+
   protected addNoteToSelectedComponent(): void {
     const component = this.selectedComponent();
     const componentType = this.selectedComponentType();
     const noteText = this.componentNoteText().trim();
 
-    if (!component?.id || !componentType || !noteText) {
+    if (
+      !component?.id ||
+      !componentType ||
+      !noteText ||
+      !this.componentNoteAddReadiness().canExecute
+    ) {
       return;
     }
 
@@ -1887,6 +1994,7 @@ export class ContentComponent implements OnInit {
       this.selectedComponent()?.id &&
         this.selectedComponentType() &&
         note.id &&
+        this.componentNoteMutationReadiness().canExecute &&
         this.removingComponentNoteId() === null
     );
   }
@@ -4298,6 +4406,7 @@ export class ContentComponent implements OnInit {
     this.applyConceptUpdateDefaults(null);
     this.approvalActivityId.set('');
     this.approvalResult.set(null);
+    this.componentNotesDialogOpen.set(false);
     this.componentNoteError.set(null);
     this.componentNoteText.set('');
     this.atomAddActivityId.set('');
