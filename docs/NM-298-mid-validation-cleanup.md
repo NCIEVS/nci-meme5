@@ -255,6 +255,9 @@ It intentionally does not flag mappings under published, non-obsolete PDQ
 mapsets that are no longer publishable, because those mapsets represent
 historical PDQ mapping targets retained for release history while a newer
 publishable mapset is used for current MRMAP/MRSMAP output.
+It also does not flag publishable `BRO`, `BRN`, or `BRB` concept relationships
+from an unpublishable concept to a publishable concept, because those
+bequeathal relationships are used to generate MRCUI history for retired CUIs.
 
 The saved workflow query is minified to stay under the
 `workflow_bin_definitions.query` length limit. It also starts with `select` so
@@ -372,6 +375,11 @@ from (
     and r.to_id = t.id
     and r.publishable
     and (f.publishable = 0 or t.publishable = 0)
+    and not (
+      r.relationshipType in ('BRO', 'BRN', 'BRB')
+      and f.publishable = 0
+      and t.publishable = 1
+    )
   union all
   select r.id, 'CD_REL'
   from code_relationships r, codes f, codes t
