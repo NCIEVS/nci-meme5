@@ -306,11 +306,11 @@
                               <span
                                 class="icon-action note-action"
                                 [title]="workflowConceptNotesTitle(concept)"
-                                [style.color]="hasWorkflowConceptNotes(concept) ? '#0b4f8a' : '#aeb7c2'"
-                                [style.opacity]="hasWorkflowConceptNotes(concept) ? 1 : 0.35"
+                                [style.color]="hasWorkflowConceptNotes(concept) ? '#005ea8' : '#6b7280'"
+                                [style.opacity]="1"
                                 (click)="openWorkflowConceptNotesDialog(concept); $event.stopPropagation()"
                               >
-                                <meme-icon name="tags"></meme-icon>
+                                <meme-icon [name]="hasWorkflowConceptNotes(concept) ? 'tag-fill' : 'tags'"></meme-icon>
                               </span>
                             </td>
                           </tr>
@@ -745,11 +745,11 @@
                     <span
                       class="icon-action note-action"
                       [title]="componentNotesTitle(concept)"
-                      [style.color]="hasComponentNotes(concept) ? '#0b4f8a' : '#aeb7c2'"
-                      [style.opacity]="hasComponentNotes(concept) ? 1 : 0.35"
+                      [style.color]="hasComponentNotes(concept) ? '#005ea8' : '#6b7280'"
+                      [style.opacity]="1"
                       (click)="openComponentNotesDialog(concept); $event.stopPropagation()"
                     >
-                      <meme-icon name="tags"></meme-icon>
+                      <meme-icon [name]="hasComponentNotes(concept) ? 'tag-fill' : 'tags'"></meme-icon>
                     </span>
                     <span class="icon-action" title="Reload concept" (click)="reloadConceptInList(concept); $event.stopPropagation()">
                       <meme-icon name="arrow-clockwise"></meme-icon>

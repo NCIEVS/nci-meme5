@@ -32,6 +32,7 @@ export type MemeIconName =
   | 'pencil-square'
   | 'person-plus'
   | 'plus'
+  | 'tag-fill'
   | 'tags'
   | 'trash'
   | 'upload'
