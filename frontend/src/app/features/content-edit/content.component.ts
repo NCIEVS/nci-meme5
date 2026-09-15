@@ -1487,9 +1487,6 @@ export class ContentComponent implements OnInit {
 
       if (data?.type === 'concept-merged' && data.fromConceptId) {
         this.refreshConceptListAfterMerge(data.fromConceptId, data.toConceptId);
-        this.records.update(recs =>
-          recs.filter(r => !r.concepts?.some(c => c.id === data.fromConceptId))
-        );
       }
 
       if (data?.type === 'concept-split' && data.fromConceptId && data.newConceptId) {
@@ -5736,6 +5733,10 @@ export class ContentComponent implements OnInit {
     fromConceptId: number,
     toConceptId: number | null | undefined
   ): void {
+    this.markConceptMergedInRecords(fromConceptId);
+    this.loadRecords();
+    this.loadTabCounts();
+
     const remainingConcepts = this.conceptList().filter(
       (concept) => concept.id !== fromConceptId
     );
@@ -5776,6 +5777,34 @@ export class ContentComponent implements OnInit {
         this.notifications.error('Merged concept could not be reloaded.');
       }
     });
+  }
+
+  private markConceptMergedInRecords(fromConceptId: number): void {
+    const removeMergedConcept = (record: WorkflowTrackingRecord): WorkflowTrackingRecord => {
+      if (!record.concepts?.some((concept) => concept.id === fromConceptId)) {
+        return record;
+      }
+
+      const concepts = record.concepts.filter(
+        (concept) => concept.id !== fromConceptId
+      );
+      const allApproved = concepts.length > 0 && concepts.every(
+        (concept) => concept.workflowStatus === 'READY_FOR_PUBLICATION'
+      );
+
+      return {
+        ...record,
+        concepts,
+        workflowStatus: allApproved
+          ? 'READY_FOR_PUBLICATION'
+          : record.workflowStatus
+      };
+    };
+
+    this.records.update((records) => records.map(removeMergedConcept));
+    this.selectedRecord.update((record) =>
+      record ? removeMergedConcept(record) : record
+    );
   }
 
   protected selectConceptFromList(concept: ContentComponentDetail): void {
@@ -6670,6 +6699,7 @@ export class ContentComponent implements OnInit {
     const worklist = this.selectedWorklist();
     if (!ctx || !worklist?.id) return;
     const mode = this.worklistMode();
+    const selectedRecordId = this.selectedRecord()?.id ?? null;
     this.loadingRecords.set(true);
     const pfs = this.recordsPfs();
 
@@ -6688,6 +6718,14 @@ export class ContentComponent implements OnInit {
             this.selectRecord(firstRecord);
           }
           return;
+        }
+        if (selectedRecordId) {
+          const refreshedRecord = records.find(
+            (record) => record.id === selectedRecordId
+          );
+          if (refreshedRecord) {
+            this.selectedRecord.set(refreshedRecord);
+          }
         }
         this.restoreSelectedRecord(records);
       },
