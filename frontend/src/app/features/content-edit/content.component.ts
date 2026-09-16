@@ -8,7 +8,7 @@ import {
   ReportPanelTab
 } from '../../shared/concept-report-panel/concept-report-panel.component';
 import { IconComponent } from '../../shared/icon/icon.component';
-import { catchError, finalize, forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { catchError, concatMap, finalize, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { formatEasternDate } from '../../core/maintenance-window-time';
@@ -24,7 +24,10 @@ import {
   buildWorkflowListFilterQuery,
   contentTypePath
 } from './content-edit-api.helpers';
-import { nextWorkflowRecordNavigation } from './content-edit-workflow-navigation.helpers';
+import {
+  nextWorkflowRecordNavigation,
+  NO_MORE_WORKLIST_CLUSTERS_MESSAGE
+} from './content-edit-workflow-navigation.helpers';
 import { ContentEditApiService } from './content-edit-api.service';
 import { WorkflowApiService } from './workflow-api.service';
 import {
@@ -126,6 +129,15 @@ interface EditPopoutLink {
   title: string;
   windowName: string;
   workbench: string;
+}
+
+interface FinishWorklistForm {
+  actionLabel: 'Return' | 'Finish';
+  errors: string[];
+  hours: number | null;
+  minutes: number | null;
+  role: string;
+  worklist: WorkflowWorklist;
 }
 
 @Component({
@@ -513,6 +525,8 @@ export class ContentComponent implements OnInit {
   protected readonly worklistFilter = signal('');
   protected readonly worklistSortField = signal<'name' | 'lastModified'>('lastModified');
   protected readonly worklistSortAsc = signal(false);
+  protected readonly finishWorklistForm = signal<FinishWorklistForm | null>(null);
+  protected readonly finishingWorklistId = signal<number | null>(null);
   protected readonly availableCt = signal(0);
   protected readonly assignedCt = signal(0);
   protected readonly doneCt = signal(0);
@@ -6169,6 +6183,11 @@ export class ContentComponent implements OnInit {
       return;
     }
 
+    if (navigation.kind === 'end') {
+      window.alert(NO_MORE_WORKLIST_CLUSTERS_MESSAGE);
+      return;
+    }
+
     if (navigation.kind === 'record') {
       this.selectRecord(records[navigation.recordIndex]);
       return;
@@ -7034,13 +7053,172 @@ export class ContentComponent implements OnInit {
 
   protected finishWorklist(worklist: WorkflowWorklist, event: Event): void {
     event.stopPropagation();
+    const workflowState = this.getWorkflowState(worklist);
+
+    if (workflowState === 'Assigned') {
+      if (!window.confirm('Are you sure you want to return the worklist?')) {
+        return;
+      }
+      this.openFinishWorklistForm(worklist, 'Return');
+      return;
+    }
+
+    if (
+      workflowState === 'Review Assigned' &&
+      !window.confirm('Are you sure you want to finish the worklist?')
+    ) {
+      return;
+    }
+
+    this.performFinishWorklist(
+      worklist,
+      this.worklistUser()?.role ?? this.finishWorklistRole(worklist)
+    );
+  }
+
+  protected openFinishWorklistForm(
+    worklist: WorkflowWorklist,
+    actionLabel: 'Return' | 'Finish' = 'Return'
+  ): void {
+    if (!worklist.id || !this.worklistUser()) {
+      return;
+    }
+
+    this.finishWorklistForm.set({
+      actionLabel,
+      errors: [],
+      hours: null,
+      minutes: null,
+      role: this.finishWorklistRole(worklist),
+      worklist
+    });
+  }
+
+  protected closeFinishWorklistForm(): void {
+    if (this.finishWorklistFormRunning()) {
+      return;
+    }
+
+    this.finishWorklistForm.set(null);
+  }
+
+  protected updateFinishWorklistForm(
+    field: 'hours' | 'minutes',
+    value: string | number | null
+  ): void {
+    const form = this.finishWorklistForm();
+
+    if (!form) {
+      return;
+    }
+
+    const parsedValue = value === '' || value === null ? null : Number(value);
+    const nextValue =
+      typeof parsedValue === 'number' && Number.isFinite(parsedValue)
+        ? parsedValue
+        : null;
+
+    this.finishWorklistForm.set({
+      ...form,
+      errors: [],
+      [field]: nextValue
+    });
+  }
+
+  protected finishWorklistFormRunning(): boolean {
+    const form = this.finishWorklistForm();
+
+    return Boolean(form?.worklist.id && this.finishingWorklistId() === form.worklist.id);
+  }
+
+  protected submitFinishWorklistForm(): void {
+    const ctx = this.worklistUser();
+    const form = this.finishWorklistForm();
+
+    if (!ctx || !form?.worklist.id) {
+      return;
+    }
+
+    const hours = form.hours ?? 0;
+    const minutes = form.minutes ?? 0;
+    const errors: string[] = [];
+
+    if (hours < 0) {
+      errors.push('Invalid number of hours, < 0');
+    }
+    if (hours > 23) {
+      errors.push('Invalid number of hours, > 24');
+    }
+    if (minutes < 0) {
+      errors.push('Invalid number of minutes, < 0');
+    }
+    if (minutes > 59) {
+      errors.push('Invalid number of minutes, > 59');
+    }
+    if (!hours && !minutes) {
+      errors.push('Time spent is required.');
+    }
+
+    if (errors.length) {
+      this.finishWorklistForm.set({
+        ...form,
+        errors
+      });
+      return;
+    }
+
+    const seconds = hours * 60 * 60 + minutes * 60;
+    const updatedWorklist: WorkflowWorklist = {
+      ...form.worklist,
+      authorTime: form.role === 'AUTHOR' ? seconds : form.worklist.authorTime,
+      reviewerTime: form.role === 'REVIEWER' ? seconds : form.worklist.reviewerTime
+    };
+
+    this.finishingWorklistId.set(form.worklist.id);
+    this.workflowApi
+      .updateWorklist(ctx.projectId, updatedWorklist)
+      .pipe(
+        concatMap(() =>
+          this.workflowApi.performWorkflowAction(
+            ctx.projectId,
+            form.worklist.id!,
+            ctx.userName,
+            form.role,
+            'FINISH'
+          )
+        ),
+        finalize(() => this.finishingWorklistId.set(null))
+      )
+      .subscribe({
+        next: () => {
+          this.finishWorklistForm.set(null);
+          this.loadWorklists();
+          this.loadTabCounts();
+        },
+        error: () => {
+          this.finishWorklistForm.set({
+            ...form,
+            errors: [`Could not ${form.actionLabel.toLowerCase()} worklist.`]
+          });
+          this.notifications.error(`Could not ${form.actionLabel.toLowerCase()} worklist.`);
+        }
+      });
+  }
+
+  private performFinishWorklist(worklist: WorkflowWorklist, role: string): void {
     const ctx = this.worklistUser();
     if (!ctx || !worklist.id) return;
-    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, ctx.role, 'FINISH')
+    this.finishingWorklistId.set(worklist.id);
+    this.workflowApi.performWorkflowAction(ctx.projectId, worklist.id, ctx.userName, role, 'FINISH')
+      .pipe(finalize(() => this.finishingWorklistId.set(null)))
       .subscribe({
         next: () => { this.loadWorklists(); this.loadTabCounts(); },
         error: () => this.notifications.error('Could not finish worklist.')
       });
+  }
+
+  private finishWorklistRole(worklist: WorkflowWorklist): string {
+    return (worklist.reviewers?.length ?? 0) === 0 ? 'AUTHOR' : 'REVIEWER';
   }
 
   protected deleteWorklist(worklist: WorkflowWorklist, event: Event): void {

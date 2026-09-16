@@ -277,6 +277,11 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly selectedClusterType = signal<string>('all');
   protected readonly binRecords = signal<TrackingRecord[]>([]);
   protected readonly binRecordsTotal = signal(0);
+  protected readonly binRecordsPage = signal(1);
+  protected readonly binRecordsPageSize = 20;
+  protected readonly binRecordsTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.binRecordsTotal() / this.binRecordsPageSize))
+  );
   protected readonly loadingBinRecords = signal(false);
   protected readonly selectedConcept = signal<TrackingRecordConcept | null>(null);
   protected readonly selectedConceptDetail = signal<ContentComponentDetail | null>(null);
@@ -1112,21 +1117,41 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected selectBin(bin: WorkflowBin, clusterType = 'all'): void {
     this.selectedBin.set(bin);
     this.selectedClusterType.set(clusterType);
+    this.binRecordsPage.set(1);
     this.selectedConcept.set(null);
     this.clearSelectedConceptDetail();
-    this.loadBinRecords(bin, clusterType);
+    this.loadBinRecords(bin, clusterType, 1);
   }
 
   private clearSelectedBin(): void {
     this.selectedBin.set(null);
     this.selectedClusterType.set('all');
+    this.binRecordsPage.set(1);
     this.selectedConcept.set(null);
     this.clearSelectedConceptDetail();
     this.binRecords.set([]);
     this.binRecordsTotal.set(0);
   }
 
-  private loadBinRecords(bin: WorkflowBin, clusterType = 'all'): void {
+  protected binRecordsPageTo(page: number): void {
+    const bin = this.selectedBin();
+    const nextPage = Math.min(Math.max(1, page), this.binRecordsTotalPages());
+
+    if (!bin || nextPage === this.binRecordsPage()) {
+      return;
+    }
+
+    this.binRecordsPage.set(nextPage);
+    this.selectedConcept.set(null);
+    this.clearSelectedConceptDetail();
+    this.loadBinRecords(bin, this.selectedClusterType(), nextPage);
+  }
+
+  private loadBinRecords(
+    bin: WorkflowBin,
+    clusterType = 'all',
+    page = this.binRecordsPage()
+  ): void {
     const projectId = this.projectId();
 
     if (!projectId || !bin.id) {
@@ -1139,8 +1164,8 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     this.api
       .findTrackingRecordsForBin(projectId, bin.id, {
-        startIndex: 0,
-        maxResults: 20,
+        startIndex: (page - 1) * this.binRecordsPageSize,
+        maxResults: this.binRecordsPageSize,
         sortField: 'clusterId',
         ascending: true,
         queryRestriction: workflowBinRecordQueryRestriction(clusterType)
@@ -3542,8 +3567,43 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       return 'n/a';
     }
 
-    const seconds = value / 1000;
-    return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(2)} sec`;
+    if (value < 1000) {
+      return `${Math.round(value)} ms`;
+    }
+
+    return this.displayDurationFromSeconds(value / 1000);
+  }
+
+  protected displayWorklistTime(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return 'n/a';
+    }
+
+    return this.displayDurationFromSeconds(value);
+  }
+
+  private displayDurationFromSeconds(value: number): string {
+    if (!Number.isFinite(value) || value < 0) {
+      return 'n/a';
+    }
+
+    const totalSeconds = Math.round(value);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const parts: string[] = [];
+
+    if (hours) {
+      parts.push(`${hours} hr${hours === 1 ? '' : 's'}`);
+    }
+    if (minutes) {
+      parts.push(`${minutes} min`);
+    }
+    if (!hours && !minutes) {
+      parts.push(`${seconds} sec`);
+    }
+
+    return parts.join(' ');
   }
 
   protected isBinEnabled(bin: WorkflowBin): boolean {

@@ -1190,6 +1190,69 @@
   }
 </section>
 
+@if (finishWorklistForm(); as form) {
+  <meme-dialog
+    title="{{ form.actionLabel }} {{ form.worklist.name || 'worklist' }}"
+    [closeDisabled]="finishWorklistFormRunning()"
+    (closed)="closeFinishWorklistForm()"
+  >
+    <form class="dialog-form" (ngSubmit)="submitFinishWorklistForm()">
+      <p class="compact-empty">Enter time spent editing worklist:</p>
+
+      @if (form.errors.length) {
+        <ul class="form-errors">
+          @for (error of form.errors; track error) {
+            <li>{{ error }}</li>
+          }
+        </ul>
+      }
+
+      <div class="form-grid">
+        <label class="form-field" for="content-finish-worklist-hours">
+          <span>Hours</span>
+          <input
+            id="content-finish-worklist-hours"
+            type="number"
+            min="0"
+            max="23"
+            [ngModel]="form.hours ?? ''"
+            (ngModelChange)="updateFinishWorklistForm('hours', $event)"
+            name="content-finish-worklist-hours"
+          />
+        </label>
+        <label class="form-field" for="content-finish-worklist-minutes">
+          <span>Minutes</span>
+          <input
+            id="content-finish-worklist-minutes"
+            type="number"
+            min="0"
+            max="59"
+            [ngModel]="form.minutes ?? ''"
+            (ngModelChange)="updateFinishWorklistForm('minutes', $event)"
+            name="content-finish-worklist-minutes"
+          />
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          [disabled]="finishWorklistFormRunning() || !(form.hours || form.minutes)"
+        >
+          {{ finishWorklistFormRunning() ? form.actionLabel + 'ing...' : form.actionLabel }}
+        </button>
+        <button
+          type="button"
+          (click)="closeFinishWorklistForm()"
+          [disabled]="finishWorklistFormRunning()"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </meme-dialog>
+}
+
 @if (rootTerminologyDialogOpen()) {
   <meme-dialog
     [title]="rootTerminologyDialogTitle()"

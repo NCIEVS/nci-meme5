@@ -42,9 +42,17 @@ describe('content edit workflow navigation helpers', () => {
     });
   });
 
-  it('returns null at the final record of the final page', () => {
+  it('reports the end at the final record of the final page', () => {
     expect(
       nextWorkflowRecordNavigation(11, [{ id: 11 }], 2, 10, 11)
+    ).toEqual({
+      kind: 'end'
+    });
+  });
+
+  it('returns null when the selected record is not loaded', () => {
+    expect(
+      nextWorkflowRecordNavigation(99, [{ id: 11 }], 2, 10, 11)
     ).toBeNull();
   });
 });

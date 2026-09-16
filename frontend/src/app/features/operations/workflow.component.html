@@ -390,6 +390,51 @@
                   ({{ binRecordsTotal() }})
                 }
               </h2>
+              @if (binRecordsTotal() > 0) {
+                <div class="list-pager">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    title="First page"
+                    aria-label="First page"
+                    [disabled]="binRecordsPage() <= 1"
+                    (click)="binRecordsPageTo(1)"
+                  >
+                    <meme-icon name="chevron-double-left"></meme-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    title="Previous page"
+                    aria-label="Previous page"
+                    [disabled]="binRecordsPage() <= 1"
+                    (click)="binRecordsPageTo(binRecordsPage() - 1)"
+                  >
+                    <meme-icon name="chevron-left"></meme-icon>
+                  </button>
+                  <span>{{ binRecordsPage() }} / {{ binRecordsTotalPages() }}</span>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    title="Next page"
+                    aria-label="Next page"
+                    [disabled]="binRecordsPage() >= binRecordsTotalPages()"
+                    (click)="binRecordsPageTo(binRecordsPage() + 1)"
+                  >
+                    <meme-icon name="chevron-right"></meme-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    title="Last page"
+                    aria-label="Last page"
+                    [disabled]="binRecordsPage() >= binRecordsTotalPages()"
+                    (click)="binRecordsPageTo(binRecordsTotalPages())"
+                  >
+                    <meme-icon name="chevron-double-right"></meme-icon>
+                  </button>
+                </div>
+              }
             </div>
             <div class="table-wrap">
               @if (loadingBinRecords()) {
@@ -415,7 +460,18 @@
                           tabindex="0"
                         >
                           @if (ci) {
-                            <td [attr.rowspan]="(record.concepts ?? []).length">{{ record.clusterId ?? 'n/a' }}</td>
+                            <td [attr.rowspan]="(record.concepts ?? []).length">
+                              {{ record.clusterId ?? 'n/a' }}
+                              @if (record.worklistName; as worklistName) {
+                                <span
+                                  class="bin-info-icon"
+                                  [title]="worklistName"
+                                  [attr.aria-label]="'Worklist: ' + worklistName"
+                                >
+                                  <meme-icon name="list-task"></meme-icon>
+                                </span>
+                              }
+                            </td>
                             <td [attr.rowspan]="(record.concepts ?? []).length">
                               @if (record.workflowStatus === 'NEEDS_REVIEW') {
                                 <span class="wf-badge needs-review" title="Needs Review">N</span>
@@ -1083,9 +1139,9 @@
             <dt>Team</dt>
             <dd>{{ detail.item.team || 'n/a' }}</dd>
             <dt>Authoring Time</dt>
-            <dd>{{ displayRunTime(detail.item.authorTime) }}</dd>
+            <dd>{{ displayWorklistTime(detail.item.authorTime) }}</dd>
             <dt>Reviewer Time</dt>
-            <dd>{{ displayRunTime(detail.item.reviewerTime) }}</dd>
+            <dd>{{ displayWorklistTime(detail.item.reviewerTime) }}</dd>
           }
           <dt>Records</dt>
           <dd>{{ recordCount(detail.item) }}</dd>

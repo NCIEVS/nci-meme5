@@ -142,6 +142,14 @@ export class WorkflowApiService {
     );
   }
 
+  updateWorklist(projectId: number, worklist: WorkflowWorklist): Observable<void> {
+    return this.http.post<void>(
+      `${this.baseUrl}/workflow/worklist`,
+      worklist,
+      { params: new HttpParams().set('projectId', projectId) }
+    );
+  }
+
   removeWorklist(projectId: number, worklistId: number): Observable<void> {
     return this.http.delete<void>(
       `${this.baseUrl}/workflow/worklist/${worklistId}`,

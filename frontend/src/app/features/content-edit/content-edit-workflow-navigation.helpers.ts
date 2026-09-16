@@ -6,7 +6,12 @@ export type NextWorkflowRecordNavigation =
   | {
       kind: 'page';
       page: number;
+    }
+  | {
+      kind: 'end';
     };
+
+export const NO_MORE_WORKLIST_CLUSTERS_MESSAGE = 'No more clusters in the worklist.';
 
 export function nextWorkflowRecordNavigation<T extends { id?: number | null }>(
   selectedRecordId: number | null | undefined,
@@ -39,5 +44,7 @@ export function nextWorkflowRecordNavigation<T extends { id?: number | null }>(
     };
   }
 
-  return null;
+  return {
+    kind: 'end'
+  };
 }

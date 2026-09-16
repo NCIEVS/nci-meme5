@@ -2,10 +2,12 @@ export type WorklistMode = 'Available' | 'Assigned' | 'Done' | 'Checklists';
 
 export interface WorkflowWorklist {
   authors?: string[] | null;
+  authorTime?: number | null;
   id?: number | null;
   lastModified?: string | number | null;
   name?: string | null;
   reviewers?: string[] | null;
+  reviewerTime?: number | null;
   workflowStateHistory?: Record<string, number> | null;
   workflowStatus?: string | null;
 }

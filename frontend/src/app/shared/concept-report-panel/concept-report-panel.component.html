@@ -43,7 +43,7 @@
       } @else if (reportError()) {
         <p class="crp-error">{{ reportError() }}</p>
       } @else if (reportHtml()) {
-        <div class="crp-report-html" [innerHTML]="reportHtml()" (click)="handleReportClick($event)"></div>
+        <pre class="crp-report-html" [innerHTML]="reportHtml()" (click)="handleReportClick($event)"></pre>
       } @else {
         <p class="crp-empty">No report available.</p>
       }

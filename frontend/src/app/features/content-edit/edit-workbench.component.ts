@@ -19,6 +19,7 @@ import {
   buildContentPfs,
   buildContentSearchPfs
 } from './content-edit-api.helpers';
+import { NO_MORE_WORKLIST_CLUSTERS_MESSAGE } from './content-edit-workflow-navigation.helpers';
 import { ContentEditApiService } from './content-edit-api.service';
 import {
   ContentAtom,
@@ -1736,7 +1737,11 @@ export class EditWorkbenchComponent implements OnInit {
       next: (resp) => {
         const records = resp.records ?? resp.objects ?? [];
         const idx = records.findIndex((r) => r.id === recordId);
-        if (idx < 0 || idx >= records.length - 1) return;
+        if (idx < 0) return;
+        if (idx >= records.length - 1) {
+          window.alert(NO_MORE_WORKLIST_CLUSTERS_MESSAGE);
+          return;
+        }
         const nextRecord = records[idx + 1];
         const nextConceptId = nextRecord.concepts?.[0]?.id;
         if (!nextConceptId) return;
