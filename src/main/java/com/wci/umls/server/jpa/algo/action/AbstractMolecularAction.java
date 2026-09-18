@@ -33,6 +33,7 @@ import com.wci.umls.server.model.actions.AtomicAction;
 import com.wci.umls.server.model.actions.MolecularAction;
 import com.wci.umls.server.model.content.Atom;
 import com.wci.umls.server.model.content.AtomRelationship;
+import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Concept;
 import com.wci.umls.server.model.content.ConceptRelationship;
 import com.wci.umls.server.model.workflow.TrackingRecord;
@@ -705,6 +706,75 @@ public abstract class AbstractMolecularAction extends AbstractAlgorithm
     if (!batchMode) {
       commit();
     }
+  }
+
+  /**
+   * Makes all relationships connected to a concept, and their attributes,
+   * unpublishable.
+   *
+   * @param concept the concept
+   * @return the number of relationships made unpublishable
+   * @throws Exception the exception
+   */
+  protected int makeConceptRelationshipsUnpublishable(Concept concept)
+    throws Exception {
+
+    return makeConceptRelationshipsUnpublishable(concept.getRelationships(),
+        concept.getInverseRelationships());
+  }
+
+  /**
+   * Makes the specified outgoing and incoming relationships, and their
+   * attributes, unpublishable.
+   *
+   * @param relationships the outgoing relationships
+   * @param inverseRelationships the incoming relationships
+   * @return the number of relationships made unpublishable
+   * @throws Exception the exception
+   */
+  protected int makeConceptRelationshipsUnpublishable(
+    List<ConceptRelationship> relationships,
+    List<ConceptRelationship> inverseRelationships) throws Exception {
+
+    final Set<Long> processedRelationshipIds = new HashSet<>();
+    int relationshipCt = 0;
+    relationshipCt += makeConceptRelationshipsUnpublishable(
+        relationships, processedRelationshipIds);
+    relationshipCt += makeConceptRelationshipsUnpublishable(
+        inverseRelationships, processedRelationshipIds);
+    return relationshipCt;
+  }
+
+  /**
+   * Makes the specified relationships, and their attributes, unpublishable.
+   *
+   * @param relationships the relationships
+   * @param processedRelationshipIds the processed relationship ids
+   * @return the number of relationships made unpublishable
+   * @throws Exception the exception
+   */
+  private int makeConceptRelationshipsUnpublishable(
+    List<ConceptRelationship> relationships, Set<Long> processedRelationshipIds)
+    throws Exception {
+
+    int relationshipCt = 0;
+    for (final ConceptRelationship relationship : relationships) {
+      if (!processedRelationshipIds.add(relationship.getId())) {
+        continue;
+      }
+      for (final Attribute attribute : relationship.getAttributes()) {
+        if (attribute.isPublishable()) {
+          attribute.setPublishable(false);
+          updateAttribute(attribute, relationship);
+        }
+      }
+      if (relationship.isPublishable()) {
+        relationship.setPublishable(false);
+        updateRelationship(relationship);
+        relationshipCt++;
+      }
+    }
+    return relationshipCt;
   }
 
   /* see superclass */

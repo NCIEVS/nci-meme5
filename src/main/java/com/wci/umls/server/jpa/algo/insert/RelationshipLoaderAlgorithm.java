@@ -47,6 +47,9 @@ import com.wci.umls.server.services.handlers.IdentifierAssignmentHandler;
 public class RelationshipLoaderAlgorithm
     extends AbstractInsertMaintReleaseAlgorithm {
 
+  /** Maximum number of unpublishable endpoint samples to log. */
+  private static final int UNPUBLISHABLE_ENDPOINT_SAMPLE_LIMIT = 10;
+
   /** The handler. */
   private IdentifierAssignmentHandler handler = null;
 
@@ -58,6 +61,10 @@ public class RelationshipLoaderAlgorithm
 
   /** The remove count. */
   private int removeCount = 0;
+
+  /** Publishable non-bequeathal concept relationship input rows with an
+   * unpublishable endpoint. */
+  private int publishableConceptRelWithUnpublishableEndpointCount = 0;
 
   /** The mid commit set. */
   private Set midCommitSet = new HashSet<>();
@@ -142,6 +149,7 @@ public class RelationshipLoaderAlgorithm
     // Count number of added and updated Relationships, for logging
     addCount = 0;
     updateCount = 0;
+    publishableConceptRelWithUnpublishableEndpointCount = 0;
 
     try {
 
@@ -466,6 +474,9 @@ public class RelationshipLoaderAlgorithm
       }
       logInfo("  added count = " + addCount);
       logInfo("  update count = " + updateCount);
+      logInfo("  publishable non-bequeathal concept relationship input rows "
+          + "with an unpublishable endpoint = "
+          + publishableConceptRelWithUnpublishableEndpointCount);
 
       logInfo("Finished " + getName());
 
@@ -690,6 +701,25 @@ public class RelationshipLoaderAlgorithm
     newRelationship.setTerminologyId(sourceTermId);
     newRelationship.setTo(toComponent);
     newRelationship.setWorkflowStatus(lookupWorkflowStatus(workflowStatusStr));
+
+    if (relClass.equals(ConceptRelationshipJpa.class)
+        && newRelationship.isPublishable()
+        && !newRelationship.getRelationshipType().startsWith("BR")
+        && (!fromComponent.isPublishable() || !toComponent.isPublishable())) {
+      publishableConceptRelWithUnpublishableEndpointCount++;
+      if (publishableConceptRelWithUnpublishableEndpointCount
+          <= UNPUBLISHABLE_ENDPOINT_SAMPLE_LIMIT) {
+        logWarn("Publishable non-bequeathal concept relationship input row "
+            + "resolved to an unpublishable endpoint: sourceRelationshipId="
+            + sourceRelationshipId + ", relationshipType="
+            + newRelationship.getRelationshipType() + ", fromId="
+            + fromComponent.getId() + ", fromTerminologyId="
+            + fromComponent.getTerminologyId() + ", fromPublishable="
+            + fromComponent.isPublishable() + ", toId=" + toComponent.getId()
+            + ", toTerminologyId=" + toComponent.getTerminologyId()
+            + ", toPublishable=" + toComponent.isPublishable());
+      }
+    }
 
     // For ComponentInfoRelationships that point to SRC_ATOM_IDs, have the
     // terminologyId point to the Atom's AUI

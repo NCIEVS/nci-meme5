@@ -3,15 +3,9 @@
  */
 package com.wci.umls.server.jpa.algo.action;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
-import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Concept;
-import com.wci.umls.server.model.content.ConceptRelationship;
 import com.wci.umls.server.model.workflow.WorkflowStatus;
 
 /**
@@ -27,6 +21,9 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
 
   /** Indicates whether to cascade unpublishable status to concept rels. */
   private boolean cascadeUnpublishableRelationships = false;
+
+  /** Number of relationships made unpublishable by this action. */
+  private int unpublishableRelationshipCount = 0;
 
   /**
    * Instantiates an empty {@link UpdateConceptMolecularAction}.
@@ -66,6 +63,15 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
     this.cascadeUnpublishableRelationships = cascadeUnpublishableRelationships;
   }
 
+  /**
+   * Returns the number of relationships made unpublishable by this action.
+   *
+   * @return the relationship count
+   */
+  public int getUnpublishableRelationshipCount() {
+    return unpublishableRelationshipCount;
+  }
+
   /* see superclass */
   @Override
   public ValidationResult checkPreconditions() throws Exception {
@@ -90,6 +96,9 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
     // operations)
     //
 
+    final boolean wasPublishable = getConcept().isPublishable();
+    unpublishableRelationshipCount = 0;
+
     // Make a copy of the concept
     Concept updateConcept = new ConceptJpa(getConcept(), true);
 
@@ -104,54 +113,13 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
     //
     updateConcept(updateConcept);
 
-    if (cascadeUnpublishableRelationships && !publishable) {
-      makeConceptRelationshipsUnpublishable(getConcept());
+    if (cascadeUnpublishableRelationships && wasPublishable && !publishable) {
+      unpublishableRelationshipCount =
+          makeConceptRelationshipsUnpublishable(getConcept());
+      logInfo("  concept relationships made unpublishable = "
+          + unpublishableRelationshipCount);
     }
 
-  }
-
-  /**
-   * Makes all concept relationships connected to the concept unpublishable.
-   *
-   * @param concept the concept
-   * @throws Exception the exception
-   */
-  private void makeConceptRelationshipsUnpublishable(Concept concept)
-    throws Exception {
-
-    final Set<Long> processedRelationshipIds = new HashSet<>();
-    makeConceptRelationshipsUnpublishable(concept.getRelationships(),
-        processedRelationshipIds);
-    makeConceptRelationshipsUnpublishable(concept.getInverseRelationships(),
-        processedRelationshipIds);
-  }
-
-  /**
-   * Makes the specified concept relationships unpublishable.
-   *
-   * @param relationships the relationships
-   * @param processedRelationshipIds the processed relationship ids
-   * @throws Exception the exception
-   */
-  private void makeConceptRelationshipsUnpublishable(
-    List<ConceptRelationship> relationships, Set<Long> processedRelationshipIds)
-    throws Exception {
-
-    for (final ConceptRelationship relationship : relationships) {
-      if (!processedRelationshipIds.add(relationship.getId())) {
-        continue;
-      }
-      for (final Attribute attribute : relationship.getAttributes()) {
-        if (attribute.isPublishable()) {
-          attribute.setPublishable(false);
-          updateAttribute(attribute, relationship);
-        }
-      }
-      if (relationship.isPublishable()) {
-        relationship.setPublishable(false);
-        updateRelationship(relationship);
-      }
-    }
   }
 
   /* see superclass */
@@ -168,7 +136,9 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
         "\nACTION  " + getName() + "\n  concept = " + getConcept().getId() + " "
             + getConcept().getName() + ", " + getConcept().isPublishable()
             + ", " + getConcept().isSuppressible() + ", "
-            + getConcept().getWorkflowStatus());
+            + getConcept().getWorkflowStatus()
+            + ", concept relationships made unpublishable = "
+            + unpublishableRelationshipCount);
   }
 
 }

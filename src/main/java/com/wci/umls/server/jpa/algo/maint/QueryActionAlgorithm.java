@@ -21,6 +21,7 @@ import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 import com.wci.umls.server.jpa.algo.action.AbstractMolecularAction;
 import com.wci.umls.server.jpa.algo.action.ApproveMolecularAction;
+import com.wci.umls.server.jpa.algo.action.UpdateConceptMolecularAction;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.model.content.Atom;
@@ -53,6 +54,9 @@ public class QueryActionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
   /** The successful actions. */
   private int successfulActions;
+
+  /** Concept relationships made unpublishable. */
+  private int unpublishableConceptRelationshipCount;
 
   /**
    * Instantiates an empty {@link QueryActionAlgorithm}.
@@ -148,6 +152,7 @@ public class QueryActionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
     // Count number of actions successfully performed
     successfulActions = 0;
+    unpublishableConceptRelationshipCount = 0;
 
     // Generate parameters to pass into query executions
     Map<String, String> params = new HashMap<>();
@@ -182,8 +187,12 @@ public class QueryActionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         // Handle Make Unpublishable
         else if (action.equals("Make Unpublishable")) {
           if (component.isPublishable()) {
-            component.setPublishable(false);
-            componentChanged = true;
+            if (component instanceof Concept) {
+              componentChanged = makeConceptUnpublishable((Concept) component);
+            } else {
+              component.setPublishable(false);
+              componentChanged = true;
+            }
           }
         }
 
@@ -286,6 +295,8 @@ public class QueryActionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     logInfo("[QueryAction] " + successfulActions + " " + action + " "
         + ConfigUtility.getNameFromClass(objectTypeClass)
         + " actions successfully performed.");
+    logInfo("  concept relationships made unpublishable = "
+        + unpublishableConceptRelationshipCount);
 
     logInfo("  project = " + getProject().getId());
     logInfo("  workId = " + getWorkId());
@@ -293,6 +304,55 @@ public class QueryActionAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     logInfo("  user  = " + getLastModifiedBy());
     logInfo("Finished " + getName());
 
+  }
+
+  /**
+   * Makes a concept and its connected relationships unpublishable through a
+   * molecular action so the changes are audited together.
+   *
+   * @param concept the concept
+   * @return true if the action succeeded
+   * @throws Exception the exception
+   */
+  private boolean makeConceptUnpublishable(Concept concept) throws Exception {
+    final UpdateConceptMolecularAction updateAction =
+        new UpdateConceptMolecularAction();
+    try {
+      updateAction.setProject(getProject());
+      updateAction.setActivityId(getActivityId());
+      updateAction.setWorkId(getWorkId());
+      updateAction.setConceptId(concept.getId());
+      updateAction.setConceptId2(null);
+      updateAction.setLastModifiedBy(getLastModifiedBy());
+      updateAction.setLastModified(concept.getLastModified().getTime());
+      updateAction.setOverrideWarnings(true);
+      updateAction.setTransactionPerOperation(false);
+      updateAction.setMolecularActionFlag(true);
+      updateAction.setChangeStatusFlag(true);
+      updateAction.setWorkflowStatus(concept.getWorkflowStatus());
+      updateAction.setPublishable(false);
+      updateAction.setCascadeUnpublishableRelationships(true);
+
+      final ValidationResult validationResult =
+          updateAction.performMolecularAction(updateAction,
+              getLastModifiedBy(), false, false);
+      if (!validationResult.isValid()) {
+        logError("  unable to make concept unpublishable " + concept.getId());
+        for (final String error : validationResult.getErrors()) {
+          logError("    error = " + error);
+        }
+        return false;
+      }
+
+      unpublishableConceptRelationshipCount +=
+          updateAction.getUnpublishableRelationshipCount();
+      return true;
+    } catch (Exception e) {
+      updateAction.rollback();
+      throw e;
+    } finally {
+      updateAction.close();
+    }
   }
 
   /**
