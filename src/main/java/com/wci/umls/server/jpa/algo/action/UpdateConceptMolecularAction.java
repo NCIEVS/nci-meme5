@@ -19,6 +19,12 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
   /** The publishable. */
   private boolean publishable;
 
+  /** Indicates whether to cascade unpublishable status to concept rels. */
+  private boolean cascadeUnpublishableRelationships = false;
+
+  /** Number of relationships made unpublishable by this action. */
+  private int unpublishableRelationshipCount = 0;
+
   /**
    * Instantiates an empty {@link UpdateConceptMolecularAction}.
    *
@@ -47,6 +53,25 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
     this.publishable = publishable;
   }
 
+  /**
+   * Sets whether unpublishable concept status should cascade to relationships.
+   *
+   * @param cascadeUnpublishableRelationships the cascade flag
+   */
+  public void setCascadeUnpublishableRelationships(
+    boolean cascadeUnpublishableRelationships) {
+    this.cascadeUnpublishableRelationships = cascadeUnpublishableRelationships;
+  }
+
+  /**
+   * Returns the number of relationships made unpublishable by this action.
+   *
+   * @return the relationship count
+   */
+  public int getUnpublishableRelationshipCount() {
+    return unpublishableRelationshipCount;
+  }
+
   /* see superclass */
   @Override
   public ValidationResult checkPreconditions() throws Exception {
@@ -71,6 +96,9 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
     // operations)
     //
 
+    final boolean wasPublishable = getConcept().isPublishable();
+    unpublishableRelationshipCount = 0;
+
     // Make a copy of the concept
     Concept updateConcept = new ConceptJpa(getConcept(), true);
 
@@ -84,6 +112,13 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
     // update the Concept
     //
     updateConcept(updateConcept);
+
+    if (cascadeUnpublishableRelationships && wasPublishable && !publishable) {
+      unpublishableRelationshipCount =
+          makeConceptRelationshipsUnpublishable(getConcept());
+      logInfo("  concept relationships made unpublishable = "
+          + unpublishableRelationshipCount);
+    }
 
   }
 
@@ -101,7 +136,9 @@ public class UpdateConceptMolecularAction extends AbstractMolecularAction {
         "\nACTION  " + getName() + "\n  concept = " + getConcept().getId() + " "
             + getConcept().getName() + ", " + getConcept().isPublishable()
             + ", " + getConcept().isSuppressible() + ", "
-            + getConcept().getWorkflowStatus());
+            + getConcept().getWorkflowStatus()
+            + ", concept relationships made unpublishable = "
+            + unpublishableRelationshipCount);
   }
 
 }

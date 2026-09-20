@@ -30,6 +30,9 @@ import com.wci.umls.server.model.workflow.WorkflowStatus;
  */
 public class ApproveMolecularAction extends AbstractMolecularAction {
 
+  /** Number of relationships made unpublishable by this action. */
+  private int unpublishableRelationshipCount = 0;
+
   /**
    * Instantiates an empty {@link ApproveMolecularAction}.
    *
@@ -69,6 +72,9 @@ public class ApproveMolecularAction extends AbstractMolecularAction {
     // operations)
     //
 
+    final boolean wasPublishable = getConcept().isPublishable();
+    unpublishableRelationshipCount = 0;
+
     // Get all "inverse" relationships for the concept (e.g.
     // where toId is the id)
     final Map<Long, ConceptRelationship> inverseRelsMap = new HashMap<>();
@@ -76,7 +82,7 @@ public class ApproveMolecularAction extends AbstractMolecularAction {
         getTerminology(), getVersion(), Branch.ROOT,
         "toId:" + getConcept().getId(), false, null).getObjects()) {
       final ConceptRelationship crel =
-          new ConceptRelationshipJpa((ConceptRelationship) rel, false);
+          new ConceptRelationshipJpa((ConceptRelationship) rel, true);
       if (inverseRelsMap.containsKey(crel.getFrom().getId())) {
         throw new Exception("Multiple concept level relationships from "
             + crel.getFrom().getId());
@@ -265,7 +271,14 @@ public class ApproveMolecularAction extends AbstractMolecularAction {
       }
     }
     if (!foundPublishableAtom) {
-    	getConcept().setPublishable(false);
+      getConcept().setPublishable(false);
+      if (wasPublishable) {
+        unpublishableRelationshipCount =
+            makeConceptRelationshipsUnpublishable(relationships,
+                inverseRelationships);
+        logInfo("  concept relationships made unpublishable = "
+            + unpublishableRelationshipCount);
+      }
     }
     
     // update the Concept
@@ -286,7 +299,9 @@ public class ApproveMolecularAction extends AbstractMolecularAction {
     addLogEntry(getLastModifiedBy(), getProject().getId(),
         getMolecularAction().getId(), getActivityId(), getWorkId(),
         "\nACTION  " + getName() + "\n  concept = " + getConcept().getId() + " "
-            + getConcept().getName());
+            + getConcept().getName()
+            + "\n  concept relationships made unpublishable = "
+            + unpublishableRelationshipCount);
 
   }
 

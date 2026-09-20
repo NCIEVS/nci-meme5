@@ -251,6 +251,14 @@ non-current before making a version-scoped publishability update.
 ## Connected To Unpublishable Object
 
 This check identifies publishable content attached to unpublishable objects.
+It intentionally does not flag mappings under published, non-obsolete PDQ
+mapsets that are no longer publishable, because those mapsets represent
+historical PDQ mapping targets retained for release history while a newer
+publishable mapset is used for current MRMAP/MRSMAP output.
+It also does not flag publishable three-character `BR*` concept relationships
+when exactly one endpoint is publishable. The unpublishable-to-publishable half
+is used to generate MRCUI history for retired CUIs, and the
+publishable-to-unpublishable half is its expected stored inverse.
 
 The saved workflow query is minified to stay under the
 `workflow_bin_definitions.query` length limit. It also starts with `select` so
@@ -368,6 +376,10 @@ from (
     and r.to_id = t.id
     and r.publishable
     and (f.publishable = 0 or t.publishable = 0)
+    and not (
+      r.relationshipType like 'BR_'
+      and f.publishable <> t.publishable
+    )
   union all
   select r.id, 'CD_REL'
   from code_relationships r, codes f, codes t
@@ -402,6 +414,11 @@ from (
   where m.mapSet_id = s.id
     and m.publishable
     and s.publishable = 0
+    and not (
+      s.terminology = 'PDQ'
+      and s.published
+      and s.obsolete = 0
+    )
 ) q
 ```
 
@@ -414,6 +431,92 @@ database column limit:
 
 The cleanup SQL below uses `b'0'` and `b'1'` because `publishable` columns are
 stored as `bit(1)`.
+
+### Preventing New Concept Relationship Cases
+
+When Matrix Initializer, Compute Preferred Names, concept approval, or a
+concept-level Query Action changes a concept from publishable to unpublishable,
+the connected concept relationships and their attributes are also made
+unpublishable. The affected relationship count is written to the algorithm or
+molecular-action log.
+
+Relationship Loader does not change incoming data automatically. It reports
+the number of publishable non-bequeathal concept relationship input rows that
+resolve to an unpublishable endpoint and logs identifying information for the
+first ten rows.
+
+### Rollout And Monitoring Plan
+
+Use the following sequence before cleaning historical data:
+
+1. Deploy the revised code and update the existing
+   `workflow_bin_definitions` row with the query stored in `workflow.MVO.txt`.
+2. Run the revised MID validation check and save the exact failing C_REL ids as
+   a baseline. Do not rely only on the total count because removals and
+   additions can offset each other.
+3. Allow normal editor activity and representative terminology insertions to
+   run with the revised code.
+4. Compare the current failing C_REL ids with the baseline after each
+   monitoring interval or insertion.
+5. Investigate every new id using the relationship and endpoint timestamps,
+   `lastModifiedBy` values, molecular-action logs, and Relationship Loader
+   samples.
+6. Run the historical cleanup only after the failing id set remains stable.
+
+Create the baseline after the revised database query and code are in place:
+
+```sql
+create table op328_bad_crel_baseline as
+select r.id relId
+from concept_relationships r
+join concepts f on r.from_id = f.id
+join concepts t on r.to_id = t.id
+where r.publishable = b'1'
+  and (f.publishable = b'0' or t.publishable = b'0')
+  and not (
+    r.relationshipType like 'BR_'
+    and f.publishable <> t.publishable
+  );
+
+alter table op328_bad_crel_baseline add primary key (relId);
+```
+
+Use a ticket- or date-specific table name if more than one baseline must be
+retained. Find newly failing relationships with:
+
+```sql
+select
+  r.id relId,
+  r.terminology,
+  r.version,
+  r.relationshipType,
+  r.lastModified relLastModified,
+  r.lastModifiedBy relLastModifiedBy,
+  r.from_id,
+  f.publishable fromPublishable,
+  f.lastModified fromLastModified,
+  f.lastModifiedBy fromLastModifiedBy,
+  r.to_id,
+  t.publishable toPublishable,
+  t.lastModified toLastModified,
+  t.lastModifiedBy toLastModifiedBy
+from concept_relationships r
+join concepts f on r.from_id = f.id
+join concepts t on r.to_id = t.id
+left join op328_bad_crel_baseline b on b.relId = r.id
+where b.relId is null
+  and r.publishable = b'1'
+  and (f.publishable = b'0' or t.publishable = b'0')
+  and not (
+    r.relationshipType like 'BR_'
+    and f.publishable <> t.publishable
+  )
+order by r.id;
+```
+
+The containment target is no newly failing C_REL ids after editor activity and
+insertions. Existing baseline rows are expected to remain until the historical
+cleanup is run.
 
 ## Mapset Target Terminology Version
 
@@ -614,6 +717,10 @@ join concepts f on r.from_id = f.id
 join concepts t on r.to_id = t.id
 where r.publishable = b'1'
   and (f.publishable = b'0' or t.publishable = b'0')
+  and not (
+    r.relationshipType like 'BR_'
+    and f.publishable <> t.publishable
+  )
 group by
   r.terminology,
   r.version,
@@ -641,6 +748,11 @@ from mappings m
 join mapsets s on m.mapSet_id = s.id
 where m.publishable = b'1'
   and s.publishable = b'0'
+  and not (
+    s.terminology = 'PDQ'
+    and s.published = b'1'
+    and s.obsolete = b'0'
+  )
 group by
   s.id,
   s.terminologyId,
@@ -762,7 +874,9 @@ order by attrCt desc;
 ## Cleanup SQL
 
 Run cleanup in a transaction during a maintenance window. Review row counts
-before committing.
+before committing. The concept relationship and mapping cleanup predicates
+must retain the same valid BR and historical PDQ exclusions used by the MID
+validation query.
 
 Recommended order:
 
@@ -789,7 +903,11 @@ from concept_relationships r
 join concepts f on r.from_id = f.id
 join concepts t on r.to_id = t.id
 where r.publishable = b'1'
-  and (f.publishable = b'0' or t.publishable = b'0');
+  and (f.publishable = b'0' or t.publishable = b'0')
+  and not (
+    r.relationshipType like 'BR_'
+    and f.publishable <> t.publishable
+  );
 
 update concept_relationships r
 join concepts f on r.from_id = f.id
@@ -798,7 +916,11 @@ set r.publishable = b'0',
     r.lastModified = @nm298_time,
     r.lastModifiedBy = @nm298_user
 where r.publishable = b'1'
-  and (f.publishable = b'0' or t.publishable = b'0');
+  and (f.publishable = b'0' or t.publishable = b'0')
+  and not (
+    r.relationshipType like 'BR_'
+    and f.publishable <> t.publishable
+  );
 
 select row_count() conceptRelationshipsUpdated;
 ```
@@ -810,7 +932,12 @@ select count(*) mappingCt
 from mappings m
 join mapsets s on m.mapSet_id = s.id
 where m.publishable = b'1'
-  and s.publishable = b'0';
+  and s.publishable = b'0'
+  and not (
+    s.terminology = 'PDQ'
+    and s.published = b'1'
+    and s.obsolete = b'0'
+  );
 
 update mappings m
 join mapsets s on m.mapSet_id = s.id
@@ -818,7 +945,12 @@ set m.publishable = b'0',
     m.lastModified = @nm298_time,
     m.lastModifiedBy = @nm298_user
 where m.publishable = b'1'
-  and s.publishable = b'0';
+  and s.publishable = b'0'
+  and not (
+    s.terminology = 'PDQ'
+    and s.published = b'1'
+    and s.obsolete = b'0'
+  );
 
 select row_count() mappingsUpdated;
 ```
@@ -1038,8 +1170,12 @@ commit;
 
 ## Post-Cleanup Validation
 
-After cleanup, rerun the MID validation check. The expected result is an empty
-set.
+During the monitoring period, rerun the C_REL baseline comparison after editor
+activity and each representative insertion. The expected result is no new ids;
+baseline rows remain until cleanup.
+
+After cleanup, rerun the complete MID validation check. The expected result is
+an empty set after applying the documented BR and PDQ exclusions.
 
 If the check still returns rows, group by `componentType` first. That keeps the
 next cleanup pass focused and avoids chasing individual rows before the failure
