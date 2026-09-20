@@ -179,7 +179,7 @@ Implemented files:
     are present
   - removes temporary `gradle/dependency-locks` and `gradle.lockfile` output
 - `.github/workflows/trivy-scan.yml`
-  - runs on pull requests to `dss/NM-291-migration-phase2`
+  - runs on pull requests to the configured migration branches and `develop`
   - allows manual `workflow_dispatch` runs
   - installs Java 17 and Trivy on the runner
   - generates the temporary Gradle lockfile
@@ -188,18 +188,14 @@ Implemented files:
   - verifies that Trivy produced a non-empty JSON report before parsing it
   - preserves the original setup or scan failure when no report was created
 
-The Trivy workflow is intentionally scoped to
-`dss/NM-291-migration-phase2` for now. It should not target `develop`,
-`develop-*`, or `master` until the Trivy config and template exist on those
-branches.
-
 Dependency cleanup completed:
 
 - `commons-io` upgraded from `2.8.0` to `2.16.1`
 - `commons-vfs2` upgraded from `2.0` to `2.10.0`
 - `plexus-utils` made explicit and forced to `3.6.1`
-- `tomcat.version` temporarily overridden to `10.1.55` until Spring Boot
-  3.5.x manages Tomcat `10.1.55` or newer
+- `tomcat.version` temporarily overridden to `10.1.60` until Spring Boot
+  3.5.x manages Tomcat `10.1.60` or newer; this includes the fixes for the
+  Tomcat findings reported against `10.1.55`
 - MySQL Connector/J moved from legacy `mysql:mysql-connector-java:8.0.17`
   to `com.mysql:mysql-connector-j:9.7.0`
 - default MySQL JDBC driver class updated to `com.mysql.cj.jdbc.Driver`

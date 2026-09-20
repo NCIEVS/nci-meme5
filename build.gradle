@@ -98,8 +98,8 @@ ext {
     mysqlConnectorVersion  = '9.7.0'
 }
 
-// Remove once Spring Boot 3.5.x manages Tomcat 10.1.55 or newer.
-ext['tomcat.version'] = '10.1.55'
+// Remove once Spring Boot 3.5.x manages Tomcat 10.1.60 or newer.
+ext['tomcat.version'] = '10.1.60'
 ext['jackson.version'] = jacksonVersion
 ext['httpcore5.version'] = httpCore5Version
 
