@@ -185,6 +185,8 @@ Implemented files:
   - generates the temporary Gradle lockfile
   - runs Trivy's vulnerability scanner with HIGH and CRITICAL severity filtering
   - publishes a readable failure summary of vulnerable packages
+  - verifies that Trivy produced a non-empty JSON report before parsing it
+  - preserves the original setup or scan failure when no report was created
 
 The Trivy workflow is intentionally scoped to
 `dss/NM-291-migration-phase2` for now. It should not target `develop`,
