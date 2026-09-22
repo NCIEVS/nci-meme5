@@ -55,6 +55,20 @@
             Editing enabled
           </label>
         </div>
+      } @else if (projectRole() === 'AUTHOR') {
+        <div class="project-editing-row" aria-live="polite">
+          @if (!currentProject()) {
+            <span class="status-pill">Editing status loading</span>
+          } @else {
+            <span
+              class="status-pill"
+              [class.running]="projectEditingEnabled()"
+              [class.styw-alert-danger]="!projectEditingEnabled()"
+            >
+              Editing {{ projectEditingEnabled() ? 'enabled' : 'disabled' }}
+            </span>
+          }
+        </div>
       }
     </div>
     @if (currentProject() && !projectEditingEnabled()) {
