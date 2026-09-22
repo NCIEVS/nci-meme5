@@ -54,12 +54,12 @@
             />
             Editing enabled
           </label>
-          @if (!projectEditingEnabled()) {
-            <span class="empty-alert editing-disabled-alert">Editing is disabled.</span>
-          }
         </div>
       }
     </div>
+    @if (currentProject() && !projectEditingEnabled()) {
+      <div class="styw-alert styw-alert-danger" role="alert">Editing is disabled.</div>
+    }
 
     <details
       class="accordion-panel"

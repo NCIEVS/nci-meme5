@@ -115,10 +115,6 @@ dt {
   margin-left: auto;
 }
 
-.editing-disabled-alert {
-  padding: 6px 10px;
-}
-
 input,
 select {
   min-height: var(--meme-input-height);
