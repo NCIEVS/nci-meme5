@@ -1,9 +1,9 @@
 #!/bin/tcsh -f
 #
 # Nightly MEME automation:
-# 1. Run the Daily Editing Report.
-# 2. Regenerate MUTUALLY_EXCLUSIVE workflow bins.
-# 3. Optionally restart the application service.
+# 1. Always run the Daily Editing Report.
+# 2. If automations are enabled, regenerate MUTUALLY_EXCLUSIVE workflow bins.
+# 3. If automations are enabled, optionally restart the application service.
 
 # Common environment is inherited from /local/content/MEME/MEME5/ncim/setenv.sh.
 if (! $?APP_DIR) then
@@ -57,24 +57,24 @@ echo "APP_DIR = $APP_DIR"
 echo "DB_NAME = $DB_NAME"
 echo "BASE_URL = $BASE_URL"
 
-set enabled = `echo "select if(automationsEnabled,'true','false') from projects;" | $mysql | tail -1`
+set automationsEnabled = `echo "select if(automationsEnabled,'true','false') from projects;" | $mysql | tail -1`
 set projectId = `echo "select id from projects;" | $mysql | tail -1`
 
 echo "project: $projectId"
-echo "enabled: $enabled"
+echo "automations enabled: $automationsEnabled"
 echo ""
 
-if ("$enabled" == "true") then
-  echo "  Login ... `/bin/date`"
-  set authToken = `curl -H "Content-type: text/plain" -X POST -d "$ADMIN_PASSWORD" "$BASE_URL/security/authenticate/$ADMIN_USER" | perl -pe 's/.*"authToken":"([^"]*).*/$1/;'`
+echo "  Login ... `/bin/date`"
+set authToken = `curl -H "Content-type: text/plain" -X POST -d "$ADMIN_PASSWORD" "$BASE_URL/security/authenticate/$ADMIN_USER" | perl -pe 's/.*"authToken":"([^"]*).*/$1/;'`
 
-  echo "  Run $NIGHTLY_REPORT_PROCESS_NAME... `/bin/date`"
-  set processId = `echo "select id from process_configs where name='$NIGHTLY_REPORT_PROCESS_NAME';" | $mysql | tail -1`
-  echo "    processId = $processId"
-  set executionId = `curl -H "Content-type: application/json" -H "Authorization: $authToken" -X GET "$BASE_URL/process/config/$processId/prepare?projectId=$projectId"`
-  sleep 2
-  curl -H "Content-type: application/json" -H "Authorization: $authToken" -X GET "$BASE_URL/process/execution/$executionId/execute?projectId=$projectId&background=true"
+echo "  Run $NIGHTLY_REPORT_PROCESS_NAME... `/bin/date`"
+set processId = `echo "select id from process_configs where name='$NIGHTLY_REPORT_PROCESS_NAME';" | $mysql | tail -1`
+echo "    processId = $processId"
+set executionId = `curl -H "Content-type: application/json" -H "Authorization: $authToken" -X GET "$BASE_URL/process/config/$processId/prepare?projectId=$projectId"`
+sleep 2
+curl -H "Content-type: application/json" -H "Authorization: $authToken" -X GET "$BASE_URL/process/execution/$executionId/execute?projectId=$projectId&background=true"
 
+if ("$automationsEnabled" == "true") then
   echo "  Regenerate MUTUALLY_EXCLUSIVE ... `/bin/date`"
   curl -H "Content-type: application/json" -H "Authorization: $authToken" -d "" "$BASE_URL/workflow/bin/regenerate/all?projectId=$projectId&type=MUTUALLY_EXCLUSIVE"
 
@@ -101,7 +101,7 @@ if ("$enabled" == "true") then
     echo "  Skipping restart because RESTART_SERVER_AFTER_NIGHTLY=$RESTART_SERVER_AFTER_NIGHTLY"
   endif
 else
-  echo "  DISABLED"
+  echo "  Skipping workflow-bin regeneration and restart because automations are disabled."
 endif
 
 echo "--------------------------------------------------------"
