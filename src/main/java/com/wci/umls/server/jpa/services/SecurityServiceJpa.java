@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import jakarta.persistence.NoResultException;
 
@@ -46,7 +47,7 @@ public class SecurityServiceJpa extends RootServiceJpa
   private static SecurityServiceHandler handler = null;
 
   /** The timeout. */
-  private static int timeout;
+  private static volatile int timeout;
 
   static {
     init();
@@ -57,11 +58,10 @@ public class SecurityServiceJpa extends RootServiceJpa
    */
   private static void init() {
     try {
-      if (config == null) {
-        config = PropertyUtility.getProperties();
-      }
-      timeout = Integer.valueOf(config.getProperty("security.timeout"));
-      String handlerName = config.getProperty("security.handler");
+      final Properties securityConfig = PropertyUtility.getProperties();
+      timeout = Integer.valueOf(
+          securityConfig.getProperty("security.timeout"));
+      String handlerName = securityConfig.getProperty("security.handler");
       handler = ConfigUtility.newStandardHandlerInstanceWithConfiguration(
           "security.handler", handlerName, SecurityServiceHandler.class);
     } catch (Exception e) {

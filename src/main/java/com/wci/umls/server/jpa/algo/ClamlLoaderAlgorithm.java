@@ -268,10 +268,12 @@ public class ClamlLoaderAlgorithm extends AbstractTerminologyLoaderAlgorithm {
     PushbackInputStream pushbackInputStream =
         new PushbackInputStream(new BufferedInputStream(inputStream), 3);
     byte[] bom = new byte[3];
-    if (pushbackInputStream.read(bom) != -1) {
-      if (!(bom[0] == (byte) 0xEF && bom[1] == (byte) 0xBB
+    int bytesRead = pushbackInputStream.read(bom);
+    if (bytesRead > 0) {
+      if (!(bytesRead == bom.length && bom[0] == (byte) 0xEF
+          && bom[1] == (byte) 0xBB
           && bom[2] == (byte) 0xBF)) {
-        pushbackInputStream.unread(bom);
+        pushbackInputStream.unread(bom, 0, bytesRead);
       }
     }
     return pushbackInputStream;

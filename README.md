@@ -2,7 +2,7 @@
 
 NCI MEME 5 is the UMLS Terminology Server codebase used for MEME-style
 terminology editing, metadata loading, release support, validation, and REST UI
-workflows. The application is a Java 17 Gradle project that packages a WAR and
+workflows. The application is a Java 25 Gradle project that packages a WAR and
 can also run locally through Spring Boot.
 
 ## Quick Deploy
@@ -102,7 +102,7 @@ process feedback email.
 
 ## Prerequisites
 
-- Java 17.
+- Java 25.
 - The checked-in Gradle wrapper, `./gradlew`.
 - GNU Make or a compatible `make`.
 - Bash for sourcing `config/local/setenv.sh`.
@@ -112,6 +112,14 @@ process feedback email.
   The bootstrap script creates the expected values but not the full data
   payloads.
 - Trivy only if you plan to use `make scan`.
+
+On Apple Silicon macOS, a Homebrew installation can be selected without
+changing the system Java symlink:
+
+```sh
+export JAVA_HOME="/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+```
 
 For local overrides, export variables before sourcing the bootstrap:
 

@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -102,16 +101,6 @@ public class SecurityServiceRestEdgeCasesIT extends SecurityServiceRestIT {
    */
   @After
   public void teardown() throws Exception {
-    // do nothing
-  }
-
-  /**
-   * Teardown class.
-   *
-   * @throws Exception the exception
-   */
-  @AfterClass
-  public static void teardownClass() throws Exception {
     // do nothing
   }
 

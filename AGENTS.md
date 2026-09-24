@@ -2,7 +2,7 @@
 
 ## Project Shape
 
-NCI MEME 5 is a Java 17 Gradle project for MEME-style terminology editing,
+NCI MEME 5 is a Java 25 Gradle project for MEME-style terminology editing,
 metadata loading, validation, release support, and REST UI workflows.
 
 Use the checked-in Gradle wrapper. Prefer Makefile targets when available.
@@ -115,7 +115,7 @@ S3, or touch production-like databases unless explicitly instructed.
 
 ## Code Style
 
-Java source is UTF-8 and targets Java 17.
+Java source is UTF-8 and targets Java 25.
 
 Static checks are Checkstyle and SpotBugs:
 

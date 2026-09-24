@@ -83,7 +83,7 @@ public class UmlsIdentifierAssignmentHandler extends AbstractConfigurable
   /** The max concept id. */
   private long maxConceptId = -1;
 
-  private boolean cachesEnabled = false;
+  private volatile boolean cachesEnabled = false;
 
   /**
    * Flag to be able to look up identifiers WITHOUT creating a new one if none

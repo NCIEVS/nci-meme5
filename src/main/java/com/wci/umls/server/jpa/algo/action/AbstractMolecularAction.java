@@ -64,10 +64,10 @@ public abstract class AbstractMolecularAction extends AbstractAlgorithm
   private Long lastModified;
 
   /** The change status flag. */
-  private boolean changeStatusFlag;
+  private volatile boolean changeStatusFlag;
 
   /** The override warnings. */
-  private boolean overrideWarnings;
+  private volatile boolean overrideWarnings;
 
   /** The validation checks. */
   private List<String> validationChecks = null;

@@ -86,13 +86,13 @@ public abstract class RootServiceJpa implements RootService {
   protected static Map<String, SearchHandler> searchHandlers = new HashMap<>();
 
   /** The molecular action flag. */
-  private boolean molecularActionFlag = true;
+  private volatile boolean molecularActionFlag = true;
 
   /** The molecular action. */
   private MolecularAction molecularAction = null;
 
   /** The last modified flag. */
-  private boolean lastModifiedFlag = true;
+  private volatile boolean lastModifiedFlag = true;
 
   /** The last modified by. */
   private String lastModifiedBy = null;
@@ -198,7 +198,7 @@ public abstract class RootServiceJpa implements RootService {
   protected EntityManager manager;
 
   /** The transaction per operation. */
-  protected boolean transactionPerOperation = true;
+  protected volatile boolean transactionPerOperation = true;
 
   /** The transaction entity. */
   protected EntityTransaction tx;

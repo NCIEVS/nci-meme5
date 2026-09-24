@@ -171,7 +171,7 @@ import com.wci.umls.server.services.handlers.SearchHandler;
 public class ContentServiceJpa extends MetadataServiceJpa implements ContentService {
 
   /** The assign identifiers flag. */
-  protected boolean assignIdentifiersFlag = false;
+  protected volatile boolean assignIdentifiersFlag = false;
 
   /** The id handler map. */
   static Map<String, IdentifierAssignmentHandler> idHandlerMap = new HashMap<>();

@@ -30,7 +30,7 @@ plugins {
     id 'java'
     id 'war'
     id 'checkstyle'
-    id 'com.github.spotbugs' version '6.0.0'
+    id 'com.github.spotbugs' version '6.5.11'
 }
 
 repositories {
@@ -52,18 +52,24 @@ ext.artifactVersion = '2.0.0-SNAPSHOT'
 ext.httpCore5Version = '5.4.3'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 25
 }
 
 configurations.all {
     exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     exclude group: 'commons-logging', module: 'commons-logging'
     resolutionStrategy.force 'org.codehaus.plexus:plexus-utils:3.6.1'
+}
+
+configurations {
+    spotbugsAux
 }
 
 dependencyLocking {
@@ -102,6 +108,8 @@ ext {
 ext['tomcat.version'] = '10.1.60'
 ext['jackson.version'] = jacksonVersion
 ext['httpcore5.version'] = httpCore5Version
+// SpotBugs 4.10.x requires the Strings API while analyzing Java 25 bytecode.
+ext['commons-lang3.version'] = '3.20.0'
 
 // ── Dependencies ───────────────────────────────────────────────────────────────
 dependencies {
@@ -199,8 +207,9 @@ dependencies {
     implementation 'junit:junit:4.13.2'
 
     // Static analysis annotations
-    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.8.2'
-    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.8.2'
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.10.4'
+    testCompileOnly 'com.github.spotbugs:spotbugs-annotations:4.10.4'
+    spotbugsAux 'io.projectreactor:reactor-core'
 
     // Byte-code enhancement
     implementation 'cglib:cglib:3.3.0'
@@ -213,7 +222,7 @@ dependencies {
     implementation 'net.lingala.zip4j:zip4j:2.8.0'
 
     // Commons
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    implementation 'org.apache.commons:commons-lang3:3.20.0'
     implementation 'commons-io:commons-io:2.16.1'
     implementation 'org.apache.commons:commons-vfs2:2.10.0'
     implementation 'commons-codec:commons-codec:1.10'
@@ -242,6 +251,10 @@ spotbugs {
     showStackTraces = true
     showProgress = true
     excludeFilter = file('config/spotbugs/excludeFilter.xml')
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+    auxClassPaths.from(configurations.spotbugsAux)
 }
 
 tasks.named('spotbugsMain') {
