@@ -75,6 +75,8 @@ public class ConfigUtilityUnitTest {
         properties.getProperty("source.data.dir"));
     assertEquals("http://localhost:8080/umls-server-rest",
         properties.getProperty("base.url"));
+    assertEquals("jackson2",
+        properties.getProperty("spring.http.converters.preferred-json-mapper"));
     assertNotNull(properties.getProperty("database.allowed.hosts"));
     assertNotNull(properties.getProperty("rest.client.allowed.hosts"));
     assertFalse(properties.getProperty("algorithm.handler").contains("RUNMMSYS"));

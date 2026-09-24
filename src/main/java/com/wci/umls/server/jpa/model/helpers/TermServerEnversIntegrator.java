@@ -5,13 +5,14 @@ package com.wci.umls.server.jpa.model.helpers;
 
 import org.hibernate.HibernateException;
 import org.hibernate.boot.Metadata;
+import org.hibernate.boot.spi.BootstrapContext;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.envers.boot.internal.EnversIntegrator;
 import org.hibernate.envers.boot.internal.EnversService;
 import org.hibernate.envers.event.spi.EnversListenerDuplicationStrategy;
 import org.hibernate.event.service.spi.EventListenerRegistry;
 import org.hibernate.event.spi.EventType;
-import org.hibernate.service.spi.SessionFactoryServiceRegistry;
+import org.hibernate.service.spi.ServiceRegistryImplementor;
 
 import com.wci.umls.server.helpers.PropertyUtility;
 
@@ -25,15 +26,18 @@ public class TermServerEnversIntegrator  extends EnversIntegrator {
 
   /* see superclass */
   @Override
-  public void integrate(Metadata metadata, SessionFactoryImplementor sessionFactory,
-    SessionFactoryServiceRegistry serviceRegistry) {
+  public void integrate(Metadata metadata, BootstrapContext bootstrapContext,
+    SessionFactoryImplementor sessionFactory) {
 
     // Avoid custom behavior is autoregister is true
     try {
       if (!"true".equals(PropertyUtility.getProperties()
           .getProperty("hibernate.listeners.envers.autoRegister"))) {
 
-        super.integrate(metadata, sessionFactory, serviceRegistry);
+        super.integrate(metadata, bootstrapContext, sessionFactory);
+
+        ServiceRegistryImplementor serviceRegistry =
+            sessionFactory.getServiceRegistry();
 
         EnversService enversService =
             serviceRegistry.getService(EnversService.class);

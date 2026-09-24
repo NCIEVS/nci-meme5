@@ -2,8 +2,9 @@
 
 ## Project Shape
 
-NCI MEME 5 is a Java 25 Gradle project for MEME-style terminology editing,
-metadata loading, validation, release support, and REST UI workflows.
+NCI MEME 5 is a Java 25 and Spring Boot 4.1 Gradle project for MEME-style
+terminology editing, metadata loading, validation, release support, and REST UI
+workflows.
 
 Use the checked-in Gradle wrapper. Prefer Makefile targets when available.
 

@@ -3,7 +3,7 @@
 NCI MEME 5 is the UMLS Terminology Server codebase used for MEME-style
 terminology editing, metadata loading, release support, validation, and REST UI
 workflows. The application is a Java 25 Gradle project that packages a WAR and
-can also run locally through Spring Boot.
+can also run locally through Spring Boot 4.1.
 
 ## Quick Deploy
 
