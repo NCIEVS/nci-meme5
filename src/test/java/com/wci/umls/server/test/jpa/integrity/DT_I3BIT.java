@@ -3,6 +3,7 @@
  */
 package com.wci.umls.server.test.jpa.integrity;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -25,6 +26,7 @@ import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ProjectList;
 import com.wci.umls.server.jpa.algo.action.AddDemotionMolecularAction;
 import com.wci.umls.server.jpa.model.ProjectJpa;
+import com.wci.umls.server.jpa.model.content.ConceptJpa;
 import com.wci.umls.server.jpa.model.content.ConceptRelationshipJpa;
 import com.wci.umls.server.jpa.services.ContentServiceJpa;
 import com.wci.umls.server.jpa.services.validation.DT_I3B;
@@ -46,15 +48,6 @@ public class DT_I3BIT extends IntegrationUnitSupport {
   /** The service. */
   protected ContentServiceJpa contentService;
 
-  /** The concept demotions with corresponding Rels. */
-  private Concept conceptDemotionsWithCorresponding = null;
-
-  /** The concept no demotions with no corresponding Rels. */
-  private Concept conceptDemotionsNoCorresponding = null;
-
-  /** The concept no demotions. */
-  private Concept conceptNoDemotions = null;
-
   /**
    * Setup class.
    *
@@ -73,9 +66,6 @@ public class DT_I3BIT extends IntegrationUnitSupport {
   @Before
   public void setup() throws Exception {
     project = null;
-    conceptDemotionsWithCorresponding = null;
-    conceptDemotionsNoCorresponding = null;
-    conceptNoDemotions = null;
 
     // instantiate service
     contentService = new ContentServiceJpa();
@@ -89,31 +79,11 @@ public class DT_I3BIT extends IntegrationUnitSupport {
     // will run.
     project.setValidationChecks(new ArrayList<>(Arrays.asList("DT_I3B")));
 
-    // Get three concepts, two with DEMOTION relationships,
-    // and one without any DEMOTION relationships.
-    // C0040247 has a DEMOTION atomRel to an atom in C0118168 but no
-    // ConceptRelationship to C0118168 (violation case).
-    conceptDemotionsNoCorresponding =
+    // Ensure the violation case has at least one DEMOTION relationship.
+    final Concept conceptDemotionsNoCorresponding =
         contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
-    conceptDemotionsWithCorresponding =
-        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
-    conceptNoDemotions =
-        contentService.getConcept("C0004611", "MTH", "latest", Branch.ROOT);
     ensureDemotionRelationship(conceptDemotionsNoCorresponding,
         contentService.getConcept("C0118168", "MTH", "latest", Branch.ROOT));
-
-    // Add matching conceptRelationships to the DEMOTION relationship for
-    // conceptDemotionsWithCorresponding. C0118168 is the target of C0040247's
-    // DEMOTION atomRel, so adding a ConceptRel to it satisfies DT_I3B.
-    Concept matchingConcept = contentService.getConcept("C0118168", "MTH", "latest", Branch.ROOT);
-        ConceptRelationship matchingRel =
-            new ConceptRelationshipJpa();
-        matchingRel.setFrom(conceptDemotionsWithCorresponding);
-        matchingRel.setTo(matchingConcept);
-        matchingRel.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-        matchingRel.setPublishable(true);
-    conceptDemotionsWithCorresponding.getRelationships().add(matchingRel);
-
   }
 
   /**
@@ -157,10 +127,51 @@ public class DT_I3BIT extends IntegrationUnitSupport {
 
     contentService.close();
     contentService = new ContentServiceJpa();
-    conceptDemotionsNoCorresponding =
-        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
-    conceptDemotionsWithCorresponding =
-        contentService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
+  }
+
+  /**
+   * Add a matching concept relationship for every DEMOTION target.
+   *
+   * @param service the content service
+   * @param source the source concept
+   * @throws Exception the exception
+   */
+  private void addMatchingConceptRelationships(ContentServiceJpa service,
+    Concept source) throws Exception {
+    final Set<Long> matchedConceptIds = new HashSet<>();
+
+    for (final Atom atom : source.getAtoms()) {
+      for (final AtomRelationship atomRel : atom.getRelationships()) {
+        if (!WorkflowStatus.DEMOTION.equals(atomRel.getWorkflowStatus())) {
+          continue;
+        }
+
+        final List<ConceptJpa> targetConcepts = service.getEntityManager()
+            .createQuery("select distinct c from ConceptJpa c join c.atoms a "
+                + "where c.terminology = :terminology and c.version = :version "
+                + "and c.branch = :branch and a.id = :atomId", ConceptJpa.class)
+            .setParameter("terminology", "MTH")
+            .setParameter("version", "latest")
+            .setParameter("branch", Branch.ROOT)
+            .setParameter("atomId", atomRel.getTo().getId()).getResultList();
+        assertEquals("Expected one MTH concept for demoted atom "
+            + atomRel.getTo().getId(), 1, targetConcepts.size());
+
+        final ConceptJpa targetConcept = targetConcepts.get(0);
+        if (matchedConceptIds.add(targetConcept.getId())) {
+          final ConceptRelationship matchingRel =
+              new ConceptRelationshipJpa();
+          matchingRel.setFrom(source);
+          matchingRel.setTo(targetConcept);
+          matchingRel.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
+          matchingRel.setPublishable(true);
+          source.getRelationships().add(matchingRel);
+        }
+      }
+    }
+
+    assertFalse("Expected at least one DEMOTION relationship",
+        matchedConceptIds.isEmpty());
   }
 
   /**
@@ -201,13 +212,7 @@ public class DT_I3BIT extends IntegrationUnitSupport {
       txService.setTransactionPerOperation(false);
       txService.beginTransaction();
       Concept fresh = txService.getConcept("C0040247", "MTH", "latest", Branch.ROOT);
-      Concept matchingConcept = txService.getConcept("C0118168", "MTH", "latest", Branch.ROOT);
-      ConceptRelationship matchingRel = new ConceptRelationshipJpa();
-      matchingRel.setFrom(fresh);
-      matchingRel.setTo(matchingConcept);
-      matchingRel.setWorkflowStatus(WorkflowStatus.NEEDS_REVIEW);
-      matchingRel.setPublishable(true);
-      fresh.getRelationships().add(matchingRel);
+      addMatchingConceptRelationships(txService, fresh);
       final ValidationResult validationResult2 =
           txService.validateConcept(project.getValidationChecks(), fresh);
       txService.rollback();
