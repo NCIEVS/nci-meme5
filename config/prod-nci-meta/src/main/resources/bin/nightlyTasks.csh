@@ -6,7 +6,21 @@
 # 3. Optionally restart the application service.
 
 # Common environment is inherited from /local/content/MEME/MEME5/ncim/setenv.sh.
+# If the script is run directly, bootstrap through bash because setenv.sh uses
+# bash syntax that tcsh cannot source directly.
 if (! $?APP_DIR) then
+  set production_setenv = "/local/content/MEME/MEME5/ncim/setenv.sh"
+  if ($?SETENV) then
+    if ("$SETENV" != "") set production_setenv = "$SETENV"
+  endif
+
+  if (! $?MEME_SETENV_BOOTSTRAPPED) then
+    if (-r "$production_setenv") then
+      setenv MEME_SETENV_BOOTSTRAPPED 1
+      exec /bin/bash -c 'set -a && source "$1" && set +a && exec /bin/tcsh -f "$2"' bash "$production_setenv" "$0"
+    endif
+  endif
+
   echo "ERROR: APP_DIR must be set; source the production setenv.sh first."
   exit 1
 endif
