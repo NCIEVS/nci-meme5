@@ -54,12 +54,26 @@
             />
             Editing enabled
           </label>
-          @if (!projectEditingEnabled()) {
-            <span class="empty-alert editing-disabled-alert">Editing is disabled.</span>
+        </div>
+      } @else if (projectRole() === 'AUTHOR') {
+        <div class="project-editing-row" aria-live="polite">
+          @if (!currentProject()) {
+            <span class="status-pill">Editing status loading</span>
+          } @else {
+            <span
+              class="status-pill"
+              [class.running]="projectEditingEnabled()"
+              [class.styw-alert-danger]="!projectEditingEnabled()"
+            >
+              Editing {{ projectEditingEnabled() ? 'enabled' : 'disabled' }}
+            </span>
           }
         </div>
       }
     </div>
+    @if (currentProject() && !projectEditingEnabled()) {
+      <div class="styw-alert styw-alert-danger" role="alert">Editing is disabled.</div>
+    }
 
     <details
       class="accordion-panel"

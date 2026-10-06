@@ -93,8 +93,8 @@ ext {
     flywayVersion          = '12.6.1'
     jerseyVersion          = '3.1.11'
     luceneVersion          = '9.9.2'
-    jacksonVersion         = '2.21.4'
-    toolsJacksonVersion    = '3.1.4'
+    jacksonVersion         = '2.21.7'
+    toolsJacksonVersion    = '3.1.7'
     mysqlConnectorVersion  = '9.7.0'
 }
 

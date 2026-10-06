@@ -64,6 +64,10 @@ export class ConceptReportPanelComponent implements OnChanges {
   private readonly mutationApi = inject(EditMutationApiService);
   private readonly notifications = inject(NotificationService);
   private readonly sanitizer = inject(DomSanitizer);
+  private reportRequestId = 0;
+  private actionsRequestId = 0;
+  private relationshipsRequestId = 0;
+  private deepRelationshipsRequestId = 0;
 
   protected readonly activeTab = signal<ReportPanelTab>('Report');
   protected readonly showHidden = signal(false);
@@ -117,6 +121,7 @@ export class ConceptReportPanelComponent implements OnChanges {
       return;
     }
 
+    this.invalidateConceptRequests();
     this.reportHtml.set(null);
     this.reportError.set(null);
     this.actions.set([]);
@@ -134,6 +139,17 @@ export class ConceptReportPanelComponent implements OnChanges {
     if (this.concept) {
       this.loadActiveTabIfNeeded();
     }
+  }
+
+  private invalidateConceptRequests(): void {
+    this.reportRequestId += 1;
+    this.actionsRequestId += 1;
+    this.relationshipsRequestId += 1;
+    this.deepRelationshipsRequestId += 1;
+    this.loadingReport.set(false);
+    this.loadingActions.set(false);
+    this.loadingRels.set(false);
+    this.loadingDeepRels.set(false);
   }
 
   protected setTab(tab: ReportPanelTab): void {
@@ -158,25 +174,38 @@ export class ConceptReportPanelComponent implements OnChanges {
   private loadReport(): void {
     const concept = this.concept;
     if (!concept?.id) return;
+    const projectId = this.projectId;
+    const requestId = ++this.reportRequestId;
     this.loadingReport.set(true);
     this.reportError.set(null);
     this.api
-      .getComponentReport('concept', concept.id, this.projectId)
-      .pipe(finalize(() => this.loadingReport.set(false)))
+      .getComponentReport('concept', concept.id, projectId)
+      .pipe(finalize(() => {
+        if (requestId === this.reportRequestId) {
+          this.loadingReport.set(false);
+        }
+      }))
       .subscribe({
-        next: (html) =>
+        next: (html) => {
+          if (requestId !== this.reportRequestId) return;
           this.reportHtml.set(
             this.sanitizer.bypassSecurityTrustHtml(
-              rewriteMemeConceptReportLinks(html, this.projectId)
+              rewriteMemeConceptReportLinks(html, projectId)
             )
-          ),
-        error: () => this.reportError.set('Could not load report.')
+          );
+        },
+        error: () => {
+          if (requestId === this.reportRequestId) {
+            this.reportError.set('Could not load report.');
+          }
+        }
       });
   }
 
   protected loadActions(page?: number): void {
     const concept = this.concept;
     if (!concept?.id || !concept.terminology || !concept.version) return;
+    const requestId = ++this.actionsRequestId;
     if (page !== undefined) this.actionsPage.set(page);
     this.loadingActions.set(true);
     const pfs: ContentPfsParameter = {
@@ -187,13 +216,22 @@ export class ConceptReportPanelComponent implements OnChanges {
     };
     this.api
       .findMolecularActions(concept.id, concept.terminology, concept.version, '', pfs)
-      .pipe(finalize(() => this.loadingActions.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.actionsRequestId) {
+          this.loadingActions.set(false);
+        }
+      }))
       .subscribe({
         next: (resp) => {
+          if (requestId !== this.actionsRequestId) return;
           this.actions.set(resp.actions ?? []);
           this.actionsTotal.set(resp.totalCount ?? 0);
         },
-        error: () => this.notifications.error('Could not load actions.')
+        error: () => {
+          if (requestId === this.actionsRequestId) {
+            this.notifications.error('Could not load actions.');
+          }
+        }
       });
   }
 
@@ -314,26 +352,48 @@ export class ConceptReportPanelComponent implements OnChanges {
   private loadRelationships(): void {
     const c = this.concept;
     if (!c?.terminology || !c.version || !c.terminologyId) return;
+    const requestId = ++this.relationshipsRequestId;
     this.loadingRels.set(true);
     this.api
       .findRelationships('concept', c.terminology, c.version, c.terminologyId, {
         startIndex: 0, maxResults: 200, ascending: true,
         queryRestriction: 'stated:true'
       })
-      .pipe(finalize(() => this.loadingRels.set(false)))
-      .subscribe({ next: (res) => this.rels.set(res.items ?? []) });
+      .pipe(finalize(() => {
+        if (requestId === this.relationshipsRequestId) {
+          this.loadingRels.set(false);
+        }
+      }))
+      .subscribe({
+        next: (res) => {
+          if (requestId === this.relationshipsRequestId) {
+            this.rels.set(res.items ?? []);
+          }
+        }
+      });
   }
 
   private loadDeepRelationships(): void {
     const c = this.concept;
     if (!c?.terminology || !c.version || !c.terminologyId) return;
+    const requestId = ++this.deepRelationshipsRequestId;
     this.loadingDeepRels.set(true);
     this.api
       .findDeepRelationships(c.terminology, c.version, c.terminologyId, {
         startIndex: 0, maxResults: 200, ascending: true
       })
-      .pipe(finalize(() => this.loadingDeepRels.set(false)))
-      .subscribe({ next: (res) => this.deepRels.set(res.items ?? []) });
+      .pipe(finalize(() => {
+        if (requestId === this.deepRelationshipsRequestId) {
+          this.loadingDeepRels.set(false);
+        }
+      }))
+      .subscribe({
+        next: (res) => {
+          if (requestId === this.deepRelationshipsRequestId) {
+            this.deepRels.set(res.items ?? []);
+          }
+        }
+      });
   }
 
   protected toggleAtom(idx: number): void {
