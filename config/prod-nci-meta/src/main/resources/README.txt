@@ -118,17 +118,15 @@ https://meme-edit.semantics.cancer.gov/ncim-server-rest
 The web overlay from this directory is applied during `./gradlew war`,
 `./gradlew bootWar`, and `./gradlew explodeWar`.
 
-Operational scripts under `bin/` should be run from a shell that has sourced the
-same production environment file. The sample `crontab.txt` uses a bash wrapper
-with `set -a` so values assigned by `setenv.sh` are exported to the retained csh
-scripts.
+Operational scripts under `bin/` should use the same production environment
+file. The retained csh scripts self-bootstrap through bash when `APP_DIR` is
+missing because `setenv.sh` uses bash syntax that tcsh cannot source directly.
 
 For a manual nightly run, use:
 
 ```
-/bin/bash -lc 'set -a && source /local/content/MEME/MEME5/ncim/setenv.sh && set +a && exec /bin/tcsh -f /local/content/MEME/MEME5/ncim/bin/nightlyTasks.csh'
+/bin/tcsh -f /local/content/MEME/MEME5/ncim/bin/nightlyTasks.csh
 ```
 
-`nightlyTasks.csh` also attempts this same bootstrap when `APP_DIR` is missing,
-using `$SETENV` when it is set or `/local/content/MEME/MEME5/ncim/setenv.sh`
-otherwise.
+The scripts use `$SETENV` when it is set, or
+`/local/content/MEME/MEME5/ncim/setenv.sh` otherwise.

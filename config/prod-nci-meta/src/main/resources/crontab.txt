@@ -1,22 +1,26 @@
 #
 # Sample cron entries for NCI-META operational scripts.
 #
-# Common runtime values are exported by the production setenv.sh. The csh
-# scripts inherit those values from the bash wrapper below.
+# The csh scripts self-bootstrap from the production setenv.sh when APP_DIR is
+# missing, so these entries can match the direct server invocation style.
 #
-SETENV=/local/content/MEME/MEME5/ncim/setenv.sh
-MEME_BIN=/local/content/MEME/MEME5/ncim/bin
 
 #
-# Run nightly tasks:
-# 1. Daily editing report (always)
-# 2. MUTUALLY_EXCLUSIVE repartition (when project automations are enabled)
-# 3. Optional application restart (when project automations are enabled and
-#    RESTART_SERVER_AFTER_NIGHTLY is true)
+# Run nightly tasks
+# 1. Daily editing report
+# 2. Repartition
+# 3. This includes restarting the tomcat server.
 #
-00 00 * * 0-5 /bin/bash -lc 'set -a && source "$SETENV" && set +a && exec /bin/tcsh -f "$MEME_BIN"/nightlyTasks.csh'
+00 23 * * 0-6 /bin/tcsh -f /local/content/MEME/MEME5/ncim/bin/nightlyTasks.csh > /local/content/MEME/MEME5/ncim/logs/nightlyTasks.log 2>&1
 
 #
-# Run the MID Validation process.
+# Run weekly tasks
+# 1. Create deep relationships table
+# 2. This includes restarting the tomcat server.
 #
-00 09 * * 6 /bin/bash -lc 'set -a && source "$SETENV" && set +a && exec /bin/tcsh -f "$MEME_BIN"/cronvalidate.csh'
+00 01 * * 7 /bin/tcsh -f /local/content/MEME/MEME5/ncim/bin/weeklyTasks.csh > /local/content/MEME/MEME5/ncim/logs/weeklyTasks.log 2>&1
+
+#
+# Run cron validation script (runs the MID Validation queries and emails them)
+#
+00 09 * * 6 /bin/tcsh -f /local/content/MEME/MEME5/ncim/bin/cronvalidate.csh > /local/content/MEME/MEME5/ncim/logs/cronvalidate.log 2>&1
