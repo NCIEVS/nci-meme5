@@ -130,3 +130,8 @@ For a manual nightly run, use:
 
 The scripts use `$SETENV` when it is set, or
 `/local/content/MEME/MEME5/ncim/setenv.sh` otherwise.
+
+`nightlyTasks.csh` starts the Daily Editing Report in the background, then polls
+the `process_executions` row until the report reaches a terminal state. It only
+continues to workflow-bin regeneration and service restart after the report
+finishes successfully.
