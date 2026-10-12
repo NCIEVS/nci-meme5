@@ -23,9 +23,9 @@ Checks:
   `toTerminology` and `toVersion` do not match a row in `terminologies`.
 - `Tree position for non-current terminology version`: finds tree positions
   whose terminology/version is not marked current in `terminologies`.
-- `Atom current MTH concept terminology id missing`: finds publishable atoms
-  without a `conceptTerminologyIds` entry for `MTH` plus the current `MTH`
-  version.
+- `Current MTH atom missing current MTH concept terminology id`: finds
+  publishable atoms from the current `MTH` release without a
+  `conceptTerminologyIds` entry for that release.
 
 The validation queries intentionally return only two values per row so they
 follow the existing MID validation result shape.
@@ -655,23 +655,34 @@ group by componentType, terminology, version
 order by treePositionCt desc, componentType, terminology, version;
 ```
 
-## Atom Current MTH Concept Terminology Ids
+## Current MTH Atom Concept Terminology Ids
 
-This check identifies publishable atoms that do not have an atom
-`conceptTerminologyIds` entry for the current MTH release key. The key is built
-from `terminologies` as `MTH` plus the current MTH `version`; the workflow
-query does not hard-code the version.
+This check identifies publishable atoms from the current MTH release that do
+not have an atom `conceptTerminologyIds` entry for that release. The key is
+built from `terminologies` as `MTH` plus the current MTH `version`; the
+workflow query does not hard-code the version.
+
+The check is intentionally limited to atoms whose terminology and version are
+the current MTH release. Non-MTH atoms are not guaranteed to have the current
+MTH key. In particular, SNOMEDCT_US is loaded through a separate insertion and
+is skipped while the MTH atom loader processes `umlscui.txt`. Source atoms
+inserted after the current MTH release also cannot be expected to have that
+release key.
 
 Saved workflow query:
 
 ```sql
 select a.id componentId, 'ATOM' componentType
 from atoms a
-join terminologies t on t.terminology = 'MTH' and t.current = true
+join terminologies t
+  on t.terminology = 'MTH'
+  and t.version = a.version
+  and t.current = true
 left join atomjpa_conceptterminologyids cid
   on cid.AtomJpa_id = a.id
   and cid.conceptTerminologyIds_KEY = concat(t.terminology, t.version)
-where a.publishable
+where a.terminology = 'MTH'
+  and a.publishable
   and cid.AtomJpa_id is null
 ```
 
@@ -680,18 +691,20 @@ Review query:
 ```sql
 select
   concat(t.terminology, t.version) requiredKey,
-  a.terminology,
-  a.version,
-  count(*) atomCt
+  count(*) missingAtomCt,
+  min(a.id) sampleAtomId
 from atoms a
-join terminologies t on t.terminology = 'MTH' and t.current = true
+join terminologies t
+  on t.terminology = 'MTH'
+  and t.version = a.version
+  and t.current = true
 left join atomjpa_conceptterminologyids cid
   on cid.AtomJpa_id = a.id
   and cid.conceptTerminologyIds_KEY = concat(t.terminology, t.version)
-where a.publishable
+where a.terminology = 'MTH'
+  and a.publishable
   and cid.AtomJpa_id is null
-group by requiredKey, a.terminology, a.version
-order by atomCt desc, a.terminology, a.version;
+group by requiredKey;
 ```
 
 ## Pre-Cleanup Review
