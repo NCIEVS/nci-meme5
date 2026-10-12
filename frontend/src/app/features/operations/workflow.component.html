@@ -1595,7 +1595,7 @@
 
 @if (workflowBinDefinitionForm(); as form) {
   <meme-dialog
-    [title]="form.mode === 'add' ? 'Add Workflow Bin' : 'Edit Workflow Bin'"
+    [title]="workflowBinDefinitionDialogTitle(form)"
     [closeDisabled]="savingBinDefinition()"
     (closed)="closeWorkflowBinDefinitionForm()"
   >
@@ -1609,6 +1609,14 @@
       }
 
       <div class="form-grid">
+        <div class="form-field full-span">
+          <dl>
+            <dt>Project</dt>
+            <dd>{{ currentProject()?.name || projectId() || 'n/a' }}</dd>
+            <dt>Workflow Config</dt>
+            <dd>{{ form.workflowConfig.type || 'n/a' }}</dd>
+          </dl>
+        </div>
         <label class="form-field full-span" for="workflow-bin-form-name">
           <span>Name</span>
           <input
@@ -1617,7 +1625,8 @@
             [ngModel]="form.definition.name ?? ''"
             (ngModelChange)="updateWorkflowBinDefinitionForm('name', $event)"
             name="workflow-bin-name"
-            placeholder="demotions"
+            placeholder="e.g. demotions"
+            autofocus
             required
           />
         </label>
@@ -1628,6 +1637,7 @@
             [ngModel]="form.definition.description ?? ''"
             (ngModelChange)="updateWorkflowBinDefinitionForm('description', $event)"
             name="workflow-bin-description"
+            placeholder="Basic description of the bin"
             rows="3"
           ></textarea>
         </label>
@@ -1667,7 +1677,7 @@
             Editable
           </label>
         </div>
-        @if (form.mode === 'add' && workflowBinDefinitionOptions(form.workflowConfig).length) {
+        @if (form.mode !== 'edit' && workflowBinDefinitionOptions(form.workflowConfig).length) {
           <label class="form-field full-span" for="workflow-bin-form-position-after">
             <span>Position Bin After</span>
             <select
@@ -1676,7 +1686,7 @@
               (ngModelChange)="setWorkflowBinPositionAfter($event)"
               name="workflow-bin-position-after"
             >
-              <option value="">At beginning</option>
+              <option value="">At end</option>
               @for (definition of workflowBinDefinitionOptions(form.workflowConfig); track definition.id ?? definition.name; let index = $index) {
                 <option [value]="definition.id ?? ''">
                   {{ definition.rank ?? index + 1 }} - {{ definition.name || 'Unnamed bin' }}
@@ -1698,22 +1708,40 @@
               </button>
               <button
                 type="button"
-                (click)="formatWorkflowBinQuery()"
+                (click)="toggleWorkflowBinQueryPreview()"
                 [disabled]="savingBinDefinition() || !form.definition.query?.trim()"
+              >
+                {{ form.queryPreview ? 'Edit Query' : 'Show Formatted Query' }}
+              </button>
+              <button
+                type="button"
+                (click)="formatWorkflowBinQuery()"
+                [disabled]="savingBinDefinition() || form.queryPreview || !form.definition.query?.trim()"
               >
                 Format
               </button>
             </div>
           </div>
-          <textarea
-            id="workflow-bin-form-query"
-            [ngModel]="form.definition.query ?? ''"
-            (ngModelChange)="updateWorkflowBinDefinitionForm('query', $event)"
-            name="workflow-bin-query"
-            rows="6"
-            required
-          ></textarea>
+          @if (form.queryPreview) {
+            <pre class="log-content">{{ formattedQuery(form.definition.query) || 'No query entered.' }}</pre>
+          } @else {
+            <textarea
+              id="workflow-bin-form-query"
+              [ngModel]="form.definition.query ?? ''"
+              (ngModelChange)="updateWorkflowBinDefinitionForm('query', $event)"
+              name="workflow-bin-query"
+              placeholder="Query to compose bin"
+              rows="6"
+              required
+            ></textarea>
+          }
         </div>
+        @if (testingWorkflowBinQuery() || workflowBinQueryTestPolling()) {
+          <div class="checkbox-row full-span" role="status">
+            <span class="status-pill running">Testing</span>
+            <span>{{ workflowBinQueryProgressText() }}</span>
+          </div>
+        }
         @if (workflowBinQueryTestResult(); as queryTest) {
           <div class="form-messages full-span">
             <p>Query met validation requirements.</p>
@@ -1746,17 +1774,6 @@
               }
             </select>
           </label>
-        } @else {
-          <label class="form-field full-span" for="workflow-bin-form-autofix">
-            <span>Autofix Algorithm</span>
-            <input
-              id="workflow-bin-form-autofix"
-              type="text"
-              [ngModel]="form.definition.autofix ?? ''"
-              (ngModelChange)="updateWorkflowBinDefinitionForm('autofix', $event)"
-              name="workflow-bin-autofix"
-            />
-          </label>
         }
       </div>
 
@@ -1770,7 +1787,7 @@
           Cancel
         </button>
         <button type="submit" class="btn-primary" [disabled]="savingBinDefinition()">
-          {{ savingBinDefinition() ? 'Saving' : 'Save' }}
+          {{ workflowBinDefinitionSubmitLabel(form) }}
         </button>
       </div>
     </form>
