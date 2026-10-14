@@ -707,6 +707,156 @@ where a.terminology = 'MTH'
 group by requiredKey;
 ```
 
+## Retired Source Without Bequeathal To Root
+
+The corrected `Retired source w/o bequeathal rel to root` workflow check finds
+unpublishable `SRC/VAB` atoms for old versions of sources that still have a
+current release. It accepts all three bequeathal types (`BRO`, `BRN`, `BRB`),
+matches the exact `V-<terminology>` root code or an approved alternate root,
+and requires a publishable root concept and RAB in the same project
+terminology/version. A version already in
+its own publishable root concept needs no self-relationship. Current sources
+with missing or unpublishable roots still fail the check. Entirely retired
+sources are outside this check; their historical bequeathals require separate
+review. The separate `Publishable Bequeathal Relationship` check enforces
+unpublishable relationship flags.
+
+The relationship itself need not be owned by the project terminology/version.
+The loader preserves relationship source provenance, so an unpublished
+`MTH/2026AA` bequeathal can legitimately connect two `NCIMTH/latest` concepts.
+Do not require `r.terminology = c.terminology` or `r.version = c.version`, and
+do not duplicate or retag valid MTH-owned links to satisfy the check.
+
+The user confirmed these alternate roots are intentional: CDCREC may bequeath
+to CDC, and MTHSPL or MTHCMSFRF may bequeath to MTH. The check accepts each
+source's own root and these explicit alternatives, including when the old VAB
+is already in an accepted live root concept. Other source/root combinations
+still require review; no broader family or prefix-based exception is inferred.
+
+[retired-source-bequeathal-check.sql](retired-source-bequeathal-check.sql) is a
+read-only, application-ready query for `NCIMTH/latest`, with literal values and
+no variables or trailing semicolon. Paste its contents into the bin's Query
+field. The saved definition in `workflow.MVO.txt` uses the equivalent project
+parameters for reuse. Update the existing bin's Query and Description through
+the workflow editor; merely deploying this file does not update a database's
+existing bin. Add a semicolon when executing the SQL interactively in MySQL.
+
+The corrected query returns `clusterId, conceptId`, using the same concept id
+in both columns to create one independent cluster per finding. This also keeps
+the two-column result shape required by the MID report. Bin regeneration always
+uses `executeClusteredConceptQuery`, which treats `conceptId1, conceptId2` as
+pairs to cluster and discards pairs whose ids are equal. Thus the original
+query can return 30 rows in SQL or the MID report while generating an empty bin.
+Whitespace is not the cause. To regenerate using the original predicates,
+change only its SELECT list to
+`SELECT DISTINCT c_a.concepts_id AS clusterId, c_a.concepts_id AS conceptId`.
+The bin editor's Test endpoint has a separate issue: for query style `OTHER`,
+it executes a limited query but discards the results and returns a zero count.
+That Test behavior does not explain regeneration; the duplicate-id pair
+handling does.
+
+The original 30 findings were resolved diagnostically as follows:
+
+| Findings | Evidence | Repair |
+| --- | --- | --- |
+| 15 old concepts | Existing `BRN` to the correct root and inverse `BRB` | Preserve those relationships; the old check accepted only `BRO` |
+| 12 old concepts | CCS_10, NDFRT, NDFRT_FDASPL, NDFRT_FMTSME have no current release and unpublished root RABs | Exclude these fully retired sources from the root check |
+| 3 old concepts | Existing `BRO` goes elsewhere, with no relationship to the expected root | Add the missing root pairs below |
+
+The earlier diagnostic also showed 24 existing `BRN`/`BRB` rows marked
+publishable. That concerns the separate `Publishable Bequeathal Relationship`
+check and is not a prerequisite for clearing this missing-root check.
+Publishability cleanup is deferred to that separate investigation.
+NDFRT's root concept remains publishable but its RAB does not; that is not a
+reason to republish the RAB or change the concept. These results describe the
+supplied snapshot, not which insertion or editor caused it.
+
+### Add The Three Missing Root Pairs
+
+| Source | Old concept / CUI | Root concept / CUI | Existing destination retained |
+| --- | --- | --- | --- |
+| ICD10 | 2859814 / CL466586 | 28704768 / CL1793137 | 658023 / C1137110 (publishable, no SRC RAB) |
+| RXNORM | 43277739 / C5978422 | 660568 / C1140284 | 38122176 / C5884345 (unpublishable old version) |
+| VANDF | 43277741 / C5978423 | 660569 / C1140288 | 38122178 / C5884346 (unpublishable old version) |
+
+Use the scoped `ADHOC` maintenance action added for this repair. After
+deploying a build containing the change, configure a maintenance
+process for project `NCIMTH/latest` with one enabled `ADHOC` step:
+
+| Parameter | Value |
+| --- | --- |
+| Action Name | `Add missing retired source root bequeathals (NM-298)` |
+| Integer parameter | Unused; leave the default |
+| String parameter | Unused; leave blank |
+
+This action requires no input file or input directory. Use the normal process
+log configuration. It checks the exact concept ids, CUIs, project versions,
+publishability, and retired VAB/live RAB codes for all three pairs before
+adding any relationships. It locks the six concepts in id order and adds the
+missing `BRO` links with metadata-defined inverses through the content service.
+Both directions are unpublishable, unpublished, and `READY_FOR_PUBLICATION`.
+All additions share one transaction, with rollback on failure. The normal
+persistence path allocates ids and updates search state, so no separate manual
+reindex is needed.
+
+Expect the log to report `Root pairs added = 3; already valid = 0; relationship
+rows added = 6`. A rerun with three complete, unpublishable bequeathal pairs
+reports zero added and three already valid. Existing valid `BRN`/`BRB` pairs
+and MTH-owned pairs are accepted without alteration. A partial, duplicate,
+conflicting, or publishable pair causes the action to stop for review, as does
+an endpoint or SRC atom that no longer matches the supplied snapshot. Existing
+links to other destinations and concept publishability remain unchanged.
+
+Validation: nine database-free `RetiredSourceRootRepairUnitTest` tests pass,
+covering the three exact pairs, endpoint/atom drift, reruns, preserved history,
+and conflicting or incomplete pairs. Main/test Checkstyle and SpotBugs also
+pass. The action has not been deployed or run against the target database.
+
+After running the AdHoc action, rerun the updated root check and regenerate
+its bin. Expect zero findings on the reviewed data snapshot. Verify the six
+new rows have the intended endpoints, inverses, and false publishability
+flags. No separate SQL data repair is needed for this check.
+
+The repository changes prepare the repair; no target-database changes have
+been executed by the agent.
+
+### Additional Findings From The Corrected Check
+
+A full-database run of an earlier revision of the corrected check returned 22
+concepts: the three known cases and 19 outside the original report. Follow-up
+inspection found 16 of the additional concepts already have unpublished
+`MTH/2026AA` BROs to their correct, publishable source roots. The relationship
+ownership restriction in that revision was too strict and has been removed.
+In reconstructed test data, that correction reduced the exact-root check from
+22 concepts to six. The user then confirmed the alternate destinations for the
+other three additional concepts are intentional:
+
+| Concept | Source | Existing destination | Review |
+| --- | --- | --- | --- |
+| 25270005 / CL1677269 | CDCREC | V-CDC (2832454 / CL337097) | Approved alternate root; preserve the relationship |
+| 40541569 / C5978416 | MTHCMSFRF | V-MTH (105671 / C0220961) | Approved alternate root; preserve the relationship and publishable concept |
+| 43277743 / C5978424 | MTHSPL | V-MTH (105671 / C0220961) | Approved alternate root; preserve the relationship |
+
+Concept 46009702 has two BROs: one NCIMTH-owned to V-MTH and one MTH-owned to
+its exact V-MTHSPL root. The latter already satisfies the revised check. The
+25 diagnostic rows represent 22 concepts because 40541569 has three matching
+VAB codes and 46009702 has two relationships. With the approved alternatives
+included, the final check leaves only the three original missing-root cases
+on the supplied snapshot. Keep the AdHoc repair limited to those three pairs.
+Matching own or approved alternate roots is an additional requirement relative
+to the original check, which accepted any live SRC RAB.
+
+The user subsequently executed the final query in MySQL and confirmed exactly
+three rows in 0.17 seconds: ICD10 `2859814`, RXNORM `43277739`, and VANDF
+`43277741`. Each row has the same id in `clusterId` and `conceptId`. This
+confirms the final database result matches the three AdHoc repair targets;
+it does not establish that the repair has run or that bin regeneration has
+been verified. After successfully adding these root pairs, the check is
+expected to return zero on this data snapshot.
+
+The application bin count remains a separate verification: save the exact
+revised query, regenerate, and compare it with the raw SQL result.
+
 ## Pre-Cleanup Review
 
 Run review queries first on the target server. Counts from local development

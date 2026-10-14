@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.Query;
 
 import com.wci.umls.server.model.algo.AlgorithmConfig;
@@ -167,7 +168,12 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       throw new Exception("Ad Hoc algorithms requires a project to be set");
     }
 
-    setSrcDirFileFromProcessInputPath();
+    if (RetiredSourceRootRepair.ACTION_NAME.equals(actionName)) {
+      RetiredSourceRootRepair.checkProject(getProject().getTerminology(),
+          getProject().getVersion());
+    } else {
+      setSrcDirFileFromProcessInputPath();
+    }
 
     return validationResult;
   }
@@ -310,6 +316,8 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
       fixComponentInfoAtoms();
     } else if (actionName.contentEquals("Fix bequeathal rels to unpublishable")) {
       fixBequeathalRelsToUnpublishable();
+    } else if (actionName.equals(RetiredSourceRootRepair.ACTION_NAME)) {
+      addMissingRetiredSourceRootBequeathals();
     } else if (actionName.contentEquals("Approve worklist cluster")) {
       approveWorklistCluster();
     } else if (actionName.contentEquals("Cleanup corrupted process config")) {
@@ -4840,6 +4848,68 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
 
   }
   
+  /** Adds only the three reviewed root pairs, leaving all other links intact. */
+  private void addMissingRetiredSourceRootBequeathals() throws Exception {
+    RetiredSourceRootRepair.checkProject(getProject().getTerminology(),
+        getProject().getVersion());
+    if (getTransactionPerOperation()) {
+      throw new IllegalStateException("Root repair requires one transaction for all three pairs");
+    }
+
+    try {
+      // Lock the six endpoints in id order before inspecting their relationships.
+      final Map<Long, Concept> concepts = new TreeMap<>();
+      for (final RetiredSourceRootRepair.Target target : RetiredSourceRootRepair.TARGETS) {
+        concepts.put(target.oldId(), null);
+        concepts.put(target.rootId(), null);
+      }
+      for (final Long id : concepts.keySet()) {
+        concepts.put(id, getEntityManager().find(ConceptJpa.class, id,
+            LockModeType.PESSIMISTIC_WRITE));
+      }
+      final Map<String, String> inverses = new HashMap<>();
+      for (final RelationshipType type : getRelationshipTypes("NCIMTH", "latest").getObjects()) {
+        if (type.getInverse() != null) {
+          inverses.put(type.getAbbreviation(), type.getInverse().getAbbreviation());
+        }
+      }
+
+      // Validate every pair and prepare every inverse before persisting any additions.
+      final List<ConceptRelationship> additions = RetiredSourceRootRepair.plan(concepts, inverses);
+      final List<ConceptRelationship> reverseAdditions = new ArrayList<>();
+      for (final ConceptRelationship relationship : additions) {
+        reverseAdditions.add(createInverseConceptRelationship(relationship));
+      }
+      for (int i = 0; i < additions.size(); i++) {
+        checkCancel();
+        final ConceptRelationship forward = (ConceptRelationship) addRelationship(additions.get(i));
+        final ConceptRelationship reverse =
+            (ConceptRelationship) addRelationship(reverseAdditions.get(i));
+        final Concept old = forward.getFrom();
+        final Concept root = forward.getTo();
+        old.getRelationships().add(forward);
+        root.getRelationships().add(reverse);
+        old.getInverseRelationships().add(reverse);
+        root.getInverseRelationships().add(forward);
+        updateConcept(old);
+        updateConcept(root);
+        logInfo("  Added root bequeathal " + old.getId() + " -> " + root.getId()
+            + "; relationship ids " + forward.getId() + ", " + reverse.getId());
+      }
+      logInfo("  Root pairs added = " + additions.size() + "; already valid = "
+          + (RetiredSourceRootRepair.TARGETS.size() - additions.size())
+          + "; relationship rows added = " + (2 * additions.size()));
+      // The surrounding compute method commits once all pairs have succeeded.
+    } catch (Exception e) {
+      try {
+        rollback();
+      } catch (Exception rollbackError) {
+        e.addSuppressed(rollbackError);
+      }
+      throw e;
+    }
+  }
+
   private void fixBequeathalRelsToUnpublishable() throws Exception {
 	    // 08/31/2021 NM-122 BRO rels shouldn't be released
 
@@ -5470,7 +5540,7 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         "Approve worklist cluster","Cleanup corrupted process config","Remove bad bequeathal relationships",
         "Update Root Terminology Contact Info From UMLS","Reload Workflow Bin Definition Queries",
         "Remove Unbalanced Concept Relationships", "Write Meddra Ncit Overlap Report",
-        "Fix Workflow Bin Ranks"));
+        "Fix Workflow Bin Ranks", RetiredSourceRootRepair.ACTION_NAME));
     params.add(param);
     param = new AlgorithmParameterJpa("Integer parameter (optional)", "integerParameter",
             "Integer parameter (optional)", "e.g. 37", 10, AlgorithmParameter.Type.INTEGER, "50");
