@@ -766,7 +766,7 @@ The original 30 findings were resolved diagnostically as follows:
 The earlier diagnostic also showed 24 existing `BRN`/`BRB` rows marked
 publishable. That concerns the separate `Publishable Bequeathal Relationship`
 check and is not a prerequisite for clearing this missing-root check.
-Publishability cleanup is deferred to that separate investigation.
+Publishability cleanup is covered separately below.
 NDFRT's root concept remains publishable but its RAB does not; that is not a
 reason to republish the RAB or change the concept. These results describe the
 supplied snapshot, not which insertion or editor caused it.
@@ -856,6 +856,67 @@ expected to return zero on this data snapshot.
 
 The application bin count remains a separate verification: save the exact
 revised query, regenerate, and compare it with the raw SQL result.
+
+## Publishable Bequeathal Relationships
+
+The supplied `NCIMTH` check returned 64 publishable relationship rows, or 32
+forward/inverse pairs. All had `lastModifiedBy = E-CFC` and workflow status
+`READY_FOR_PUBLICATION`, with creation timestamps on August 24–25 and
+September 25, 2026. That pattern is consistent with editor creation followed
+by approval; the last modifier alone does not prove which path created each
+row. Creation atomic actions are needed for definitive attribution.
+
+The editor's single and bulk Add Relationship endpoints previously set every
+non-XR relationship to publishable, including `BRO`, `BRN`, and `BRB`. Inverse
+creation copied that flag. `CreateConceptRelBequeathalAlgorithm` independently
+set new bequeathals to publishable, and relationship loaders honored the input
+publishability flag. Approval did not consistently clear it for relationships
+on concepts that were already retired. This allowed new findings to accumulate
+after a cleanup.
+
+The permanent fix enforces `publishable = false` for concept-level `BRO`,
+`BRN`, and `BRB` relationships, including inverses and source-owned rows:
+
+- Editor defaults and the automatic bequeathal creator now produce
+  unpublishable bequeathals. The loader normalizes flags after mapping legacy
+  relationship types and before constructing inverses.
+- Shared component add/update paths enforce the rule before persistence and
+  atomic-action comparison. JPA pre-persist/pre-update callbacks also cover
+  direct changes to managed entities that bypass an explicit service update.
+- The historical `published` flag, workflow status, endpoints, and other
+  relationship types are preserved. Existing invalid rows remain visible when
+  read; this change is not a bulk data migration.
+
+After deploying the fix, use the existing `ADHOC` action **Fix bequeathal rels
+to unpublishable** once to clear existing findings. Its query covers all
+terminologies and versions, so its update count can exceed the 64 rows from
+the `NCIMTH` check. It changes the relationship publishable flag through the
+content service and normal search indexing; no separate manual reindex or new
+SQL repair file is needed. Use the usual AdHoc process configuration, including
+its existing input-directory requirement. This cleanup is independent of the
+three missing-root pairs above.
+
+Rerun the existing validation query after cleanup:
+
+```sql
+SELECT r.from_id AS conceptId1, r.to_id AS conceptId2
+FROM concept_relationships r
+WHERE r.terminology = 'NCIMTH'
+  AND r.relationshipType IN ('BRO', 'BRB', 'BRN')
+  AND r.publishable = true;
+```
+
+Expect zero rows after successful cleanup. On a test instance, add a BRO and
+a BRN through the editor, approve their concepts, and verify both directions
+remain unpublishable. The database-free `RelationshipPublishabilityUnitTest`
+covers the shared rule, creation flag order, inverse pairs, JPA callback wiring,
+attempts to republish, and preservation of unrelated fields and components.
+Live editor/loader execution and target-database cleanup are separate deployment
+verification steps.
+
+Validation: `make quality UNIT_TEST_PATTERN='*Relationship*UnitTest'` passed
+main/test Checkstyle and SpotBugs plus 96 unit tests, including the nine new
+publishability regressions. No target-database changes were executed.
 
 ## Pre-Cleanup Review
 

@@ -19,6 +19,7 @@ import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.Branch;
 import com.wci.umls.server.helpers.ConfigUtility;
 import com.wci.umls.server.helpers.FieldedStringTokenizer;
+import com.wci.umls.server.helpers.content.RelationshipPublishability;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
@@ -679,6 +680,9 @@ public class RelationshipLoaderAlgorithm
     newRelationship.setPublishable(publishable.equals("Y"));
     newRelationship.setPublished(published.equals("Y"));
     newRelationship.setRelationshipType(lookupRelationshipType(relType));
+    // Normalize after mapping legacy types (BRT/BNT/BBT) and before copying
+    // the input flags to the inverse relationship.
+    RelationshipPublishability.enforce(newRelationship);
     // When creating "CHD" relationship, set the "hierarchical" field
     // to true.
     newRelationship.setHierarchical(

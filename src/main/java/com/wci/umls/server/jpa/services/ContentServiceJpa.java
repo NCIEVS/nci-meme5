@@ -123,6 +123,7 @@ import com.wci.umls.server.helpers.content.LexicalClassList;
 import com.wci.umls.server.helpers.content.MapSetList;
 import com.wci.umls.server.helpers.content.MappingList;
 import com.wci.umls.server.helpers.content.RelationshipList;
+import com.wci.umls.server.helpers.content.RelationshipPublishability;
 import com.wci.umls.server.helpers.content.StringClassList;
 import com.wci.umls.server.helpers.content.SubsetList;
 import com.wci.umls.server.helpers.content.SubsetMemberList;
@@ -1486,6 +1487,8 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
               relationship.getVersion()).getInverse().getAbbreviation());
       inverseRelationship.setAssertedDirection(!relationship.isAssertedDirection());
       inverseRelationship.setHierarchical(false);
+
+      RelationshipPublishability.enforce(inverseRelationship);
 
       return inverseRelationship;
     } else {
@@ -3069,6 +3072,8 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
    */
   protected <T extends Component> T addComponent(T component) throws Exception {
 
+    RelationshipPublishability.enforce(component);
+
     // handle as a normal "has last modified"
     final T newComponent = addHasLastModified(component);
 
@@ -3108,6 +3113,10 @@ public class ContentServiceJpa extends MetadataServiceJpa implements ContentServ
    */
   @SuppressWarnings("unchecked")
   protected <T extends Component> void updateComponent(T newComponent) throws Exception {
+    // Normalize before comparing fields so the atomic actions record the
+    // publishability value that will actually be persisted.
+    RelationshipPublishability.enforce(newComponent);
+
     // Component-specific handling
 
     // check for molecular action flag
