@@ -171,9 +171,11 @@ public class AdHocAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
     if (RetiredSourceRootRepair.ACTION_NAME.equals(actionName)) {
       RetiredSourceRootRepair.checkProject(getProject().getTerminology(),
           getProject().getVersion());
-    } else {
-      setSrcDirFileFromProcessInputPath();
     }
+    // Most AdHoc actions operate only on database rows. Resolve the directory
+    // only for actions that read files or write reports beneath Input Path.
+    setSrcDirFile(AdHocInputDirectory.resolve(actionName,
+        getProcess() == null ? null : getProcess().getInputPath()));
 
     return validationResult;
   }

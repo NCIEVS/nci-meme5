@@ -892,9 +892,40 @@ to unpublishable** once to clear existing findings. Its query covers all
 terminologies and versions, so its update count can exceed the 64 rows from
 the `NCIMTH` check. It changes the relationship publishable flag through the
 content service and normal search indexing; no separate manual reindex or new
-SQL repair file is needed. Use the usual AdHoc process configuration, including
-its existing input-directory requirement. This cleanup is independent of the
-three missing-root pairs above.
+SQL repair file is needed. This action requires no input file or input
+directory; leave the process Input Path blank. This cleanup is independent of
+the three missing-root pairs above.
+
+Older builds can reject a blank Input Path with `process input directory must
+not be blank` before the cleanup starts. The shared AdHoc precondition began
+validating that path during the NM-325 constrained-path update, even for this
+database-only action. A review of all 67 AdHoc actions found 62 that do not use
+Input Path. The precondition now validates and initializes the input directory
+only for the five actions that use it for file I/O; the project requirement and
+the scoped root-repair project check remain in effect. Deploy the updated build
+and rerun database-only actions with Input Path blank.
+
+| AdHoc action requiring Input Path | File use beneath Input Path |
+| --- | --- |
+| `Fix Atom Last Release CUI` | Reads `<version>/META/MRCONSO.RRF` |
+| `Initialize Source Atom Id Range App` | Reads `<version>/META/src_atom_id_range.out` |
+| `Update Root Terminology Contact Info From UMLS` | Reads RRF metadata, using `MRSAB.RRF` |
+| `Reload Workflow Bin Definition Queries` | Reads `test.txt` |
+| `Write Meddra Ncit Overlap Report` | Writes `maint/dsstmp.txt` |
+
+For these five actions, Input Path must still identify an existing directory
+under `source.data.dir`. Their existing file/version checks and output locations
+remain unchanged. Actions such as `Fix Orphan Definitions`, `Fix Duplicate
+Concepts`, `Fix Workflow Bin Ranks`, and `Approve worklist cluster` no longer
+require a dummy input directory or fail because of an unused stale path.
+Register new file-dependent actions in `AdHocInputDirectory` when adding them.
+
+`AdHocInputDirectoryUnitTest` exercises database-only actions with blank or
+unused paths, all five file-dependent actions with valid and invalid paths,
+directory-boundary validation, and the report's configured output base. These
+tests do not connect to a database or execute any maintenance action.
+Validation: `make quality UNIT_TEST_PATTERN='*AdHocInputDirectoryUnitTest'`
+passed all seven tests plus main/test Checkstyle and SpotBugs.
 
 Rerun the existing validation query after cleanup:
 
