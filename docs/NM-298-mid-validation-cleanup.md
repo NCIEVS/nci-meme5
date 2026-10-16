@@ -27,8 +27,10 @@ Checks:
   publishable atoms from the current `MTH` release without a
   `conceptTerminologyIds` entry for that release.
 
-The validation queries intentionally return only two values per row so they
-follow the existing MID validation result shape.
+These five checks use two values per row to identify the affected component
+and its type. `MIDValidationReport` reads multi-column result rows by position
+and prints their values; it does not require exactly two columns or specific
+column aliases. Workflow bin regeneration has separate concept-id requirements.
 
 ## Publishable Old Version Content
 
@@ -742,8 +744,8 @@ the workflow editor; merely deploying this file does not update a database's
 existing bin. Add a semicolon when executing the SQL interactively in MySQL.
 
 The corrected query returns `clusterId, conceptId`, using the same concept id
-in both columns to create one independent cluster per finding. This also keeps
-the two-column result shape required by the MID report. Bin regeneration always
+in both columns to create one independent cluster per finding. This result
+shape also works with the MID report. Bin regeneration always
 uses `executeClusteredConceptQuery`, which treats `conceptId1, conceptId2` as
 pairs to cluster and discards pairs whose ids are equal. Thus the original
 query can return 30 rows in SQL or the MID report while generating an empty bin.
@@ -948,6 +950,92 @@ verification steps.
 Validation: `make quality UNIT_TEST_PATTERN='*Relationship*UnitTest'` passed
 main/test Checkstyle and SpotBugs plus 96 unit tests, including the nine new
 publishability regressions. No target-database changes were executed.
+
+## Historical SRC VPT String Identity Exceptions
+
+The `Mismatches in string_ui,classes,atoms` check retains its original three
+result columns and mismatch comparison, but excludes the three historical
+cases below. These are accepted exceptions, not repaired identities.
+
+This query is for the MID validation report, which accepts these three text
+columns without requiring concept-id aliases. It is not suitable for the
+Regenerate Bin action: that path requires numeric concept ids selected as
+`conceptId`, `conceptId1, conceptId2`, or `clusterId, conceptId`. A concept-bin
+variant would need to join the affected atoms to their project concepts;
+renaming the string-id and name columns does not make them concept ids.
+
+| Atom id | NCIMTH AUI | Existing SUI | Current atom name | Existing string identity text |
+| --- | --- | --- | --- | --- |
+| 8902115 | A16363085 | S0558535 | NCBI Taxonomy, 2018_04_19 | NCBI Taxonomy |
+| 11042820 | A16682724 | S9823109 | Vaccines Administered, 2018_10_18, 2019_03_04 | Vaccines Administered, 2018_10_18, 2019_02_04 |
+| 11881919 | A16822689 | S0558535 | NCBI Taxonomy, 2019_05_08 | NCBI Taxonomy |
+
+The legacy AdHoc methods `fixVPTAndTerminologies()` (2019) and `fixNCBIVPT()`
+(2020) changed these exact atom names without updating the associated SUIs.
+User-supplied database results show that all three are `SRC/latest` `VPT`
+atoms with `publishable = false` and `published = true`; each AUI occurs only
+on its expected atom. Their current LUIs reflect the corrected names. The
+lookup for string identities matching those names returned no matches.
+
+The supplied `201908/META/MRCONSO.RRF` output contains the first two AUIs with
+their current names and old SUIs, confirming those combinations were already
+distributed. The supplied `202608` release output contains none of the three
+AUIs. Release content for the third AUI around the 2020 name correction has
+not been verified. The accepted approach preserves these historical identity
+associations and leaves the atom and identity data unchanged.
+
+Each exception requires the exact atom id, SUI, atom name, and identity text,
+plus `SRC/latest`, `VPT`, and unpublishable status. Binary casts make the SUI
+and name comparisons exact, including case and trailing spaces, without the
+deprecated `BINARY expr` syntax. A mismatch outside those conditions remains
+reportable, including one of these atoms becoming publishable again. The
+check does not generally exempt retired atoms or SRC content.
+
+For an existing application database, replace the Query field of
+**Mismatches in string_ui,classes,atoms** under `MID_VALIDATION_OTHER` with the
+following SQL. Updating the checked-in `workflow.MVO.txt` alone does not
+update an existing saved definition. Keep the check enabled, and describe
+the three historical exceptions in its Description field.
+
+```sql
+SELECT a.stringClassId, a.name AS atoms_name, sci.name AS sci_name
+FROM atoms a
+JOIN string_class_identity sci
+  ON sci.id = SUBSTRING(a.stringClassId, 2) + 0
+WHERE a.name <> sci.name
+  AND NOT (
+    a.terminology = 'SRC'
+    AND a.version = 'latest'
+    AND a.termType = 'VPT'
+    AND a.publishable = false
+    AND (
+      (
+        a.id = 8902115
+        AND CAST(a.stringClassId AS BINARY) = 'S0558535'
+        AND CAST(a.name AS BINARY) = 'NCBI Taxonomy, 2018_04_19'
+        AND CAST(sci.name AS BINARY) = 'NCBI Taxonomy'
+      )
+      OR (
+        a.id = 11042820
+        AND CAST(a.stringClassId AS BINARY) = 'S9823109'
+        AND CAST(a.name AS BINARY) = 'Vaccines Administered, 2018_10_18, 2019_03_04'
+        AND CAST(sci.name AS BINARY) = 'Vaccines Administered, 2018_10_18, 2019_02_04'
+      )
+      OR (
+        a.id = 11881919
+        AND CAST(a.stringClassId AS BINARY) = 'S0558535'
+        AND CAST(a.name AS BINARY) = 'NCBI Taxonomy, 2019_05_08'
+        AND CAST(sci.name AS BINARY) = 'NCBI Taxonomy'
+      )
+    )
+  )
+```
+
+Rerun this check after saving. On the supplied three-row snapshot, the revised
+query should return zero rows. That means no unaccepted mismatches remain;
+the three historical inconsistencies still exist. No data repair, identity
+allocation, AdHoc cleanup, or reindex is needed for this query-only change.
+The revised query has not been executed against the target database.
 
 ## Pre-Cleanup Review
 
