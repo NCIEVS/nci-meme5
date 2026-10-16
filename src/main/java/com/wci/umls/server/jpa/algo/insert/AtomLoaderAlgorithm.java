@@ -19,6 +19,7 @@ import com.wci.umls.server.helpers.FieldedStringTokenizer;
 import com.wci.umls.server.helpers.QueryType;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
+import com.wci.umls.server.jpa.algo.NciAtomPublicationPolicy;
 import com.wci.umls.server.jpa.model.content.AtomJpa;
 import com.wci.umls.server.jpa.model.content.CodeJpa;
 import com.wci.umls.server.jpa.model.content.ConceptJpa;
@@ -175,6 +176,7 @@ public class AtomLoaderAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         // 8 suppressible (Atom.suppresible, Atom.obsolete)
         // obsolete = true IFF "O".
         // suppresible = true IFF "O, Y, E";
+        // NCIMTH applies its AB/OP/IS publication overrides after reading this flag.
         // 9 source_aui (Atom.terminologyId)
         // 10 source_cui (Atom.conceptId)
         // 11 source_dui (Atom.descriptorId)
@@ -218,6 +220,7 @@ public class AtomLoaderAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
         newAtom.setName(fields[7]);
         newAtom.setSuppressible("OYE".contains(fields[8]));
         newAtom.setObsolete(fields[8].equals("O"));
+        NciAtomPublicationPolicy.apply(getProject().getTerminology(), newAtom);
         newAtom.setTerminologyId(fields[9]);
         newAtom.setConceptId(fields[10]);
         newAtom.setDescriptorId(fields[11]);
@@ -251,11 +254,15 @@ public class AtomLoaderAlgorithm extends AbstractInsertMaintReleaseAlgorithm {
             ? (Atom) getComponent("AUI", newAtomAui, null, null)
             : (Atom) getComponent("AUI", newAtomAui, null, null, true);
 
-        // Check if existing atom has already been processes on a previous run.
-        // In this case, skip to the next line
+        // Previously processed atoms need only policy enforcement and reconciliation.
         if (oldAtom != null
             && oldAtom.getLastModifiedBy().equals(getLastModifiedBy())) {
 
+          // A resumed insertion may contain atoms loaded before this policy.
+          if (NciAtomPublicationPolicy.apply(getProject().getTerminology(), oldAtom)) {
+            updateAtom(oldAtom);
+            updateCount++;
+          }
           reconcileCodeConceptDescriptor(oldAtom);
 
           // Update the progress

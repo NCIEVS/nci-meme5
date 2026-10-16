@@ -291,6 +291,30 @@ unset APP_DIR CATALINA_BASE DATA_DIR INDEX_DIR LVG_DIR SOURCE_DATA_DIR
 ./gradlew test --tests '*UnitTest'
 ```
 
+## NCI Release Atom Flags
+
+For `NCIMTH` projects, source insertion automatically applies the established
+NCI publication policy: `AB` atoms are suppressible, and `OP`/`IS` atoms are both
+suppressible and obsolete. This overrides incoming source suppression flags for
+those three term types. Existing `AB` obsolescence, other term types, and projects
+with other terminologies retain their existing behavior.
+
+The atom loader applies this policy before saving new atoms or updating existing
+ones, including atoms encountered when resuming an insertion. Subsequent source
+loads cannot undo these NCI overrides. Release generation does not modify atom
+flags to compensate for loading errors.
+
+Deploy this fix for future insertion cycles. Published release data and files
+remain unchanged and do not require retroactive correction.
+
+For an unpublished release whose data was loaded before this change, a one-time
+correction or reprocessing of the affected insertion may still be needed.
+Regenerate the affected unpublished release outputs afterward, including metadata
+if MRRANK entries were previously deleted by hand. Keep the existing shared
+term-type suppression settings and precedence entries.
+Read-only diagnostics are available in
+[`docs/release-mrrank-suppression-check.sql`](docs/release-mrrank-suppression-check.sql).
+
 ## Database And Migrations
 
 Flyway migrations live under `src/main/resources/db.migration`. The normal
