@@ -291,6 +291,33 @@ unset APP_DIR CATALINA_BASE DATA_DIR INDEX_DIR LVG_DIR SOURCE_DATA_DIR
 ./gradlew test --tests '*UnitTest'
 ```
 
+## Preferred-Name Handlers
+
+`COMPUTE_PREFERRED_NAME_HANDLERS` defaults to `DEFAULT`, which selects
+`RrfComputePreferredNameHandler` for NCI MEME source insertions, including
+SNOMEDCT_US. This preserves the old NCI production configuration and uses the
+project's term-type precedence for preferred-name computation.
+
+During insertion, `PREFNAMES` computes names first for project concepts and then
+for the inserted source's concepts. Removing the SNOMED handler overrides
+restores RRF for the SNOMED source pass; the `NCIMTH/latest` project pass continues
+to use `DEFAULT`. The setting also applies to operations that compute names or
+sort atoms directly for SNOMED source concepts.
+
+The native RF2 handler expects RF2 description types and an `acceptabilityId`
+language-refset attribute. MEME insertion files use source term types such as
+`PT`/`SY` and preserve the attribute name `ACCEPTABILITYID`. Enabling the RF2
+handler for this data can fail during the source preferred-name pass. Renaming
+the stored attributes or ignoring the missing attribute does not restore the
+historical NCI ranking policy.
+
+For deployments that actually load native RF2 data, explicitly set
+`COMPUTE_PREFERRED_NAME_HANDLERS=DEFAULT,SNOMEDCT,SNOMEDCT_US`. Restart the
+application after changing this setting; handler instances are cached at
+initialization. An existing build can restore the NCI setting with the JVM
+argument `-Dcompute.preferred.name.handler=DEFAULT` before `-jar`. After restarting,
+retry the failed preferred-name process step using the corrected configuration.
+
 ## NCI Release Atom Flags
 
 For `NCIMTH` projects, source insertion automatically applies the established
@@ -307,12 +334,33 @@ flags to compensate for loading errors.
 Deploy this fix for future insertion cycles. Published release data and files
 remain unchanged and do not require retroactive correction.
 
-For an unpublished release whose data was loaded before this change, a one-time
-correction or reprocessing of the affected insertion may still be needed.
-Regenerate the affected unpublished release outputs afterward, including metadata
-if MRRANK entries were previously deleted by hand. Keep the existing shared
-term-type suppression settings and precedence entries.
-Read-only diagnostics are available in
+Editing and source insertions completed since the last publication still need a
+transition audit in the active working database for the next release. Queries 6
+and 7 in the diagnostic SQL inventory all current `NCIMTH/latest` atoms that
+violate this policy, including unpublishable content and atoms whose `published`
+flag is still true. A modification-date cutoff is not a reliable substitute for
+checking the current flags.
+
+The transition plan is to review those candidates, deploy the insertion fix, and
+apply a one-time flag-only correction through application persistence. That
+catch-up is not implemented by the insertion fix or the diagnostic SQL. Preserve
+all editorial content, relationships, workflow status, and publication flags;
+keep the frozen published database and release files untouched. Replaying source
+insertions is not the transition repair because it can affect later edits.
+
+For a manual SQL correction, see
+[`docs/repair-working-atom-publication-flags.sql`](docs/repair-working-atom-publication-flags.sql).
+It scopes the update to the audited source versions and requires an explicit
+working-schema name. Choose RADLEX only or also include the carried-forward
+CVX/VANDF exceptions. The script ends in `ROLLBACK` for preview; change that to
+`COMMIT` only for the intended repair. Stop the application for the SQL update
+and rebuild the working search indexes afterward, because SQL bypasses Hibernate
+Search indexing and application caches. The SQL records modification metadata
+but does not generate application history records.
+
+After correction, repeat the audit, recompute preferred names, and generate the
+next release normally. Keep the existing shared term-type suppression settings
+and precedence entries. Read-only diagnostics are available in
 [`docs/release-mrrank-suppression-check.sql`](docs/release-mrrank-suppression-check.sql).
 
 ## Database And Migrations

@@ -68,10 +68,21 @@ That file should contain only production overrides, such as:
 - `SERVER_SERVLET_CONTEXT_PATH=/ncim-server-rest`
 - `BASE_URL`
 - `REST_CLIENT_ALLOWED_HOSTS`
+- `COMPUTE_PREFERRED_NAME_HANDLERS=DEFAULT`
 - `APP_SERVICE=nci-meme5`
 - `DEPLOY_*`
 - `MAIL_*`
 - `SECURITY_*`
+
+Keep COMPUTE_PREFERRED_NAME_HANDLERS=DEFAULT for NCI MEME insertions, including
+SNOMEDCT_US. This preserves the RrfComputePreferredNameHandler selection from
+the old NCI production configuration. The RF2 handler expects native RF2
+description types and camel-case acceptabilityId attributes; MEME subset
+insertions preserve uppercase ACCEPTABILITYID instead. Native RF2 deployments
+can opt into DEFAULT,SNOMEDCT,SNOMEDCT_US, but this is not the NCI MEME setting.
+Restart the application after changing handler configuration because handlers
+are cached at initialization. Existing builds can use the JVM override
+-Dcompute.preferred.name.handler=DEFAULT before -jar to restore NCI selection.
 
 Expected service command:
 
