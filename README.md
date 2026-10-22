@@ -351,8 +351,12 @@ insertions is not the transition repair because it can affect later edits.
 For a manual SQL correction, see
 [`docs/repair-working-atom-publication-flags.sql`](docs/repair-working-atom-publication-flags.sql).
 It scopes the update to the audited source versions and requires an explicit
-working-schema name. Choose RADLEX only or also include the carried-forward
-CVX/VANDF exceptions. The script ends in `ROLLBACK` for preview; change that to
+working-schema name. By default it includes RADLEX and the carried-forward
+CVX/VANDF exceptions from the original QA findings; those older exceptions also
+need correction in the active editing database. Setting `@include_carried_ab = 0`
+limits the repair to RADLEX. Preview the remaining candidates in the active
+editing database rather than assuming the earlier audit counts still apply.
+The script ends in `ROLLBACK` for preview; change that to
 `COMMIT` only for the intended repair. Stop the application for the SQL update
 and rebuild the working search indexes afterward, because SQL bypasses Hibernate
 Search indexing and application caches. The SQL records modification metadata
@@ -362,6 +366,42 @@ After correction, repeat the audit, recompute preferred names, and generate the
 next release normally. Keep the existing shared term-type suppression settings
 and precedence entries. Read-only diagnostics are available in
 [`docs/release-mrrank-suppression-check.sql`](docs/release-mrrank-suppression-check.sql).
+
+## NCI CCS Source Families
+
+For `NCIMTH` projects, metadata insertion keeps `CCSR_ICD10CM` and
+`CCSR_ICD10PCS` in the shared family `CCSR_ICD10PCS`. This carries forward the
+historical NCI grouping of `CCSR_10` and `CCS_10` under `CCS_10`, using the
+[source names introduced in UMLS 2021AA](https://www.nlm.nih.gov/pubs/techbull/mj21/mj21_umls_2021aa_release.html).
+Insertions under the old names retain the historical `CCS_10` family. Other
+sources and projects keep the incoming family unchanged.
+
+The metadata loader applies the override when creating or updating a root
+terminology and logs any change from the supplied family. Incoming `CCS` values
+in `sources.src` cannot undo the NCI grouping on a later insertion. Where the
+inversion inputs are maintained locally, set field 7 (`SOURCE_FAMILY`) in
+`sources.src` to `CCSR_ICD10PCS` for both current sources as well.
+
+`sources.src` field 7 becomes `root_terminologies.family`, which the release
+writer copies directly into MRSAB field 6 (`SF`). The NCI release check requires
+each SF to occur in MRSAB field 4 (`RSAB`). Both August 2026 CCSR rows had `CCS`
+as SF with no `CCS` RSAB. The February 2026 rows instead had `CCS_10` as SF,
+also without a matching RSAB. That historical manual correction therefore does
+not satisfy the current check either. The current shared family uses the emitted
+`CCSR_ICD10PCS` root instead. The legacy **Fix Snomed Family** AdHoc covers only
+the pre-2021 CCS source names.
+
+Deploy the loader fix for future insertions. For metadata already present in
+the active editing database, review
+[`docs/repair-working-ccs-source-families.sql`](docs/repair-working-ccs-source-families.sql).
+It previews a one-time correction for the two current roots, requires an explicit
+working-schema name and a current `CCSR_ICD10PCS` anchor, and defaults to
+`ROLLBACK`. Stop the application before committing the SQL correction and restart
+it afterward to clear cached metadata. This metadata-only correction does not
+require rebuilding content indexes. Regenerate MRSAB for the next release and
+repeat the SF/RSAB check. If the shared anchor is retired in a later release,
+review the family grouping at that time. Published databases and files,
+including the August 2026 release, are not repair targets.
 
 ## Database And Migrations
 

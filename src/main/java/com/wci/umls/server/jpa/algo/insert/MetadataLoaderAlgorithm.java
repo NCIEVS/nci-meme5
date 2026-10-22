@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import com.wci.umls.server.helpers.KeyValuePairList;
 import com.wci.umls.server.helpers.PrecedenceList;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.algo.AbstractInsertMaintReleaseAlgorithm;
+import com.wci.umls.server.jpa.algo.NciSourceFamilyPolicy;
 import com.wci.umls.server.jpa.model.meta.AdditionalRelationshipTypeJpa;
 import com.wci.umls.server.jpa.model.meta.AttributeNameJpa;
 import com.wci.umls.server.jpa.model.meta.CitationJpa;
@@ -428,13 +430,19 @@ public class MetadataLoaderAlgorithm
       //
       // Root Terminology based on input line.
       //
+      final String sourceFamily = NciSourceFamilyPolicy.resolve(
+          getProject().getTerminology(), fields[4], fields[6]);
+      if (!Objects.equals(sourceFamily, fields[6])) {
+        logInfo("  override source family for " + fields[4] + ": "
+            + fields[6] + " -> " + sourceFamily);
+      }
       if (getCachedRootTerminology(fields[4]) == null) {
         // Add if it does not yet exist
         final RootTerminology rootTerm = new RootTerminologyJpa();
         rootTerm.setAcquisitionContact(new ContactInfoJpa(fields[9]));
         rootTerm.setContentContact(new ContactInfoJpa(fields[10]));
         rootTerm.setLicenseContact(new ContactInfoJpa(fields[11]));
-        rootTerm.setFamily(fields[6]);
+        rootTerm.setFamily(sourceFamily);
         if (!fields[13].isEmpty()) {
           if (fields[13].contains("MULTIPLE")) {
             rootTerm.setPolyhierarchy(true);
@@ -458,7 +466,7 @@ public class MetadataLoaderAlgorithm
         existingRootTerm.setAcquisitionContact(new ContactInfoJpa(fields[9]));
         existingRootTerm.setContentContact(new ContactInfoJpa(fields[10]));
         existingRootTerm.setLicenseContact(new ContactInfoJpa(fields[11]));
-        existingRootTerm.setFamily(fields[6]);
+        existingRootTerm.setFamily(sourceFamily);
         if (!fields[13].isEmpty()) {
           if (fields[13].contains("MULTIPLE")) {
             existingRootTerm.setPolyhierarchy(true);
