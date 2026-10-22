@@ -1,10 +1,14 @@
--- One-time MySQL metadata repair for the ACTIVE EDITING database only.
--- Do not run against the frozen 202608 database or edit its published files.
--- Deploy the metadata-loader fix so future insertions retain this grouping.
--- Stop the application before committing; restart it to clear metadata caches.
--- No content-index rebuild is needed for this root metadata field.
--- This script defaults to ROLLBACK. Review the preview, then replace the final
--- ROLLBACK with COMMIT and rerun only against the intended working database.
+-- COMPLETED REPAIR REFERENCE (2026-10-22).
+-- The operator confirmed that CCS source families are implemented and complete.
+-- See README.md, "NCI CCS Source Families (Completed)".
+-- Atom-flag and MRCUI research remains deferred; CCS work is complete.
+--
+-- Archived one-time MySQL metadata repair for the ACTIVE EDITING database.
+-- This file contains UPDATE statements and retains the schema placeholder and
+-- final ROLLBACK as preview defaults. Completion is recorded above; the defaults
+-- preserve the script for reference and do not indicate outstanding CCS work.
+-- Operational context: SQL bypasses metadata caches, requiring a stopped
+-- application and restart. This root metadata field needs no content-index rebuild.
 --
 -- This guard does not identify frozen databases. The operator must choose the
 -- active editing database for the next release, even if a frozen copy also has
@@ -53,10 +57,11 @@ FROM root_terminologies rt
 WHERE rt.terminology IN ('CCSR_ICD10CM', 'CCSR_ICD10PCS')
 ORDER BY source;
 
--- Preview only. The checked-in root_terminologies table uses InnoDB.
+-- Archived preview default; the completed repair is recorded in the header.
+-- The checked-in root_terminologies table uses InnoDB.
 ROLLBACK;
 
--- After an actual COMMIT, restart the app and generate MRSAB for the NEXT
--- release. Confirm CCSR_ICD10PCS occurs in field 4 and both roots have that
--- value in field 6; rerun the existing SF/RSAB QA check. This SQL updates only
--- metadata, not atoms, content publication flags, or application history.
+-- Release-format reference: MRSAB field 4 contains CCSR_ICD10PCS, and both
+-- roots use that value in field 6 for the SF/RSAB QA comparison. This correction
+-- changes metadata only, not atoms, content publication flags, or application
+-- history. The next editing-to-release database clone carries it forward.
