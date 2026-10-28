@@ -1,15 +1,24 @@
--- Read-only diagnostics for recurring CVX|AB|N and VANDF|AB|N release QA errors.
--- Run against the confirmed release-build database. These queries assume the
--- NCIMTH/latest project; adjust those literals if the release uses another one.
--- No release files or database rows are changed.
+-- RESEARCH / READ-ONLY DIAGNOSTICS (2026-10-22).
+-- Operational implementation of the proposed corrections is DEFERRED.
+-- See README.md, "Release QA Research Status". The RADLEX-only repair trial was
+-- rolled back; these queries do not apply a repair or demonstrate deployment.
+-- Candidate loader code exists in the checkout; running-server behavior and a
+-- passing regenerated release have not been established by these notes.
+--
+-- Diagnostics for recurring CVX|AB|N and VANDF|AB|N release QA errors.
+-- Queries 1-5 concern the affected release-build snapshot; queries 6-7 inventory
+-- the active editing database. Record hostname and schema for each result set:
+-- ncimdb and matching IDs alone do not distinguish editing from release copies.
+-- These queries assume NCIMTH/latest; adjust if the release uses another project.
+-- No release files or database rows are changed by this file.
 --
 -- NCIMTH's established release policy overrides incoming AB suppression to Y,
--- and makes OP/IS atoms suppressible and obsolete. Atom insertion now applies
--- this policy before saving new or updated atoms. Release generation does not
--- repair legacy flags. For unpublished builds, these diagnostics identify data
--- that may need a one-time correction or insertion reprocessing and verify flags
--- after loading. Published releases remain unchanged; no retroactive correction
--- is required for them.
+-- and makes OP/IS atoms suppressible and obsolete. The candidate atom-insertion
+-- changes apply this policy before saving new or updated atoms; deployment is
+-- deferred. Release generation does not repair legacy flags. These diagnostics
+-- identify candidates for a possible future one-time correction and compare
+-- current flags. They do not implement that correction. Replaying insertions
+-- over later edits is not the proposed repair. Published files are outside scope.
 --
 -- The QA comparison uses:
 --   comm -13 MRRANK.sts MRCONSO.sts
@@ -98,3 +107,59 @@ WHERE c.terminology = 'NCIMTH' AND a.publishable = 1
   AND a.terminology IN ('CVX', 'VANDF') AND a.termType = 'AB'
 GROUP BY a.terminology, a.termType
 ORDER BY source;
+
+-- 6. Transition audit for the ACTIVE EDITING database after the August 2026
+-- publication. This covers every source with AB/OP/IS policy violations, whether
+-- introduced by insertion or editing, including unpublishable working content.
+-- Run on the working database for the NEXT release, not a frozen release copy.
+-- Do not filter by lastModified or published=false: existing published atoms can
+-- be updated in the working database, and modification dates are not an audit of
+-- individual flag changes. The NCIMTH/latest membership defines working scope.
+-- The output is an inventory, not authorization to update any database.
+SELECT a.terminology AS source, a.version AS sourceVersion, a.termType AS tty,
+       c.publishable + 0 AS conceptPublishable,
+       a.publishable + 0 AS atomPublishable,
+       a.published + 0 AS previouslyPublished,
+       a.suppressible + 0 AS currentSuppressible,
+       a.obsolete + 0 AS currentObsolete,
+       COUNT(DISTINCT a.id) AS atomCount,
+       MIN(a.lastModified) AS earliestModification,
+       MAX(a.lastModified) AS latestModification
+FROM atoms a
+JOIN concepts_atoms ca ON ca.atoms_id = a.id
+JOIN concepts c ON c.id = ca.concepts_id
+WHERE c.terminology = 'NCIMTH' AND c.version = 'latest'
+  AND ((a.termType = 'AB' AND a.suppressible = 0)
+    OR (a.termType IN ('OP', 'IS')
+      AND (a.suppressible = 0 OR a.obsolete = 0)))
+GROUP BY a.terminology, a.version, a.termType, c.publishable,
+         a.publishable, a.published, a.suppressible, a.obsolete
+ORDER BY source, sourceVersion, tty, conceptPublishable, atomPublishable,
+         previouslyPublished, currentSuppressible, currentObsolete;
+
+-- 7. Complete candidate inventory for review/export in that same working DB.
+-- The deferred catch-up proposal would apply NciAtomPublicationPolicy through
+-- application persistence, preserving indexing and change tracking. It has not
+-- been implemented as a catch-up operation by this research work.
+-- Change only suppressible for AB, and suppressible/obsolete for OP/IS; preserve
+-- AB obsolescence, identity, names, source versions, concept memberships,
+-- relationships, workflow status, publishable, and published flags.
+-- Do not replay source insertions over subsequent editorial work for this repair.
+-- After a complete future catch-up, queries 6 and 7 should return no rows; that
+-- outcome has not been established. The narrower repair SQL draft does not
+-- cover this entire inventory. These queries never mutate data.
+SELECT DISTINCT a.id AS atomId, a.terminology AS source,
+       a.version AS sourceVersion, a.termType AS tty, a.codeId, a.name,
+       a.suppressible + 0 AS currentSuppressible,
+       a.obsolete + 0 AS currentObsolete,
+       a.publishable + 0 AS atomPublishable,
+       a.published + 0 AS previouslyPublished,
+       a.lastModified, a.lastModifiedBy
+FROM atoms a
+JOIN concepts_atoms ca ON ca.atoms_id = a.id
+JOIN concepts c ON c.id = ca.concepts_id
+WHERE c.terminology = 'NCIMTH' AND c.version = 'latest'
+  AND ((a.termType = 'AB' AND a.suppressible = 0)
+    OR (a.termType IN ('OP', 'IS')
+      AND (a.suppressible = 0 OR a.obsolete = 0)))
+ORDER BY a.terminology, a.version, a.termType, a.id;
