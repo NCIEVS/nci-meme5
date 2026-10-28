@@ -5635,7 +5635,7 @@ export class ContentComponent implements OnInit {
       this.selectSoleConceptIfNeeded(list);
       return;
     }
-    const updated = [...list, concept].sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+    const updated = [...list, concept];
     this.conceptList.set(updated);
     if (this.pendingEditConceptId && concept.id === this.pendingEditConceptId) {
       this.pendingEditConceptId = null;
@@ -5729,9 +5729,7 @@ export class ContentComponent implements OnInit {
 
     const conceptId = concept.id;
     this.conceptList.update((list) =>
-      list
-        .map((item) => (item.id === conceptId ? concept : item))
-        .sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+      list.map((item) => (item.id === conceptId ? concept : item))
     );
     this.records.update((records) =>
       records.map((record) => {
@@ -5881,12 +5879,20 @@ export class ContentComponent implements OnInit {
         if (!concept) {
           return;
         }
-        this.conceptList.update((list) =>
-          [
-            ...list.filter((item) => item.id !== fromConceptId && item.id !== toConceptId),
-            concept
-          ].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
-        );
+        this.conceptList.update((list) => {
+          const withoutMergedSource = list.filter(
+            (item) => item.id !== fromConceptId
+          );
+          const targetAlreadyListed = withoutMergedSource.some(
+            (item) => item.id === toConceptId
+          );
+
+          return targetAlreadyListed
+            ? withoutMergedSource.map((item) =>
+                item.id === toConceptId ? concept : item
+              )
+            : [...withoutMergedSource, concept];
+        });
         this.selectConceptFromList(concept);
       },
       error: () => {
@@ -6902,9 +6908,9 @@ export class ContentComponent implements OnInit {
           return;
         }
 
-        const loadedConcepts = concepts
-          .filter((concept): concept is ContentComponentDetail => Boolean(concept))
-          .sort((left, right) => (left.id ?? 0) - (right.id ?? 0));
+        const loadedConcepts = concepts.filter(
+          (concept): concept is ContentComponentDetail => Boolean(concept)
+        );
         this.conceptList.set(loadedConcepts);
 
         const pendingId = this.pendingEditConceptId;

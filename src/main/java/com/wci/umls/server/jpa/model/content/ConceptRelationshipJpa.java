@@ -17,6 +17,8 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.xml.bind.annotation.XmlElement;
@@ -39,6 +41,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.ObjectPath
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.PropertyValue;
 
 import com.wci.umls.server.jpa.model.helpers.MapKeyValueToCsvBridge;
+import com.wci.umls.server.helpers.content.RelationshipPublishability;
 import com.wci.umls.server.jpa.model.helpers.ObjectToStringBridge;
 import com.wci.umls.server.model.content.Attribute;
 import com.wci.umls.server.model.content.Concept;
@@ -95,6 +98,16 @@ public class ConceptRelationshipJpa extends AbstractRelationship<Concept, Concep
    */
   public ConceptRelationshipJpa() {
     // do nothing
+  }
+
+  /**
+   * Also enforce the release rule when a managed entity is changed directly
+   * and flushed without an explicit content-service update.
+   */
+  @PrePersist
+  @PreUpdate
+  public void enforcePublishability() {
+    RelationshipPublishability.enforce(this);
   }
 
   /**

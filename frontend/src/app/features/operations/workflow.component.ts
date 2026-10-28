@@ -74,9 +74,10 @@ interface WorkflowConfigForm {
 
 interface WorkflowBinDefinitionForm {
   definition: WorkflowBinDefinition;
-  mode: 'add' | 'edit';
+  mode: 'add' | 'clone' | 'edit';
   originalName: string | null;
   positionAfterId: number | null;
+  queryPreview: boolean;
   workflowConfig: WorkflowConfig;
 }
 
@@ -183,6 +184,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   private checklistReloadRequestId = 0;
   private worklistFilterReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private worklistReloadRequestId = 0;
+  private workflowBinQueryProgressPollSubscription: Subscription | null = null;
   private workflowLiveSubscription: Subscription | null = null;
 
   protected readonly actingWorkflowItemKey = signal<string | null>(null);
@@ -356,6 +358,8 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   protected readonly workflowBinDefinitionFormErrors = signal<string[]>([]);
   protected readonly workflowBinQueryTestResult =
     signal<WorkflowQueryTestResult | null>(null);
+  protected readonly workflowBinQueryTestElapsedSeconds = signal(0);
+  protected readonly workflowBinQueryTestPolling = signal(false);
   protected readonly testingWorkflowBinQuery = signal(false);
   protected readonly workflowConfigForm = signal<WorkflowConfigForm | null>(null);
   protected readonly workflowConfigFormErrors = signal<string[]>([]);
@@ -475,6 +479,13 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       ? `Refreshing bins every 5 seconds while regeneration runs (${elapsedSeconds} sec).`
       : 'Refreshing bins every 5 seconds while regeneration runs.';
   });
+  protected readonly workflowBinQueryProgressText = computed(() => {
+    const elapsedSeconds = this.workflowBinQueryTestElapsedSeconds();
+
+    return elapsedSeconds
+      ? `Testing query (${elapsedSeconds} sec).`
+      : 'Testing query.';
+  });
 
   ngOnInit(): void {
     this.restoreWorkflowPreferences();
@@ -491,6 +502,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.clearScheduledWorklistFilterReload();
     this.workflowLiveSubscription?.unsubscribe();
     this.stopBinRegenerationProgressPolling();
+    this.stopWorkflowBinQueryProgressPolling();
     this.workflowLiveUpdates.disconnect();
   }
 
@@ -1556,6 +1568,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       mode: 'add',
       originalName: null,
       positionAfterId: null,
+      queryPreview: false,
       workflowConfig: config
     });
     this.loadAutofixAlgorithms();
@@ -1592,6 +1605,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
             mode: 'edit',
             originalName: definition.name ?? null,
             positionAfterId: null,
+            queryPreview: false,
             workflowConfig
           });
           this.loadAutofixAlgorithms();
@@ -1610,6 +1624,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     this.workflowBinDefinitionForm.set(null);
     this.workflowBinDefinitionFormErrors.set([]);
     this.workflowBinQueryTestResult.set(null);
+    this.stopWorkflowBinQueryProgressPolling();
   }
 
   protected updateWorkflowBinDefinitionForm(
@@ -1668,6 +1683,17 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     );
   }
 
+  protected toggleWorkflowBinQueryPreview(): void {
+    this.workflowBinDefinitionForm.update((form) =>
+      form
+        ? {
+            ...form,
+            queryPreview: !form.queryPreview
+          }
+        : form
+    );
+  }
+
   protected testWorkflowBinQuery(): void {
     const form = this.workflowBinDefinitionForm();
     const projectId = this.projectId();
@@ -1701,9 +1727,13 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     this.testingWorkflowBinQuery.set(true);
     this.workflowBinQueryTestResult.set(null);
+    this.startWorkflowBinQueryProgressPolling(projectId);
     this.api
       .testWorkflowQuery(projectId, query, queryType, queryStyle)
-      .pipe(finalize(() => this.testingWorkflowBinQuery.set(false)))
+      .pipe(finalize(() => {
+        this.testingWorkflowBinQuery.set(false);
+        this.stopWorkflowBinQueryProgressPolling();
+      }))
       .subscribe({
         next: (result) => {
           this.workflowBinDefinitionFormErrors.set([]);
@@ -1754,7 +1784,7 @@ export class WorkflowComponent implements OnInit, OnDestroy {
 
     const payload = this.buildWorkflowBinDefinitionPayload(form);
     const request: Observable<WorkflowBinDefinition | void> =
-      form.mode === 'add'
+      form.mode === 'add' || form.mode === 'clone'
         ? this.api.addWorkflowBinDefinition(
             projectId,
             payload,
@@ -1770,7 +1800,9 @@ export class WorkflowComponent implements OnInit, OnDestroy {
         this.notifications.success(
           form.mode === 'add'
             ? 'Workflow bin added.'
-            : 'Workflow bin saved.'
+            : form.mode === 'clone'
+              ? 'Workflow bin cloned.'
+              : 'Workflow bin saved.'
         );
         this.loadBins(form.workflowConfig.type ?? this.selectedConfigType());
       },
@@ -1960,7 +1992,48 @@ export class WorkflowComponent implements OnInit, OnDestroy {
   }
 
   protected startCloneWorkflowBin(bin: WorkflowBin): void {
-    this.notifications.success(`Clone bin "${bin.name || bin.id}" — not yet implemented.`);
+    const projectId = this.projectId();
+    const type = this.selectedConfigType();
+
+    if (!projectId || !bin.name || !type) {
+      return;
+    }
+
+    this.workflowBinQueryTestResult.set(null);
+    this.workflowBinDefinitionFormErrors.set([]);
+    this.loadingBinDefinition.set(true);
+    this.api
+      .getWorkflowBinDefinition(projectId, bin.name, type)
+      .pipe(finalize(() => this.loadingBinDefinition.set(false)))
+      .subscribe({
+        next: (definition) => {
+          const workflowConfig = this.selectedWorkflowConfig();
+
+          if (!definition || !workflowConfig) {
+            this.notifications.error('Workflow bin definition could not be loaded.');
+            return;
+          }
+
+          this.workflowBinDefinitionForm.set({
+            definition: {
+              ...this.prepareWorkflowBinDefinitionForForm(
+                definition,
+                workflowConfig
+              ),
+              id: null
+            },
+            mode: 'clone',
+            originalName: null,
+            positionAfterId: null,
+            queryPreview: false,
+            workflowConfig
+          });
+          this.loadAutofixAlgorithms();
+        },
+        error: () => {
+          this.notifications.error('Workflow bin definition could not be loaded.');
+        }
+      });
   }
 
   protected startRunAutofix(bin: WorkflowBin): void {
@@ -3614,6 +3687,34 @@ export class WorkflowComponent implements OnInit, OnDestroy {
     return config.type === 'MID_VALIDATION' || config.type === 'MID_VALIDATION_OTHER';
   }
 
+  protected workflowBinDefinitionDialogTitle(
+    form: WorkflowBinDefinitionForm
+  ): string {
+    if (form.mode === 'clone') {
+      return 'Clone Bin';
+    }
+
+    return form.mode === 'add' ? 'Add Bin' : 'Edit Bin';
+  }
+
+  protected workflowBinDefinitionSubmitLabel(
+    form: WorkflowBinDefinitionForm
+  ): string {
+    if (this.savingBinDefinition()) {
+      return form.mode === 'add'
+        ? 'Adding'
+        : form.mode === 'clone'
+          ? 'Cloning'
+          : 'Saving';
+    }
+
+    return form.mode === 'add'
+      ? 'Add'
+      : form.mode === 'clone'
+        ? 'Clone'
+        : 'Save';
+  }
+
   protected workflowBinDefinitionOptions(
     config: WorkflowConfig
   ): WorkflowBinDefinition[] {
@@ -4737,8 +4838,50 @@ export class WorkflowComponent implements OnInit, OnDestroy {
       workflowConfig: {
         id: workflowConfigId
       },
-      workflowConfigId
+      workflowConfigId,
+      ...(form.mode === 'add' || form.mode === 'clone' ? { id: null } : {})
     };
+  }
+
+  private startWorkflowBinQueryProgressPolling(projectId: number): void {
+    const process = this.workflowBinQueryProcessName();
+
+    this.stopWorkflowBinQueryProgressPolling();
+    this.workflowBinQueryTestElapsedSeconds.set(0);
+
+    if (!process) {
+      return;
+    }
+
+    this.workflowBinQueryTestPolling.set(true);
+    this.workflowBinQueryProgressPollSubscription = interval(2000).subscribe(
+      (tick) => {
+        this.workflowBinQueryTestElapsedSeconds.set((tick + 1) * 2);
+        this.api.getWorkflowLookupProgress(projectId, process).subscribe({
+          next: (inProgress) => {
+            if (!inProgress && !this.testingWorkflowBinQuery()) {
+              this.stopWorkflowBinQueryProgressPolling();
+            }
+          },
+          error: () => {
+            this.stopWorkflowBinQueryProgressPolling();
+          }
+        });
+      }
+    );
+  }
+
+  private stopWorkflowBinQueryProgressPolling(): void {
+    this.workflowBinQueryProgressPollSubscription?.unsubscribe();
+    this.workflowBinQueryProgressPollSubscription = null;
+    this.workflowBinQueryTestPolling.set(false);
+    this.workflowBinQueryTestElapsedSeconds.set(0);
+  }
+
+  private workflowBinQueryProcessName(): string | null {
+    const authToken = this.auth.authToken();
+
+    return authToken ? `test-query-${authToken}` : null;
   }
 
   private workflowExportFileName(config: WorkflowConfig): string {

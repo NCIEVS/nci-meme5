@@ -659,6 +659,20 @@ export class OperationalApiService {
       );
   }
 
+  getWorkflowLookupProgress(
+    projectId: number,
+    process: string
+  ): Observable<boolean> {
+    return this.http.post<boolean>(
+      `${this.baseUrl}/workflow/lookup/progress`,
+      projectId,
+      {
+        context: nonBlockingLoadingContext(),
+        params: new HttpParams().set('process', process)
+      }
+    );
+  }
+
   findChecklists(
     projectId: number,
     query = '',

@@ -200,9 +200,9 @@ public class CreateConceptRelBequeathalAlgorithm extends AbstractInsertMaintRele
         action =
             new AddRelationshipMolecularAction();
 
-        // All new content is unpublished and publishable
+        // Bequeathals are retained for editing history, not released.
         relationship.setPublished(false);
-        relationship.setPublishable(true);
+        relationship.setPublishable(false);
 
         relationship.setTerminology("NCIMTH");
         relationship.setVersion("latest");

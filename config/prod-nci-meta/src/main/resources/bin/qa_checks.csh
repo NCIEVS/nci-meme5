@@ -764,7 +764,7 @@ endif
     rm -f MRCONSO.suppress.$$ MRDOC.value.$$
 
     #
-    #   Verify SAB|TTY|SUPPRESS in MRRANK.SAB|TTY|SUPPRESS
+    #   Verify MRCONSO.SAB|TTY|SUPPRESS in MRRANK.SAB|TTY|SUPPRESS
     #
     if ($mode != "subset") then
 	echo "    Verify SAB|TTY|SUPPRESS in MRRANK.SAB|TTY|SUPPRESS"
@@ -772,7 +772,7 @@ endif
 	awk -F\| '$17!="O"&&$17!="E" {print $12"|"$13"|"$17}' $mrconso | sort -u -o MRCONSO.sts.$$
 	set cnt=(`comm -13 MRRANK.sts.$$ MRCONSO.sts.$$ | wc -l `)
 	if ($cnt[1] != 0) then
-	    echo "ERROR: SAB,TTY,SUPPRESS from MRRANK not in MRCONSO"
+	    echo "ERROR: SAB,TTY,SUPPRESS from MRCONSO not in MRRANK"
 	    comm -13 MRRANK.sts.$$ MRCONSO.sts.$$ | head -10 | sed 's/^/  /'
 	endif
 	rm -f MRRANK.sts.$$ MRCONSO.sts.$$

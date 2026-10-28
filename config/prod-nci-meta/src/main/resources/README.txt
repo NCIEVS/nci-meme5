@@ -68,10 +68,21 @@ That file should contain only production overrides, such as:
 - `SERVER_SERVLET_CONTEXT_PATH=/ncim-server-rest`
 - `BASE_URL`
 - `REST_CLIENT_ALLOWED_HOSTS`
+- `COMPUTE_PREFERRED_NAME_HANDLERS=DEFAULT`
 - `APP_SERVICE=nci-meme5`
 - `DEPLOY_*`
 - `MAIL_*`
 - `SECURITY_*`
+
+Keep COMPUTE_PREFERRED_NAME_HANDLERS=DEFAULT for NCI MEME insertions, including
+SNOMEDCT_US. This preserves the RrfComputePreferredNameHandler selection from
+the old NCI production configuration. The RF2 handler expects native RF2
+description types and camel-case acceptabilityId attributes; MEME subset
+insertions preserve uppercase ACCEPTABILITYID instead. Native RF2 deployments
+can opt into DEFAULT,SNOMEDCT,SNOMEDCT_US, but this is not the NCI MEME setting.
+Restart the application after changing handler configuration because handlers
+are cached at initialization. Existing builds can use the JVM override
+-Dcompute.preferred.name.handler=DEFAULT before -jar to restore NCI selection.
 
 Expected service command:
 
@@ -118,7 +129,20 @@ https://meme-edit.semantics.cancer.gov/ncim-server-rest
 The web overlay from this directory is applied during `./gradlew war`,
 `./gradlew bootWar`, and `./gradlew explodeWar`.
 
-Operational scripts under `bin/` should be run from a shell that has sourced the
-same production environment file. The sample `crontab.txt` uses a bash wrapper
-for this because the retained csh scripts can inherit exported variables but do
-not source bash files directly.
+Operational scripts under `bin/` should use the same production environment
+file. The retained csh scripts self-bootstrap through bash when `APP_DIR` is
+missing because `setenv.sh` uses bash syntax that tcsh cannot source directly.
+
+For a manual nightly run, use:
+
+```
+/bin/tcsh -f /local/content/MEME/MEME5/ncim/bin/nightlyTasks.csh
+```
+
+The scripts use `$SETENV` when it is set, or
+`/local/content/MEME/MEME5/ncim/setenv.sh` otherwise.
+
+`nightlyTasks.csh` starts the Daily Editing Report in the background, then polls
+the `process_executions` row until the report reaches a terminal state. It only
+continues to workflow-bin regeneration and service restart after the report
+finishes successfully.

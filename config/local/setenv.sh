@@ -76,6 +76,10 @@ export SITE_VERIFICATION_FILE="${SITE_VERIFICATION_FILE:-google3aef83c7ba606df3.
 export SITE_TRACKING_CODE="${SITE_TRACKING_CODE:-<!-- sample tracking code -->}"
 export CYGWIN_BIN="${CYGWIN_BIN:-c:/cygwin64/bin}"
 
+# Preferred-name handlers: preserve NCI MEME's default RRF ranking. Enable
+# DEFAULT,SNOMEDCT,SNOMEDCT_US only for native RF2 data, not MEME insertions.
+export COMPUTE_PREFERRED_NAME_HANDLERS="${COMPUTE_PREFERRED_NAME_HANDLERS:-DEFAULT}"
+
 # Search/security/local user defaults
 export ATOMCLASS_ACRONYMS_FILE="${ATOMCLASS_ACRONYMS_FILE:-$DATA_DIR/acronyms.txt}"
 export ATOMCLASS_SPELLING_FILE="${ATOMCLASS_SPELLING_FILE:-$DATA_DIR/spelling.txt}"

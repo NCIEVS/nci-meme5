@@ -19,6 +19,7 @@ import com.wci.umls.server.model.algo.Project;
 import com.wci.umls.server.model.algo.UserRole;
 import com.wci.umls.server.model.algo.ValidationResult;
 import com.wci.umls.server.helpers.LocalException;
+import com.wci.umls.server.helpers.content.RelationshipPublishability;
 import com.wci.umls.server.jpa.model.ValidationResultJpa;
 import com.wci.umls.server.jpa.model.actions.ChangeEventJpa;
 import com.wci.umls.server.jpa.algo.action.AddAtomMolecularAction;
@@ -741,13 +742,14 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
             "Editing is disabled on project: " + project.getName());
       }
 
-      // All new content is unpublished and publishable
+      // New relationships are unpublished; XR and bequeathals are unpublishable.
       relationship.setPublished(false);
       if (relationship.getRelationshipType().equals("XR")) {
         relationship.setPublishable(false);
       } else {
         relationship.setPublishable(true);
       }
+      RelationshipPublishability.enforce(relationship);
       // Set defaults for a concept level relationship
       relationship.setStated(true);
       relationship.setInferred(true);
@@ -860,13 +862,14 @@ public class MetaEditingServiceRestImpl extends RootServiceRestImpl
           }
         }
 
-        // All new content is unpublished and publishable
+        // New relationships are unpublished; XR and bequeathals are unpublishable.
         relationship.setPublished(false);
         if (relationship.getRelationshipType().equals("XR")) {
           relationship.setPublishable(false);
         } else {
           relationship.setPublishable(true);
         }
+        RelationshipPublishability.enforce(relationship);
         // Set defaults for a concept level relationship
         relationship.setStated(true);
         relationship.setInferred(true);

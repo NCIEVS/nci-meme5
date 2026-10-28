@@ -177,7 +177,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
   protected readonly loadingConfigDetail = signal(false);
   protected readonly loadingExecutionFeedback = signal(false);
   protected readonly checkingMaintenanceWindowOperation = signal<ProcessOperation | null>(null);
-  protected readonly loadingExecutionDetail = signal(false);
   protected readonly maintenanceWindowWarning = signal<MaintenanceWindowWarningState | null>(null);
   protected readonly queryPreviewMap = signal<Record<string, boolean>>({});
   protected readonly testingQueryKey = signal<string | null>(null);
@@ -1664,7 +1663,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
 
     const projectId = this.projectId();
     if (!projectId || !execution?.id) {
-      this.loadingExecutionDetail.set(false);
       return;
     }
 
@@ -2342,10 +2340,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!polling) {
-      this.loadingExecutionDetail.set(true);
-    }
-
     const requestSeq = ++this.executionFeedbackRequestSeq;
     this.loadingExecutionFeedback.set(true);
     this.api
@@ -2376,9 +2370,6 @@ export class ProcessComponent implements OnInit, OnDestroy {
         }),
         finalize(() => {
           this.loadingExecutionFeedback.set(false);
-          if (!polling) {
-            this.loadingExecutionDetail.set(false);
-          }
         })
       )
       .subscribe({
@@ -2462,7 +2453,7 @@ export class ProcessComponent implements OnInit, OnDestroy {
     this.progressBoundaryRefreshTimer = window.setTimeout(() => {
       this.progressBoundaryRefreshTimer = null;
       if (this.selectedMode() === 'Execution' && this.selectedExecution()?.id) {
-        this.refreshSelectedExecutionFeedback(false, false);
+        this.refreshSelectedExecutionFeedback(true, false);
       }
     }, this.executionProgressBoundaryRefreshDelayMs);
   }

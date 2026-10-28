@@ -5,6 +5,11 @@ terminology editing, metadata loading, release support, validation, and REST UI
 workflows. The application is a Java 25 Gradle project that packages a WAR and
 can also run locally through Spring Boot 4.1.
 
+> **Release QA status (2026-10-22): CCS source families are implemented and
+> complete.** Atom-flag and MRCUI work remains research with implementation
+> deferred. The RADLEX trial was rolled back. See
+> [research status](#release-qa-research-status) for the status of each item.
+
 ## Quick Deploy
 
 Use this path for a normal redeploy when the target database, data directories,
@@ -298,6 +303,185 @@ unset APP_DIR CATALINA_BASE DATA_DIR INDEX_DIR LVG_DIR SOURCE_DATA_DIR
 ./gradlew check -x test
 ./gradlew test --tests '*UnitTest'
 ```
+
+## Preferred-Name Handlers
+
+`COMPUTE_PREFERRED_NAME_HANDLERS` defaults to `DEFAULT`, which selects
+`RrfComputePreferredNameHandler` for NCI MEME source insertions, including
+SNOMEDCT_US. This preserves the old NCI production configuration and uses the
+project's term-type precedence for preferred-name computation.
+
+During insertion, `PREFNAMES` computes names first for project concepts and then
+for the inserted source's concepts. Removing the SNOMED handler overrides
+restores RRF for the SNOMED source pass; the `NCIMTH/latest` project pass continues
+to use `DEFAULT`. The setting also applies to operations that compute names or
+sort atoms directly for SNOMED source concepts.
+
+The native RF2 handler expects RF2 description types and an `acceptabilityId`
+language-refset attribute. MEME insertion files use source term types such as
+`PT`/`SY` and preserve the attribute name `ACCEPTABILITYID`. Enabling the RF2
+handler for this data can fail during the source preferred-name pass. Renaming
+the stored attributes or ignoring the missing attribute does not restore the
+historical NCI ranking policy.
+
+For deployments that actually load native RF2 data, explicitly set
+`COMPUTE_PREFERRED_NAME_HANDLERS=DEFAULT,SNOMEDCT,SNOMEDCT_US`. Restart the
+application after changing this setting; handler instances are cached at
+initialization. An existing build can restore the NCI setting with the JVM
+argument `-Dcompute.preferred.name.handler=DEFAULT` before `-jar`. After restarting,
+retry the failed preferred-name process step using the corrected configuration.
+
+## Release QA Research Status
+
+**Status as of October 22, 2026:**
+
+| Work item | Status |
+| --- | --- |
+| CCS source families | Implemented and complete, confirmed by the operator. |
+| Atom publication flags | Research; operational implementation deferred. RADLEX trial rolled back. |
+| MRCUI historical concepts | Research; repair and prevention not implemented. |
+
+The atom-flag and MRCUI findings, candidate changes, diagnostic queries, and draft
+repair SQL are being preserved for reference. Committing that research does not
+mean its fixes have been deployed, database repairs committed, or release QA
+passed. Candidate atom-loader code already exists and is invoked by insertion in
+this checkout, so a build includes that behavior. Its presence is not evidence
+of the application revision running on either server. For atom flags, operational
+deployment, database catch-up, and release validation remain deferred.
+
+The operator reported `ROLLBACK` for the RADLEX atom-flag trial after it matched
+74 `IS` and 940 `OP` atoms (1,014 total). That trial is not a completed repair.
+CVX/VANDF `AB` atoms were excluded from that trial; their earlier audit count was
+21,552. They were part of the original QA findings and remain in the proposed
+repair scope. These counts are observations, not guaranteed future update counts.
+The MRCUI findings likewise do not establish a completed repair or prevention
+implementation.
+
+The editing database was identified as `ncimdb` on `ip-172-17-5-22`, with project
+39751 (`NCIMTH/latest`). Earlier release troubleshooting also used a schema named
+`ncimdb`, without a recorded hostname. Matching schema names or internal IDs do
+not establish the server or snapshot. Reconfirm the host, schema, application
+revision, and current data before interpreting older results as editing-server
+state. The intended future flow is to repair the active editing database and
+clone it to the release server before the next release.
+
+The diagnostic files contain read-only queries. The atom-flag repair SQL is a
+**research draft, not an implementation runbook**. Keep its schema placeholder and
+final `ROLLBACK` while that work is deferred. Future implementation of the deferred
+work requires a fresh audit, review of the intended scope, application deployment,
+any selected repair, and validation of regenerated release files. The CCS repair
+SQL is retained as a reference for the completed work; its preview defaults do
+not change the completion status recorded above.
+
+## NCI Release Atom Flags (Research)
+
+**Status: proposed behavior and draft repair; implementation deferred.**
+
+The candidate source-insertion code in this checkout applies the established NCI
+publication policy for `NCIMTH` projects: `AB` atoms are suppressible, and `OP`/`IS`
+atoms are both suppressible and obsolete. Its intended behavior overrides incoming
+source suppression flags for those three term types while preserving existing
+`AB` obsolescence and behavior for other term types and projects. This describes
+the candidate code, not verified behavior of the running servers.
+
+The candidate atom-loader changes apply the policy before saving new atoms or
+updating existing ones, including atoms encountered when resuming an insertion.
+The proposed prevention is to retain these overrides across later source loads.
+Release generation does not modify atom flags to compensate for loading errors.
+
+Deployment for future insertion cycles is deferred. Published release data and
+files are outside the proposed repair scope.
+
+Editing and source insertions completed since the last publication still need a
+transition audit in the active working database for the next release. Queries 6
+and 7 in the diagnostic SQL inventory all current `NCIMTH/latest` atoms that
+violate this policy, including unpublishable content and atoms whose `published`
+flag is still true. A modification-date cutoff is not a reliable substitute for
+checking the current flags.
+
+If implementation resumes, the proposed transition is to review those candidates,
+deploy the insertion fix, and apply a one-time flag-only correction through
+application persistence. That catch-up is not implemented by the insertion fix
+or the diagnostic SQL. The proposal preserves editorial content, relationships,
+workflow status, and publication flags. Replaying source insertions can affect
+later edits and is not the proposed transition repair.
+
+The deferred manual SQL proposal is retained in
+[`docs/repair-working-atom-publication-flags.sql`](docs/repair-working-atom-publication-flags.sql).
+It scopes updates to release-eligible atoms in the audited source versions and
+requires an explicit working-schema name. It does not implement the full
+transition inventory, which also includes unpublishable content and other source
+versions. Its proposed default includes RADLEX and the carried-forward
+CVX/VANDF exceptions from the original QA findings; those older exceptions also
+need review for the next release. Setting `@include_carried_ab = 0` limits the
+proposal to RADLEX. The script ends in `ROLLBACK`; leave that unchanged while
+implementation is deferred. A future SQL repair would require stopping the
+application and rebuilding the working search indexes afterward, because SQL
+bypasses Hibernate Search indexing and application caches. The draft SQL records
+modification metadata but does not generate application history records.
+
+Future validation would repeat the audit, recompute preferred names, regenerate
+release files, and rerun QA. The proposed fix retains the shared term-type
+suppression settings and precedence entries. Read-only diagnostics are available in
+[`docs/release-mrrank-suppression-check.sql`](docs/release-mrrank-suppression-check.sql).
+
+## NCI CCS Source Families (Completed)
+
+**Status: implemented and complete, confirmed by the operator on October 22,
+2026.**
+
+For `NCIMTH` projects, metadata insertion groups `CCSR_ICD10CM` and
+`CCSR_ICD10PCS` in the shared family `CCSR_ICD10PCS`. This carries forward the
+historical NCI grouping of `CCSR_10` and `CCS_10` under `CCS_10`, using the
+[source names introduced in UMLS 2021AA](https://www.nlm.nih.gov/pubs/techbull/mj21/mj21_umls_2021aa_release.html).
+Insertions with the old names retain the historical `CCS_10` family; other
+sources and projects keep the incoming family unchanged.
+
+The metadata loader applies the override when creating or updating a root
+terminology and logs changes from the supplied family. Incoming `CCS` values in
+`sources.src` cannot undo the grouping on a later insertion.
+
+`sources.src` field 7 becomes `root_terminologies.family`, which the release
+writer copies directly into MRSAB field 6 (`SF`). The NCI release check requires
+each SF to occur in MRSAB field 4 (`RSAB`). Both August 2026 CCSR rows had `CCS`
+as SF with no `CCS` RSAB. The February 2026 rows instead had `CCS_10` as SF,
+also without a matching RSAB. That historical manual correction would also fail
+the current check. The implemented shared family uses the emitted
+`CCSR_ICD10PCS` root. The legacy **Fix Snomed Family** AdHoc covers only the
+pre-2021 CCS source names.
+
+The SQL for the completed editing-database metadata repair is retained in
+[`docs/repair-working-ccs-source-families.sql`](docs/repair-working-ccs-source-families.sql).
+It records the update for the two current roots, with an explicit working-schema
+guard and a current `CCSR_ICD10PCS` anchor. The archived script retains its schema
+placeholder and `ROLLBACK` preview default for reference; the CCS work is complete.
+This root metadata change does not require a content-index rebuild. The active
+editing database is cloned to the release server before the next release, carrying
+the correction forward. Published release files were outside the repair scope.
+
+## NCI MRCUI History (Research)
+
+**Status: investigation only; historical-concept repair and prevention have not
+been implemented.** The five-CUI sample belongs to the October 21, 2026 QA rerun
+for release `202608`, not the earlier `202602` sample.
+
+Read-only queries and the investigation chronology are retained in
+[`docs/release-mrcui-history-check.sql`](docs/release-mrcui-history-check.sql) and
+[`docs/release-mrcui-disappearance-check.sql`](docs/release-mrcui-disappearance-check.sql).
+Reported results establish four old-CUI histories attached to publishable
+`CL...` owners, whose revival is audited to `MATRIXINIT`. An overlapping
+`ASSIGNRELEASEIDS` run corroborates later identifier reassignment, but no
+per-field identifier-change audit was found. The fifth CUI, `C3495370`, has an
+unattached history row; its former owner and cause remain unresolved. These are
+findings from the queried database, not verified current editing-server state.
+
+The proposed repair for the four revived owners would preserve their live
+concepts and atoms, while attaching the original `DEL` histories to separate
+unpublishable historical concepts with the original CUIs and release dates.
+Proposed prevention would preserve historical identity during release-ID
+reassignment and validate missing or mismatched history owners before export.
+No repair routine or prevention change has been implemented for these MRCUI
+findings. No regenerated MRCUI or passing QA result is recorded.
 
 ## Database And Migrations
 

@@ -23,12 +23,14 @@ Checks:
   `toTerminology` and `toVersion` do not match a row in `terminologies`.
 - `Tree position for non-current terminology version`: finds tree positions
   whose terminology/version is not marked current in `terminologies`.
-- `Atom current MTH concept terminology id missing`: finds publishable atoms
-  without a `conceptTerminologyIds` entry for `MTH` plus the current `MTH`
-  version.
+- `Current MTH atom missing current MTH concept terminology id`: finds
+  publishable atoms from the current `MTH` release without a
+  `conceptTerminologyIds` entry for that release.
 
-The validation queries intentionally return only two values per row so they
-follow the existing MID validation result shape.
+These five checks use two values per row to identify the affected component
+and its type. `MIDValidationReport` reads multi-column result rows by position
+and prints their values; it does not require exactly two columns or specific
+column aliases. Workflow bin regeneration has separate concept-id requirements.
 
 ## Publishable Old Version Content
 
@@ -655,23 +657,34 @@ group by componentType, terminology, version
 order by treePositionCt desc, componentType, terminology, version;
 ```
 
-## Atom Current MTH Concept Terminology Ids
+## Current MTH Atom Concept Terminology Ids
 
-This check identifies publishable atoms that do not have an atom
-`conceptTerminologyIds` entry for the current MTH release key. The key is built
-from `terminologies` as `MTH` plus the current MTH `version`; the workflow
-query does not hard-code the version.
+This check identifies publishable atoms from the current MTH release that do
+not have an atom `conceptTerminologyIds` entry for that release. The key is
+built from `terminologies` as `MTH` plus the current MTH `version`; the
+workflow query does not hard-code the version.
+
+The check is intentionally limited to atoms whose terminology and version are
+the current MTH release. Non-MTH atoms are not guaranteed to have the current
+MTH key. In particular, SNOMEDCT_US is loaded through a separate insertion and
+is skipped while the MTH atom loader processes `umlscui.txt`. Source atoms
+inserted after the current MTH release also cannot be expected to have that
+release key.
 
 Saved workflow query:
 
 ```sql
 select a.id componentId, 'ATOM' componentType
 from atoms a
-join terminologies t on t.terminology = 'MTH' and t.current = true
+join terminologies t
+  on t.terminology = 'MTH'
+  and t.version = a.version
+  and t.current = true
 left join atomjpa_conceptterminologyids cid
   on cid.AtomJpa_id = a.id
   and cid.conceptTerminologyIds_KEY = concat(t.terminology, t.version)
-where a.publishable
+where a.terminology = 'MTH'
+  and a.publishable
   and cid.AtomJpa_id is null
 ```
 
@@ -680,19 +693,349 @@ Review query:
 ```sql
 select
   concat(t.terminology, t.version) requiredKey,
-  a.terminology,
-  a.version,
-  count(*) atomCt
+  count(*) missingAtomCt,
+  min(a.id) sampleAtomId
 from atoms a
-join terminologies t on t.terminology = 'MTH' and t.current = true
+join terminologies t
+  on t.terminology = 'MTH'
+  and t.version = a.version
+  and t.current = true
 left join atomjpa_conceptterminologyids cid
   on cid.AtomJpa_id = a.id
   and cid.conceptTerminologyIds_KEY = concat(t.terminology, t.version)
-where a.publishable
+where a.terminology = 'MTH'
+  and a.publishable
   and cid.AtomJpa_id is null
-group by requiredKey, a.terminology, a.version
-order by atomCt desc, a.terminology, a.version;
+group by requiredKey;
 ```
+
+## Retired Source Without Bequeathal To Root
+
+The corrected `Retired source w/o bequeathal rel to root` workflow check finds
+unpublishable `SRC/VAB` atoms for old versions of sources that still have a
+current release. It accepts all three bequeathal types (`BRO`, `BRN`, `BRB`),
+matches the exact `V-<terminology>` root code or an approved alternate root,
+and requires a publishable root concept and RAB in the same project
+terminology/version. A version already in
+its own publishable root concept needs no self-relationship. Current sources
+with missing or unpublishable roots still fail the check. Entirely retired
+sources are outside this check; their historical bequeathals require separate
+review. The separate `Publishable Bequeathal Relationship` check enforces
+unpublishable relationship flags.
+
+The relationship itself need not be owned by the project terminology/version.
+The loader preserves relationship source provenance, so an unpublished
+`MTH/2026AA` bequeathal can legitimately connect two `NCIMTH/latest` concepts.
+Do not require `r.terminology = c.terminology` or `r.version = c.version`, and
+do not duplicate or retag valid MTH-owned links to satisfy the check.
+
+The user confirmed these alternate roots are intentional: CDCREC may bequeath
+to CDC, and MTHSPL or MTHCMSFRF may bequeath to MTH. The check accepts each
+source's own root and these explicit alternatives, including when the old VAB
+is already in an accepted live root concept. Other source/root combinations
+still require review; no broader family or prefix-based exception is inferred.
+
+[retired-source-bequeathal-check.sql](retired-source-bequeathal-check.sql) is a
+read-only, application-ready query for `NCIMTH/latest`, with literal values and
+no variables or trailing semicolon. Paste its contents into the bin's Query
+field. The saved definition in `workflow.MVO.txt` uses the equivalent project
+parameters for reuse. Update the existing bin's Query and Description through
+the workflow editor; merely deploying this file does not update a database's
+existing bin. Add a semicolon when executing the SQL interactively in MySQL.
+
+The corrected query returns `clusterId, conceptId`, using the same concept id
+in both columns to create one independent cluster per finding. This result
+shape also works with the MID report. Bin regeneration always
+uses `executeClusteredConceptQuery`, which treats `conceptId1, conceptId2` as
+pairs to cluster and discards pairs whose ids are equal. Thus the original
+query can return 30 rows in SQL or the MID report while generating an empty bin.
+Whitespace is not the cause. To regenerate using the original predicates,
+change only its SELECT list to
+`SELECT DISTINCT c_a.concepts_id AS clusterId, c_a.concepts_id AS conceptId`.
+The bin editor's Test endpoint has a separate issue: for query style `OTHER`,
+it executes a limited query but discards the results and returns a zero count.
+That Test behavior does not explain regeneration; the duplicate-id pair
+handling does.
+
+The original 30 findings were resolved diagnostically as follows:
+
+| Findings | Evidence | Repair |
+| --- | --- | --- |
+| 15 old concepts | Existing `BRN` to the correct root and inverse `BRB` | Preserve those relationships; the old check accepted only `BRO` |
+| 12 old concepts | CCS_10, NDFRT, NDFRT_FDASPL, NDFRT_FMTSME have no current release and unpublished root RABs | Exclude these fully retired sources from the root check |
+| 3 old concepts | Existing `BRO` goes elsewhere, with no relationship to the expected root | Add the missing root pairs below |
+
+The earlier diagnostic also showed 24 existing `BRN`/`BRB` rows marked
+publishable. That concerns the separate `Publishable Bequeathal Relationship`
+check and is not a prerequisite for clearing this missing-root check.
+Publishability cleanup is covered separately below.
+NDFRT's root concept remains publishable but its RAB does not; that is not a
+reason to republish the RAB or change the concept. These results describe the
+supplied snapshot, not which insertion or editor caused it.
+
+### Add The Three Missing Root Pairs
+
+| Source | Old concept / CUI | Root concept / CUI | Existing destination retained |
+| --- | --- | --- | --- |
+| ICD10 | 2859814 / CL466586 | 28704768 / CL1793137 | 658023 / C1137110 (publishable, no SRC RAB) |
+| RXNORM | 43277739 / C5978422 | 660568 / C1140284 | 38122176 / C5884345 (unpublishable old version) |
+| VANDF | 43277741 / C5978423 | 660569 / C1140288 | 38122178 / C5884346 (unpublishable old version) |
+
+Use the scoped `ADHOC` maintenance action added for this repair. After
+deploying a build containing the change, configure a maintenance
+process for project `NCIMTH/latest` with one enabled `ADHOC` step:
+
+| Parameter | Value |
+| --- | --- |
+| Action Name | `Add missing retired source root bequeathals (NM-298)` |
+| Integer parameter | Unused; leave the default |
+| String parameter | Unused; leave blank |
+
+This action requires no input file or input directory. Use the normal process
+log configuration. It checks the exact concept ids, CUIs, project versions,
+publishability, and retired VAB/live RAB codes for all three pairs before
+adding any relationships. It locks the six concepts in id order and adds the
+missing `BRO` links with metadata-defined inverses through the content service.
+Both directions are unpublishable, unpublished, and `READY_FOR_PUBLICATION`.
+All additions share one transaction, with rollback on failure. The normal
+persistence path allocates ids and updates search state, so no separate manual
+reindex is needed.
+
+Expect the log to report `Root pairs added = 3; already valid = 0; relationship
+rows added = 6`. A rerun with three complete, unpublishable bequeathal pairs
+reports zero added and three already valid. Existing valid `BRN`/`BRB` pairs
+and MTH-owned pairs are accepted without alteration. A partial, duplicate,
+conflicting, or publishable pair causes the action to stop for review, as does
+an endpoint or SRC atom that no longer matches the supplied snapshot. Existing
+links to other destinations and concept publishability remain unchanged.
+
+Validation: nine database-free `RetiredSourceRootRepairUnitTest` tests pass,
+covering the three exact pairs, endpoint/atom drift, reruns, preserved history,
+and conflicting or incomplete pairs. Main/test Checkstyle and SpotBugs also
+pass. The action has not been deployed or run against the target database.
+
+After running the AdHoc action, rerun the updated root check and regenerate
+its bin. Expect zero findings on the reviewed data snapshot. Verify the six
+new rows have the intended endpoints, inverses, and false publishability
+flags. No separate SQL data repair is needed for this check.
+
+The repository changes prepare the repair; no target-database changes have
+been executed by the agent.
+
+### Additional Findings From The Corrected Check
+
+A full-database run of an earlier revision of the corrected check returned 22
+concepts: the three known cases and 19 outside the original report. Follow-up
+inspection found 16 of the additional concepts already have unpublished
+`MTH/2026AA` BROs to their correct, publishable source roots. The relationship
+ownership restriction in that revision was too strict and has been removed.
+In reconstructed test data, that correction reduced the exact-root check from
+22 concepts to six. The user then confirmed the alternate destinations for the
+other three additional concepts are intentional:
+
+| Concept | Source | Existing destination | Review |
+| --- | --- | --- | --- |
+| 25270005 / CL1677269 | CDCREC | V-CDC (2832454 / CL337097) | Approved alternate root; preserve the relationship |
+| 40541569 / C5978416 | MTHCMSFRF | V-MTH (105671 / C0220961) | Approved alternate root; preserve the relationship and publishable concept |
+| 43277743 / C5978424 | MTHSPL | V-MTH (105671 / C0220961) | Approved alternate root; preserve the relationship |
+
+Concept 46009702 has two BROs: one NCIMTH-owned to V-MTH and one MTH-owned to
+its exact V-MTHSPL root. The latter already satisfies the revised check. The
+25 diagnostic rows represent 22 concepts because 40541569 has three matching
+VAB codes and 46009702 has two relationships. With the approved alternatives
+included, the final check leaves only the three original missing-root cases
+on the supplied snapshot. Keep the AdHoc repair limited to those three pairs.
+Matching own or approved alternate roots is an additional requirement relative
+to the original check, which accepted any live SRC RAB.
+
+The user subsequently executed the final query in MySQL and confirmed exactly
+three rows in 0.17 seconds: ICD10 `2859814`, RXNORM `43277739`, and VANDF
+`43277741`. Each row has the same id in `clusterId` and `conceptId`. This
+confirms the final database result matches the three AdHoc repair targets;
+it does not establish that the repair has run or that bin regeneration has
+been verified. After successfully adding these root pairs, the check is
+expected to return zero on this data snapshot.
+
+The application bin count remains a separate verification: save the exact
+revised query, regenerate, and compare it with the raw SQL result.
+
+## Publishable Bequeathal Relationships
+
+The supplied `NCIMTH` check returned 64 publishable relationship rows, or 32
+forward/inverse pairs. All had `lastModifiedBy = E-CFC` and workflow status
+`READY_FOR_PUBLICATION`, with creation timestamps on August 24–25 and
+September 25, 2026. That pattern is consistent with editor creation followed
+by approval; the last modifier alone does not prove which path created each
+row. Creation atomic actions are needed for definitive attribution.
+
+The editor's single and bulk Add Relationship endpoints previously set every
+non-XR relationship to publishable, including `BRO`, `BRN`, and `BRB`. Inverse
+creation copied that flag. `CreateConceptRelBequeathalAlgorithm` independently
+set new bequeathals to publishable, and relationship loaders honored the input
+publishability flag. Approval did not consistently clear it for relationships
+on concepts that were already retired. This allowed new findings to accumulate
+after a cleanup.
+
+The permanent fix enforces `publishable = false` for concept-level `BRO`,
+`BRN`, and `BRB` relationships, including inverses and source-owned rows:
+
+- Editor defaults and the automatic bequeathal creator now produce
+  unpublishable bequeathals. The loader normalizes flags after mapping legacy
+  relationship types and before constructing inverses.
+- Shared component add/update paths enforce the rule before persistence and
+  atomic-action comparison. JPA pre-persist/pre-update callbacks also cover
+  direct changes to managed entities that bypass an explicit service update.
+- The historical `published` flag, workflow status, endpoints, and other
+  relationship types are preserved. Existing invalid rows remain visible when
+  read; this change is not a bulk data migration.
+
+After deploying the fix, use the existing `ADHOC` action **Fix bequeathal rels
+to unpublishable** once to clear existing findings. Its query covers all
+terminologies and versions, so its update count can exceed the 64 rows from
+the `NCIMTH` check. It changes the relationship publishable flag through the
+content service and normal search indexing; no separate manual reindex or new
+SQL repair file is needed. This action requires no input file or input
+directory; leave the process Input Path blank. This cleanup is independent of
+the three missing-root pairs above.
+
+Older builds can reject a blank Input Path with `process input directory must
+not be blank` before the cleanup starts. The shared AdHoc precondition began
+validating that path during the NM-325 constrained-path update, even for this
+database-only action. A review of all 67 AdHoc actions found 62 that do not use
+Input Path. The precondition now validates and initializes the input directory
+only for the five actions that use it for file I/O; the project requirement and
+the scoped root-repair project check remain in effect. Deploy the updated build
+and rerun database-only actions with Input Path blank.
+
+| AdHoc action requiring Input Path | File use beneath Input Path |
+| --- | --- |
+| `Fix Atom Last Release CUI` | Reads `<version>/META/MRCONSO.RRF` |
+| `Initialize Source Atom Id Range App` | Reads `<version>/META/src_atom_id_range.out` |
+| `Update Root Terminology Contact Info From UMLS` | Reads RRF metadata, using `MRSAB.RRF` |
+| `Reload Workflow Bin Definition Queries` | Reads `test.txt` |
+| `Write Meddra Ncit Overlap Report` | Writes `maint/dsstmp.txt` |
+
+For these five actions, Input Path must still identify an existing directory
+under `source.data.dir`. Their existing file/version checks and output locations
+remain unchanged. Actions such as `Fix Orphan Definitions`, `Fix Duplicate
+Concepts`, `Fix Workflow Bin Ranks`, and `Approve worklist cluster` no longer
+require a dummy input directory or fail because of an unused stale path.
+Register new file-dependent actions in `AdHocInputDirectory` when adding them.
+
+`AdHocInputDirectoryUnitTest` exercises database-only actions with blank or
+unused paths, all five file-dependent actions with valid and invalid paths,
+directory-boundary validation, and the report's configured output base. These
+tests do not connect to a database or execute any maintenance action.
+Validation: `make quality UNIT_TEST_PATTERN='*AdHocInputDirectoryUnitTest'`
+passed all seven tests plus main/test Checkstyle and SpotBugs.
+
+Rerun the existing validation query after cleanup:
+
+```sql
+SELECT r.from_id AS conceptId1, r.to_id AS conceptId2
+FROM concept_relationships r
+WHERE r.terminology = 'NCIMTH'
+  AND r.relationshipType IN ('BRO', 'BRB', 'BRN')
+  AND r.publishable = true;
+```
+
+Expect zero rows after successful cleanup. On a test instance, add a BRO and
+a BRN through the editor, approve their concepts, and verify both directions
+remain unpublishable. The database-free `RelationshipPublishabilityUnitTest`
+covers the shared rule, creation flag order, inverse pairs, JPA callback wiring,
+attempts to republish, and preservation of unrelated fields and components.
+Live editor/loader execution and target-database cleanup are separate deployment
+verification steps.
+
+Validation: `make quality UNIT_TEST_PATTERN='*Relationship*UnitTest'` passed
+main/test Checkstyle and SpotBugs plus 96 unit tests, including the nine new
+publishability regressions. No target-database changes were executed.
+
+## Historical SRC VPT String Identity Exceptions
+
+The `Mismatches in string_ui,classes,atoms` check retains its original three
+result columns and mismatch comparison, but excludes the three historical
+cases below. These are accepted exceptions, not repaired identities.
+
+This query is for the MID validation report, which accepts these three text
+columns without requiring concept-id aliases. It is not suitable for the
+Regenerate Bin action: that path requires numeric concept ids selected as
+`conceptId`, `conceptId1, conceptId2`, or `clusterId, conceptId`. A concept-bin
+variant would need to join the affected atoms to their project concepts;
+renaming the string-id and name columns does not make them concept ids.
+
+| Atom id | NCIMTH AUI | Existing SUI | Current atom name | Existing string identity text |
+| --- | --- | --- | --- | --- |
+| 8902115 | A16363085 | S0558535 | NCBI Taxonomy, 2018_04_19 | NCBI Taxonomy |
+| 11042820 | A16682724 | S9823109 | Vaccines Administered, 2018_10_18, 2019_03_04 | Vaccines Administered, 2018_10_18, 2019_02_04 |
+| 11881919 | A16822689 | S0558535 | NCBI Taxonomy, 2019_05_08 | NCBI Taxonomy |
+
+The legacy AdHoc methods `fixVPTAndTerminologies()` (2019) and `fixNCBIVPT()`
+(2020) changed these exact atom names without updating the associated SUIs.
+User-supplied database results show that all three are `SRC/latest` `VPT`
+atoms with `publishable = false` and `published = true`; each AUI occurs only
+on its expected atom. Their current LUIs reflect the corrected names. The
+lookup for string identities matching those names returned no matches.
+
+The supplied `201908/META/MRCONSO.RRF` output contains the first two AUIs with
+their current names and old SUIs, confirming those combinations were already
+distributed. The supplied `202608` release output contains none of the three
+AUIs. Release content for the third AUI around the 2020 name correction has
+not been verified. The accepted approach preserves these historical identity
+associations and leaves the atom and identity data unchanged.
+
+Each exception requires the exact atom id, SUI, atom name, and identity text,
+plus `SRC/latest`, `VPT`, and unpublishable status. Binary casts make the SUI
+and name comparisons exact, including case and trailing spaces, without the
+deprecated `BINARY expr` syntax. A mismatch outside those conditions remains
+reportable, including one of these atoms becoming publishable again. The
+check does not generally exempt retired atoms or SRC content.
+
+For an existing application database, replace the Query field of
+**Mismatches in string_ui,classes,atoms** under `MID_VALIDATION_OTHER` with the
+following SQL. Updating the checked-in `workflow.MVO.txt` alone does not
+update an existing saved definition. Keep the check enabled, and describe
+the three historical exceptions in its Description field.
+
+```sql
+SELECT a.stringClassId, a.name AS atoms_name, sci.name AS sci_name
+FROM atoms a
+JOIN string_class_identity sci
+  ON sci.id = SUBSTRING(a.stringClassId, 2) + 0
+WHERE a.name <> sci.name
+  AND NOT (
+    a.terminology = 'SRC'
+    AND a.version = 'latest'
+    AND a.termType = 'VPT'
+    AND a.publishable = false
+    AND (
+      (
+        a.id = 8902115
+        AND CAST(a.stringClassId AS BINARY) = 'S0558535'
+        AND CAST(a.name AS BINARY) = 'NCBI Taxonomy, 2018_04_19'
+        AND CAST(sci.name AS BINARY) = 'NCBI Taxonomy'
+      )
+      OR (
+        a.id = 11042820
+        AND CAST(a.stringClassId AS BINARY) = 'S9823109'
+        AND CAST(a.name AS BINARY) = 'Vaccines Administered, 2018_10_18, 2019_03_04'
+        AND CAST(sci.name AS BINARY) = 'Vaccines Administered, 2018_10_18, 2019_02_04'
+      )
+      OR (
+        a.id = 11881919
+        AND CAST(a.stringClassId AS BINARY) = 'S0558535'
+        AND CAST(a.name AS BINARY) = 'NCBI Taxonomy, 2019_05_08'
+        AND CAST(sci.name AS BINARY) = 'NCBI Taxonomy'
+      )
+    )
+  )
+```
+
+Rerun this check after saving. On the supplied three-row snapshot, the revised
+query should return zero rows. That means no unaccepted mismatches remain;
+the three historical inconsistencies still exist. No data repair, identity
+allocation, AdHoc cleanup, or reindex is needed for this query-only change.
+The revised query has not been executed against the target database.
 
 ## Pre-Cleanup Review
 
