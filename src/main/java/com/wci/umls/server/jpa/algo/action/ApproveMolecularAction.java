@@ -261,7 +261,10 @@ public class ApproveMolecularAction extends AbstractMolecularAction {
 
     getConcept().setLastApprovedBy(getLastModifiedBy());
     getConcept().setLastApproved(new Date());
-    
+
+    // Approval also reconciles concepts repopulated by earlier editing actions.
+    ConceptPublicationPolicy.restorePublishability(getConcept());
+
     // NM-228 mark concept unpublishable if no publishable atoms
     boolean foundPublishableAtom = false;
     for (Atom a : getConcept().getAtoms()) {
