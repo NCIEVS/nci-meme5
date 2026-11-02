@@ -447,6 +447,27 @@ the number of publishable non-bequeathal concept relationship input rows that
 resolve to an unpublishable endpoint and logs identifying information for the
 first ten rows.
 
+### Restoring Concept Publication After Merges And Approval
+
+Merge restores the surviving concept's publishable flag when the combined
+concept has a publishable atom. Approval also restores that flag when
+publishable atoms are present, including concepts repopulated by earlier
+editing actions. Both use the existing Matrix Initializer atom criterion;
+the separate MTH/NCIMTH-only cleanup policy is unchanged.
+
+Restoration changes the concept's publishable flag without republishing its
+historical relationships or attributes. Approval still makes concepts with
+no publishable atoms unpublishable and retains the relationship cascade
+described above. Publication changes are persisted through the existing
+molecular-action updates and audit mechanism.
+
+Deploying this prevention does not repair existing atom/owner inconsistencies.
+Run Matrix Initializer with the current project index to reconcile affected
+concepts, then rerun this MID validation check. Review the direction of repair:
+publishable source atoms merged into a surviving, unpublishable CUI call for
+concept publication reconciliation, rather than automatically disabling those
+source atoms with the generic cleanup SQL below.
+
 ### Rollout And Monitoring Plan
 
 Use the following sequence before cleaning historical data:

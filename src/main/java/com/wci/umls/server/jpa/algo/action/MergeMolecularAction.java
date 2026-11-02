@@ -307,6 +307,9 @@ public class MergeMolecularAction extends AbstractMolecularAction {
       getToConcept().getAtoms().add(atom);
     }
 
+    // Repopulating a retired CUI must restore the surviving concept's publication.
+    ConceptPublicationPolicy.restorePublishability(getToConcept());
+
     // Add new semantic types and wire them to "to" concept (unless they match)
     final Set<String> toConceptStys = getToConcept().getSemanticTypes().stream()
         .map(sty -> sty.getSemanticType()).collect(Collectors.toSet());
