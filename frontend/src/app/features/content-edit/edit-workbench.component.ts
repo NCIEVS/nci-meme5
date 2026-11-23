@@ -4,6 +4,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   ActivatedRoute,
+  Router,
   RouterLink,
   RouterLinkActive
 } from '@angular/router';
@@ -174,6 +175,7 @@ export class EditWorkbenchComponent implements OnInit {
   private readonly operationsApi = inject(OperationalApiService);
   private readonly workflowApi = inject(WorkflowApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   protected readonly projectContext = inject(ProjectContextService);
   private readonly routeWorkbench = toSignal(
     this.route.data.pipe(
@@ -1746,12 +1748,17 @@ export class EditWorkbenchComponent implements OnInit {
         const nextConceptId = nextRecord.concepts?.[0]?.id;
         if (!nextConceptId) return;
 
-        const url = new URL(window.location.href);
-        url.searchParams.set('componentId', String(nextConceptId));
-        url.searchParams.set('recordId', String(nextRecord.id));
-        // Remove terminologyId so loadConcept() uses componentId, not the previous concept's CUI
-        url.searchParams.delete('terminologyId');
-        window.location.href = url.toString();
+        // Update Angular's hash-route params and discard the previous concept's CUI.
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParamsHandling: 'merge',
+          queryParams: {
+            componentId: String(nextConceptId),
+            recordId: String(nextRecord.id),
+            terminologyId: null,
+            id: null
+          }
+        });
       },
       error: () => this.notifications.error('Could not load next concept.')
     });
