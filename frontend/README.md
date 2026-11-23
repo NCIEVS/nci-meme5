@@ -33,3 +33,14 @@ runners fail to start when launched from shells that inherit that VS Code/Codex
 environment variable.
 
 The root `Makefile` wraps the same commands with `make frontend-*` targets.
+
+The focused edit workbench navigation regression tests use mocked API responses
+and require only the frontend dev server. They cover STY Next and Approve/Next,
+checklists, the end of a worklist, and approval validation that blocks navigation:
+
+```bash
+npm run e2e -- --spec cypress/e2e/edit-workbench-navigation.cy.ts --config trashAssetsBeforeRuns=false
+```
+
+Workbench navigation updates the concept and tracking record in the Angular
+hash route while preserving the project, activity, and worklist context.
